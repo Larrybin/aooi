@@ -31,6 +31,13 @@ export enum PostStatus {
   ARCHIVED = 'archived', // archived means deleted
 }
 
+type LocalPostFrontmatter = {
+  created_at?: string;
+  author_name?: string;
+  author_image?: string;
+  image?: string;
+};
+
 export async function addPost(data: NewPost) {
   const [result] = await db().insert(post).values(data).returning();
 
@@ -220,7 +227,7 @@ export async function getLocalPost({
     />
   );
 
-  const frontmatter = localPost.data as any;
+  const frontmatter = localPost.data as LocalPostFrontmatter;
 
   const post: BlogPostType = {
     id: localPost.path,
@@ -268,7 +275,7 @@ export async function getLocalPage({
     />
   );
 
-  const frontmatter = localPage.data as any;
+  const frontmatter = localPage.data as LocalPostFrontmatter;
 
   const post: BlogPostType = {
     id: localPage.path,
@@ -476,7 +483,7 @@ export async function getLocalPostsAndCategories({
   // Build posts data from local content
   localPostsList.push(
     ...localPosts.map((post) => {
-      const frontmatter = post.data as any;
+      const frontmatter = post.data as LocalPostFrontmatter;
       const slug = getPostSlug({
         url: post.url,
         locale,

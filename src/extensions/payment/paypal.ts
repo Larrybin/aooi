@@ -106,7 +106,7 @@ export class PayPalProvider implements PaymentProvider {
       }
 
       const approvalUrl = result.links?.find(
-        (link: any) => link.rel === 'approve'
+        (link: { rel: string }) => link.rel === 'approve'
       )?.href;
 
       return {
@@ -254,7 +254,7 @@ export class PayPalProvider implements PaymentProvider {
       }
 
       const approvalUrl = subscriptionResponse.links?.find(
-        (link: any) => link.rel === 'approve'
+        (link: { rel: string }) => link.rel === 'approve'
       )?.href;
 
       return {
@@ -403,7 +403,11 @@ export class PayPalProvider implements PaymentProvider {
     this.tokenExpiry = Date.now() + data.expires_in * 1000;
   }
 
-  private async makeRequest(endpoint: string, method: string, data?: any) {
+  private async makeRequest(
+    endpoint: string,
+    method: string,
+    data?: Record<string, unknown>
+  ) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.accessToken}`,
@@ -425,7 +429,7 @@ export class PayPalProvider implements PaymentProvider {
       let errorMessage = result.name;
       if (result.details) {
         errorMessage += `: ${result.details
-          .map((detail: any) => detail.issue)
+          .map((detail: { issue: string }) => detail.issue)
           .join(', ')}`;
       }
       throw new Error(`PayPal request failed: ${errorMessage}`);

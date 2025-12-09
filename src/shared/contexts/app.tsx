@@ -13,6 +13,10 @@ import { useRouter } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
 import { User } from '@/shared/models/user';
 
+type OneTapCapable = {
+  oneTap: (...args: any[]) => Promise<any>;
+};
+
 export interface ContextValue {
   user: User | null;
   isCheckSign: boolean;
@@ -111,8 +115,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
 
   const showOneTap = async function (configs: Record<string, string>) {
     try {
-      const authClient = getAuthClient(configs);
-      await authClient.oneTap({
+      const client = getAuthClient(configs) as unknown as OneTapCapable;
+      await client.oneTap({
         callbackURL: '/',
         onPromptNotification: (notification: any) => {
           // Handle prompt dismissal silently

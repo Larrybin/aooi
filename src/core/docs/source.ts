@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { docs, pages, posts } from '@/.source';
 import type { I18nConfig } from 'fumadocs-core/i18n';
-import { loader } from 'fumadocs-core/source';
+import { loader, type Source, type SourceConfig } from 'fumadocs-core/source';
 import { icons } from 'lucide-react';
 
 export const i18n: I18nConfig = {
@@ -18,10 +18,19 @@ const iconHelper = (icon: string | undefined) => {
   if (icon in icons) return createElement(icons[icon as keyof typeof icons]);
 };
 
+export const toLoaderSource = <Config extends SourceConfig>(
+  input: Source<Config>
+): Source<Config> => {
+  const anyInput = input as unknown as { files: any };
+  const files =
+    typeof anyInput.files === 'function' ? anyInput.files() : anyInput.files;
+  return { files } as Source<Config>;
+};
+
 // Docs source
 export const docsSource = loader({
   baseUrl: '/docs',
-  source: docs.toFumadocsSource(),
+  source: toLoaderSource(docs.toFumadocsSource()),
   i18n,
   icon: iconHelper,
 });
@@ -29,7 +38,7 @@ export const docsSource = loader({
 // Pages source (using root path)
 export const pagesSource = loader({
   baseUrl: '/',
-  source: pages.toFumadocsSource(),
+  source: toLoaderSource(pages.toFumadocsSource()),
   i18n,
   icon: iconHelper,
 });
@@ -37,7 +46,7 @@ export const pagesSource = loader({
 // Posts source
 export const postsSource = loader({
   baseUrl: '/blog',
-  source: posts.toFumadocsSource(),
+  source: toLoaderSource(posts.toFumadocsSource()),
   i18n,
   icon: iconHelper,
 });

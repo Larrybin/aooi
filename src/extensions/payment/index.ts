@@ -20,7 +20,7 @@ export interface PaymentCustomer {
   id?: string;
   email?: string;
   name?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PaymentCustomField {
@@ -28,7 +28,7 @@ export interface PaymentCustomField {
   name: string;
   label: string;
   isRequired?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -39,7 +39,7 @@ export interface PaymentProduct {
   name?: string;
   description?: string;
   price: PaymentPrice;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export enum PaymentType {
@@ -74,7 +74,7 @@ export interface PaymentPlan {
   interval: PaymentInterval;
   intervalCount?: number;
   trialPeriodDays?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -92,7 +92,7 @@ export interface PaymentOrder {
   description?: string; // checkout description
   successUrl?: string;
   cancelUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   plan?: PaymentPlan; // required for subscription
   customFields?: PaymentCustomField[]; // optional for custom fields
 }
@@ -154,7 +154,7 @@ export interface SubscriptionInfo {
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   billingUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   status?: SubscriptionStatus;
   canceledAt?: Date; // cancel apply at
   canceledReason?: string; // cancel reason
@@ -168,11 +168,11 @@ export interface SubscriptionInfo {
 export interface CheckoutSession {
   provider: string;
 
-  checkoutParams: any; // checkout request params
+  checkoutParams: unknown; // checkout request params
   checkoutInfo: CheckoutInfo; // checkout info after checkout success
-  checkoutResult: any; // provider checkout result
+  checkoutResult: unknown; // provider checkout result
 
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -184,14 +184,14 @@ export interface PaymentSession {
   // payment info
   paymentStatus?: PaymentStatus; // payment status
   paymentInfo?: PaymentInfo; // payment info after payment success
-  paymentResult?: any; // provider payment result
+  paymentResult?: unknown; // provider payment result
 
   // subscription info
   subscriptionId?: string;
   subscriptionInfo?: SubscriptionInfo; // subscription info after subscription success
-  subscriptionResult?: any; // provider subscription result
+  subscriptionResult?: unknown; // provider subscription result
 
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export enum PaymentEventType {
@@ -210,7 +210,7 @@ export interface EventInfo {}
  */
 export interface PaymentEvent {
   eventType: PaymentEventType;
-  eventResult: any; // provider event result
+  eventResult: unknown; // provider event result
 
   paymentSession?: PaymentSession;
 }
@@ -230,7 +230,7 @@ export interface PaymentBilling {
  * Payment configs interface
  */
 export interface PaymentConfigs {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

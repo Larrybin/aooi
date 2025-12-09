@@ -39,7 +39,11 @@ export interface StorageUploadResult {
  * Storage configs interface
  */
 export interface StorageConfigs {
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+export function toUint8Array(body: Buffer | Uint8Array): Uint8Array {
+  return body instanceof Uint8Array ? body : new Uint8Array(body);
 }
 
 /**

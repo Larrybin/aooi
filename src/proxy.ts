@@ -3,6 +3,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import createIntlMiddleware from 'next-intl/middleware';
 
 import { routing } from '@/core/i18n/config';
+import { locales, type Locale } from '@/config/locale';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -13,10 +14,10 @@ export async function proxy(request: NextRequest) {
   const intlResponse = intlMiddleware(request);
 
   // Extract locale from pathname
-  const locale = pathname.split('/')[1];
-  const isValidLocale = routing.locales.includes(locale as any);
+  const localeSegment = pathname.split('/')[1];
+  const isValidLocale = locales.includes(localeSegment as Locale);
   const pathWithoutLocale = isValidLocale
-    ? pathname.slice(locale.length + 1)
+    ? pathname.slice(localeSegment.length + 1)
     : pathname;
 
   // Only check authentication for admin routes
@@ -31,7 +32,7 @@ export async function proxy(request: NextRequest) {
     // If no session token found, redirect to sign-in
     if (!sessionCookie) {
       const signInUrl = new URL(
-        isValidLocale ? `/${locale}/sign-in` : '/sign-in',
+        isValidLocale ? `/${localeSegment}/sign-in` : '/sign-in',
         request.url
       );
       // Add the current path (including search params) as callback - use relative path for multi-language support
