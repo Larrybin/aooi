@@ -25,25 +25,23 @@ export function SocialProviders({
 }) {
   const t = useTranslations('common.sign');
   const router = useRouter();
+  const locale = useLocale();
 
   const { setIsShowSignModal } = useAppContext();
 
-  if (callbackUrl) {
-    const locale = useLocale();
-    if (
-      locale !== defaultLocale &&
-      callbackUrl.startsWith('/') &&
-      !callbackUrl.startsWith(`/${locale}`)
-    ) {
-      callbackUrl = `/${locale}${callbackUrl}`;
-    }
-  }
+  const localizedCallbackUrl =
+    callbackUrl &&
+    locale !== defaultLocale &&
+    callbackUrl.startsWith('/') &&
+    !callbackUrl.startsWith(`/${locale}`)
+      ? `/${locale}${callbackUrl}`
+      : callbackUrl;
 
   const handleSignIn = async ({ provider }: { provider: string }) => {
     await signIn.social(
       {
         provider: provider,
-        callbackURL: callbackUrl,
+        callbackURL: localizedCallbackUrl,
       },
       {
         onRequest: (ctx) => {

@@ -36,7 +36,7 @@ export default async function RoleEditPage({
     { title: t('edit.crumbs.edit'), is_active: true },
   ];
 
-  const form: Form = {
+  const form: Form<typeof role, { role: typeof role }> = {
     fields: [
       {
         name: 'name',
@@ -69,7 +69,7 @@ export default async function RoleEditPage({
       handler: async (data, passby) => {
         'use server';
 
-        const { role } = passby;
+        const role = passby?.role;
 
         if (!role) {
           throw new Error('no auth');

@@ -104,7 +104,7 @@ function buildFieldSchema(field: FormFieldType) {
 
   if (
     field.type === 'upload_image' &&
-    field.metadata?.max &&
+    typeof field.metadata?.max === 'number' &&
     field.metadata.max > 1
   ) {
     let arraySchema = z.array(z.string());
@@ -171,7 +171,7 @@ function buildFieldSchema(field: FormFieldType) {
 }
 
 const generateFormSchema = (fields: FormFieldType[]) => {
-  const schemaFields: Record<string, any> = {};
+  const schemaFields: Record<string, z.ZodTypeAny> = {};
 
   fields.forEach((field) => {
     if (field.name) {
@@ -182,7 +182,10 @@ const generateFormSchema = (fields: FormFieldType[]) => {
   return z.object(schemaFields);
 };
 
-export function Form({
+export function Form<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+  TPassby = unknown
+>({
   title,
   description,
   fields,
@@ -193,9 +196,9 @@ export function Form({
   title?: string;
   description?: string;
   fields?: FormFieldType[];
-  data?: any;
-  passby?: any;
-  submit?: FormSubmit;
+  data?: TData;
+  passby?: TPassby;
+  submit?: FormSubmit<TPassby>;
 }) {
   if (!fields) {
     fields = [];
@@ -205,21 +208,25 @@ export function Form({
 
   const router = useRouter();
   const FormSchema = generateFormSchema(fields);
-  const defaultValues: Record<string, any> = {};
+  const defaultValues: Record<string, unknown> = {};
 
   fields.forEach((field) => {
     if (field.name) {
       if (field.type === 'switch') {
-        const val = data?.[field.name] ?? field.value;
+        const val = (data as Record<string, unknown> | undefined)?.[
+          field.name
+        ] ?? field.value;
         defaultValues[field.name] =
           val === true || val === 'true' || val === 1 || val === '1';
       } else if (
         field.type === 'upload_image' &&
-        field.metadata?.max &&
+        typeof field.metadata?.max === 'number' &&
         field.metadata.max > 1
       ) {
         // Multiple image upload: default value is an array
-        const val = data?.[field.name] ?? field.value;
+        const val = (data as Record<string, unknown> | undefined)?.[
+          field.name
+        ] ?? field.value;
         if (typeof val === 'string' && val) {
           // If it's a comma-separated string, convert to array
           defaultValues[field.name] = val.split(',').filter(Boolean);
@@ -230,11 +237,16 @@ export function Form({
         }
       } else if (field.type === 'number') {
         // Convert number to string for input fields (HTML inputs always return strings)
-        const val = data?.[field.name] ?? field.value;
+        const val = (data as Record<string, unknown> | undefined)?.[
+          field.name
+        ] ?? field.value;
         defaultValues[field.name] =
           val !== null && val !== undefined ? String(val) : '';
       } else {
-        defaultValues[field.name] = data?.[field.name] || field.value || '';
+        const val = (data as Record<string, unknown> | undefined)?.[
+          field.name
+        ];
+        defaultValues[field.name] = val ?? field.value ?? '';
       }
     }
   });
@@ -294,14 +306,17 @@ export function Form({
         }
       }
 
-      if (res.redirect_url) {
-        router.push(res.redirect_url as any);
+      const redirectUrl = res.redirect_url;
+      if (redirectUrl) {
+        router.push(redirectUrl);
       }
 
       setLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.log('submit form error', err);
-      toast.error(err.message || 'submit form failed');
+      const message =
+        err instanceof Error ? err.message : 'submit form failed';
+      toast.error(message);
       setLoading(false);
     }
   }
@@ -332,7 +347,11 @@ export function Form({
                     <FormControl>
                       {item.type === 'textarea' ? (
                         <Textarea
-                          {...(field as any)}
+                          name={field.name}
+                          value={field.value as string}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
                           placeholder={item.placeholder}
                           {...item.attributes}
                         />

@@ -19,15 +19,16 @@ export function MarkdownEditor({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const editorRef = useRef<OverType>(null);
+  const initialOptionsRef = useRef({
+    value,
+    onChange,
+    placeholder,
+    minHeight,
+    showToolbar,
+  });
 
   useEffect(() => {
-    const [instance] = OverType.init(ref.current, {
-      value,
-      onChange,
-      placeholder,
-      minHeight,
-      showToolbar,
-    });
+    const [instance] = OverType.init(ref.current, initialOptionsRef.current);
     editorRef.current = instance;
 
     return () => editorRef.current?.destroy();

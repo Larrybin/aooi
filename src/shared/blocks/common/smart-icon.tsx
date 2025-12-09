@@ -30,15 +30,17 @@ export function SmartIcon({
       // React Icons (Remix Icons)
       iconCache[cacheKey] = lazy(async () => {
         try {
-          const module = await import('react-icons/ri');
-          const IconComponent = module[name as keyof typeof module];
+          const iconsModule = await import('react-icons/ri');
+          const IconComponent = iconsModule[name as keyof typeof iconsModule];
           if (IconComponent) {
             return { default: IconComponent as ComponentType<any> };
           } else {
             console.warn(
               `Icon "${name}" not found in react-icons/ri, using fallback`
             );
-            return { default: module.RiQuestionLine as ComponentType<any> };
+            return {
+              default: iconsModule.RiQuestionLine as ComponentType<any>,
+            };
           }
         } catch (error) {
           console.error(`Failed to load react-icons/ri:`, error);
@@ -52,15 +54,15 @@ export function SmartIcon({
       // Lucide React (default)
       iconCache[cacheKey] = lazy(async () => {
         try {
-          const module = await import('lucide-react');
-          const IconComponent = module[name as keyof typeof module];
+          const iconsModule = await import('lucide-react');
+          const IconComponent = iconsModule[name as keyof typeof iconsModule];
           if (IconComponent) {
             return { default: IconComponent as ComponentType<any> };
           } else {
             console.warn(
               `Icon "${name}" not found in lucide-react, using fallback`
             );
-            return { default: module.HelpCircle as ComponentType<any> };
+            return { default: iconsModule.HelpCircle as ComponentType<any> };
           }
         } catch (error) {
           console.error(`Failed to load lucide-react:`, error);

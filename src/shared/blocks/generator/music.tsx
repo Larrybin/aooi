@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle,
@@ -116,7 +116,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   }, []);
 
   // Task polling
-  const pollTaskStatus = async (taskId: string) => {
+  const pollTaskStatus = useCallback(async (taskId: string) => {
     try {
       // Check timeout (3 minutes = 180000ms)
       if (generationStartTime) {
@@ -153,7 +153,11 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         throw new Error('Query task info failed');
       }
 
-      const task = JSON.parse(taskInfo);
+      const task = JSON.parse(taskInfo) as {
+        errorCode?: string;
+        errorMessage?: string;
+        songs?: AISong[];
+      };
       const { errorCode, errorMessage, songs } = task;
       if (errorCode || errorMessage) {
         throw new Error(errorMessage);
@@ -168,23 +172,51 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       }
 
       // task processing
-      if (status === AITaskStatus.PROCESSING) {
+      if (status === AITaskStatus.PROCESSING && songs && songs.length > 0) {
         setProgress(20);
 
-        const isTextSuccess = songs.some((song: AISong) => song.imageUrl);
-        const isFirstSuccess = songs.some((song: AISong) => song.audioUrl);
+        const isTextSuccess = songs.some((song) => !!song.imageUrl);
+        const isFirstSuccess = songs.some((song) => !!song.audioUrl);
 
         // text success
         if (isTextSuccess) {
           setProgress(60);
-          setGeneratedSongs(songs);
+          setGeneratedSongs(
+            songs.map(
+              (song): GeneratedSong => ({
+                id: song.id ?? '',
+                title: song.title ?? '',
+                duration: song.duration,
+                audioUrl: song.audioUrl,
+                imageUrl: song.imageUrl ?? '',
+                artist: song.artist ?? '',
+                style: song.style ?? '',
+                status: '',
+                prompt: song.prompt,
+              })
+            )
+          );
           return false;
         }
 
         // first success
         if (isFirstSuccess) {
           setProgress(85);
-          setGeneratedSongs(songs);
+          setGeneratedSongs(
+            songs.map(
+              (song): GeneratedSong => ({
+                id: song.id ?? '',
+                title: song.title ?? '',
+                duration: song.duration,
+                audioUrl: song.audioUrl,
+                imageUrl: song.imageUrl ?? '',
+                artist: song.artist ?? '',
+                style: song.style ?? '',
+                status: '',
+                prompt: song.prompt,
+              })
+            )
+          );
           return false;
         }
 
@@ -205,8 +237,22 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       }
 
       // task success, final status
-      if (status === AITaskStatus.SUCCESS) {
-        setGeneratedSongs(songs);
+      if (status === AITaskStatus.SUCCESS && songs && songs.length > 0) {
+        setGeneratedSongs(
+          songs.map(
+            (song): GeneratedSong => ({
+              id: song.id ?? '',
+              title: song.title ?? '',
+              duration: song.duration,
+              audioUrl: song.audioUrl,
+              imageUrl: song.imageUrl ?? '',
+              artist: song.artist ?? '',
+              style: song.style ?? '',
+              status: '',
+              prompt: song.prompt,
+            })
+          )
+        );
 
         setProgress(100);
         setIsGenerating(false);
@@ -228,21 +274,23 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
       return true; // Stop polling on error
     }
-  };
+  }, [generationStartTime, fetchUserCredits]);
 
   // Start task polling
   useEffect(() => {
-    if (taskId && isGenerating) {
-      const interval = setInterval(async () => {
-        const completed = await pollTaskStatus(taskId);
-        if (completed) {
-          clearInterval(interval);
-        }
-      }, 10000); // Poll every 10 seconds
-
-      return () => clearInterval(interval);
+    if (!taskId || !isGenerating) {
+      return;
     }
-  }, [taskId, isGenerating, generationStartTime]);
+
+    const interval = setInterval(async () => {
+      const completed = await pollTaskStatus(taskId);
+      if (completed) {
+        clearInterval(interval);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [taskId, isGenerating, pollTaskStatus]);
 
   const handleGenerate = async () => {
     if (!user) {

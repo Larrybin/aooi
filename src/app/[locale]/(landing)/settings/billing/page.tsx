@@ -9,7 +9,7 @@ import {
   getCurrentSubscription,
   getSubscriptions,
   getSubscriptionsCount,
-  Subscription,
+  type Subscription,
   SubscriptionStatus,
 } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
@@ -46,7 +46,7 @@ export default async function BillingPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Subscription> = {
     title: t('list.title'),
     columns: [
       {
@@ -72,7 +72,7 @@ export default async function BillingPage({
       },
       {
         title: t('fields.amount'),
-        callback: function (item) {
+        callback: function (item: Subscription) {
           const currency = (item.currency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -86,8 +86,10 @@ export default async function BillingPage({
             prefix = `${currency} `;
           }
 
+          const amount = item.amount ?? 0;
+
           return (
-            <div className="text-primary">{`${prefix}${item.amount / 100}`}</div>
+            <div className="text-primary">{`${prefix}${amount / 100}`}</div>
           );
         },
       },

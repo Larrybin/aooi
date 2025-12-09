@@ -4,6 +4,7 @@ import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import {
+  type Credit,
   CreditStatus,
   CreditTransactionType,
   getCredits,
@@ -74,7 +75,7 @@ export default async function CreditsPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Credit> = {
     columns: [
       {
         name: 'transactionNo',

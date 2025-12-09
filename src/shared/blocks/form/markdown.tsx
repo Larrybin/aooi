@@ -11,7 +11,7 @@ export function Markdown({
 }: {
   field: FormField;
   formField: ControllerRenderProps<Record<string, unknown>, string>;
-  data?: any;
+  data?: Record<string, unknown>;
 }) {
   return (
     <MarkdownEditor

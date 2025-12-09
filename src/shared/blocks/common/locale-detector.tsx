@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { useLocale } from 'next-intl';
 
 import { usePathname, useRouter } from '@/core/i18n/navigation';
-import { localeNames, locales } from '@/config/locale';
+import { localeNames, locales, type Locale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { cacheGet, cacheSet } from '@/shared/lib/cache';
 import { getTimestamp } from '@/shared/lib/time';
@@ -14,35 +14,42 @@ const DISMISSED_KEY = 'locale-suggestion-dismissed';
 const DISMISSED_EXPIRY_DAYS = 1; // Expiry in days
 const PREFERRED_LOCALE_KEY = 'locale';
 
+function detectBrowserLocale(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const browserLang = navigator.language || (navigator as any).userLanguage;
+  if (!browserLang) {
+    return null;
+  }
+  const langCode = browserLang.split('-')[0].toLowerCase();
+
+  // Check if the detected language is in our supported locales
+  if (locales.includes(langCode as Locale)) {
+    return langCode;
+  }
+
+  return null;
+}
+
 export function LocaleDetector() {
   const currentLocale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const [showBanner, setShowBanner] = useState(false);
-  const [browserLocale, setBrowserLocale] = useState<string | null>(null);
+  const [browserLocale] = useState<string | null>(() => detectBrowserLocale());
+  const [showBanner, setShowBanner] = useState(() => {
+    const dismissedData = cacheGet(DISMISSED_KEY);
+    const dismissed = !!dismissedData;
+    const preferredLocale = cacheGet(PREFERRED_LOCALE_KEY);
+
+    return (
+      !!browserLocale &&
+      browserLocale !== currentLocale &&
+      !dismissed &&
+      !preferredLocale
+    );
+  });
   const bannerRef = useRef<HTMLDivElement>(null);
   const hasCheckedRef = useRef(false);
-
-  const detectBrowserLocale = (): string | null => {
-    if (typeof window === 'undefined') return null;
-
-    const browserLang = navigator.language || (navigator as any).userLanguage;
-    const langCode = browserLang.split('-')[0].toLowerCase();
-
-    // Check if the detected language is in our supported locales
-    if (locales.includes(langCode)) {
-      return langCode;
-    }
-
-    return null;
-  };
-
-  const isDismissed = (): boolean => {
-    const dismissedData = cacheGet(DISMISSED_KEY);
-    if (!dismissedData) return false;
-
-    return true;
-  };
 
   const setDismissed = () => {
     const expiresAt = getTimestamp() + DISMISSED_EXPIRY_DAYS * 24 * 60 * 60;
@@ -53,7 +60,6 @@ export function LocaleDetector() {
     (locale: string) => {
       router.replace(pathname, { locale });
       cacheSet(PREFERRED_LOCALE_KEY, locale);
-      setShowBanner(false);
     },
     [router, pathname]
   );
@@ -66,37 +72,18 @@ export function LocaleDetector() {
 
     hasCheckedRef.current = true;
 
-    // Get browser locale
-    const detectedLocale = detectBrowserLocale();
-    setBrowserLocale(detectedLocale);
-
-    // Check if user has dismissed the banner or already set a preference
-    const dismissed = isDismissed();
     const preferredLocale = cacheGet(PREFERRED_LOCALE_KEY);
 
     // If user has previously clicked to switch locale, auto-switch to that preference
     if (
       preferredLocale &&
       preferredLocale !== currentLocale &&
-      locales.includes(preferredLocale)
+      locales.includes(preferredLocale as Locale)
     ) {
       switchToLocale(preferredLocale);
       return;
     }
 
-    // Show banner if:
-    // 1. Browser locale is different from current locale
-    // 2. User hasn't dismissed the banner (or dismissal has expired)
-    // 3. Browser locale is supported
-    // 4. User hasn't set a preference yet (no auto-switch, only show banner)
-    if (
-      detectedLocale &&
-      detectedLocale !== currentLocale &&
-      !dismissed &&
-      !preferredLocale
-    ) {
-      setShowBanner(true);
-    }
   }, [currentLocale, switchToLocale]);
 
   // Adjust header and main content position when banner is shown

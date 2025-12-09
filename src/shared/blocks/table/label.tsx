@@ -8,7 +8,9 @@ export function Label({
 }: {
   value: string;
   placeholder?: string;
-  metadata?: Record<string, any>;
+  metadata?: {
+    variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  };
   className?: string;
 }) {
   if (!value) {

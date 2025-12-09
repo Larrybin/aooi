@@ -40,7 +40,7 @@ export default async function ApiKeysPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Apikey> = {
     title: t('list.title'),
     columns: [
       {

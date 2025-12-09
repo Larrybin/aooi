@@ -3,13 +3,10 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
-import { RiGithubFill, RiGoogleFill } from 'react-icons/ri';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { signIn } from '@/core/auth/client';
 import { useRouter } from '@/core/i18n/navigation';
-import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
 import { cn } from '@/shared/lib/utils';
@@ -40,17 +37,6 @@ export function PaymentProviders({
 
   const [paymentProvider, setPaymentProvider] = useState<string | null>(null);
 
-  if (callbackUrl) {
-    const locale = useLocale();
-    if (
-      locale !== defaultLocale &&
-      callbackUrl.startsWith('/') &&
-      !callbackUrl.startsWith(`/${locale}`)
-    ) {
-      callbackUrl = `/${locale}${callbackUrl}`;
-    }
-  }
-
   const handlePayment = async ({ provider }: { provider: string }) => {
     if (!provider) {
       toast.error('please select payment method');
@@ -67,7 +53,7 @@ export function PaymentProviders({
   // Get allowed payment providers from pricing item
   // If payment_providers is set, use it; otherwise show all enabled providers
   const allowedProviders = pricingItem?.payment_providers;
-  
+
   // Helper function to check if a provider is allowed
   const isProviderAllowed = (providerName: string): boolean => {
     // If no payment_providers specified, allow all

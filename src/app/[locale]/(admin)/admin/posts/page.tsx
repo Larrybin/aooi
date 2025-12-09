@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
-import { getPosts, getPostsCount, Post, PostType } from '@/shared/models/post';
+import { getPosts, getPostsCount, type Post, PostType } from '@/shared/models/post';
 import { getTaxonomies } from '@/shared/models/taxonomy';
 import { Button, Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
@@ -46,7 +46,7 @@ export default async function PostsPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Post> = {
     columns: [
       { name: 'title', title: t('fields.title') },
       { name: 'authorName', title: t('fields.author_name') },

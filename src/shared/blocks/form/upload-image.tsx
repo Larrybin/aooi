@@ -10,8 +10,11 @@ import { ImageUploader, ImageUploaderValue } from '../common';
 interface UploadImageProps {
   field: FormField;
   formField: ControllerRenderProps<Record<string, unknown>, string>;
-  data?: any;
-  metadata?: Record<string, any>;
+  data?: Record<string, unknown>;
+  metadata?: {
+    max?: number;
+    maxSizeMB?: number;
+  };
   uploadUrl?: string;
   onUpload?: (files: File[]) => Promise<string[]>;
 }

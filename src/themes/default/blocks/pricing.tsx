@@ -241,8 +241,8 @@ export function Pricing({
       ['stripe'].includes(paymentProvider)
     ) {
       const promotekitReferral =
-        typeof window !== 'undefined' && (window as any).promotekit_referral
-          ? (window as any).promotekit_referral
+        typeof window !== 'undefined' && window.promotekit_referral
+          ? window.promotekit_referral
           : getCookie('promotekit_referral') || '';
       affiliateMetadata.promotekit_referral = promotekitReferral;
     }

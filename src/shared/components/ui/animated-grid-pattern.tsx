@@ -24,6 +24,32 @@ export interface AnimatedGridPatternProps
   repeatDelay?: number;
 }
 
+type Dimensions = { width: number; height: number };
+type Square = { id: number; pos: [number, number] };
+
+function getRandomPos(
+  dimensions: Dimensions,
+  cellWidth: number,
+  cellHeight: number
+): [number, number] {
+  return [
+    Math.floor((Math.random() * dimensions.width) / cellWidth),
+    Math.floor((Math.random() * dimensions.height) / cellHeight),
+  ];
+}
+
+function generateSquares(
+  count: number,
+  dimensions: Dimensions,
+  cellWidth: number,
+  cellHeight: number
+): Square[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    pos: getRandomPos(dimensions, cellWidth, cellHeight),
+  }));
+}
+
 export function AnimatedGridPattern({
   width = 40,
   height = 40,
@@ -40,22 +66,9 @@ export function AnimatedGridPattern({
   const id = useId();
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [squares, setSquares] = useState(() => generateSquares(numSquares));
-
-  function getPos() {
-    return [
-      Math.floor((Math.random() * dimensions.width) / width),
-      Math.floor((Math.random() * dimensions.height) / height),
-    ];
-  }
-
-  // Adjust the generateSquares function to return objects with an id, x, and y
-  function generateSquares(count: number) {
-    return Array.from({ length: count }, (_, i) => ({
-      id: i,
-      pos: getPos(),
-    }));
-  }
+  const [squares, setSquares] = useState<Square[]>(() =>
+    generateSquares(numSquares, { width: 0, height: 0 }, width, height)
+  );
 
   // Function to update a single square's position
   const updateSquarePosition = (id: number) => {
@@ -64,41 +77,43 @@ export function AnimatedGridPattern({
         sq.id === id
           ? {
               ...sq,
-              pos: getPos(),
+              pos: getRandomPos(dimensions, width, height),
             }
           : sq
       )
     );
   };
 
-  // Update squares to animate in
-  useEffect(() => {
-    if (dimensions.width && dimensions.height) {
-      setSquares(generateSquares(numSquares));
-    }
-  }, [dimensions, numSquares]);
-
   // Resize observer to update container dimensions
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setDimensions({
+      for (const entry of entries) {
+        const nextDimensions = {
           width: entry.contentRect.width,
           height: entry.contentRect.height,
-        });
+        };
+
+        setDimensions(nextDimensions);
+
+        if (nextDimensions.width && nextDimensions.height) {
+          setSquares(
+            generateSquares(numSquares, nextDimensions, width, height)
+          );
+        }
       }
     });
 
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
+    const container = containerRef.current;
+    if (container) {
+      resizeObserver.observe(container);
     }
 
     return () => {
-      if (containerRef.current) {
-        resizeObserver.unobserve(containerRef.current);
+      if (container) {
+        resizeObserver.unobserve(container);
       }
     };
-  }, [containerRef]);
+  }, [containerRef, numSquares, width, height]);
 
   return (
     <svg

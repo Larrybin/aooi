@@ -55,7 +55,10 @@ export default async function UserEditRolesPage({
   const userRoles = await getUserRoles(user.id as string);
   const userRoleIds = userRoles.map((role) => role.id);
 
-  const form: Form = {
+  const form: Form<
+    typeof user & { roles: string[] },
+    { user: typeof user }
+  > = {
     fields: [
       {
         name: 'email',
@@ -86,7 +89,7 @@ export default async function UserEditRolesPage({
       handler: async (data, passby) => {
         'use server';
 
-        const { user } = passby;
+        const { user } = passby!;
 
         if (!user) {
           throw new Error('no auth');

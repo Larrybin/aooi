@@ -9,20 +9,20 @@ export function Time({
 }: {
   value: string | Date;
   placeholder?: string;
-  metadata?: Record<string, any>;
+  metadata?: {
+    format?: string;
+  };
   className?: string;
 }) {
+  const intlLocale = useLocale();
+  const locale = intlLocale === 'zh' ? 'zh-cn' : intlLocale;
+
   if (!value) {
     if (placeholder) {
       return <div className={className}>{placeholder}</div>;
     }
 
     return null;
-  }
-
-  let locale = useLocale();
-  if (locale === 'zh') {
-    locale = 'zh-cn';
   }
 
   return (

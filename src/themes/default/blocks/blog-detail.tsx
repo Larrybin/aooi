@@ -3,6 +3,7 @@
 import { TOCItems, TOCProvider } from 'fumadocs-ui/components/layout/toc';
 import { CalendarIcon, ListIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 import { MarkdownPreview } from '@/shared/blocks/common';
 import { Crumb } from '@/shared/blocks/common/crumb';
@@ -103,10 +104,12 @@ export function BlogDetail({ post }: { post: PostType }) {
                       <div className="text-center">
                         {post.author_image && (
                           <div className="ring-foreground/10 mx-auto mb-4 aspect-square size-20 overflow-hidden rounded-xl border border-transparent shadow-md ring-1 shadow-black/15">
-                            <img
+                            <Image
                               src={post.author_image}
-                              alt={post.author_name}
+                              alt={post.author_name || ''}
                               className="h-full w-full object-cover"
+                              width={80}
+                              height={80}
                             />
                           </div>
                         )}

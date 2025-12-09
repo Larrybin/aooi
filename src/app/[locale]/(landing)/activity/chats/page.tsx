@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Empty } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
 import {
-  Chat,
+  type Chat,
   ChatStatus,
   getChats,
   getChatsCount,
@@ -38,7 +38,7 @@ export default async function ChatsPage({
     userId: user.id,
   });
 
-  const table: Table = {
+  const table: Table<Chat> = {
     title: t('list.title'),
     columns: [
       { name: 'title', title: t('fields.title'), type: 'copy' },

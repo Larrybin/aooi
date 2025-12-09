@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { AITaskStatus } from '@/extensions/ai';
+import { AITaskStatus, AISong } from '@/extensions/ai';
 import { AudioPlayer, Empty, LazyImage } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
 import { AITask, getAITasks, getAITasksCount } from '@/shared/models/ai_task';
@@ -36,7 +36,7 @@ export default async function AiTasksPage({
     mediaType: type,
   });
 
-  const table: Table = {
+  const table: Table<AITask> = {
     title: t('list.title'),
     columns: [
       { name: 'prompt', title: t('fields.prompt'), type: 'copy' },
@@ -50,48 +50,58 @@ export default async function AiTasksPage({
         name: 'result',
         title: t('fields.result'),
         callback: (item: AITask) => {
-          if (item.taskInfo) {
-            const taskInfo = JSON.parse(item.taskInfo);
-            if (taskInfo.errorMessage) {
-              return (
-                <div className="text-red-500">
-                  Failed: {taskInfo.errorMessage}
-                </div>
-              );
-            } else if (taskInfo.songs && taskInfo.songs.length > 0) {
-              const songs: any[] = taskInfo.songs.filter(
-                (song: any) => song.audioUrl
-              );
-              if (songs.length > 0) {
-                return (
-                  <div className="flex flex-col gap-2">
-                    {songs.map((song: any) => (
-                      <AudioPlayer
-                        key={song.id}
-                        src={song.audioUrl}
-                        title={song.title}
-                        className="w-80"
-                      />
-                    ))}
-                  </div>
-                );
-              }
-            } else if (taskInfo.images && taskInfo.images.length > 0) {
+          if (!item.taskInfo) {
+            return '-';
+          }
+
+          const taskInfo = JSON.parse(item.taskInfo) as {
+            errorMessage?: string;
+            songs?: Array<{ id: string; audioUrl?: string; title?: string }>;
+            images?: Array<{ imageUrl: string }>;
+          };
+
+          if (taskInfo.errorMessage) {
+            return (
+              <div className="text-red-500">
+                Failed: {taskInfo.errorMessage}
+              </div>
+            );
+          }
+
+          if (taskInfo.songs && taskInfo.songs.length > 0) {
+            const songs = taskInfo.songs.filter(
+              (song) => typeof song.audioUrl === 'string'
+            );
+
+            if (songs.length > 0) {
               return (
                 <div className="flex flex-col gap-2">
-                  {taskInfo.images.map((image: any, index: number) => (
-                    <LazyImage
-                      key={index}
-                      src={image.imageUrl}
-                      alt="Generated image"
-                      className="h-32 w-auto"
+                  {songs.map((song) => (
+                    <AudioPlayer
+                      key={song.id}
+                      src={song.audioUrl as string}
+                      title={song.title}
+                      className="w-80"
                     />
                   ))}
                 </div>
               );
-            } else {
-              return '-';
             }
+          }
+
+          if (taskInfo.images && taskInfo.images.length > 0) {
+            return (
+              <div className="flex flex-col gap-2">
+                {taskInfo.images.map((image, index: number) => (
+                  <LazyImage
+                    key={index}
+                    src={image.imageUrl}
+                    alt="Generated image"
+                    className="h-32 w-auto"
+                  />
+                ))}
+              </div>
+            );
           }
 
           return '-';

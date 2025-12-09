@@ -36,7 +36,7 @@ export default async function UserEditPage({
     { title: t('edit.crumbs.edit'), is_active: true },
   ];
 
-  const form: Form = {
+  const form: Form<typeof user, { user: typeof user }> = {
     fields: [
       {
         name: 'email',
@@ -68,7 +68,7 @@ export default async function UserEditPage({
       handler: async (data, passby) => {
         'use server';
 
-        const { user } = passby;
+        const { user } = passby!;
 
         if (!user) {
           throw new Error('no auth');

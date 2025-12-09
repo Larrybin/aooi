@@ -94,20 +94,28 @@ const PROVIDER_OPTIONS = [
   },
 ];
 
-function parseTaskResult(taskResult: string | null): any {
+interface ImageTaskResult {
+  output?: unknown;
+  images?: unknown;
+  data?: unknown;
+  error?: string;
+  failure_reason?: string;
+}
+
+function parseTaskResult(taskResult: string | null): ImageTaskResult | null {
   if (!taskResult) {
     return null;
   }
 
   try {
-    return JSON.parse(taskResult);
+    return JSON.parse(taskResult) as ImageTaskResult;
   } catch (error) {
     console.warn('Failed to parse taskResult:', error);
     return null;
   }
 }
 
-function extractImageUrls(result: any): string[] {
+function extractImageUrls(result: ImageTaskResult | null): string[] {
   if (!result) {
     return [];
   }
@@ -128,7 +136,16 @@ function extractImageUrls(result: any): string[] {
         if (!item) return [];
         if (typeof item === 'string') return [item];
         if (typeof item === 'object') {
-          const candidate = item.url ?? item.uri ?? item.image ?? item.src;
+          const candidate =
+            'url' in item && typeof item.url === 'string'
+              ? item.url
+              : 'uri' in item && typeof item.uri === 'string'
+                ? item.uri
+                : 'image' in item && typeof item.image === 'string'
+                  ? item.image
+                  : 'src' in item && typeof item.src === 'string'
+                    ? item.src
+                    : undefined;
           return typeof candidate === 'string' ? [candidate] : [];
         }
         return [];
@@ -137,7 +154,16 @@ function extractImageUrls(result: any): string[] {
   }
 
   if (typeof output === 'object') {
-    const candidate = output.url ?? output.uri ?? output.image ?? output.src;
+    const candidate =
+      'url' in output && typeof output.url === 'string'
+        ? output.url
+        : 'uri' in output && typeof output.uri === 'string'
+          ? output.uri
+          : 'image' in output && typeof output.image === 'string'
+            ? output.image
+            : 'src' in output && typeof output.src === 'string'
+              ? output.src
+              : undefined;
     if (typeof candidate === 'string') {
       return [candidate];
     }
@@ -353,7 +379,7 @@ export function ImageGenerator({
         return true;
       }
     },
-    [generationStartTime, resetTaskState]
+    [generationStartTime, resetTaskState, fetchUserCredits]
   );
 
   useEffect(() => {

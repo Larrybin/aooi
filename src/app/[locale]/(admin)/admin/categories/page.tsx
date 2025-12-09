@@ -49,7 +49,7 @@ export default async function CategoriesPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Taxonomy> = {
     columns: [
       {
         name: 'slug',

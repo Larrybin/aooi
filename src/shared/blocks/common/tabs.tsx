@@ -34,7 +34,7 @@ export function Tabs({
         // setTab(currentTab);
       }
     }
-  }, [tabName]);
+  }, [tabName, tabs, router]);
 
   return (
     <div className="relative mb-8">
