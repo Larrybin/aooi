@@ -10,7 +10,12 @@ import {
   UpdateSubscription,
   updateSubscriptionBySubscriptionNo,
 } from './subscription';
-import { appendUserToResult, User } from './user';
+import {
+  appendUserToResult,
+  type WithAttachedUser,
+  type WithUserId,
+  User,
+} from './user';
 
 export type Order = typeof order.$inferSelect & {
   user?: User;
@@ -78,7 +83,10 @@ export async function getOrders({
     .offset((page - 1) * limit);
 
   if (getUser) {
-    return appendUserToResult(result);
+    const withUser = await appendUserToResult(
+      result as Array<Order & WithUserId>
+    );
+    return withUser as Order[];
   }
 
   return result;
@@ -191,7 +199,11 @@ export async function updateOrderInTransaction({
 
   // need transaction
   const result = await db().transaction(async (tx) => {
-    let result: any = {
+    const txResult: {
+      order: Order | null;
+      subscription: NewSubscription | null;
+      credit: NewCredit | null;
+    } = {
       order: null,
       subscription: null,
       credit: null,
@@ -199,7 +211,7 @@ export async function updateOrderInTransaction({
 
     // deal with subscription
     if (newSubscription) {
-      let existingSubscription: any = null;
+      let existingSubscription: NewSubscription | null = null;
       if (newSubscription.subscriptionId && newSubscription.paymentProvider) {
         // not create subscription with same subscription id and payment provider
         const [existingSubscriptionResult] = await tx
@@ -225,7 +237,7 @@ export async function updateOrderInTransaction({
         existingSubscription = subscriptionResult;
       }
 
-      result.subscription = existingSubscription;
+      txResult.subscription = existingSubscription;
     }
 
     // deal with credit
@@ -246,7 +258,7 @@ export async function updateOrderInTransaction({
         existingCredit = creditResult;
       }
 
-      result.credit = existingCredit;
+      txResult.credit = existingCredit as NewCredit;
     }
 
     // update order
@@ -256,9 +268,9 @@ export async function updateOrderInTransaction({
       .where(eq(order.orderNo, orderNo))
       .returning();
 
-    result.order = orderResult;
+    txResult.order = orderResult;
 
-    return result;
+    return txResult;
   });
 
   return result;
@@ -289,7 +301,11 @@ export async function updateSubscriptionInTransaction({
 
   // need transaction
   const result = await db().transaction(async (tx) => {
-    let result: any = {
+    const txResult: {
+      order: Order | null;
+      subscription: UpdateSubscription | null;
+      credit: NewCredit | null;
+    } = {
       order: null,
       subscription: null,
       credit: null,
@@ -297,7 +313,7 @@ export async function updateSubscriptionInTransaction({
 
     // deal with order
     if (newOrder) {
-      let existingOrder: any = null;
+      let existingOrder: Order | null = null;
       if (newOrder.transactionId && newOrder.paymentProvider) {
         // not create order with same payment transaction id and payment provider
         const [existingOrderResult] = await tx
@@ -323,20 +339,20 @@ export async function updateSubscriptionInTransaction({
         existingOrder = orderResult;
       }
 
-      result.order = existingOrder;
+      txResult.order = existingOrder;
     }
 
     // deal with credit
     if (newCredit) {
-      let existingCredit: any = null;
-      if (result.order && result.order.orderNo) {
+      let existingCredit: NewCredit | null = null;
+      if (txResult.order && txResult.order.orderNo) {
         // not create credit with same order no
         const [existingCreditResult] = await tx
           .select()
           .from(credit)
-          .where(eq(credit.orderNo, result.order.orderNo));
+          .where(eq(credit.orderNo, txResult.order.orderNo));
 
-        existingCredit = existingCreditResult;
+        existingCredit = existingCreditResult as NewCredit;
       }
 
       if (!existingCredit) {
@@ -349,7 +365,7 @@ export async function updateSubscriptionInTransaction({
         existingCredit = creditResult;
       }
 
-      result.credit = existingCredit;
+      txResult.credit = existingCredit;
     }
 
     // update subscription
@@ -359,9 +375,9 @@ export async function updateSubscriptionInTransaction({
       .where(eq(subscription.subscriptionNo, subscriptionNo))
       .returning();
 
-    result.subscription = subscriptionResult;
+    txResult.subscription = subscriptionResult;
 
-    return result;
+    return txResult;
   });
 
   return result;

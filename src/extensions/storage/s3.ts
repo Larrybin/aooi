@@ -5,6 +5,7 @@ import type {
   StorageUploadOptions,
   StorageUploadResult,
 } from '.';
+import { toUint8Array } from '.';
 
 /**
  * S3 storage provider configs
@@ -44,10 +45,7 @@ export class S3Provider implements StorageProvider {
         };
       }
 
-      const bodyArray =
-        options.body instanceof Buffer
-          ? new Uint8Array(options.body)
-          : options.body;
+      const bodyArray = toUint8Array(options.body);
 
       const url = `${this.configs.endpoint}/${uploadBucket}/${options.key}`;
 
@@ -68,7 +66,7 @@ export class S3Provider implements StorageProvider {
       const request = new Request(url, {
         method: 'PUT',
         headers,
-        body: bodyArray as any,
+        body: bodyArray as unknown as BodyInit,
       });
 
       const response = await client.fetch(request);

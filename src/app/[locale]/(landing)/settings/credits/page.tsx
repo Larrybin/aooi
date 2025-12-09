@@ -4,7 +4,7 @@ import { Empty } from '@/shared/blocks/common';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
 import {
-  Credit,
+  type Credit,
   CreditStatus,
   CreditTransactionType,
   getCredits,
@@ -45,7 +45,7 @@ export default async function CreditsPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Credit> = {
     title: t('list.title'),
     columns: [
       {

@@ -38,4 +38,3 @@
 - Keep PRs focused; describe **what**, **why**, and **how to test**.
 - Link related issues or tasks and include screenshots for UI changes.
 - When behavior, configuration, or APIs change, update `README.md`, `content` docs, and relevant config files to keep documentation in sync.
-

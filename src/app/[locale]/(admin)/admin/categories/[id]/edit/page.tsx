@@ -42,7 +42,7 @@ export default async function CategoryEditPage({
     { title: t('edit.crumbs.edit'), is_active: true },
   ];
 
-  const form: Form = {
+  const form: Form<typeof category, { type: 'category'; category: typeof category }> = {
     fields: [
       {
         name: 'slug',
@@ -80,7 +80,7 @@ export default async function CategoryEditPage({
           throw new Error('no auth');
         }
 
-        const { category } = passby;
+        const { category } = passby!;
         if (!user || !category || category.userId !== user.id) {
           throw new Error('access denied');
         }

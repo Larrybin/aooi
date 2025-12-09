@@ -55,7 +55,7 @@ export class CreemProvider implements PaymentProvider {
       }
 
       // build payment payload
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         product_id: order.productId,
         request_id: order.requestId || undefined,
         units: 1,
@@ -165,19 +165,19 @@ export class CreemProvider implements PaymentProvider {
 
       if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
         paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-          event.object as any
+          event.object
         );
       } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
         paymentSession = await this.buildPaymentSessionFromInvoice(
-          event.object as any
+          event.object
         );
       } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
         paymentSession = await this.buildPaymentSessionFromSubscription(
-          event.object as any
+          event.object
         );
       } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
         paymentSession = await this.buildPaymentSessionFromSubscription(
-          event.object as any
+          event.object
         );
       }
 
@@ -263,12 +263,18 @@ export class CreemProvider implements PaymentProvider {
       return Array.from(signatureArray)
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
-    } catch (error: any) {
-      throw new Error(`Failed to generate signature: ${error.message}`);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown signature error';
+      throw new Error(`Failed to generate signature: ${message}`);
     }
   }
 
-  private async makeRequest(endpoint: string, method: string, data?: any) {
+  private async makeRequest(
+    endpoint: string,
+    method: string,
+    data?: Record<string, unknown>
+  ) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'x-api-key': this.configs.apiKey,
@@ -335,14 +341,15 @@ export class CreemProvider implements PaymentProvider {
   private async buildPaymentSessionFromCheckoutSession(
     session: any
   ): Promise<PaymentSession> {
-    let subscription: any | undefined = undefined;
-    let billingUrl = '';
+    let subscription =
+      session.subscription ??
+      (session as { subscription?: { id: string } }).subscription;
 
     if (session.subscription) {
       subscription = session.subscription;
     }
 
-    const order = session.order;
+    const order = session.order || session.last_transaction;
 
     const result: PaymentSession = {
       provider: this.name,
@@ -380,9 +387,7 @@ export class CreemProvider implements PaymentProvider {
   }
 
   // build payment session from subscription session
-  private async buildPaymentSessionFromInvoice(
-    invoice: any
-  ): Promise<PaymentSession> {
+  private async buildPaymentSessionFromInvoice(invoice: any): Promise<PaymentSession> {
     const order = invoice.order || invoice.last_transaction;
 
     const subscription = invoice.subscription || invoice;
@@ -502,7 +507,7 @@ export class CreemProvider implements PaymentProvider {
     return subscriptionInfo;
   }
 
-  private mapCreemInterval(product: any): {
+  private mapCreemInterval(product: { billing_period?: string } | undefined): {
     interval: PaymentInterval;
     count: number;
   } {

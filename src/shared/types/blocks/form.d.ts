@@ -31,21 +31,22 @@ export interface FormField {
   options?: {
     title: string;
     value: string;
+    description?: string | null;
   }[];
-  value?: any;
+  value?: string | number | boolean | string[];
   tip?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
   validation?: ValidationRule;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
-export interface FormSubmit {
+export interface FormSubmit<TPassby = unknown> {
   input?: FormField;
   button?: Button;
   action?: string;
   handler?: (
     data: FormData,
-    passby?: any
+    passby?: TPassby
   ) => Promise<
     | {
         status: 'success' | 'error';
@@ -57,11 +58,14 @@ export interface FormSubmit {
   >;
 }
 
-export interface Form {
+export interface Form<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+  TPassby = unknown
+> {
   title?: string;
   description?: string;
   fields: FormField[];
-  data?: any;
-  passby?: any;
-  submit?: FormSubmit;
+  data?: TData;
+  passby?: TPassby;
+  submit?: FormSubmit<TPassby>;
 }

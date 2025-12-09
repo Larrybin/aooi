@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
-import { getPermissions } from '@/shared/services/rbac';
+import { getPermissions, type Permission } from '@/shared/services/rbac';
 import { Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -31,7 +31,7 @@ export default async function AdminPermissionsPage({
     { title: t('list.crumbs.permissions'), is_active: true },
   ];
 
-  const table: Table = {
+  const table: Table<Permission> = {
     columns: [
       { name: 'code', title: t('fields.code') },
       { name: 'title', title: t('fields.title') },

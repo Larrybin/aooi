@@ -3,6 +3,7 @@
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
 import { Image as ImageType } from '@/shared/types/blocks/common';
 import { Testimonials as TestimonialsType } from '@/shared/types/blocks/landing';
+import Image from 'next/image';
 
 export function Testimonials({
   testimonials,
@@ -29,7 +30,7 @@ export function Testimonials({
         </p>
         <div className="flex items-center gap-3">
           <div className="ring-foreground/10 aspect-square size-9 overflow-hidden rounded-lg border border-transparent shadow-md ring-1 shadow-black/15">
-            <img
+            <Image
               src={image?.src ?? ''}
               alt={image?.alt ?? ''}
               className="h-full w-full object-cover"

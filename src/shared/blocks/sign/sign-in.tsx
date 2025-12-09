@@ -31,6 +31,7 @@ export function SignIn({
 }) {
   const router = useRouter();
   const t = useTranslations('common.sign');
+  const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,16 +43,13 @@ export function SignIn({
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
 
-  if (callbackUrl) {
-    const locale = useLocale();
-    if (
-      locale !== defaultLocale &&
-      callbackUrl.startsWith('/') &&
-      !callbackUrl.startsWith(`/${locale}`)
-    ) {
-      callbackUrl = `/${locale}${callbackUrl}`;
-    }
-  }
+  const localizedCallbackUrl =
+    callbackUrl &&
+    locale !== defaultLocale &&
+    callbackUrl.startsWith('/') &&
+    !callbackUrl.startsWith(`/${locale}`)
+      ? `/${locale}${callbackUrl}`
+      : callbackUrl;
 
   const handleSignIn = async () => {
     if (loading) {
@@ -67,7 +65,7 @@ export function SignIn({
       {
         email,
         password,
-        callbackURL: callbackUrl,
+        callbackURL: localizedCallbackUrl,
       },
       {
         onRequest: (ctx) => {
@@ -161,7 +159,7 @@ export function SignIn({
 
           <SocialProviders
             configs={configs}
-            callbackUrl={callbackUrl || '/'}
+            callbackUrl={localizedCallbackUrl || '/'}
             loading={loading}
             setLoading={setLoading}
           />

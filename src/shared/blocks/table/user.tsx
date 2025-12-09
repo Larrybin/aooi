@@ -17,7 +17,7 @@ export function User({
 }: {
   value: UserType;
   placeholder?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   className?: string;
 }) {
   if (!value) {

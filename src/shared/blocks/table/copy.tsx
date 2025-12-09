@@ -14,7 +14,9 @@ export function Copy({
 }: {
   value: string;
   placeholder?: string;
-  metadata?: Record<string, any>;
+  metadata?: {
+    message?: string;
+  };
   className?: string;
   children: ReactNode;
 }) {

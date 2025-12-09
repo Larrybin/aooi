@@ -6,10 +6,9 @@ export function JsonPreview({
 }: {
   value: string;
   placeholder?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   className?: string;
 }) {
-  console.log('xxx', value, typeof value);
   if (!value) {
     if (placeholder) {
       return <div className={className}>{placeholder}</div>;
@@ -22,10 +21,19 @@ export function JsonPreview({
     return <div className={className}>{value}</div>;
   }
 
+  let parsed: unknown = null;
+
   try {
-    const json = JSON.parse(value);
-    return <pre className={className}>{JSON.stringify(json, null, 2)}</pre>;
-  } catch (error) {
-    return <div className={className}>{value}</div>;
+    parsed = JSON.parse(value);
+  } catch {
+    parsed = null;
   }
+
+  if (parsed !== null) {
+    return (
+      <pre className={className}>{JSON.stringify(parsed, null, 2)}</pre>
+    );
+  }
+
+  return <div className={className}>{value}</div>;
 }

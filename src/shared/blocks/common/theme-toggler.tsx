@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Monitor, Moon, SunDim } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -19,18 +18,9 @@ export function ThemeToggler({
   className?: string;
 }) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   const handleThemeChange = (value: string) => {
     setTheme(value);
   };
-
-  if (!mounted) {
-    return null;
-  }
 
   if (type === 'button') {
     return (

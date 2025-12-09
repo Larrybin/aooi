@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Fragment } from 'react/jsx-runtime';
 import { Coins, LayoutDashboard, Loader2, LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -40,14 +39,9 @@ export function SignUser({
   const { isCheckSign, user, setIsShowSignModal } = useAppContext();
   const router = useRouter();
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <>
-      {isCheckSign || !mounted ? (
+      {isCheckSign ? (
         <div>
           <Loader2 className="size-4 animate-spin" />
         </div>

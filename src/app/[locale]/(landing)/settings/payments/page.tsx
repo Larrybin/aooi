@@ -6,7 +6,7 @@ import { TableCard } from '@/shared/blocks/table';
 import {
   getOrders,
   getOrdersCount,
-  Order,
+  type Order,
   OrderStatus,
 } from '@/shared/models/order';
 import { getUserInfo } from '@/shared/models/user';
@@ -43,7 +43,7 @@ export default async function PaymentsPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Order> = {
     title: t('list.title'),
     columns: [
       { name: 'orderNo', title: t('fields.order_no'), type: 'copy' },
@@ -62,7 +62,7 @@ export default async function PaymentsPage({
       },
       {
         title: t('fields.price'),
-        callback: function (item) {
+        callback: function (item: Order) {
           const currency = (item.currency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -76,14 +76,16 @@ export default async function PaymentsPage({
             prefix = `${currency} `;
           }
 
+          const amount = item.amount ?? 0;
+
           return (
-            <div className="text-primary">{`${prefix}${item.amount / 100}`}</div>
+            <div className="text-primary">{`${prefix}${amount / 100}`}</div>
           );
         },
       },
       {
         title: t('fields.paid_amount'),
-        callback: function (item) {
+        callback: function (item: Order) {
           const currency = (item.paymentCurrency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -97,14 +99,16 @@ export default async function PaymentsPage({
             prefix = `${currency} `;
           }
 
+          const amount = item.paymentAmount ?? 0;
+
           return (
-            <div className="text-primary">{`${prefix}${item.paymentAmount / 100}`}</div>
+            <div className="text-primary">{`${prefix}${amount / 100}`}</div>
           );
         },
       },
       {
         title: t('fields.discount_amount'),
-        callback: function (item) {
+        callback: function (item: Order) {
           const currency = (item.discountCurrency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -118,8 +122,10 @@ export default async function PaymentsPage({
             prefix = `${currency} `;
           }
 
+          const amount = item.discountAmount ?? 0;
+
           return (
-            <div className="text-primary">{`${prefix}${item.discountAmount / 100}`}</div>
+            <div className="text-primary">{`${prefix}${amount / 100}`}</div>
           );
         },
       },

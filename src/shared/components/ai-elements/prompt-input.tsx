@@ -46,6 +46,7 @@ import {
   SquareIcon,
   XIcon,
 } from "lucide-react";
+import Image from "next/image";
 import { nanoid } from "nanoid";
 import {
   type ChangeEvent,
@@ -294,7 +295,7 @@ export function PromptInputAttachment({
           <div className="relative size-5 shrink-0">
             <div className="absolute inset-0 flex size-5 items-center justify-center overflow-hidden rounded bg-background transition-opacity group-hover:opacity-0">
               {isImage ? (
-                <img
+                <Image
                   alt={filename || "attachment"}
                   className="size-5 object-cover"
                   height={20}
@@ -329,7 +330,7 @@ export function PromptInputAttachment({
         <div className="w-auto space-y-3">
           {isImage && (
             <div className="flex max-h-96 w-96 items-center justify-center overflow-hidden rounded-md border">
-              <img
+              <Image
                 alt={filename || "attachment preview"}
                 className="max-h-full max-w-full object-contain"
                 height={384}
@@ -542,36 +543,42 @@ export const PromptInput = ({
     [matchesAccept, maxFiles, maxFileSize, onError]
   );
 
-  const add = usingProvider
-    ? (files: File[] | FileList) => controller.attachments.add(files)
-    : addLocal;
+  const { add, remove, clear, openFileDialog } = useMemo(
+    () => {
+      if (usingProvider && controller) {
+        return {
+          add: (files: File[] | FileList) =>
+            controller.attachments.add(files),
+          remove: (id: string) => controller.attachments.remove(id),
+          clear: () => controller.attachments.clear(),
+          openFileDialog: () => controller.attachments.openFileDialog(),
+        };
+      }
 
-  const remove = usingProvider
-    ? (id: string) => controller.attachments.remove(id)
-    : (id: string) =>
-        setItems((prev) => {
-          const found = prev.find((file) => file.id === id);
-          if (found?.url) {
-            URL.revokeObjectURL(found.url);
-          }
-          return prev.filter((file) => file.id !== id);
-        });
-
-  const clear = usingProvider
-    ? () => controller.attachments.clear()
-    : () =>
-        setItems((prev) => {
-          for (const file of prev) {
-            if (file.url) {
-              URL.revokeObjectURL(file.url);
+      return {
+        add: addLocal,
+        remove: (id: string) =>
+          setItems((prev) => {
+            const found = prev.find((file) => file.id === id);
+            if (found?.url) {
+              URL.revokeObjectURL(found.url);
             }
-          }
-          return [];
-        });
-
-  const openFileDialog = usingProvider
-    ? () => controller.attachments.openFileDialog()
-    : openFileDialogLocal;
+            return prev.filter((file) => file.id !== id);
+          }),
+        clear: () =>
+          setItems((prev) => {
+            for (const file of prev) {
+              if (file.url) {
+                URL.revokeObjectURL(file.url);
+              }
+            }
+            return [];
+          }),
+        openFileDialog: openFileDialogLocal,
+      };
+    },
+    [usingProvider, controller, addLocal, openFileDialogLocal, setItems]
+  );
 
   // Let provider know about our hidden file input so external menus can call openFileDialog()
   useEffect(() => {
@@ -1085,9 +1092,6 @@ export const PromptInputSpeechButton = ({
   ...props
 }: PromptInputSpeechButtonProps) => {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(
-    null
-  );
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -1140,7 +1144,6 @@ export const PromptInputSpeechButton = ({
       };
 
       recognitionRef.current = speechRecognition;
-      setRecognition(speechRecognition);
     }
 
     return () => {
@@ -1151,16 +1154,18 @@ export const PromptInputSpeechButton = ({
   }, [textareaRef, onTranscriptionChange]);
 
   const toggleListening = useCallback(() => {
-    if (!recognition) {
+    const recognitionInstance = recognitionRef.current;
+
+    if (!recognitionInstance) {
       return;
     }
 
     if (isListening) {
-      recognition.stop();
+      recognitionInstance.stop();
     } else {
-      recognition.start();
+      recognitionInstance.start();
     }
-  }, [recognition, isListening]);
+  }, [isListening]);
 
   return (
     <PromptInputButton
@@ -1169,7 +1174,6 @@ export const PromptInputSpeechButton = ({
         isListening && "animate-pulse bg-accent text-accent-foreground",
         className
       )}
-      disabled={!recognition}
       onClick={toggleListening}
       {...props}
     >
@@ -1181,16 +1185,6 @@ export const PromptInputSpeechButton = ({
 export type PromptInputSelectProps = ComponentProps<typeof Select>;
 
 export const PromptInputSelect = (props: PromptInputSelectProps) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
   return <Select {...props} />;
 };
 

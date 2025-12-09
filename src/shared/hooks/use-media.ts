@@ -3,13 +3,24 @@
 import { useEffect, useState } from 'react';
 
 export function useMedia(query: string): boolean {
-  const [matches, setMatches] = useState(true);
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+
+    return window.matchMedia(query).matches;
+  });
 
   useEffect(() => {
-    const matchMedia = window.matchMedia(query);
-    setMatches(matchMedia.matches);
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-    const handleChange = () => setMatches(matchMedia.matches);
+    const matchMedia = window.matchMedia(query);
+
+    const handleChange = () => {
+      setMatches(matchMedia.matches);
+    };
 
     matchMedia.addEventListener('change', handleChange);
 

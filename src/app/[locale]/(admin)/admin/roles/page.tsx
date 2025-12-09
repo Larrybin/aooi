@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
-import { getRoles, Role } from '@/shared/services/rbac';
+import { getRoles, type Role } from '@/shared/services/rbac';
 import { Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -30,7 +30,7 @@ export default async function AdminRolesPage({
     { title: t('list.crumbs.roles'), is_active: true },
   ];
 
-  const table: Table = {
+  const table: Table<Role> = {
     columns: [
       { name: 'name', title: t('fields.name') },
       { name: 'title', title: t('fields.title') },

@@ -197,7 +197,19 @@ export async function consumeCredits({
     let batchNo = 1; // batch no
     const maxBatchNo = 10; // max batch no
     const batchSize = 1000; // batch size
-    const consumedItems: any[] = [];
+    type ConsumedItem = {
+      creditId: string;
+      transactionNo: string;
+      expiresAt: Date | null;
+      creditsToConsume: number;
+      creditsConsumed: number;
+      creditsBefore: number;
+      creditsAfter: number;
+      batchSize: number;
+      batchNo: number;
+    };
+
+    const consumedItems: ConsumedItem[] = [];
 
     while (remainingToConsume > 0) {
       // get batch credits

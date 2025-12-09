@@ -16,6 +16,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { cn } from "@/shared/lib/utils";
 import type { ComponentProps } from "react";
+import Image from "next/image";
 
 export type ModelSelectorProps = ComponentProps<typeof Dialog>;
 
@@ -165,7 +166,7 @@ export const ModelSelectorLogo = ({
   className,
   ...props
 }: ModelSelectorLogoProps) => (
-  <img
+  <Image
     {...props}
     alt={`${provider} logo`}
     className={cn("size-3", className)}

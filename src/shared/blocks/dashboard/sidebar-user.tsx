@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment } from 'react';
 import { ChevronsUpDown, Loader2, LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -42,25 +42,10 @@ export function SidebarUser({ user }: { user: SidebarUserType }) {
 
   const { setIsShowSignModal } = useAppContext();
 
-  // This state will ensure rendering only happens after client hydration
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
   const handleSignOut = async () => {
     await signOut();
     router.push(user.signout_callback || '/sign-in');
   };
-
-  // If not mounted, render placeholder to avoid hydration mismatch
-  if (!hasMounted) {
-    return (
-      <div className="flex h-full items-center justify-center px-4 py-4">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
-  }
 
   if (session?.user) {
     return (

@@ -96,17 +96,26 @@ export async function getSignUser() {
   return session?.user;
 }
 
-export async function appendUserToResult(result: any) {
-  if (!result || !result.length) {
-    return result;
+export type WithUserId = {
+  userId: string;
+};
+
+export type WithAttachedUser<T extends WithUserId> = T & {
+  user: User | undefined;
+};
+
+export async function appendUserToResult<T extends WithUserId>(
+  result: T[]
+): Promise<WithAttachedUser<T>[]> {
+  if (!result || result.length === 0) {
+    return result as WithAttachedUser<T>[];
   }
 
-  const userIds = result.map((item: any) => item.userId);
+  const userIds = result.map((item) => item.userId);
   const users = await getUserByUserIds(userIds);
-  result = result.map((item: any) => {
-    const user = users.find((user: any) => user.id === item.userId);
-    return { ...item, user };
-  });
 
-  return result;
+  return result.map((item) => {
+    const attachedUser = users.find((u) => u.id === item.userId);
+    return { ...item, user: attachedUser };
+  });
 }

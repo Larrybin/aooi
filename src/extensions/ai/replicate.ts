@@ -57,16 +57,10 @@ export class ReplicateProvider implements AIProvider {
     }
 
     // build request params
-    let input: any = {
+    const input: Record<string, unknown> = {
       prompt: params.prompt,
+      ...(params.options || {}),
     };
-
-    if (params.options) {
-      input = {
-        ...input,
-        ...params.options,
-      };
-    }
 
     const isValidCallbackUrl =
       callbackUrl &&
@@ -97,10 +91,10 @@ export class ReplicateProvider implements AIProvider {
 
     if (data.output) {
       if (Array.isArray(data.output)) {
-        images = data.output.map((image: any) => ({
+        images = data.output.map((image) => ({
           id: '',
           createTime: new Date(data.created_at),
-          imageUrl: image,
+          imageUrl: image as string,
         }));
       } else if (typeof data.output === 'string') {
         images = [

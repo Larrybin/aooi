@@ -10,8 +10,8 @@ import {
   getSettings,
   getSettingTabs,
 } from '@/shared/services/settings';
-import { Crumb } from '@/shared/types/blocks/common';
-import { Form as FormType } from '@/shared/types/blocks/form';
+import type { Crumb } from '@/shared/types/blocks/common';
+import type { Form as FormType, FormField } from '@/shared/types/blocks/form';
 
 export default async function SettingsPage({
   params,
@@ -58,7 +58,7 @@ export default async function SettingsPage({
     await saveConfigs(configs);
 
     return {
-      status: 'success',
+      status: 'success' as const,
       message: 'Settings updated',
     };
   };
@@ -73,19 +73,19 @@ export default async function SettingsPage({
     forms.push({
       title: group.title,
       description: group.description,
-      fields: settings
-        .filter((setting) => setting.group === group.name)
-        .map((setting) => ({
-          name: setting.name,
-          title: setting.title,
-          type: setting.type as any,
-          placeholder: setting.placeholder,
-          group: setting.group,
-          options: setting.options,
-          tip: setting.tip,
-          value: setting.value,
-          attributes: setting.attributes,
-        })),
+          fields: settings
+            .filter((setting) => setting.group === group.name)
+            .map((setting) => ({
+              name: setting.name,
+              title: setting.title,
+              type: setting.type as FormField['type'],
+              placeholder: setting.placeholder,
+              group: setting.group,
+              options: setting.options,
+              tip: setting.tip,
+              value: setting.value,
+              attributes: setting.attributes,
+            })),
       passby: {
         provider: group.name,
         tab: group.tab,
@@ -95,7 +95,7 @@ export default async function SettingsPage({
         button: {
           title: t('edit.buttons.submit'),
         },
-        handler: handleSubmit as any,
+        handler: handleSubmit,
       },
     });
   });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { IconUpload, IconX } from '@tabler/icons-react';
 import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
@@ -115,6 +116,7 @@ export function ImageUploader({
     const defaultUrls = defaultPreviews || [];
 
     // 使用函数式更新来访问最新的 items
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems((currentItems) => {
       const currentUrls = currentItems
         .filter((item) => item.status === 'uploaded' && item.url)
@@ -307,10 +309,12 @@ export function ImageUploader({
             className="group border-border bg-muted/50 hover:border-border hover:bg-muted relative overflow-hidden rounded-xl border p-1 shadow-sm transition"
           >
             <div className="relative overflow-hidden rounded-lg">
-              <img
+              <Image
                 src={item.preview}
                 alt="Reference"
                 className="h-32 w-32 rounded-lg object-cover"
+                width={128}
+                height={128}
               />
               {item.size && (
                 <span className="bg-background text-muted-foreground absolute bottom-2 left-2 rounded-md px-2 py-1 text-[10px] font-medium">

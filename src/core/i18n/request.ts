@@ -4,14 +4,13 @@ import {
   defaultLocale,
   localeMessagesPaths,
   localeMessagesRootPath,
+  locales,
+  type Locale,
 } from '@/config/locale';
 
 import { routing } from './config';
 
-export async function loadMessages(
-  path: string,
-  locale: string = defaultLocale
-) {
+export async function loadMessages(path: string, locale: Locale = defaultLocale) {
   try {
     // try to load locale messages
     const messages = await import(
@@ -34,8 +33,8 @@ export async function loadMessages(
 
 export default getRequestConfig(async ({ requestLocale }) => {
   let locale = await requestLocale;
-  if (!locale || !routing.locales.includes(locale as string)) {
-    locale = routing.defaultLocale;
+  if (!locale || !routing.locales.includes(locale as Locale)) {
+    locale = routing.defaultLocale as Locale;
   }
 
   if (['zh-CN'].includes(locale)) {
@@ -45,7 +44,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
   try {
     // load all local messages
     const allMessages = await Promise.all(
-      localeMessagesPaths.map((path) => loadMessages(path, locale))
+      localeMessagesPaths.map((path) => loadMessages(path, locale as Locale))
     );
 
     // merge all local messages

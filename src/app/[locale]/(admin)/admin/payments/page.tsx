@@ -4,7 +4,12 @@ import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { PaymentType } from '@/extensions/payment';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
-import { getOrders, getOrdersCount, OrderStatus } from '@/shared/models/order';
+import {
+  getOrders,
+  getOrdersCount,
+  OrderStatus,
+  type Order,
+} from '@/shared/models/order';
 import { Crumb, Filter, Search, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -144,7 +149,7 @@ export default async function PaymentsPage({
     limit,
   });
 
-  const table: Table = {
+  const table: Table<Order> = {
     columns: [
       { name: 'orderNo', title: t('fields.order_no'), type: 'copy' },
       { name: 'user', title: t('fields.user'), type: 'user' },

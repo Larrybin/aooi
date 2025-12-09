@@ -101,7 +101,8 @@ export class StripeProvider implements PaymentProvider {
           const customer = await this.client.customers.create({
             email: order.customer.email,
             name: order.customer.name,
-            metadata: order.customer.metadata,
+            metadata: order.customer
+              .metadata as Stripe.MetadataParam | undefined,
           });
           customerId = customer.id;
         }
@@ -161,7 +162,8 @@ export class StripeProvider implements PaymentProvider {
       }
 
       if (order.metadata) {
-        sessionParams.metadata = order.metadata;
+        sessionParams.metadata =
+          order.metadata as Stripe.MetadataParam | undefined;
       }
 
       if (order.successUrl) {
@@ -426,7 +428,7 @@ export class StripeProvider implements PaymentProvider {
         invoiceUrl: '',
       },
       paymentResult: session,
-      metadata: session.metadata,
+      metadata: session.metadata ? { ...session.metadata } : undefined,
     };
 
     if (subscription) {
@@ -494,7 +496,7 @@ export class StripeProvider implements PaymentProvider {
               : undefined,
       },
       paymentResult: invoice,
-      metadata: invoice.metadata,
+      metadata: invoice.metadata ? { ...invoice.metadata } : undefined,
     };
 
     if (subscription) {
@@ -541,7 +543,7 @@ export class StripeProvider implements PaymentProvider {
       currentPeriodEnd: new Date(data.current_period_end * 1000),
       interval: data.plan.interval as PaymentInterval,
       intervalCount: data.plan.interval_count || 1,
-      metadata: subscription.metadata,
+      metadata: subscription.metadata ? { ...subscription.metadata } : undefined,
     };
 
     if (subscription.status === 'active') {

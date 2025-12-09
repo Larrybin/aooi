@@ -59,7 +59,7 @@ export default async function PostEditPage({
     })),
   ];
 
-  const form: Form = {
+  const form: Form<typeof post, { type: 'post'; post: typeof post }> = {
     fields: [
       {
         name: 'slug',
@@ -126,7 +126,7 @@ export default async function PostEditPage({
           throw new Error('no auth');
         }
 
-        const { post } = passby;
+        const { post } = passby!;
 
         if (!user || !post) {
           throw new Error('no auth');

@@ -19,7 +19,7 @@ import {
 } from '@/shared/types/blocks/common';
 import { Table as TableType } from '@/shared/types/blocks/table';
 
-export function TableCard({
+export function TableCard<T extends object = object>({
   title,
   description,
   buttons,
@@ -31,7 +31,7 @@ export function TableCard({
   description?: string;
   buttons?: ButtonType[];
   tabs?: TabType[];
-  table: TableType;
+  table: TableType<T>;
   className?: string;
 }) {
   return (
@@ -69,7 +69,7 @@ export function TableCard({
       {table && (
         <CardContent>
           {tabs && tabs.length > 0 ? <Tabs tabs={tabs} /> : null}
-          <Table {...table} />
+          <Table<T> {...table} />
         </CardContent>
       )}
 

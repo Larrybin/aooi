@@ -32,6 +32,7 @@ export function SignUp({
 }) {
   const router = useRouter();
   const t = useTranslations('common.sign');
+  const locale = useLocale();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -44,16 +45,13 @@ export function SignUp({
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
 
-  if (callbackUrl) {
-    const locale = useLocale();
-    if (
-      locale !== defaultLocale &&
-      callbackUrl.startsWith('/') &&
-      !callbackUrl.startsWith(`/${locale}`)
-    ) {
-      callbackUrl = `/${locale}${callbackUrl}`;
-    }
-  }
+  const localizedCallbackUrl =
+    callbackUrl &&
+    locale !== defaultLocale &&
+    callbackUrl.startsWith('/') &&
+    !callbackUrl.startsWith(`/${locale}`)
+      ? `/${locale}${callbackUrl}`
+      : callbackUrl;
 
   const reportAffiliate = ({
     userEmail,
@@ -66,14 +64,12 @@ export function SignUp({
       return;
     }
 
-    const windowObject = window as any;
-
-    if (configs.affonso_enabled === 'true' && windowObject.Affonso) {
-      windowObject.Affonso.signup(userEmail);
+    if (configs.affonso_enabled === 'true' && window.Affonso) {
+      window.Affonso.signup(userEmail);
     }
 
-    if (configs.promotekit_enabled === 'true' && windowObject.promotekit) {
-      windowObject.promotekit.refer(userEmail, stripeCustomerId);
+    if (configs.promotekit_enabled === 'true' && window.promotekit) {
+      window.promotekit.refer(userEmail, stripeCustomerId);
     }
   };
 
@@ -103,7 +99,7 @@ export function SignUp({
         onSuccess: (ctx) => {
           // report affiliate
           reportAffiliate({ userEmail: email });
-          router.push(callbackUrl);
+          router.push(localizedCallbackUrl);
         },
         onError: (e: any) => {
           toast.error(e?.error?.message || 'sign up failed');
@@ -184,7 +180,7 @@ export function SignUp({
 
           <SocialProviders
             configs={configs}
-            callbackUrl={callbackUrl || '/'}
+            callbackUrl={localizedCallbackUrl || '/'}
             loading={loading}
             setLoading={setLoading}
           />

@@ -22,7 +22,10 @@ import { cn } from '@/shared/lib/utils';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form as FormType } from '@/shared/types/blocks/form';
 
-export function FormCard({
+export function FormCard<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+  TPassby = unknown
+>({
   title,
   description,
   crumbs,
@@ -32,7 +35,7 @@ export function FormCard({
   title?: string;
   description?: string;
   crumbs?: Crumb[];
-  form: FormType;
+  form: FormType<TData, TPassby>;
   className?: string;
 }) {
   return (

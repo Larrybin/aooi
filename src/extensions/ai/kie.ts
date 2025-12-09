@@ -51,27 +51,35 @@ export class KieProvider implements AIProvider {
     }
 
     // build request params
-    let payload: any = {
+    const payload: Record<string, unknown> = {
       prompt: params.prompt,
       model: params.model,
       callBackUrl: params.callbackUrl,
     };
 
-    if (params.options && params.options.customMode) {
+    if (params.options && (params.options as { customMode?: boolean }).customMode) {
+      const customOptions = params.options as {
+        customMode?: boolean;
+        title?: string;
+        style?: string;
+        instrumental?: boolean;
+        lyrics?: string;
+      };
       // custom mode
       payload.customMode = true;
-      payload.title = params.options.title;
-      payload.style = params.options.style;
-      payload.instrumental = params.options.instrumental;
-      if (!params.options.instrumental) {
+      payload.title = customOptions.title;
+      payload.style = customOptions.style;
+      payload.instrumental = customOptions.instrumental;
+      if (!customOptions.instrumental) {
         // not instrumental, lyrics is used as prompt
-        payload.prompt = params.options.lyrics;
+        payload.prompt = customOptions.lyrics;
       }
     } else {
       // not custom mode
       payload.customMode = false;
       payload.prompt = params.prompt;
-      payload.instrumental = params.options?.instrumental;
+      payload.instrumental = (params.options as { instrumental?: boolean })
+        ?.instrumental;
     }
 
     // const params = {
@@ -155,7 +163,20 @@ export class KieProvider implements AIProvider {
       throw new Error(`query failed`);
     }
 
-    const songs: AISong[] = data?.response?.sunoData?.map((song: any) => ({
+    const songs: AISong[] = data?.response?.sunoData?.map((song: {
+      id: string;
+      createTime: string;
+      audioUrl: string;
+      imageUrl: string;
+      duration: number;
+      prompt: string;
+      title: string;
+      tags: string;
+      style: string;
+      modelName?: string;
+      artist?: string;
+      album?: string;
+    }) => ({
       id: song.id,
       createTime: new Date(song.createTime),
       audioUrl: song.audioUrl,

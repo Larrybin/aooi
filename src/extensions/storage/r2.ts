@@ -5,6 +5,7 @@ import type {
   StorageUploadOptions,
   StorageUploadResult,
 } from '.';
+import { toUint8Array } from '.';
 
 /**
  * R2 storage provider configs
@@ -45,10 +46,7 @@ export class R2Provider implements StorageProvider {
         };
       }
 
-      const bodyArray =
-        options.body instanceof Buffer
-          ? new Uint8Array(options.body)
-          : options.body;
+      const bodyArray = toUint8Array(options.body);
 
       // R2 endpoint format: https://<accountId>.r2.cloudflarestorage.com
       // Use custom endpoint if provided, otherwise use default
@@ -75,7 +73,7 @@ export class R2Provider implements StorageProvider {
       const request = new Request(url, {
         method: 'PUT',
         headers,
-        body: bodyArray as any,
+        body: bodyArray as unknown as BodyInit,
       });
 
       const response = await client.fetch(request);

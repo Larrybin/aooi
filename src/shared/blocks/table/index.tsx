@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Trash } from 'lucide-react';
 
 import {
@@ -9,8 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table';
-import { type Pagination } from '@/shared/types/blocks/common';
-import { type TableColumn } from '@/shared/types/blocks/table';
+import type { Pagination, NavItem } from '@/shared/types/blocks/common';
+import type { TableColumn } from '@/shared/types/blocks/table';
+import type { User as UserType } from '@/shared/models/user';
 
 import { Copy } from './copy';
 import { Dropdown } from './dropdown';
@@ -20,14 +22,14 @@ import { Label } from './label';
 import { Time } from './time';
 import { User } from './user';
 
-export function Table({
+export function Table<T extends object>({
   columns,
   data,
   emptyMessage,
   pagination,
 }: {
-  columns?: TableColumn[];
-  data?: any[];
+  columns?: TableColumn<T>[];
+  data?: T[];
   emptyMessage?: string;
   pagination?: Pagination;
 }) {
@@ -40,7 +42,7 @@ export function Table({
       <TableHeader className="">
         <TableRow className="rounded-md">
           {columns &&
-            columns.map((item: TableColumn, idx: number) => {
+            columns.map((item: TableColumn<T>, idx: number) => {
               return (
                 <TableHead key={idx} className={item.className}>
                   {item.title}
@@ -51,33 +53,46 @@ export function Table({
       </TableHeader>
       <TableBody>
         {data && data.length > 0 ? (
-          data.map((item: any, idx: number) => (
+          data.map((item, idx: number) => (
             <TableRow key={idx} className="h-16">
               {columns &&
-                columns.map((column: TableColumn, iidx: number) => {
-                  const value = item[column.name as keyof typeof item];
+                columns.map((column: TableColumn<T>, iidx: number) => {
+                  const record = item as Record<string, unknown>;
+                  const value =
+                    column.name && column.name in record
+                      ? record[column.name]
+                      : undefined;
 
-                  const content = column.callback
+                  const rawContent = column.callback
                     ? column.callback(item)
                     : value;
 
-                  let cellContent = content;
+                  let cellContent: ReactNode | undefined;
 
                   if (column.type === 'image') {
                     cellContent = (
                       <Image
                         placeholder={column.placeholder}
-                        value={value}
-                        metadata={column.metadata}
+                        value={value as string}
+                        metadata={column.metadata as {
+                          width?: number;
+                          height?: number;
+                        }}
                         className={column.className}
+                        alt={
+                          column.placeholder ||
+                          (typeof value === 'string' ? (value as string) : '')
+                        }
                       />
                     );
                   } else if (column.type === 'time') {
                     cellContent = (
                       <Time
                         placeholder={column.placeholder}
-                        value={value}
-                        metadata={column.metadata}
+                        value={value as string | Date}
+                        metadata={column.metadata as {
+                          format?: string;
+                        }}
                         className={column.className}
                       />
                     );
@@ -85,8 +100,14 @@ export function Table({
                     cellContent = (
                       <Label
                         placeholder={column.placeholder}
-                        value={value}
-                        metadata={column.metadata}
+                        value={value as string}
+                        metadata={column.metadata as {
+                          variant?:
+                            | 'default'
+                            | 'secondary'
+                            | 'destructive'
+                            | 'outline';
+                        }}
                         className={column.className}
                       />
                     );
@@ -94,19 +115,21 @@ export function Table({
                     cellContent = (
                       <Copy
                         placeholder={column.placeholder}
-                        value={value}
-                        metadata={column.metadata}
+                        value={value as string}
+                        metadata={column.metadata as {
+                          message?: string;
+                        }}
                         className={column.className}
                       >
-                        {content}
+                        {rawContent as ReactNode}
                       </Copy>
                     );
                   } else if (column.type === 'dropdown') {
                     cellContent = (
                       <Dropdown
                         placeholder={column.placeholder}
-                        value={content}
-                        metadata={column.metadata}
+                        value={rawContent as NavItem[]}
+                        metadata={column.metadata as Record<string, unknown>}
                         className={column.className}
                       />
                     );
@@ -114,8 +137,8 @@ export function Table({
                     cellContent = (
                       <User
                         placeholder={column.placeholder}
-                        value={value}
-                        metadata={column.metadata}
+                        value={value as UserType}
+                        metadata={column.metadata as Record<string, unknown>}
                         className={column.className}
                       />
                     );
@@ -123,8 +146,8 @@ export function Table({
                     cellContent = (
                       <JsonPreview
                         placeholder={column.placeholder}
-                        value={value}
-                        metadata={column.metadata}
+                        value={value as string}
+                        metadata={column.metadata as Record<string, unknown>}
                         className={column.className}
                       />
                     );
@@ -132,7 +155,7 @@ export function Table({
 
                   return (
                     <TableCell key={iidx} className={column.className}>
-                      {cellContent || column.placeholder}
+                      {cellContent ?? column.placeholder}
                     </TableCell>
                   );
                 })}

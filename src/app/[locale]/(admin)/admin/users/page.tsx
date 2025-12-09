@@ -5,7 +5,7 @@ import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { Badge } from '@/shared/components/ui/badge';
 import { getRemainingCredits } from '@/shared/models/credit';
-import { getUsers, getUsersCount, User } from '@/shared/models/user';
+import { getUsers, getUsersCount, type User } from '@/shared/models/user';
 import { getUserRoles } from '@/shared/services/rbac';
 import { Crumb, Search } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
@@ -57,7 +57,7 @@ export default async function AdminUsersPage({
     value: email,
   };
 
-  const table: Table = {
+  const table: Table<User> = {
     columns: [
       { name: 'id', title: t('fields.id'), type: 'copy' },
       { name: 'name', title: t('fields.name') },
