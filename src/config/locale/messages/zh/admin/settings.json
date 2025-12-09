@@ -43,6 +43,13 @@
     },
     "buttons": {
       "submit": "保存"
+    },
+    "errors": {
+      "load_failed_title": "设置加载失败",
+      "load_failed_desc": "部分配置无法从服务器加载，相关内容可能无法正常保存，但你仍然可以浏览和切换其他设置。",
+      "global_title": "设置模块出错",
+      "global_desc": "页面加载时出现意外错误，请稍后重试或联系管理员。",
+      "retry": "重试"
     }
   }
 }
