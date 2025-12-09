@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { PERMISSIONS, requireAllPermissions } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { getConfigs, saveConfigs } from '@/shared/models/config';
+import { getConfigsSafe, saveConfigs } from '@/shared/models/config';
 import { getUserInfo } from '@/shared/models/user';
 import {
   getSettingGroups,
@@ -28,7 +28,7 @@ export default async function SettingsPage({
     locale,
   });
 
-  const configs = await getConfigs();
+  const { configs, error: configsError } = await getConfigsSafe();
 
   const settingGroups = await getSettingGroups();
   const settings = await getSettings();
@@ -41,9 +41,18 @@ export default async function SettingsPage({
   ];
 
   const tabs = await getSettingTabs(tab ?? 'auth');
+  const hasConfigsError = Boolean(configsError);
 
   const handleSubmit = async (data: FormData, passby: any) => {
     'use server';
+
+    if (hasConfigsError) {
+      return {
+        status: 'error' as const,
+        message:
+          'Settings could not be saved because configuration values failed to load. Please try again later.',
+      };
+    }
 
     const user = await getUserInfo();
 
@@ -73,19 +82,19 @@ export default async function SettingsPage({
     forms.push({
       title: group.title,
       description: group.description,
-          fields: settings
-            .filter((setting) => setting.group === group.name)
-            .map((setting) => ({
-              name: setting.name,
-              title: setting.title,
-              type: setting.type as FormField['type'],
-              placeholder: setting.placeholder,
-              group: setting.group,
-              options: setting.options,
-              tip: setting.tip,
-              value: setting.value,
-              attributes: setting.attributes,
-            })),
+      fields: settings
+        .filter((setting) => setting.group === group.name)
+        .map((setting) => ({
+          name: setting.name,
+          title: setting.title,
+          type: setting.type as FormField['type'],
+          placeholder: setting.placeholder,
+          group: setting.group,
+          options: setting.options,
+          tip: setting.tip,
+          value: setting.value,
+          attributes: setting.attributes,
+        })),
       passby: {
         provider: group.name,
         tab: group.tab,
@@ -100,10 +109,21 @@ export default async function SettingsPage({
     });
   });
 
+  const loadErrorTitle = t('edit.errors.load_failed_title');
+  const loadErrorDesc = t('edit.errors.load_failed_desc');
+
   return (
     <>
       <Header crumbs={crumbs} />
       <Main>
+        {configsError && (
+          <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+            <p className="font-semibold">{loadErrorTitle}</p>
+            <p className="mt-1 text-xs text-destructive/80">
+              {loadErrorDesc}
+            </p>
+          </div>
+        )}
         <MainHeader title={t('edit.title')} tabs={tabs} />
         {forms.map((form) => (
           <FormCard

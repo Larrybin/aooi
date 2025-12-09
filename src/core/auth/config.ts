@@ -7,13 +7,24 @@ import * as schema from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
 import { getAllConfigs } from '@/shared/models/config';
 
+// Trusted origins for Better Auth
+// - app_url: current application origin
+// - https://accounts.google.com: Google One Tap / FedCM origin
+const trustedOrigins: string[] = [];
+
+if (envConfigs.app_url) {
+  trustedOrigins.push(envConfigs.app_url);
+}
+
+trustedOrigins.push('https://accounts.google.com');
+
 // Static auth options - NO database connection
 // This ensures zero database calls during build time
 export const authOptions = {
   appName: envConfigs.app_name,
   baseURL: envConfigs.auth_url,
   secret: envConfigs.auth_secret,
-  trustedOrigins: envConfigs.app_url ? [envConfigs.app_url] : [],
+  trustedOrigins,
   advanced: {
     database: {
       generateId: () => getUuid(),

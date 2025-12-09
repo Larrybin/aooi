@@ -59,6 +59,21 @@ export async function getConfigs(): Promise<Configs> {
   return configs;
 }
 
+export async function getConfigsSafe(): Promise<{
+  configs: Configs;
+  error?: Error;
+}> {
+  try {
+    const configs = await getConfigs();
+    return { configs };
+  } catch (e: unknown) {
+    const error =
+      e instanceof Error ? e : new Error(`getConfigs failed: ${String(e)}`);
+    console.error('[config] getConfigs failed:', error);
+    return { configs: {}, error };
+  }
+}
+
 export async function getAllConfigs(): Promise<Configs> {
   let dbConfigs: Configs = {};
 
