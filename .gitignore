@@ -63,3 +63,8 @@ src/config/db/migrations
 .source
 
 .chats
+
+# nested starterkit (not part of main app)
+/raphael-starterkit-v1-main/
+
+.vercel

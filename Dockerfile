@@ -29,8 +29,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     chown nextjs:nodejs .next
 
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder /app/package.json ./package.json
 
 USER nextjs
 
@@ -41,5 +42,4 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# server.js is created by next build from the standalone output
-CMD ["node", "server.js"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3000"]
