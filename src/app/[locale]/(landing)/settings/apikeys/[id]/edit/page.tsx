@@ -2,13 +2,17 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { FormCard } from '@/shared/blocks/form';
-import { getNonceStr } from '@/shared/lib/hash';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import {
   findApikeyById,
   updateApikey,
   UpdateApikey,
 } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
+import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form as FormType } from '@/shared/types/blocks/form';
 
@@ -54,38 +58,26 @@ export default async function EditApiKeyPage({
       handler: async (data: FormData, passby: any) => {
         'use server';
 
-        const { user, apikey } = passby;
+        return withAction(async () => {
+          const user = await requireActionUser();
+          const apikey = await findApikeyById(id);
+          if (!apikey) {
+            throw new Error('apikey not found');
+          }
 
-        if (!apikey) {
-          throw new Error('apikey not found');
-        }
+          if (apikey.userId !== user.id) {
+            throw new Error('no permission');
+          }
 
-        if (!user) {
-          throw new Error('no auth');
-        }
+          const { title } = parseFormData(data, SettingsApiKeyUpsertFormSchema, {
+            message: 'title is required',
+          });
 
-        if (apikey.userId !== user.id) {
-          throw new Error('no permission');
-        }
+          const updatedApikey: UpdateApikey = { title };
+          await updateApikey(apikey.id, updatedApikey);
 
-        const title = data.get('title') as string;
-        if (!title?.trim()) {
-          throw new Error('title is required');
-        }
-
-        const key = `sk-${getNonceStr(32)}`;
-
-        const updatedApikey: UpdateApikey = {
-          title: title.trim(),
-        };
-
-        await updateApikey(apikey.id, updatedApikey);
-
-        return {
-          status: 'success',
-          message: 'API Key updated',
-          redirect_url: '/settings/apikeys',
-        };
+          return actionOk('API Key updated', '/settings/apikeys');
+        });
       },
       button: {
         title: t('edit.buttons.submit'),

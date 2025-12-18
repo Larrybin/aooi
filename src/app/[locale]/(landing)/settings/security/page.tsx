@@ -2,7 +2,12 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { PanelCard } from '@/shared/blocks/panel';
-import { getUserInfo, UpdateUser, updateUser } from '@/shared/models/user';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
+import { getUserInfo } from '@/shared/models/user';
+import { SettingsSecurityFormSchema } from '@/shared/schemas/actions/settings-security';
 import { Button as ButtonType } from '@/shared/types/blocks/common';
 import { Form as FormType } from '@/shared/types/blocks/form';
 
@@ -47,32 +52,17 @@ export default async function SecurityPage() {
       user: user,
     },
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: any) => {
         'use server';
 
-        const { user } = passby;
-        if (!user) {
-          throw new Error('no auth');
-        }
+        return withAction(async () => {
+          const user = await requireActionUser();
+          parseFormData(data, SettingsSecurityFormSchema, {
+            message: 'password is required',
+          });
 
-        const password = data.get('password') as string;
-        if (!password?.trim()) {
-          throw new Error('password is required');
-        }
-
-        const updatedUser: UpdateUser = {
-          // password: password.trim(),
-          // new_password: new_password.trim(),
-          // confirm_password: confirm_password.trim(),
-        };
-
-        await updateUser(user.id, updatedUser);
-
-        return {
-          status: 'success',
-          message: 'Profile updated',
-          redirect_url: '/settings/profile',
-        };
+          return actionOk('Profile updated', '/settings/profile');
+        });
       },
       button: {
         title: t('reset_password.buttons.submit'),

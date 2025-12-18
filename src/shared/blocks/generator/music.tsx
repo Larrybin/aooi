@@ -39,6 +39,12 @@ import {
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { useAppContext } from '@/shared/contexts/app';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+  getRequestIdFromResponse,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
 
 interface SongData {
@@ -138,29 +144,36 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         },
         body: JSON.stringify({ taskId }),
       });
+      const requestId = getRequestIdFromResponse(resp);
 
       if (!resp.ok) {
-        throw new Error(`request failed with status: ${resp.status}`);
+        throw new RequestIdError(
+          `request failed with status: ${resp.status}`,
+          requestId
+        );
       }
 
       const { code, message, data } = await resp.json();
       if (code !== 0) {
-        throw new Error(message);
+        throw new RequestIdError(message, requestId);
       }
 
-      const { status, taskInfo } = data;
-      if (!status || !taskInfo) {
-        throw new Error('Query task info failed');
+      const { status, taskInfo } = data as {
+        status?: string;
+        taskInfo?: unknown;
+      };
+      if (!status || !taskInfo || typeof taskInfo !== 'object') {
+        throw new RequestIdError('Query task info failed', requestId);
       }
 
-      const task = JSON.parse(taskInfo) as {
+      const task = taskInfo as {
         errorCode?: string;
         errorMessage?: string;
         songs?: AISong[];
       };
       const { errorCode, errorMessage, songs } = task;
       if (errorCode || errorMessage) {
-        throw new Error(errorMessage);
+        throw new RequestIdError(errorMessage || 'Query task failed', requestId);
       }
 
       // handle task status
@@ -268,7 +281,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       setIsGenerating(false);
       setProgress(0);
       setGenerationStartTime(null);
-      toast.error('Create song failed: ' + error.message);
+      toast.error(
+        formatMessageWithRequestId(
+          'Create song failed: ' + (error?.message || 'unknown error'),
+          getRequestIdFromError(error)
+        )
+      );
 
       fetchUserCredits();
 
@@ -360,33 +378,28 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          mediaType: 'music',
-          provider: provider,
-          model: model,
-          prompt: prompt,
-          options: {
-            style: style,
-            title: title,
-            lyrics: lyrics,
-            customMode: customMode,
-            instrumental: instrumental,
-          },
-        }),
+        body: JSON.stringify(params),
       });
+      const requestId = getRequestIdFromResponse(resp);
 
       if (!resp.ok) {
-        throw new Error(`request failed with status: ${resp.status}`);
+        throw new RequestIdError(
+          `request failed with status: ${resp.status}`,
+          requestId
+        );
       }
 
       const { code, message, data } = await resp.json();
       if (code !== 0) {
-        throw new Error(message || 'Failed to generate music');
+        throw new RequestIdError(
+          message || 'Failed to generate music',
+          requestId
+        );
       }
 
       const { id: taskId } = data;
       if (!taskId) {
-        throw new Error('Failed to generate music');
+        throw new RequestIdError('Failed to generate music', requestId);
       }
 
       // refresh user credits
@@ -395,7 +408,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       setTaskId(taskId);
       setProgress(20);
     } catch (err: any) {
-      toast.error('Failed to generate music: ' + err.message);
+      toast.error(
+        formatMessageWithRequestId(
+          'Failed to generate music: ' + (err?.message || 'unknown error'),
+          getRequestIdFromError(err)
+        )
+      );
       setIsGenerating(false);
       setProgress(0);
       setGenerationStartTime(null);
@@ -718,6 +736,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                                     src={song.imageUrl}
                                     alt={song.title}
                                     fill
+                                    sizes="80px"
                                     className="object-cover"
                                   />
                                 ) : (

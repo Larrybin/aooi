@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { and, asc, count, desc, eq, gt, isNull, or, sum } from 'drizzle-orm';
 
 import { db } from '@/core/db';

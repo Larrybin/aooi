@@ -1,28 +1,52 @@
+import 'server-only';
+import '@/config/load-dotenv';
+
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { createRequire } from 'node:module';
 import postgres from 'postgres';
 
-import { envConfigs } from '@/config';
+import { serverEnv } from '@/config/server';
 import { isCloudflareWorker } from '@/shared/lib/env';
+import { logger } from '@/shared/lib/logger.server';
 
 // Global database connection instance (singleton pattern)
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 let client: ReturnType<typeof postgres> | null = null;
 
+function tryGetCloudflareWorkersEnv(): any | null {
+  try {
+    const require = createRequire(import.meta.url);
+    const workers = require('cloudflare:workers');
+    return workers?.env ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function db() {
-  let databaseUrl = envConfigs.database_url;
+  let databaseUrl = serverEnv.databaseUrl;
 
-  let isHyperdrive = false;
+  const cloudflareEnv = tryGetCloudflareWorkersEnv();
+  const hasCloudflareWorkersEnv = cloudflareEnv !== null;
+  const runningInCloudflareWorkers = hasCloudflareWorkersEnv || isCloudflareWorker;
 
-  if (isCloudflareWorker) {
-    const { env }: { env: any } = { env: {} };
-    // Detect if set Hyperdrive
-    isHyperdrive = 'HYPERDRIVE' in env;
-
-    if (isHyperdrive) {
-      const hyperdrive = env.HYPERDRIVE;
-      databaseUrl = hyperdrive.connectionString;
-      console.log('using Hyperdrive connection');
+  if (runningInCloudflareWorkers) {
+    if (!hasCloudflareWorkersEnv) {
+      throw new Error(
+        'Detected Cloudflare Workers environment but failed to access bindings env via "cloudflare:workers". Ensure your Worker enables `nodejs_compat` and supports the `cloudflare:workers` module.'
+      );
     }
+
+    const hyperdriveConnectionString = cloudflareEnv?.HYPERDRIVE?.connectionString;
+
+    if (!hyperdriveConnectionString) {
+      throw new Error(
+        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml (see wrangler.toml.example) as: [[hyperdrive]] binding = "HYPERDRIVE".'
+      );
+    }
+
+    databaseUrl = hyperdriveConnectionString;
+    logger.info('db: using Hyperdrive connection');
   }
 
   if (!databaseUrl) {
@@ -30,8 +54,8 @@ export function db() {
   }
 
   // In Cloudflare Workers, create new connection each time
-  if (isCloudflareWorker) {
-    console.log('in Cloudflare Workers environment');
+  if (runningInCloudflareWorkers) {
+    logger.info('db: in Cloudflare Workers environment');
     // Workers environment uses minimal configuration
     const client = postgres(databaseUrl, {
       prepare: false,
@@ -44,7 +68,7 @@ export function db() {
   }
 
   // Singleton mode: reuse existing connection (good for traditional servers)
-  if (envConfigs.db_singleton_enabled === 'true') {
+  if (serverEnv.dbSingletonEnabled === 'true') {
     // Return existing instance if already initialized
     if (dbInstance) {
       return dbInstance;
@@ -77,7 +101,7 @@ export function db() {
 // Optional: Function to close database connection (useful for testing or graceful shutdown)
 // Note: Only works in singleton mode
 export async function closeDb() {
-  if (envConfigs.db_singleton_enabled && client) {
+  if (serverEnv.dbSingletonEnabled === 'true' && client) {
     await client.end();
     client = null;
     dbInstance = null;

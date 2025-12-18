@@ -13,6 +13,9 @@ import {
   SubscriptionCycleType,
   SubscriptionInfo,
   SubscriptionStatus,
+  WebhookConfigError,
+  WebhookPayloadError,
+  WebhookVerificationError,
 } from '.';
 
 /**
@@ -136,11 +139,11 @@ export class CreemProvider implements PaymentProvider {
       const signature = req.headers.get('creem-signature') as string;
 
       if (!rawBody || !signature) {
-        throw new Error('Invalid webhook request');
+        throw new WebhookVerificationError('invalid webhook request');
       }
 
       if (!this.configs.signingSecret) {
-        throw new Error('Signing Secret not configured');
+        throw new WebhookConfigError('signing secret not configured');
       }
 
       const computedSignature = await this.generateSignature(
@@ -149,14 +152,19 @@ export class CreemProvider implements PaymentProvider {
       );
 
       if (computedSignature !== signature) {
-        throw new Error('Invalid webhook signature');
+        throw new WebhookVerificationError('invalid webhook signature');
       }
 
       // parse the webhook payload
-      const event = JSON.parse(rawBody);
+      let event: any;
+      try {
+        event = JSON.parse(rawBody);
+      } catch {
+        throw new WebhookPayloadError('invalid webhook payload');
+      }
 
       if (!event || !event.eventType) {
-        throw new Error('Invalid webhook payload');
+        throw new WebhookPayloadError('invalid webhook payload');
       }
 
       let paymentSession: PaymentSession | undefined = undefined;
@@ -182,7 +190,7 @@ export class CreemProvider implements PaymentProvider {
       }
 
       if (!paymentSession) {
-        throw new Error('Invalid webhook event');
+        throw new WebhookPayloadError('invalid webhook event');
       }
 
       return {
@@ -387,7 +395,9 @@ export class CreemProvider implements PaymentProvider {
   }
 
   // build payment session from subscription session
-  private async buildPaymentSessionFromInvoice(invoice: any): Promise<PaymentSession> {
+  private async buildPaymentSessionFromInvoice(
+    invoice: any
+  ): Promise<PaymentSession> {
     const order = invoice.order || invoice.last_transaction;
 
     const subscription = invoice.subscription || invoice;

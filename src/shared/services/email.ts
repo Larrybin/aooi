@@ -1,5 +1,9 @@
+import 'server-only';
+
 import { EmailManager, ResendProvider } from '@/extensions/email';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get email service with configs
@@ -22,15 +26,6 @@ export function getEmailServiceWithConfigs(configs: Configs) {
 /**
  * global email service
  */
-let emailService: EmailManager | null = null;
-
-/**
- * get email service instance
- */
 export async function getEmailService(): Promise<EmailManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    emailService = getEmailServiceWithConfigs(configs);
-  }
-  return emailService;
+  return await buildServiceFromLatestConfigs(getEmailServiceWithConfigs);
 }

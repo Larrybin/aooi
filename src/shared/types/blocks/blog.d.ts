@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-import type { TOCItemType } from '@/core/docs/toc';
+import type { TOCItemType } from 'fumadocs-core/server';
 
 export interface Blog {
   id?: string;

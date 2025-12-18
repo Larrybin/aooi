@@ -1,19 +1,28 @@
-import { getMDXComponents } from '@/mdx-components';
-import { and, count, desc, eq, like } from 'drizzle-orm';
-import { createRelativeLink } from 'fumadocs-ui/mdx';
-import moment from 'moment';
+import 'server-only';
 
-import { db } from '@/core/db';
-import { pagesSource, postsSource } from '@/core/docs/source';
-import { generateTOC } from '@/core/docs/toc';
 import { post } from '@/config/db/schema';
-import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
+import { logger } from '@/shared/lib/logger.server';
+import { formatPostDate } from '@/shared/lib/post-date';
 import {
   Category as BlogCategoryType,
   Post as BlogPostType,
 } from '@/shared/types/blocks/blog';
 
+import {
+  generatePostTocFromMarkdown,
+  getLocalPage as getLocalPageFromContent,
+  getLocalPost as getLocalPostFromContent,
+  getLocalPostsAndCategories as getLocalPostsAndCategoriesFromContent,
+} from '@/shared/content/post_content';
+
 import { getTaxonomies, TaxonomyStatus, TaxonomyType } from './taxonomy';
+import {
+  addPostRow,
+  findPostRow,
+  getPostRows,
+  getPostRowsCount,
+  updatePostRow,
+} from './post_repo';
 
 export type Post = typeof post.$inferSelect;
 export type NewPost = typeof post.$inferInsert;
@@ -31,27 +40,12 @@ export enum PostStatus {
   ARCHIVED = 'archived', // archived means deleted
 }
 
-type LocalPostFrontmatter = {
-  created_at?: string;
-  author_name?: string;
-  author_image?: string;
-  image?: string;
-};
-
 export async function addPost(data: NewPost) {
-  const [result] = await db().insert(post).values(data).returning();
-
-  return result;
+  return await addPostRow(data);
 }
 
 export async function updatePost(id: string, data: UpdatePost) {
-  const [result] = await db()
-    .update(post)
-    .set(data)
-    .where(eq(post.id, id))
-    .returning();
-
-  return result;
+  return await updatePostRow(id, data);
 }
 
 export async function deletePost(id: string) {
@@ -71,19 +65,7 @@ export async function findPost({
   slug?: string;
   status?: PostStatus;
 }) {
-  const [result] = await db()
-    .select()
-    .from(post)
-    .where(
-      and(
-        id ? eq(post.id, id) : undefined,
-        slug ? eq(post.slug, slug) : undefined,
-        status ? eq(post.status, status) : undefined
-      )
-    )
-    .limit(1);
-
-  return result;
+  return await findPostRow({ id, slug, status });
 }
 
 export async function getPosts({
@@ -101,22 +83,7 @@ export async function getPosts({
   page?: number;
   limit?: number;
 } = {}): Promise<Post[]> {
-  const result = await db()
-    .select()
-    .from(post)
-    .where(
-      and(
-        type ? eq(post.type, type) : undefined,
-        status ? eq(post.status, status) : undefined,
-        category ? like(post.categories, `%${category}%`) : undefined,
-        tag ? like(post.tags, `%${tag}%`) : undefined
-      )
-    )
-    .orderBy(desc(post.updatedAt), desc(post.createdAt))
-    .limit(limit)
-    .offset((page - 1) * limit);
-
-  return result;
+  return await getPostRows({ type, status, category, tag, page, limit });
 }
 
 export async function getPostsCount({
@@ -130,20 +97,7 @@ export async function getPostsCount({
   category?: string;
   tag?: string;
 } = {}): Promise<number> {
-  const [result] = await db()
-    .select({ count: count() })
-    .from(post)
-    .where(
-      and(
-        type ? eq(post.type, type) : undefined,
-        status ? eq(post.status, status) : undefined,
-        category ? like(post.categories, `%${category}%`) : undefined,
-        tag ? like(post.tags, `%${tag}%`) : undefined
-      )
-    )
-    .limit(1);
-
-  return result?.count || 0;
+  return await getPostRowsCount({ type, status, category, tag });
 }
 
 // get single post, both from local file and database
@@ -166,19 +120,16 @@ export async function getPost({
       // post exist in database
       const content = postData.content || '';
 
-      // Convert markdown content to MarkdownContent component
-      const body = content ? <MarkdownContent content={content} /> : undefined;
-
       // Generate TOC from content
-      const toc = content ? generateTOC(content) : undefined;
+      const toc = content ? generatePostTocFromMarkdown(content) : undefined;
 
       post = {
         id: postData.id,
         slug: postData.slug,
         title: postData.title || '',
         description: postData.description || '',
-        content: '',
-        body: body,
+        content,
+        body: undefined,
         toc: toc,
         created_at:
           getPostDate({
@@ -194,7 +145,7 @@ export async function getPost({
       return post;
     }
   } catch (e) {
-    console.log('get post from database failed:', e);
+    logger.warn('post: get post from database failed', { slug, error: e });
   }
 
   // get post from locale file
@@ -212,44 +163,7 @@ export async function getLocalPost({
   locale: string;
   postPrefix?: string;
 }): Promise<BlogPostType | null> {
-  const localPost = await postsSource.getPage([slug], locale);
-  if (!localPost) {
-    return null;
-  }
-
-  const MDXContent = localPost.data.body;
-  const body = (
-    <MDXContent
-      components={getMDXComponents({
-        // this allows you to link to other pages with relative file paths
-        a: createRelativeLink(postsSource, localPost),
-      })}
-    />
-  );
-
-  const frontmatter = localPost.data as LocalPostFrontmatter;
-
-  const post: BlogPostType = {
-    id: localPost.path,
-    slug: slug,
-    title: localPost.data.title || '',
-    description: localPost.data.description || '',
-    content: '',
-    body: body,
-    toc: localPost.data.toc, // Use fumadocs auto-generated TOC
-    created_at: frontmatter.created_at
-      ? getPostDate({
-          created_at: frontmatter.created_at,
-          locale,
-        })
-      : '',
-    author_name: frontmatter.author_name || '',
-    author_image: frontmatter.author_image || '',
-    author_role: '',
-    url: `${postPrefix}${slug}`,
-  };
-
-  return post;
+  return await getLocalPostFromContent({ slug, locale, postPrefix });
 }
 
 // get local page from: content/pages/*.md
@@ -260,44 +174,7 @@ export async function getLocalPage({
   slug: string;
   locale: string;
 }): Promise<BlogPostType | null> {
-  const localPage = await pagesSource.getPage([slug], locale);
-  if (!localPage) {
-    return null;
-  }
-
-  const MDXContent = localPage.data.body;
-  const body = (
-    <MDXContent
-      components={getMDXComponents({
-        // this allows you to link to other pages with relative file paths
-        a: createRelativeLink(pagesSource, localPage),
-      })}
-    />
-  );
-
-  const frontmatter = localPage.data as LocalPostFrontmatter;
-
-  const post: BlogPostType = {
-    id: localPage.path,
-    slug: slug,
-    title: localPage.data.title || '',
-    description: localPage.data.description || '',
-    content: '',
-    body: body,
-    toc: localPage.data.toc, // Use fumadocs auto-generated TOC
-    created_at: frontmatter.created_at
-      ? getPostDate({
-          created_at: frontmatter.created_at,
-          locale,
-        })
-      : '',
-    author_name: frontmatter.author_name || '',
-    author_image: frontmatter.author_image || '',
-    author_role: '',
-    url: `/${locale}/${slug}`,
-  };
-
-  return post;
+  return await getLocalPageFromContent({ slug, locale, pagePrefix: `/${locale}/` });
 }
 
 // get posts and categories, both from local files and database
@@ -444,7 +321,7 @@ export async function getRemotePostsAndCategories({
       }))
     );
   } catch (e) {
-    console.log('get remote posts and categories failed:', e);
+    logger.warn('post: get remote posts and categories failed', { error: e });
   }
 
   return {
@@ -465,55 +342,17 @@ export async function getLocalPostsAndCategories({
   postPrefix?: string;
   categoryPrefix?: string;
 }) {
-  const localPostsList: BlogPostType[] = [];
-
-  // get posts from local files
-  const localPosts = postsSource.getPages(locale);
-
-  // no local posts
-  if (!localPosts || localPosts.length === 0) {
-    return {
-      posts: [],
-      postsCount: 0,
-      categories: [],
-      categoriesCount: 0,
-    };
-  }
-
-  // Build posts data from local content
-  localPostsList.push(
-    ...localPosts.map((post) => {
-      const frontmatter = post.data as LocalPostFrontmatter;
-      const slug = getPostSlug({
-        url: post.url,
-        locale,
-        prefix: postPrefix,
-      });
-
-      return {
-        id: post.path,
-        slug: slug,
-        title: post.data.title || '',
-        description: post.data.description || '',
-        author_name: frontmatter.author_name || '',
-        author_image: frontmatter.author_image || '',
-        created_at: frontmatter.created_at
-          ? getPostDate({
-              created_at: frontmatter.created_at,
-              locale,
-            })
-          : '',
-        image: frontmatter.image || '',
-        url: `${postPrefix}${slug}`,
-      };
-    })
-  );
+  const result = await getLocalPostsAndCategoriesFromContent({
+    locale,
+    postPrefix,
+    categoryPrefix,
+  });
 
   return {
-    posts: localPostsList,
-    postsCount: localPostsList.length,
-    categories: [],
-    categoriesCount: 0,
+    posts: result.posts,
+    postsCount: result.postsCount,
+    categories: result.categories,
+    categoriesCount: result.categoriesCount,
   };
 }
 
@@ -543,9 +382,8 @@ export function getPostDate({
   created_at: string;
   locale?: string;
 }) {
-  return moment(created_at)
-    .locale(locale || 'en')
-    .format(locale === 'zh' ? 'YYYY/MM/DD' : 'MMM D, YYYY');
+  // Compatibility wrapper: keep existing export stable, use a single formatter.
+  return formatPostDate(created_at, locale);
 }
 
 // Helper function to remove frontmatter from markdown content

@@ -1,16 +1,21 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import {
   findTaxonomy,
   TaxonomyStatus,
   updateTaxonomy,
   UpdateTaxonomy,
 } from '@/shared/models/taxonomy';
-import { getUserInfo } from '@/shared/models/user';
+import { AdminCategoryFormSchema } from '@/shared/schemas/actions/admin-category';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
 
@@ -75,45 +80,39 @@ export default async function CategoryEditPage({
       handler: async (data, passby) => {
         'use server';
 
-        const user = await getUserInfo();
-        if (!user) {
-          throw new Error('no auth');
-        }
+        return withAction(async () => {
+          const user = await requireActionUser();
+          await requireActionPermission(user.id, PERMISSIONS.CATEGORIES_WRITE);
 
-        const { category } = passby!;
-        if (!user || !category || category.userId !== user.id) {
-          throw new Error('access denied');
-        }
+          const category = await findTaxonomy({ id });
+          if (!category || category.userId !== user.id) {
+            throw new Error('access denied');
+          }
 
-        const slug = data.get('slug') as string;
-        const title = data.get('title') as string;
-        const description = data.get('description') as string;
+          const { slug, title, description } = parseFormData(
+            data,
+            AdminCategoryFormSchema,
+            { message: 'slug and title are required' }
+          );
 
-        if (!slug?.trim() || !title?.trim()) {
-          throw new Error('slug and title are required');
-        }
+          const updateCategory: UpdateTaxonomy = {
+            parentId: '', // todo: select parent category
+            slug: slug.toLowerCase(),
+            title,
+            description: description ?? '',
+            image: '',
+            icon: '',
+            status: TaxonomyStatus.PUBLISHED,
+          };
 
-        const updateCategory: UpdateTaxonomy = {
-          parentId: '', // todo: select parent category
-          slug: slug.trim().toLowerCase(),
-          title: title.trim(),
-          description: description.trim(),
-          image: '',
-          icon: '',
-          status: TaxonomyStatus.PUBLISHED,
-        };
+          const result = await updateTaxonomy(category.id, updateCategory);
 
-        const result = await updateTaxonomy(category.id, updateCategory);
+          if (!result) {
+            throw new Error('update category failed');
+          }
 
-        if (!result) {
-          throw new Error('update category failed');
-        }
-
-        return {
-          status: 'success',
-          message: 'category updated',
-          redirect_url: '/admin/categories',
-        };
+          return actionOk('category updated', '/admin/categories');
+        });
       },
     },
   };

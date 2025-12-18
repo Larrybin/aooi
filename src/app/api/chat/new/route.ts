@@ -1,62 +1,51 @@
 import { generateId } from 'ai';
 
-import { respData, respErr } from '@/shared/lib/resp';
+import { requireUser } from '@/shared/lib/api/guard';
+import { parseJson } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
 import { ChatStatus, createChat, NewChat } from '@/shared/models/chat';
-import { getUserInfo } from '@/shared/models/user';
+import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
 
-export async function POST(req: Request) {
-  try {
-    const { message, body } = await req.json();
-    if (!message || !message.text) {
-      throw new Error('message is required');
-    }
-    if (!body || !body.model) {
-      throw new Error('please select a model');
-    }
+export const POST = withApi(async (req: Request) => {
+  const { message, body } = await parseJson(req, ChatNewBodySchema);
 
-    const user = await getUserInfo();
-    if (!user) {
-      throw new Error('no auth, please sign in');
-    }
+  const user = await requireUser();
 
-    // todo: check user credits
+  // todo: check user credits
 
-    // todo: get provider from settings
-    const provider = 'openrouter';
+  // todo: get provider from settings
+  const provider = 'openrouter';
 
-    // todo: auto generate title
-    const title = message.text.substring(0, 100);
+  // todo: auto generate title
+  const title = message.text.substring(0, 100);
 
-    const chatId = generateId().toLowerCase();
-    const currentTime = new Date();
+  const chatId = generateId().toLowerCase();
+  const currentTime = new Date();
 
-    const parts = [
-      {
-        type: 'text',
-        text: message.text,
-      },
-    ];
+  const parts = [
+    {
+      type: 'text',
+      text: message.text,
+    },
+  ];
 
-    const chat: NewChat = {
-      id: chatId,
-      userId: user.id,
-      status: ChatStatus.CREATED,
-      createdAt: currentTime,
-      updatedAt: currentTime,
-      model: body.model,
-      provider: provider,
-      title: title,
-      parts: '',
-      // parts: JSON.stringify(parts),
-      metadata: JSON.stringify(body),
-      content: JSON.stringify(message),
-    };
+  const chat: NewChat = {
+    id: chatId,
+    userId: user.id,
+    status: ChatStatus.CREATED,
+    createdAt: currentTime,
+    updatedAt: currentTime,
+    model: body.model,
+    provider: provider,
+    title: title,
+    parts: '',
+    // parts: JSON.stringify(parts),
+    metadata: JSON.stringify(body),
+    content: JSON.stringify(message),
+  };
 
-    await createChat(chat);
+  await createChat(chat);
 
-    return respData(chat);
-  } catch (e: any) {
-    console.log('new chat failed:', e);
-    return respErr(`new chat failed: ${e.message}`);
-  }
-}
+  return jsonOk(chat);
+});

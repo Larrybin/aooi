@@ -32,6 +32,8 @@ import {
 } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import { useChatContext } from '@/shared/contexts/chat';
+import { fetchApiData } from '@/shared/lib/api/client';
+import type { Chat } from '@/shared/types/chat';
 
 export function ChatLibrary({}) {
   const { isMobile } = useSidebar();
@@ -54,22 +56,17 @@ export function ChatLibrary({}) {
 
     const fetchChats = async () => {
       try {
-        const resp = await fetch('/api/chat/list', {
+        const data = await fetchApiData<{
+          list: Chat[];
+          hasMore: boolean;
+        }>('/api/chat/list', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ page, limit }),
         });
-        if (!resp.ok) {
-          throw new Error(`fetch chats failed with status: ${resp.status}`);
-        }
-        const { code, message, data } = await resp.json();
-        if (code !== 0) {
-          throw new Error(message);
-        }
 
-        const { list, hasMore } = data;
-
-        setChats(list);
-        setHasMore(hasMore);
+        setChats(data.list || []);
+        setHasMore(Boolean(data.hasMore));
       } catch (e: any) {
         console.log('fetch chats failed:', e);
       }

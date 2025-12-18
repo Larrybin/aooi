@@ -1,8 +1,12 @@
+import 'server-only';
+import '@/config/load-dotenv';
+
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';
+import { serverEnv } from '@/config/server';
 import { config } from '@/config/db/schema';
-
-import { publicSettingNames } from '../services/settings';
+import { publicSettingNames } from '@/shared/constants/public-setting-names';
+import { logger } from '@/shared/lib/logger.server';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
@@ -43,14 +47,11 @@ export async function addConfig(newConfig: NewConfig) {
 export async function getConfigs(): Promise<Configs> {
   const configs: Record<string, string> = {};
 
-  if (!envConfigs.database_url) {
+  if (!serverEnv.databaseUrl) {
     return configs;
   }
 
   const result = await db().select().from(config);
-  if (!result) {
-    return configs;
-  }
 
   for (const config of result) {
     configs[config.name] = config.value ?? '';
@@ -69,23 +70,13 @@ export async function getConfigsSafe(): Promise<{
   } catch (e: unknown) {
     const error =
       e instanceof Error ? e : new Error(`getConfigs failed: ${String(e)}`);
-    console.error('[config] getConfigs failed:', error);
+    logger.error('[config] getConfigs failed', { error });
     return { configs: {}, error };
   }
 }
 
 export async function getAllConfigs(): Promise<Configs> {
-  let dbConfigs: Configs = {};
-
-  // only get configs from db in server side
-  if (envConfigs.database_url) {
-    try {
-      dbConfigs = await getConfigs();
-    } catch (e) {
-      console.log(`get configs from db failed:`, e);
-      dbConfigs = {};
-    }
-  }
+  const dbConfigs = await getConfigs();
 
   const configs = {
     ...envConfigs,
@@ -96,17 +87,7 @@ export async function getAllConfigs(): Promise<Configs> {
 }
 
 export async function getPublicConfigs(): Promise<Configs> {
-  let dbConfigs: Configs = {};
-
-  // only get configs from db in server side
-  if (typeof window === 'undefined' && envConfigs.database_url) {
-    try {
-      dbConfigs = await getConfigs();
-    } catch (e) {
-      console.log('get configs from db failed:', e);
-      dbConfigs = {};
-    }
-  }
+  const dbConfigs = await getConfigs();
 
   const publicConfigs: Record<string, string> = {};
 

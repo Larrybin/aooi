@@ -17,6 +17,18 @@ export function FeaturesList({
   features: FeaturesType;
   className?: string;
 }) {
+  const fallbackFeatureImageSize = { width: 500, height: 300 };
+  const featureImageWidth = fallbackFeatureImageSize.width;
+  const featureImageHeight =
+    features.image?.width && features.image.height
+      ? Math.max(
+          1,
+          Math.round(
+            (featureImageWidth * features.image.height) / features.image.width
+          )
+        )
+      : fallbackFeatureImageSize.height;
+
   return (
     // Prevent horizontal scrolling
     <section className={`overflow-x-hidden py-16 md:py-24 ${className}`}>
@@ -27,8 +39,9 @@ export function FeaturesList({
               <Image
                 src={features.image?.src ?? ''}
                 alt={features.image?.alt ?? ''}
-                width={500}
-                height={300}
+                width={featureImageWidth}
+                height={featureImageHeight}
+                sizes="(max-width: 768px) 100vw, 500px"
                 className="h-auto w-full rounded-lg object-cover"
                 // Limit max image width & responsive width
                 style={{ maxWidth: '100%', height: 'auto', display: 'block' }}

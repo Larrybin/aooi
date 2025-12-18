@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
-import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
+import { Link, usePathname } from '@/core/i18n/navigation';
 import {
   BrandLogo,
   LocaleSelector,
@@ -25,7 +25,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
-import { useMedia } from '@/shared/hooks/use-media';
 import { cn } from '@/shared/lib/utils';
 import { NavItem } from '@/shared/types/blocks/common';
 import { Header as HeaderType } from '@/shared/types/blocks/landing';
@@ -39,8 +38,6 @@ function NavigationMenuTrigger(
 export function Header({ header }: { header: HeaderType }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const isLarge = useMedia('(min-width: 64rem)');
-  const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -265,7 +262,7 @@ export function Header({ header }: { header: HeaderType }) {
                 {header.brand && <BrandLogo brand={header.brand} />}
 
                 {/* Desktop Navigation Menu */}
-                {isLarge && <NavMenu />}
+                <NavMenu />
                 {/* Hamburger menu button for mobile navigation */}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -280,8 +277,10 @@ export function Header({ header }: { header: HeaderType }) {
               </div>
 
               {/* Show mobile menu if needed */}
-              {!isLarge && isMobileMenuOpen && (
-                <MobileMenu closeMenu={() => setIsMobileMenuOpen(false)} />
+              {isMobileMenuOpen && (
+                <div className="lg:hidden">
+                  <MobileMenu closeMenu={() => setIsMobileMenuOpen(false)} />
+                </div>
               )}
 
               {/* Header right section: theme toggler, locale selector, sign, buttons */}

@@ -1,9 +1,14 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import {
   findPost,
   PostStatus,
@@ -16,7 +21,7 @@ import {
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import { getUserInfo } from '@/shared/models/user';
+import { AdminPostFormSchema } from '@/shared/schemas/actions/admin-post';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
 
@@ -121,56 +126,51 @@ export default async function PostEditPage({
       handler: async (data, passby) => {
         'use server';
 
-        const user = await getUserInfo();
-        if (!user) {
-          throw new Error('no auth');
-        }
+        return withAction(async () => {
+          const user = await requireActionUser();
+          await requireActionPermission(user.id, PERMISSIONS.POSTS_WRITE);
 
-        const { post } = passby!;
+          const post = await findPost({ id });
+          if (!post) {
+            throw new Error('Post not found');
+          }
 
-        if (!user || !post) {
-          throw new Error('no auth');
-        }
+          const {
+            slug,
+            title,
+            description,
+            content,
+            categories,
+            image,
+            authorName,
+            authorImage,
+          } = parseFormData(data, AdminPostFormSchema, {
+            message: 'slug and title are required',
+          });
 
-        const slug = data.get('slug') as string;
-        const title = data.get('title') as string;
-        const description = data.get('description') as string;
-        const content = data.get('content') as string;
-        const categories = data.get('categories') as string;
-        const authorName = data.get('authorName') as string;
-        const authorImage = data.get('authorImage') as string;
-        const image = data.get('image') as string;
+          const nextPost: UpdatePost = {
+            parentId: '', // todo: select parent category
+            slug: slug.toLowerCase(),
+            type: PostType.ARTICLE,
+            title,
+            description: description ?? '',
+            image: image ?? '',
+            content: content ?? '',
+            categories: categories ?? '',
+            tags: '',
+            authorName: authorName ?? '',
+            authorImage: authorImage ?? '',
+            status: PostStatus.PUBLISHED,
+          };
 
-        if (!slug?.trim() || !title?.trim()) {
-          throw new Error('slug and title are required');
-        }
+          const result = await updatePost(post.id, nextPost);
 
-        const newPost: UpdatePost = {
-          parentId: '', // todo: select parent category
-          slug: slug.trim().toLowerCase(),
-          type: PostType.ARTICLE,
-          title: title.trim(),
-          description: description.trim(),
-          image: image as string,
-          content: content.trim(),
-          categories: categories.trim(),
-          tags: '',
-          authorName: authorName.trim(),
-          authorImage: authorImage as string,
-          status: PostStatus.PUBLISHED,
-        };
+          if (!result) {
+            throw new Error('update post failed');
+          }
 
-        const result = await updatePost(post.id, newPost);
-
-        if (!result) {
-          throw new Error('update post failed');
-        }
-
-        return {
-          status: 'success',
-          message: 'post updated',
-          redirect_url: '/admin/posts',
-        };
+          return actionOk('post updated', '/admin/posts');
+        });
       },
     },
   };

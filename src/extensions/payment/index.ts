@@ -206,6 +206,30 @@ export enum PaymentEventType {
 export interface EventInfo {}
 
 /**
+ * Webhook error types (for stable HTTP status mapping in Route Handlers)
+ */
+export class WebhookVerificationError extends Error {
+  constructor(message = 'invalid webhook signature') {
+    super(message);
+    this.name = 'WebhookVerificationError';
+  }
+}
+
+export class WebhookPayloadError extends Error {
+  constructor(message = 'invalid webhook payload') {
+    super(message);
+    this.name = 'WebhookPayloadError';
+  }
+}
+
+export class WebhookConfigError extends Error {
+  constructor(message = 'webhook config error') {
+    super(message);
+    this.name = 'WebhookConfigError';
+  }
+}
+
+/**
  * Payment event interface
  */
 export interface PaymentEvent {

@@ -1,5 +1,7 @@
 import { Resend, type CreateEmailOptions } from 'resend';
 
+import { logger } from '@/shared/lib/logger.server';
+
 import type {
   EmailConfigs,
   EmailMessage,
@@ -74,7 +76,7 @@ export class ResendProvider implements EmailProvider {
       }
 
       if (email.react) {
-        console.log('resend email react', email.react);
+        logger.debug('resend email react payload', { hasReact: true });
         resendEmail.react = email.react;
       }
 
@@ -82,9 +84,18 @@ export class ResendProvider implements EmailProvider {
         resendEmail as CreateEmailOptions
       );
 
-      console.log('resend email result', result);
+      logger.debug('resend email result', {
+        provider: this.name,
+        success: !result.error,
+        messageId: result.data?.id,
+        error: result.error?.message,
+      });
 
       if (result.error) {
+        logger.error('resend sendEmail failed', {
+          provider: this.name,
+          error: result.error.message,
+        });
         return {
           success: false,
           error: result.error.message,
@@ -98,6 +109,7 @@ export class ResendProvider implements EmailProvider {
         provider: this.name,
       };
     } catch (error) {
+      logger.error('resend sendEmail threw', { provider: this.name, error });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import { getMetadata } from '@/shared/lib/seo';
+import { logger } from '@/shared/lib/logger.server';
 import { getCurrentSubscription } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
 import {
@@ -36,7 +37,11 @@ export default async function PricingPage({
       currentSubscription = await getCurrentSubscription(user.id);
     }
   } catch (error) {
-    console.log('getting current subscription failed:', error);
+    logger.warn('landing: get current subscription failed', {
+      route: '/pricing',
+      locale,
+      error,
+    });
   }
 
   // load page component

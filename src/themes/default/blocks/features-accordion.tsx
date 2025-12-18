@@ -27,16 +27,22 @@ export function FeaturesAccordion({
   const images: Record<
     string,
     {
-      image: string;
+      src: string;
       alt: string;
+      width?: number;
+      height?: number;
     }
   > = {};
   features.items?.forEach((item, idx) => {
     images[`item-${idx + 1}`] = {
-      image: item.image?.src ?? '',
+      src: item.image?.src ?? '',
       alt: item.image?.alt || item.title || '',
+      width: item.image?.width,
+      height: item.image?.height,
     };
   });
+
+  const fallbackImageSize = { width: 1207, height: 929 };
 
   return (
     // overflow-x-hidden to prevent horizontal scroll
@@ -95,11 +101,14 @@ export function FeaturesAccordion({
                     className="size-full overflow-hidden rounded-2xl border bg-zinc-900 shadow-md"
                   >
                     <Image
-                      src={images[activeItem].image}
+                      src={images[activeItem].src}
                       className="size-full object-cover object-left-top dark:mix-blend-lighten"
                       alt={images[activeItem].alt}
-                      width={1207}
-                      height={929}
+                      width={images[activeItem].width ?? fallbackImageSize.width}
+                      height={
+                        images[activeItem].height ?? fallbackImageSize.height
+                      }
+                      sizes="(max-width: 640px) 100vw, 75vw"
                       // prevent img from exceeding parent
                       style={{ maxWidth: '100%', height: 'auto' }}
                     />

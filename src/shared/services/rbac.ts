@@ -1,5 +1,6 @@
-import { cache } from 'react';
-import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
+import 'server-only';
+
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { permission, role, rolePermission, userRole } from '@/config/db/schema';
@@ -34,7 +35,38 @@ export const ROLES = {
 export enum RoleStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
-  DELETED = 'deleted',
+}
+
+function matchesPermissionCode(
+  userPermissionCodes: ReadonlySet<string>,
+  requiredPermissionCode: string
+): boolean {
+  if (userPermissionCodes.has('*')) {
+    return true;
+  }
+
+  if (userPermissionCodes.has(requiredPermissionCode)) {
+    return true;
+  }
+
+  const parts = requiredPermissionCode.split('.');
+  for (let i = parts.length - 1; i > 0; i--) {
+    const wildcard = `${parts.slice(0, i).join('.')}.*`;
+    if (userPermissionCodes.has(wildcard)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function buildActiveUserRoleWhere(userId: string, now: Date) {
+  return and(
+    eq(userRole.userId, userId),
+    eq(role.status, RoleStatus.ACTIVE),
+    isNull(role.deletedAt),
+    or(isNull(userRole.expiresAt), gt(userRole.expiresAt, now))
+  );
 }
 
 /**
@@ -44,14 +76,17 @@ export async function getRoles(): Promise<Role[]> {
   return await db()
     .select()
     .from(role)
-    .where(eq(role.status, RoleStatus.ACTIVE));
+    .where(and(eq(role.status, RoleStatus.ACTIVE), isNull(role.deletedAt)));
 }
 
 /**
  * Get role by ID
  */
 export async function getRoleById(roleId: string): Promise<Role | undefined> {
-  const [result] = await db().select().from(role).where(eq(role.id, roleId));
+  const [result] = await db()
+    .select()
+    .from(role)
+    .where(and(eq(role.id, roleId), isNull(role.deletedAt)));
   return result;
 }
 
@@ -59,7 +94,10 @@ export async function getRoleById(roleId: string): Promise<Role | undefined> {
  * Get role by name
  */
 export async function getRoleByName(name: string): Promise<Role | undefined> {
-  const [result] = await db().select().from(role).where(eq(role.name, name));
+  const [result] = await db()
+    .select()
+    .from(role)
+    .where(and(eq(role.name, name), isNull(role.deletedAt)));
   return result;
 }
 
@@ -81,7 +119,7 @@ export async function updateRole(
   const [result] = await db()
     .update(role)
     .set(updates)
-    .where(eq(role.id, roleId))
+    .where(and(eq(role.id, roleId), isNull(role.deletedAt)))
     .returning();
   return result;
 }
@@ -90,7 +128,12 @@ export async function updateRole(
  * Delete a role
  */
 export async function deleteRole(roleId: string): Promise<void> {
-  await db().delete(role).where(eq(role.id, roleId));
+  await db()
+    .update(role)
+    .set({
+      deletedAt: new Date(),
+    })
+    .where(and(eq(role.id, roleId), isNull(role.deletedAt)));
 }
 
 /**
@@ -212,7 +255,7 @@ export async function assignPermissionsToRole(
 /**
  * Get user's roles
  */
-export const getUserRoles = cache(async (userId: string): Promise<Role[]> => {
+export async function getUserRoles(userId: string): Promise<Role[]> {
   const now = new Date();
   const result = await db()
     .select({
@@ -224,83 +267,104 @@ export const getUserRoles = cache(async (userId: string): Promise<Role[]> => {
       createdAt: role.createdAt,
       updatedAt: role.updatedAt,
       sort: role.sort,
+      deletedAt: role.deletedAt,
     })
     .from(userRole)
     .innerJoin(role, eq(userRole.roleId, role.id))
-    .where(
-      and(
-        eq(userRole.userId, userId),
-        eq(role.status, RoleStatus.ACTIVE),
-        // Check if role is not expired
-        // Either expiresAt is null or expiresAt > now
-        isNull(userRole.expiresAt) || gt(userRole.expiresAt, now)
-      )
-    );
+    .where(buildActiveUserRoleWhere(userId, now));
 
   return result;
-});
+}
 
 /**
  * Get user's permissions (through roles)
  */
-export const getUserPermissions = cache(
-  async (userId: string): Promise<Permission[]> => {
-    const roles = await getUserRoles(userId);
-    if (roles.length === 0) return [];
+export async function getUserPermissions(userId: string): Promise<Permission[]> {
+  const now = new Date();
+  return await db()
+    .selectDistinct({
+      id: permission.id,
+      code: permission.code,
+      resource: permission.resource,
+      action: permission.action,
+      title: permission.title,
+      description: permission.description,
+      createdAt: permission.createdAt,
+      updatedAt: permission.updatedAt,
+    })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
+    .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
+    .innerJoin(permission, eq(rolePermission.permissionId, permission.id))
+    .where(buildActiveUserRoleWhere(userId, now));
+}
 
-    const roleIds = roles.map((r) => r.id);
+async function getUserPermissionCodes(userId: string): Promise<string[]> {
+  const now = new Date();
+  const result = await db()
+    .selectDistinct({ code: permission.code })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
+    .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
+    .innerJoin(permission, eq(rolePermission.permissionId, permission.id))
+    .where(buildActiveUserRoleWhere(userId, now));
 
-    const result = await db()
-      .selectDistinct({
-        id: permission.id,
-        code: permission.code,
-        resource: permission.resource,
-        action: permission.action,
-        title: permission.title,
-        description: permission.description,
-        createdAt: permission.createdAt,
-        updatedAt: permission.updatedAt,
-      })
-      .from(rolePermission)
-      .innerJoin(permission, eq(rolePermission.permissionId, permission.id))
-      .where(inArray(rolePermission.roleId, roleIds));
+  return result.map((row) => row.code);
+}
 
-    return result;
-  }
-);
+async function getUserPermissionCodeSet(
+  userId: string
+): Promise<ReadonlySet<string>> {
+  return new Set(await getUserPermissionCodes(userId));
+}
+
+export function createPermissionChecker(userId: string) {
+  let permissionCodeSetPromise: Promise<ReadonlySet<string>> | null = null;
+
+  const getPermissionCodeSet = async () => {
+    if (!permissionCodeSetPromise) {
+      permissionCodeSetPromise = getUserPermissionCodeSet(userId);
+    }
+    return await permissionCodeSetPromise;
+  };
+
+  return {
+    has: async (permissionCode: string): Promise<boolean> => {
+      const permissionCodeSet = await getPermissionCodeSet();
+      return matchesPermissionCode(permissionCodeSet, permissionCode);
+    },
+    hasAny: async (permissionCodes: string[]): Promise<boolean> => {
+      if (permissionCodes.length === 0) {
+        return false;
+      }
+      const permissionCodeSet = await getPermissionCodeSet();
+      return permissionCodes.some((code) =>
+        matchesPermissionCode(permissionCodeSet, code)
+      );
+    },
+    hasAll: async (permissionCodes: string[]): Promise<boolean> => {
+      if (permissionCodes.length === 0) {
+        return true;
+      }
+      const permissionCodeSet = await getPermissionCodeSet();
+      return permissionCodes.every((code) =>
+        matchesPermissionCode(permissionCodeSet, code)
+      );
+    },
+  };
+}
 
 /**
  * Check if user has a specific permission
  * Supports wildcard matching (e.g., "admin.*", "admin.posts.*")
  */
-export const hasPermission = cache(
-  async (userId: string, permissionCode: string): Promise<boolean> => {
-    const permissions = await getUserPermissions(userId);
-    const permissionCodes = permissions.map((p) => p.code);
-
-    // Check exact match
-    if (permissionCodes.includes(permissionCode)) {
-      return true;
-    }
-
-    // Check wildcard match
-    // If user has "admin.*", they have all "admin.xxx" permissions
-    const parts = permissionCode.split('.');
-    for (let i = parts.length - 1; i > 0; i--) {
-      const wildcard = parts.slice(0, i).join('.') + '.*';
-      if (permissionCodes.includes(wildcard)) {
-        return true;
-      }
-    }
-
-    // Check if user has "*" (super admin)
-    if (permissionCodes.includes('*')) {
-      return true;
-    }
-
-    return false;
-  }
-);
+export async function hasPermission(
+  userId: string,
+  permissionCode: string
+): Promise<boolean> {
+  const permissionCodes = await getUserPermissionCodeSet(userId);
+  return matchesPermissionCode(permissionCodes, permissionCode);
+}
 
 /**
  * Check if user has any of the specified permissions
@@ -309,12 +373,14 @@ export async function hasAnyPermission(
   userId: string,
   permissionCodes: string[]
 ): Promise<boolean> {
-  for (const code of permissionCodes) {
-    if (await hasPermission(userId, code)) {
-      return true;
-    }
+  if (permissionCodes.length === 0) {
+    return false;
   }
-  return false;
+
+  const userPermissionCodes = await getUserPermissionCodeSet(userId);
+  return permissionCodes.some((code) =>
+    matchesPermissionCode(userPermissionCodes, code)
+  );
 }
 
 /**
@@ -324,23 +390,23 @@ export async function hasAllPermissions(
   userId: string,
   permissionCodes: string[]
 ): Promise<boolean> {
-  for (const code of permissionCodes) {
-    if (!(await hasPermission(userId, code))) {
-      return false;
-    }
+  if (permissionCodes.length === 0) {
+    return true;
   }
-  return true;
+
+  const userPermissionCodes = await getUserPermissionCodeSet(userId);
+  return permissionCodes.every((code) =>
+    matchesPermissionCode(userPermissionCodes, code)
+  );
 }
 
 /**
  * Check if user has a specific role
  */
-export const hasRole = cache(
-  async (userId: string, roleName: string): Promise<boolean> => {
-    const roles = await getUserRoles(userId);
-    return roles.some((r) => r.name === roleName);
-  }
-);
+export async function hasRole(userId: string, roleName: string): Promise<boolean> {
+  const roles = await getUserRoles(userId);
+  return roles.some((r) => r.name === roleName);
+}
 
 /**
  * Check if user has any of the specified roles

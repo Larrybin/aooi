@@ -15,6 +15,8 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useAppContext } from '@/shared/contexts/app';
+import { fetchApiData } from '@/shared/lib/api/client';
+import { formatMessageWithRequestId, getRequestIdFromError } from '@/shared/lib/request-id';
 
 type ChatListItem = {
   id: string;
@@ -125,7 +127,7 @@ export function ChatHistory() {
     setError(null);
 
     try {
-      const resp = await fetch('/api/chat/list', {
+      const data = await fetchApiData<ChatListResponse>('/api/chat/list', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,26 +135,12 @@ export function ChatHistory() {
         body: JSON.stringify({ page, limit }),
       });
 
-      if (!resp.ok) {
-        throw new Error(`request failed with status ${resp.status}`);
-      }
-
-      const json = (await resp.json()) as {
-        code: number;
-        message?: string;
-        data?: ChatListResponse;
-      };
-
-      if (json.code !== 0 || !json.data) {
-        throw new Error(json.message || 'unknown error');
-      }
-
-      setChats(json.data.list || []);
-      setTotal(json.data.total || 0);
-      setHasMore(Boolean(json.data.hasMore));
+      setChats(data.list || []);
+      setTotal(data.total || 0);
+      setHasMore(Boolean(data.hasMore));
     } catch (err) {
       console.error('fetch chat history failed:', err);
-      setError(t('error'));
+      setError(formatMessageWithRequestId(t('error'), getRequestIdFromError(err)));
     } finally {
       setLoading(false);
     }

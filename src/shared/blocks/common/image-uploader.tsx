@@ -7,6 +7,12 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 
 import { Button } from '@/shared/components/ui/button';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+  getRequestIdFromResponse,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
 
 export type UploadStatus = 'idle' | 'uploading' | 'uploaded' | 'error';
@@ -51,14 +57,18 @@ const uploadImageFile = async (file: File) => {
     method: 'POST',
     body: formData,
   });
+  const requestId = getRequestIdFromResponse(response);
 
   if (!response.ok) {
-    throw new Error(`Upload failed with status ${response.status}`);
+    throw new RequestIdError(
+      `Upload failed with status ${response.status}`,
+      requestId
+    );
   }
 
   const result = await response.json();
   if (result.code !== 0 || !result.data?.urls?.length) {
-    throw new Error(result.message || 'Upload failed');
+    throw new RequestIdError(result.message || 'Upload failed', requestId);
   }
 
   return result.data.urls[0] as string;
@@ -236,8 +246,12 @@ export function ImageUploader({
           });
         } catch (error: any) {
           console.error('Upload failed:', error);
+          const msg = formatMessageWithRequestId(
+            error?.message ? `Upload failed: ${error.message}` : 'Upload failed',
+            getRequestIdFromError(error)
+          );
           toast.error(
-            error?.message ? `Upload failed: ${error.message}` : 'Upload failed'
+            msg
           );
           setItems((prev) => {
             const next = prev.map((current) =>

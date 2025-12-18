@@ -1,5 +1,6 @@
 import { envConfigs } from '@/config';
 import { defaultTheme } from '@/config/theme';
+import { logger } from '@/shared/lib/logger.server';
 
 /**
  * get active theme
@@ -25,10 +26,11 @@ export async function getThemePage(pageName: string, theme?: string) {
     const themeModule = await import(`@/themes/${loadTheme}/pages/${pageName}`);
     return themeModule.default;
   } catch (error) {
-    console.log(
-      `Failed to load page "${pageName}" from theme "${theme}":`,
-      error
-    );
+    logger.warn('theme: failed to load page', {
+      pageName,
+      theme: loadTheme,
+      error,
+    });
 
     // fallback to default theme
     if (loadTheme !== defaultTheme) {
@@ -38,7 +40,11 @@ export async function getThemePage(pageName: string, theme?: string) {
         );
         return fallbackModule.default;
       } catch (fallbackError) {
-        console.error(`Failed to load fallback page:`, fallbackError);
+        logger.error('theme: failed to load fallback page', {
+          pageName,
+          theme: defaultTheme,
+          error: fallbackError,
+        });
         throw fallbackError;
       }
     }
@@ -60,10 +66,11 @@ export async function getThemeLayout(layoutName: string, theme?: string) {
     );
     return themeModule.default;
   } catch (error) {
-    console.log(
-      `Failed to load layout "${layoutName}" from theme "${theme}":`,
-      error
-    );
+    logger.warn('theme: failed to load layout', {
+      layoutName,
+      theme: loadTheme,
+      error,
+    });
 
     // fallback to default theme
     if (loadTheme !== defaultTheme) {
@@ -73,7 +80,11 @@ export async function getThemeLayout(layoutName: string, theme?: string) {
         );
         return fallbackModule.default;
       } catch (fallbackError) {
-        console.error(`Failed to load fallback layout:`, fallbackError);
+        logger.error('theme: failed to load fallback layout', {
+          layoutName,
+          theme: defaultTheme,
+          error: fallbackError,
+        });
         throw fallbackError;
       }
     }
@@ -97,10 +108,11 @@ export async function getThemeBlock(blockName: string, theme?: string) {
       themeModule.default || themeModule[blockName] || themeModule
     );
   } catch (error) {
-    console.error(
-      `Failed to load block "${blockName}" from theme "${loadTheme}":`,
-      error
-    );
+    logger.error('theme: failed to load block', {
+      blockName,
+      theme: loadTheme,
+      error,
+    });
 
     // fallback to default theme
     if (loadTheme !== defaultTheme) {
@@ -112,7 +124,11 @@ export async function getThemeBlock(blockName: string, theme?: string) {
           fallbackModule.default || fallbackModule[blockName] || fallbackModule
         );
       } catch (fallbackError) {
-        console.error(`Failed to load fallback block:`, fallbackError);
+        logger.error('theme: failed to load fallback block', {
+          blockName,
+          theme: defaultTheme,
+          error: fallbackError,
+        });
         throw fallbackError;
       }
     }

@@ -1,8 +1,13 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import { getUuid } from '@/shared/lib/hash';
 import {
   addTaxonomy,
@@ -10,7 +15,7 @@ import {
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import { getUserInfo } from '@/shared/models/user';
+import { AdminCategoryFormSchema } from '@/shared/schemas/actions/admin-category';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
 
@@ -69,43 +74,35 @@ export default async function CategoryAddPage({
       handler: async (data, passby) => {
         'use server';
 
-        const user = await getUserInfo();
-        if (!user) {
-          throw new Error('no auth');
-        }
+        return withAction(async () => {
+          const user = await requireActionUser();
+          await requireActionPermission(user.id, PERMISSIONS.CATEGORIES_WRITE);
 
-        const slug = data.get('slug') as string;
-        const title = data.get('title') as string;
-        const description = data.get('description') as string;
+          const { slug, title, description } = parseFormData(data, AdminCategoryFormSchema, {
+            message: 'slug and title are required',
+          });
 
-        if (!slug?.trim() || !title?.trim()) {
-          throw new Error('slug and title are required');
-        }
+          const newCategory: NewTaxonomy = {
+            id: getUuid(),
+            userId: user.id,
+            parentId: '', // todo: select parent category
+            slug: slug.toLowerCase(),
+            type: TaxonomyType.CATEGORY,
+            title,
+            description: description ?? '',
+            image: '',
+            icon: '',
+            status: TaxonomyStatus.PUBLISHED,
+          };
 
-        const newCategory: NewTaxonomy = {
-          id: getUuid(),
-          userId: user.id,
-          parentId: '', // todo: select parent category
-          slug: slug.trim().toLowerCase(),
-          type: TaxonomyType.CATEGORY,
-          title: title.trim(),
-          description: description.trim(),
-          image: '',
-          icon: '',
-          status: TaxonomyStatus.PUBLISHED,
-        };
+          const result = await addTaxonomy(newCategory);
 
-        const result = await addTaxonomy(newCategory);
+          if (!result) {
+            throw new Error('add category failed');
+          }
 
-        if (!result) {
-          throw new Error('add category failed');
-        }
-
-        return {
-          status: 'success',
-          message: 'category added',
-          redirect_url: '/admin/categories',
-        };
+          return actionOk('category added', '/admin/categories');
+        });
       },
     },
   };

@@ -5,7 +5,9 @@
       "title": "ShipAny Two",
       "logo": {
         "src": "/logo.png",
-        "alt": "ShipAny Two"
+        "alt": "ShipAny Two",
+        "width": 512,
+        "height": 512
       },
       "url": "/"
     },
@@ -115,12 +117,16 @@
     "avatars_tip": "999+ 用户在使用 ShipAny 上站",
     "show_award": false,
     "image": {
-      "src": "/imgs/features/admin.png",
-      "alt": "hero"
+      "src": "/imgs/features/admin.jpg",
+      "alt": "hero",
+      "width": 2434,
+      "height": 1642
     },
     "image_invert": {
-      "src": "/imgs/features/admin-dark.png",
-      "alt": "hero"
+      "src": "/imgs/features/admin-dark.jpg",
+      "alt": "hero",
+      "width": 2432,
+      "height": 1648
     }
   },
   "logos": {
@@ -170,7 +176,9 @@
     "description": "ShipAny 是专为 AI SaaS 创业项目打造的 NextJS 脚手架，包括丰富模板、组件及文档。",
     "image": {
       "src": "/imgs/features/landing-page.png",
-      "alt": "introduce"
+      "alt": "introduce",
+      "width": 1200,
+      "height": 640
     },
     "items": [
       {
@@ -223,7 +231,9 @@
         "icon": "RiNextjsFill",
         "image": {
           "src": "/imgs/features/user-billing.png",
-          "alt": "benefits"
+          "alt": "benefits",
+          "width": 1600,
+          "height": 1103
         }
       },
       {
@@ -232,7 +242,9 @@
         "icon": "RiClapperboardAiLine",
         "image": {
           "src": "/imgs/features/admin-settings.png",
-          "alt": "benefits"
+          "alt": "benefits",
+          "width": 1600,
+          "height": 1190
         }
       },
       {
@@ -241,7 +253,9 @@
         "icon": "RiCodeFill",
         "image": {
           "src": "/imgs/features/landing-page.png",
-          "alt": "benefits"
+          "alt": "benefits",
+          "width": 1200,
+          "height": 640
         }
       }
     ]
@@ -481,7 +495,9 @@
       "description": "ShipAny 是专为 AI SaaS 创业项目打造的 NextJS 模板。丰富模板与组件，极速交付你的产品。",
       "logo": {
         "src": "/logo.png",
-        "alt": "ShipAny Two"
+        "alt": "ShipAny Two",
+        "width": 512,
+        "height": 512
       },
       "url": "/"
     },

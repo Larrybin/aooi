@@ -1,10 +1,16 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import { getRoleById, updateRole, UpdateRole } from '@/shared/services/rbac';
+import { AdminRoleUpdateFormSchema } from '@/shared/schemas/actions/admin-role';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
 
@@ -69,31 +75,30 @@ export default async function RoleEditPage({
       handler: async (data, passby) => {
         'use server';
 
-        const role = passby?.role;
+        return withAction(async () => {
+          const user = await requireActionUser();
+          await requireActionPermission(user.id, PERMISSIONS.ROLES_WRITE);
 
-        if (!role) {
-          throw new Error('no auth');
-        }
+          const role = await getRoleById(id as string);
+          if (!role) {
+            throw new Error('Role not found');
+          }
 
-        const title = data.get('title') as string;
-        const description = data.get('description') as string;
+          const { title, description } = parseFormData(
+            data,
+            AdminRoleUpdateFormSchema
+          );
 
-        const newRole: UpdateRole = {
-          title: title.trim(),
-          description: description as string,
-        };
+          const newRole: UpdateRole = { title, description };
 
-        const result = await updateRole(role.id as string, newRole);
+          const result = await updateRole(role.id as string, newRole);
 
-        if (!result) {
-          throw new Error('update role failed');
-        }
+          if (!result) {
+            throw new Error('update role failed');
+          }
 
-        return {
-          status: 'success',
-          message: 'role updated',
-          redirect_url: '/admin/roles',
-        };
+          return actionOk('role updated', '/admin/roles');
+        });
       },
     },
   };

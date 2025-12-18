@@ -75,6 +75,7 @@ export function Blog({
                         className="aspect-16/9 h-full w-full object-cover object-center"
                         width={960}
                         height={540}
+                        sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
                   )}

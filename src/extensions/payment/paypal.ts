@@ -7,7 +7,12 @@ import {
   PaymentSession,
   PaymentStatus,
   PaymentType,
+  WebhookConfigError,
+  WebhookPayloadError,
+  WebhookVerificationError,
 } from '.';
+
+import { logger } from '@/shared/lib/logger.server';
 
 /**
  * PayPal payment provider configs
@@ -329,12 +334,17 @@ export class PayPalProvider implements PaymentProvider {
       const headers = Object.fromEntries(req.headers.entries());
 
       if (!this.configs.webhookSecret) {
-        throw new Error('webhookSecret not configured');
+        throw new WebhookConfigError('webhookSecret not configured');
       }
 
-      const event = JSON.parse(rawBody);
+      let event: any;
+      try {
+        event = JSON.parse(rawBody);
+      } catch {
+        throw new WebhookPayloadError('invalid webhook payload');
+      }
       if (!event || !event.event_type) {
-        throw new Error('Invalid webhook payload');
+        throw new WebhookPayloadError('invalid webhook payload');
       }
 
       // verify webhook with PayPal (simplified verification)
@@ -357,11 +367,20 @@ export class PayPalProvider implements PaymentProvider {
       );
 
       if (verifyResponse.verification_status !== 'SUCCESS') {
-        throw new Error('Invalid webhook signature');
+        throw new WebhookVerificationError('invalid webhook signature');
       }
 
       // Process the webhook event
-      console.log(`PayPal webhook event: ${event.event_type}`, event.resource);
+      logger.debug('paypal webhook event received', {
+        eventType: event.event_type,
+        eventId: (event as any).id,
+        resourceType: (event as any).resource_type,
+      });
+      logger.debug('paypal webhook resource summary', {
+        resourceId: (event.resource as any)?.id,
+        resourceStatus: (event.resource as any)?.status,
+        hasResource: Boolean(event.resource),
+      });
 
       return {
         eventType: event.event_type,

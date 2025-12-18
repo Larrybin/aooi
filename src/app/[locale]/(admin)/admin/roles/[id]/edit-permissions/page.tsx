@@ -1,9 +1,15 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { z } from 'zod';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { jsonStringArraySchema, parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import {
   assignPermissionsToRole,
   getPermissions,
@@ -92,28 +98,24 @@ export default async function RoleEditPermissionsPage({
       handler: async (data, passby) => {
         'use server';
 
-        const { role } = passby!;
+        return withAction(async () => {
+          const user = await requireActionUser();
+          await requireActionPermission(user.id, PERMISSIONS.ROLES_WRITE);
 
-        if (!role) {
-          throw new Error('no auth');
-        }
-
-        let permissions = data.get('permissions') as unknown as string[];
-        if (typeof permissions === 'string') {
-          try {
-            permissions = JSON.parse(permissions);
-          } catch (error) {
-            throw new Error('invalid permissions');
+          const role = await getRoleById(id);
+          if (!role) {
+            throw new Error('Role not found');
           }
-        }
 
-        await assignPermissionsToRole(role.id as string, permissions);
+          const schema = z.object({ permissions: jsonStringArraySchema });
+          const { permissions } = parseFormData(data, schema, {
+            message: 'invalid permissions',
+          });
 
-        return {
-          status: 'success',
-          message: 'permissions updated',
-          redirect_url: '/admin/roles',
-        };
+          await assignPermissionsToRole(role.id as string, permissions);
+
+          return actionOk('permissions updated', '/admin/roles');
+        });
       },
     },
   };

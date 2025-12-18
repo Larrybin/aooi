@@ -1,10 +1,20 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { z } from 'zod';
 
-import { PERMISSIONS, requireAllPermissions } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermissions, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk, actionErr } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
+import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
 import { getConfigsSafe, saveConfigs } from '@/shared/models/config';
-import { getUserInfo } from '@/shared/models/user';
+import {
+  parseCreemProductIdsMappingConfig,
+  parseStripePaymentMethodsConfig,
+} from '@/shared/services/settings/validators/payment';
 import {
   getSettingGroups,
   getSettings,
@@ -46,30 +56,113 @@ export default async function SettingsPage({
   const handleSubmit = async (data: FormData, passby: any) => {
     'use server';
 
-    if (hasConfigsError) {
-      return {
-        status: 'error' as const,
-        message:
-          'Settings could not be saved because configuration values failed to load. Please try again later.',
-      };
-    }
+    return withAction(async () => {
+      const user = await requireActionUser();
+      await requireActionPermissions(
+        user.id,
+        PERMISSIONS.SETTINGS_READ,
+        PERMISSIONS.SETTINGS_WRITE
+      );
 
-    const user = await getUserInfo();
+      if (hasConfigsError) {
+        return actionErr(
+          'Settings could not be saved because configuration values failed to load. Please try again later.'
+        );
+      }
 
-    if (!user) {
-      throw new Error('no auth');
-    }
+      const recordSchema = z.record(z.string(), z.string());
+      const values = parseFormData(data, recordSchema);
 
-    data.forEach((value, name) => {
-      configs[name] = value as string;
+      let normalizedSocialLinks: string | undefined;
+      const socialLinks = values.general_social_links;
+      if (typeof socialLinks === 'string') {
+        const trimmed = socialLinks.trim();
+        if (!trimmed) {
+          normalizedSocialLinks = '';
+        } else {
+          try {
+            const parsed = JSON.parse(trimmed) as unknown;
+            const result = generalSocialLinksSchema.safeParse(parsed);
+            if (!result.success) {
+              const issues = result.error.issues
+                .slice(0, 3)
+                .map((issue) => {
+                  const path = issue.path.length ? issue.path.join('.') : 'root';
+                  return `${path}: ${issue.message}`;
+                })
+                .join('; ');
+              return actionErr(
+                `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim()
+              );
+            }
+            normalizedSocialLinks = JSON.stringify(result.data);
+          } catch {
+            return actionErr('Invalid Social Links JSON. Must be valid JSON.');
+          }
+        }
+      }
+
+      let normalizedStripePaymentMethods: string | undefined;
+      const stripePaymentMethods = values.stripe_payment_methods;
+      if (typeof stripePaymentMethods === 'string') {
+        const result = parseStripePaymentMethodsConfig(stripePaymentMethods);
+        if (!result.ok) {
+          return actionErr(
+            `Invalid Stripe Payment Methods. ${result.error}. Expected a JSON array, e.g. ["card","alipay"].`
+          );
+        }
+        normalizedStripePaymentMethods = result.normalized;
+      }
+
+      let normalizedCreemProductIds: string | undefined;
+      const creemProductIds = values.creem_product_ids;
+      if (typeof creemProductIds === 'string') {
+        const trimmed = creemProductIds.trim();
+        if (!trimmed) {
+          normalizedCreemProductIds = '';
+        } else {
+          const result = parseCreemProductIdsMappingConfig(creemProductIds);
+          if (!result.ok) {
+            return actionErr(
+              `Invalid Creem Product IDs Mapping. ${result.error}. Expected a JSON object, e.g. {"starter":"prod_xxx"}.`
+            );
+          }
+          normalizedCreemProductIds = result.normalized;
+        }
+      }
+
+      for (const [name, value] of Object.entries(values)) {
+        if (
+          name === 'general_social_links' &&
+          normalizedSocialLinks !== undefined
+        ) {
+          configs[name] = normalizedSocialLinks;
+          continue;
+        }
+
+        if (
+          name === 'stripe_payment_methods' &&
+          normalizedStripePaymentMethods !== undefined
+        ) {
+          configs[name] = normalizedStripePaymentMethods;
+          continue;
+        }
+
+        if (
+          name === 'creem_product_ids' &&
+          normalizedCreemProductIds !== undefined
+        ) {
+          configs[name] = normalizedCreemProductIds;
+          continue;
+        }
+
+        configs[name] = value;
+      }
+
+      await saveConfigs(configs);
+
+      return actionOk('Settings updated');
     });
-
-    await saveConfigs(configs);
-
-    return {
-      status: 'success' as const,
-      message: 'Settings updated',
-    };
   };
 
   let forms: FormType[] = [];

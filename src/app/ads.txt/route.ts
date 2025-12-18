@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { getAllConfigs } from '@/shared/models/config';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { log } = getRequestLogger(req);
   try {
     const configs = await getAllConfigs();
 
@@ -21,7 +23,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('get ads.txt failed:', error);
+    log.error('ads.txt: get configs failed', { error });
     return new NextResponse('', {
       status: 200,
       headers: {

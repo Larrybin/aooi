@@ -1,13 +1,18 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { z } from 'zod';
 
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
-  PERMISSIONS,
   requireAllPermissions,
   requirePermission,
-} from '@/core/rbac';
+} from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { jsonStringArraySchema, parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermissions, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import { findUserById } from '@/shared/models/user';
 import {
   assignRolesToUser,
@@ -89,28 +94,28 @@ export default async function UserEditRolesPage({
       handler: async (data, passby) => {
         'use server';
 
-        const { user } = passby!;
+        return withAction(async () => {
+          const admin = await requireActionUser();
+          await requireActionPermissions(
+            admin.id,
+            PERMISSIONS.USERS_WRITE,
+            PERMISSIONS.ROLES_WRITE
+          );
 
-        if (!user) {
-          throw new Error('no auth');
-        }
-
-        let roles = data.get('roles') as unknown as string[];
-        if (typeof roles === 'string') {
-          try {
-            roles = JSON.parse(roles);
-          } catch (error) {
-            throw new Error('invalid roles');
+          const user = await findUserById(id);
+          if (!user) {
+            throw new Error('User not found');
           }
-        }
 
-        await assignRolesToUser(user.id as string, roles);
+          const schema = z.object({ roles: jsonStringArraySchema });
+          const { roles } = parseFormData(data, schema, {
+            message: 'invalid roles',
+          });
 
-        return {
-          status: 'success',
-          message: 'roles updated',
-          redirect_url: '/admin/users',
-        };
+          await assignRolesToUser(user.id as string, roles);
+
+          return actionOk('roles updated', '/admin/users');
+        });
       },
     },
   };

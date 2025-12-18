@@ -1,5 +1,9 @@
+import 'server-only';
+
 import { R2Provider, S3Provider, StorageManager } from '@/extensions/storage';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get storage service with configs
@@ -51,15 +55,6 @@ export function getStorageServiceWithConfigs(configs: Configs) {
 /**
  * global storage service
  */
-let storageService: StorageManager | null = null;
-
-/**
- * get storage service instance
- */
 export async function getStorageService(): Promise<StorageManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    storageService = getStorageServiceWithConfigs(configs);
-  }
-  return storageService;
+  return await buildServiceFromLatestConfigs(getStorageServiceWithConfigs);
 }

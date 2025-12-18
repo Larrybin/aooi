@@ -7,7 +7,7 @@ export interface ChatModel {
 export interface Chat {
   id: string;
   title: string;
-  createdAt: Date;
+  createdAt: string | Date;
   model: string;
   provider: string;
   parts: any;

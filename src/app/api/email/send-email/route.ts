@@ -1,24 +1,27 @@
 import { VerificationCode } from '@/shared/blocks/email/verification-code';
-import { respData, respErr } from '@/shared/lib/resp';
+import { parseJson } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
+import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { getEmailService } from '@/shared/services/email';
 
-export async function POST(req: Request) {
-  try {
-    const { emails, subject } = await req.json();
+export const POST = withApi(async (req: Request) => {
+  const { ctx, log } = getRequestLogger(req);
+  const { emails, subject } = await parseJson(req, EmailSendBodySchema);
 
-    const emailService = await getEmailService();
+  const emailService = await getEmailService();
+  const result = await emailService.sendEmail({
+    to: emails,
+    subject,
+    react: VerificationCode({ code: '123455' }),
+  });
 
-    const result = await emailService.sendEmail({
-      to: emails,
-      subject: subject,
-      react: VerificationCode({ code: '123455' }),
-    });
-
-    console.log('send email result', result);
-
-    return respData(result);
-  } catch (e) {
-    console.log('send email failed:', e);
-    return respErr('send email failed');
-  }
-}
+  log.debug('send email result', {
+    emailCount: Array.isArray(emails) ? emails.length : 1,
+    success: result.success,
+    messageId: result.messageId,
+    provider: result.provider,
+  });
+  return jsonOk(result);
+});

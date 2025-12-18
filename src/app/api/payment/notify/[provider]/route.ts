@@ -1,6 +1,22 @@
-import { PaymentEventType, SubscriptionCycleType } from '@/extensions/payment';
-import { findOrderByOrderNo } from '@/shared/models/order';
+import {
+  PaymentEventType,
+  SubscriptionCycleType,
+  WebhookConfigError,
+  WebhookPayloadError,
+  WebhookVerificationError,
+} from '@/extensions/payment';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+} from '@/shared/lib/api/errors';
+import { parseParams } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { findOrderByOrderNo, OrderStatus } from '@/shared/models/order';
 import { findSubscriptionByProviderSubscriptionId } from '@/shared/models/subscription';
+import { PaymentNotifyParamsSchema } from '@/shared/schemas/api/payment/notify';
 import {
   getPaymentService,
   handleCheckoutSuccess,
@@ -9,55 +25,72 @@ import {
   handleSubscriptionUpdated,
 } from '@/shared/services/payment';
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ provider: string }> }
-) {
-  try {
-    const { provider } = await params;
-
-    if (!provider) {
-      throw new Error('provider is required');
-    }
+export const POST = withApi(
+  async (
+    req: Request,
+    { params }: { params: Promise<{ provider: string }> }
+  ) => {
+    const { log } = getRequestLogger(req);
+    const { provider } = await parseParams(params, PaymentNotifyParamsSchema);
 
     const paymentService = await getPaymentService();
     const paymentProvider = paymentService.getProvider(provider);
     if (!paymentProvider) {
-      throw new Error('payment provider not found');
+      throw new NotFoundError('payment provider not found');
     }
 
-    // get payment event from webhook notification
-    const event = await paymentProvider.getPaymentEvent({ req });
+    let event;
+    try {
+      event = await paymentProvider.getPaymentEvent({ req });
+    } catch (err: unknown) {
+      if (err instanceof WebhookVerificationError) {
+        throw new UnauthorizedError(err.message);
+      }
+      if (err instanceof WebhookPayloadError) {
+        throw new BadRequestError(err.message);
+      }
+      if (err instanceof WebhookConfigError) {
+        throw err;
+      }
+      throw err;
+    }
     if (!event) {
-      throw new Error('payment event not found');
+      throw new BadRequestError('payment event not found');
     }
 
     const eventType = event.eventType;
     if (!eventType) {
-      throw new Error('event type not found');
+      throw new BadRequestError('event type not found');
     }
 
     // payment session
     const session = event.paymentSession;
     if (!session) {
-      throw new Error('payment session not found');
+      throw new BadRequestError('payment session not found');
     }
 
     // console.log('notify payment session', session);
 
     if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-      // one-time payment or subscription first payment
-      const orderNo = (
-        session.metadata as Record<string, unknown> | undefined
-      )?.order_no as string | undefined;
+      const orderNo = (session.metadata as Record<string, unknown> | undefined)
+        ?.order_no as string | undefined;
 
       if (!orderNo) {
-        throw new Error('order no not found');
+        throw new BadRequestError('order no not found');
       }
 
       const order = await findOrderByOrderNo(orderNo);
       if (!order) {
-        throw new Error('order not found');
+        throw new NotFoundError('order not found');
+      }
+
+      // Idempotency guard: if the order is already finalized, return success early.
+      if (
+        order.status === OrderStatus.PAID ||
+        order.status === OrderStatus.FAILED ||
+        order.status === OrderStatus.COMPLETED
+      ) {
+        return jsonOk({ message: 'already processed' });
       }
 
       await handleCheckoutSuccess({
@@ -71,31 +104,36 @@ export async function POST(
           session.paymentInfo?.subscriptionCycleType ===
           SubscriptionCycleType.RENEWAL
         ) {
-          // only handle subscription renewal payment
           const existingSubscription =
             await findSubscriptionByProviderSubscriptionId({
               provider: provider,
               subscriptionId: session.subscriptionId,
             });
           if (!existingSubscription) {
-            throw new Error('subscription not found');
+            throw new NotFoundError('subscription not found');
           }
 
-          // handle subscription renewal payment
           await handleSubscriptionRenewal({
             subscription: existingSubscription,
             session,
           });
         } else {
-          console.log('not handle subscription first payment');
+          log.debug('payment: notify ignored subscription first payment', {
+            provider,
+            eventType,
+          });
         }
       } else {
-        console.log('not handle one-time payment');
+        log.debug('payment: notify ignored one-time payment', {
+          provider,
+          eventType,
+        });
       }
     } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
-      // only handle subscription update
       if (!session.subscriptionId || !session.subscriptionInfo) {
-        throw new Error('subscription id or subscription info not found');
+        throw new BadRequestError(
+          'subscription id or subscription info not found'
+        );
       }
 
       const existingSubscription =
@@ -104,7 +142,7 @@ export async function POST(
           subscriptionId: session.subscriptionId,
         });
       if (!existingSubscription) {
-        throw new Error('subscription not found');
+        throw new NotFoundError('subscription not found');
       }
 
       await handleSubscriptionUpdated({
@@ -112,9 +150,10 @@ export async function POST(
         session,
       });
     } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
-      // only handle subscription cancellation
       if (!session.subscriptionId || !session.subscriptionInfo) {
-        throw new Error('subscription id or subscription info not found');
+        throw new BadRequestError(
+          'subscription id or subscription info not found'
+        );
       }
 
       const existingSubscription =
@@ -123,7 +162,7 @@ export async function POST(
           subscriptionId: session.subscriptionId,
         });
       if (!existingSubscription) {
-        throw new Error('subscription not found');
+        throw new NotFoundError('subscription not found');
       }
 
       await handleSubscriptionCanceled({
@@ -131,23 +170,12 @@ export async function POST(
         session,
       });
     } else {
-      console.log('not handle other event type: ' + eventType);
+      log.debug('payment: notify ignored event type', {
+        provider,
+        eventType,
+      });
     }
 
-    return Response.json({
-      message: 'success',
-    });
-  } catch (err: unknown) {
-    console.log('handle payment notify failed', err);
-    const message =
-      err instanceof Error ? err.message : 'Unknown payment notify error';
-    return Response.json(
-      {
-        message: `handle payment notify failed: ${message}`,
-      },
-      {
-        status: 500,
-      }
-    );
+    return jsonOk({ message: 'success' });
   }
-}
+);

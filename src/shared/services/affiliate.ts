@@ -1,9 +1,13 @@
+import 'server-only';
+
 import {
   AffiliateManager,
   AffonsoAffiliateProvider,
   PromoteKitAffiliateProvider,
 } from '@/extensions/affiliate';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get affiliate manager with configs
@@ -34,15 +38,6 @@ export function getAffiliateManagerWithConfigs(configs: Configs) {
 /**
  * global affiliate service
  */
-let affiliateService: AffiliateManager | null = null;
-
-/**
- * get affiliate service instance
- */
 export async function getAffiliateService(): Promise<AffiliateManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    affiliateService = getAffiliateManagerWithConfigs(configs);
-  }
-  return affiliateService;
+  return await buildServiceFromLatestConfigs(getAffiliateManagerWithConfigs);
 }

@@ -5,6 +5,8 @@ export interface Image {
   src: string;
   alt?: string;
   className?: string;
+  width?: number;
+  height?: number;
 }
 
 // brand props for brand component, contains logo and brand title

@@ -11,6 +11,12 @@ import { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import { useChatContext } from '@/shared/contexts/chat';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+  getRequestIdFromResponse,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 
 import { ChatInput } from './input';
 
@@ -38,17 +44,21 @@ export function ChatGenerator() {
         method: 'POST',
         body: JSON.stringify({ message: msg, body: body }),
       });
+      const requestId = getRequestIdFromResponse(resp);
       if (!resp.ok) {
-        throw new Error(`request failed with status: ${resp.status}`);
+        throw new RequestIdError(
+          `request failed with status: ${resp.status}`,
+          requestId
+        );
       }
       const { code, message, data } = await resp.json();
       if (code !== 0) {
-        throw new Error(message);
+        throw new RequestIdError(message, requestId);
       }
 
       const { id } = data;
       if (!id) {
-        throw new Error('failed to create chat');
+        throw new RequestIdError('failed to create chat', requestId);
       }
 
       setChats([data, ...chats]);
@@ -60,8 +70,12 @@ export function ChatGenerator() {
       setStatus(undefined);
       setError(null);
     } catch (e: any) {
-      const message =
+      const baseMessage =
         e instanceof Error ? e.message : 'request failed, please try again';
+      const message = formatMessageWithRequestId(
+        baseMessage,
+        getRequestIdFromError(e)
+      );
       setStatus('error');
       setError(message);
       toast.error(message);

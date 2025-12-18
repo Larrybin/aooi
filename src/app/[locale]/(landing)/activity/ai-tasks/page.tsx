@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { AITaskStatus, AISong } from '@/extensions/ai';
 import { AudioPlayer, Empty, LazyImage } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
+import { safeJsonParse } from '@/shared/lib/json';
 import { AITask, getAITasks, getAITasksCount } from '@/shared/models/ai_task';
 import { getUserInfo } from '@/shared/models/user';
 import { Button, Tab } from '@/shared/types/blocks/common';
@@ -54,24 +55,31 @@ export default async function AiTasksPage({
             return '-';
           }
 
-          const taskInfo = JSON.parse(item.taskInfo) as {
-            errorMessage?: string;
-            songs?: Array<{ id: string; audioUrl?: string; title?: string }>;
-            images?: Array<{ imageUrl: string }>;
-          };
+          const taskInfo = safeJsonParse<Record<string, unknown>>(item.taskInfo);
+          if (!taskInfo) {
+            return '-';
+          }
 
-          if (taskInfo.errorMessage) {
+          const errorMessage =
+            typeof taskInfo.errorMessage === 'string'
+              ? taskInfo.errorMessage
+              : '';
+          if (errorMessage) {
             return (
               <div className="text-red-500">
-                Failed: {taskInfo.errorMessage}
+                Failed: {errorMessage}
               </div>
             );
           }
 
-          if (taskInfo.songs && taskInfo.songs.length > 0) {
-            const songs = taskInfo.songs.filter(
-              (song) => typeof song.audioUrl === 'string'
-            );
+          const songsValue = taskInfo.songs;
+          if (Array.isArray(songsValue) && songsValue.length > 0) {
+            const songs = songsValue
+              .filter(
+                (song): song is { id: string; audioUrl?: string; title?: string } =>
+                  Boolean(song) && typeof song === 'object'
+              )
+              .filter((song) => typeof song.audioUrl === 'string');
 
             if (songs.length > 0) {
               return (
@@ -89,16 +97,30 @@ export default async function AiTasksPage({
             }
           }
 
-          if (taskInfo.images && taskInfo.images.length > 0) {
+          const imagesValue = taskInfo.images;
+          if (Array.isArray(imagesValue) && imagesValue.length > 0) {
             return (
               <div className="flex flex-col gap-2">
-                {taskInfo.images.map((image, index: number) => (
-                  <LazyImage
+                {imagesValue
+                  .filter(
+                    (image): image is { imageUrl: string } =>
+                      Boolean(image) &&
+                      typeof image === 'object' &&
+                      typeof (image as { imageUrl?: unknown }).imageUrl === 'string'
+                  )
+                  .map((image, index: number) => (
+                  <div
                     key={index}
-                    src={image.imageUrl}
-                    alt="Generated image"
-                    className="h-32 w-auto"
-                  />
+                    className="relative h-32 w-32 overflow-hidden rounded-md border"
+                  >
+                    <LazyImage
+                      src={image.imageUrl}
+                      alt="Generated image"
+                      fill
+                      sizes="128px"
+                      className="object-contain"
+                    />
+                  </div>
                 ))}
               </div>
             );

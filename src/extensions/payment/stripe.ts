@@ -11,6 +11,9 @@ import {
   SubscriptionCycleType,
   SubscriptionInfo,
   SubscriptionStatus,
+  WebhookConfigError,
+  WebhookPayloadError,
+  WebhookVerificationError,
   type PaymentConfigs,
   type PaymentEvent,
   type PaymentOrder,
@@ -101,8 +104,9 @@ export class StripeProvider implements PaymentProvider {
           const customer = await this.client.customers.create({
             email: order.customer.email,
             name: order.customer.name,
-            metadata: order.customer
-              .metadata as Stripe.MetadataParam | undefined,
+            metadata: order.customer.metadata as
+              | Stripe.MetadataParam
+              | undefined,
           });
           customerId = customer.id;
         }
@@ -162,8 +166,9 @@ export class StripeProvider implements PaymentProvider {
       }
 
       if (order.metadata) {
-        sessionParams.metadata =
-          order.metadata as Stripe.MetadataParam | undefined;
+        sessionParams.metadata = order.metadata as
+          | Stripe.MetadataParam
+          | undefined;
       }
 
       if (order.successUrl) {
@@ -224,18 +229,23 @@ export class StripeProvider implements PaymentProvider {
       const signature = req.headers.get('stripe-signature') as string;
 
       if (!rawBody || !signature) {
-        throw new Error('Invalid webhook request');
+        throw new WebhookVerificationError('invalid webhook request');
       }
 
       if (!this.configs.signingSecret) {
-        throw new Error('Signing Secret not configured');
+        throw new WebhookConfigError('signing secret not configured');
       }
 
-      const event = this.client.webhooks.constructEvent(
-        rawBody,
-        signature,
-        this.configs.signingSecret
-      );
+      let event: Stripe.Event;
+      try {
+        event = this.client.webhooks.constructEvent(
+          rawBody,
+          signature,
+          this.configs.signingSecret
+        );
+      } catch {
+        throw new WebhookVerificationError('invalid webhook signature');
+      }
 
       let paymentSession: PaymentSession | undefined = undefined;
 
@@ -260,7 +270,7 @@ export class StripeProvider implements PaymentProvider {
       }
 
       if (!paymentSession) {
-        throw new Error('Invalid webhook event');
+        throw new WebhookPayloadError('invalid webhook event');
       }
 
       return {
@@ -543,7 +553,9 @@ export class StripeProvider implements PaymentProvider {
       currentPeriodEnd: new Date(data.current_period_end * 1000),
       interval: data.plan.interval as PaymentInterval,
       intervalCount: data.plan.interval_count || 1,
-      metadata: subscription.metadata ? { ...subscription.metadata } : undefined,
+      metadata: subscription.metadata
+        ? { ...subscription.metadata }
+        : undefined,
     };
 
     if (subscription.status === 'active') {

@@ -10,7 +10,7 @@
  *   npx tsx scripts/init-rbac.ts --admin-email=your@email.com
  */
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import {
@@ -445,8 +445,10 @@ async function initializeRBAC() {
           .select()
           .from(userRole)
           .where(
-            eq(userRole.userId, adminUser.id) &&
+            and(
+              eq(userRole.userId, adminUser.id),
               eq(userRole.roleId, superAdminRoleId)
+            )
           );
 
         if (!existingUserRole) {
@@ -490,3 +492,4 @@ initializeRBAC()
     console.error(error);
     process.exit(1);
   });
+import '@/config/load-dotenv';

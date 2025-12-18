@@ -4,6 +4,15 @@ import { Brand as BrandType } from '@/shared/types/blocks/common';
 import { LazyImage } from './lazy-image';
 
 export function BrandLogo({ brand }: { brand: BrandType }) {
+  const displayHeight = 40;
+  const ratioWidth = brand.logo?.width ?? 1;
+  const ratioHeight = brand.logo?.height ?? 1;
+  const safeRatioHeight = ratioHeight > 0 ? ratioHeight : 1;
+  const displayWidth = Math.max(
+    1,
+    Math.round((displayHeight * ratioWidth) / safeRatioHeight)
+  );
+
   return (
     <Link
       href={brand.url || ''}
@@ -14,6 +23,9 @@ export function BrandLogo({ brand }: { brand: BrandType }) {
         <LazyImage
           src={brand.logo.src}
           alt={brand.logo.alt || ''}
+          width={displayWidth}
+          height={displayHeight}
+          sizes={`${displayWidth}px`}
           className="h-10 w-auto"
         />
       )}

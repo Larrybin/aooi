@@ -4,13 +4,20 @@ import { Link } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Separator } from '@/shared/components/ui/separator';
 import { useSidebar } from '@/shared/components/ui/sidebar';
+import { useAppContext } from '@/shared/contexts/app';
+import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { NavItem } from '@/shared/types/blocks/common';
 import { SidebarFooter as SidebarFooterType } from '@/shared/types/blocks/dashboard';
 
-import { LocaleSelector, ThemeToggler } from '../common';
+import { GeneralSocialLinks, LocaleSelector, ThemeToggler } from '../common';
 
 export function SidebarFooter({ footer }: { footer: SidebarFooterType }) {
   const { open } = useSidebar();
+  const { configs } = useAppContext();
+  const showTheme = Boolean(
+    footer.show_theme && isConfigTrue(configs, 'general_theme_toggle_enabled')
+  );
+  const showLocale = Boolean(footer.show_locale);
 
   return (
     <>
@@ -30,13 +37,20 @@ export function SidebarFooter({ footer }: { footer: SidebarFooterType }) {
             </div>
           ))}
 
+          <GeneralSocialLinks
+            className="flex items-center gap-x-4"
+            itemClassName="hover:text-primary cursor-pointer"
+            iconClassName="text-md"
+            iconSize={20}
+          />
+
           <div className="flex-1"></div>
 
-          {(footer.show_theme || footer.show_locale) && (
+          {(showTheme || showLocale) && (
             <Separator orientation="vertical" className="h-4" />
           )}
-          {footer.show_theme && <ThemeToggler />}
-          {footer.show_locale && <LocaleSelector />}
+          {showTheme && <ThemeToggler />}
+          {showLocale && <LocaleSelector />}
         </div>
       ) : null}
     </>

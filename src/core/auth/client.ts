@@ -15,8 +15,7 @@ const makeOneTapPlugin = (options: GoogleOneTapOptions): OneTapPlugin =>
 
 // auth client for client-side use
 export const authClient = createAuthClient({
-  baseURL: envConfigs.auth_url,
-  secret: envConfigs.auth_secret,
+  baseURL: envConfigs.app_url,
 });
 
 // export auth client methods
@@ -46,8 +45,7 @@ export function getAuthClient(configs: Record<string, string>) {
       : [];
 
   const authClient = createAuthClient({
-    baseURL: envConfigs.auth_url,
-    secret: envConfigs.auth_secret,
+    baseURL: envConfigs.app_url,
     plugins,
   });
 

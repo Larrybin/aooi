@@ -8,6 +8,7 @@
     "sort": "Sort",
     "created_at": "Created At",
     "updated_at": "Updated At",
+    "deleted_at": "Deleted At",
     "permissions": "Permissions",
     "actions": "Actions"
   },
@@ -21,7 +22,28 @@
       "create": "Create Role",
       "edit": "Edit Role",
       "edit_permissions": "Edit Permissions",
+      "delete": "Delete Role",
+      "restore": "Restore Role",
+      "show_deleted": "Show deleted",
+      "hide_deleted": "Hide deleted"
+    }
+  },
+  "delete": {
+    "title": "Delete Role",
+    "crumbs": {
       "delete": "Delete Role"
+    },
+    "buttons": {
+      "submit": "Delete"
+    }
+  },
+  "restore": {
+    "title": "Restore Role",
+    "crumbs": {
+      "restore": "Restore Role"
+    },
+    "buttons": {
+      "submit": "Restore"
     }
   },
   "edit": {

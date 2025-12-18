@@ -34,8 +34,8 @@ export function Testimonials({
               src={image?.src ?? ''}
               alt={image?.alt ?? ''}
               className="h-full w-full object-cover"
-              width={460}
-              height={460}
+              width={36}
+              height={36}
               loading="lazy"
             />
           </div>

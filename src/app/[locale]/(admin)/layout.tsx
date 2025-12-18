@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { requireAdminAccess } from '@/core/rbac/permission';
+import { requireAdminAccess } from '@/shared/services/rbac_guard';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { DashboardLayout } from '@/shared/blocks/dashboard/layout';
 import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';

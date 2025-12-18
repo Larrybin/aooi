@@ -1,9 +1,13 @@
+import 'server-only';
+
 import {
   CrispCustomerServiceProvider,
   CustomerServiceManager,
   TawkCustomerServiceProvider,
 } from '@/extensions/customer-service';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get affiliate manager with configs
@@ -41,15 +45,6 @@ export function getCustomerServiceWithConfigs(configs: Configs) {
 /**
  * global customer service
  */
-let customerServiceManager: CustomerServiceManager | null = null;
-
-/**
- * get customer service instance
- */
 export async function getCustomerService(): Promise<CustomerServiceManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    customerServiceManager = getCustomerServiceWithConfigs(configs);
-  }
-  return customerServiceManager;
+  return await buildServiceFromLatestConfigs(getCustomerServiceWithConfigs);
 }

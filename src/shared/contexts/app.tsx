@@ -5,13 +5,15 @@ import {
   ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
 import { getAuthClient, useSession } from '@/core/auth/client';
 import { useRouter } from '@/core/i18n/navigation';
-import { envConfigs } from '@/config';
-import { User } from '@/shared/models/user';
+import { fetchApiData, isPlainObject } from '@/shared/lib/api/client';
+import { toastFetchError } from '@/shared/lib/api/fetch-json';
+import type { User } from '@/shared/models/user';
 
 type OneTapCapable = {
   oneTap: (...args: any[]) => Promise<any>;
@@ -36,6 +38,9 @@ export const useAppContext = () => useContext(AppContext);
 export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const [configs, setConfigs] = useState<Record<string, string>>({});
+  const didToastConfigsError = useRef(false);
+  const didToastUserInfoError = useRef(false);
+  const didToastUserCreditsError = useRef(false);
 
   // sign user
   const [user, setUser] = useState<User | null>(null);
@@ -43,8 +48,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   // session
   const { data: session, isPending } = useSession();
 
-  // is check sign (true during SSR and initial render to avoid hydration mismatch when auth is enabled)
-  const [isCheckSign, setIsCheckSign] = useState(!!envConfigs.auth_secret);
+  // is check sign: keep SSR/CSR initial render identical, then sync with auth session pending state.
+  const [isCheckSign, setIsCheckSign] = useState(true);
 
   // show sign modal
   const [isShowSignModal, setIsShowSignModal] = useState(false);
@@ -54,19 +59,23 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchConfigs = async function () {
     try {
-      const resp = await fetch('/api/config/get-configs', {
-        method: 'POST',
-      });
-      if (!resp.ok) {
-        throw new Error(`fetch failed with status: ${resp.status}`);
-      }
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new Error(message);
-      }
+      const data = await fetchApiData<Record<string, string>>(
+        '/api/config/get-configs',
+        {
+          method: 'POST',
+        },
+        {
+          validate: (value): value is Record<string, string> => isPlainObject(value),
+          invalidDataMessage: 'invalid configs response',
+        }
+      );
 
       setConfigs(data);
     } catch (e) {
+      if (!didToastConfigsError.current) {
+        didToastConfigsError.current = true;
+        toastFetchError(e, 'Failed to load configs');
+      }
       console.log('fetch configs failed:', e);
     }
   };
@@ -77,38 +86,39 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const resp = await fetch('/api/user/get-user-credits', {
-        method: 'POST',
-      });
-      if (!resp.ok) {
-        throw new Error(`fetch failed with status: ${resp.status}`);
-      }
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new Error(message);
-      }
+      const credits = await fetchApiData<User['credits']>(
+        '/api/user/get-user-credits',
+        {
+          method: 'POST',
+        },
+        {
+          validate: (value): value is User['credits'] => isPlainObject(value),
+          invalidDataMessage: 'invalid user credits response',
+        }
+      );
 
-      setUser({ ...user, credits: data });
+      setUser({ ...user, credits: credits || undefined });
     } catch (e) {
+      if (!didToastUserCreditsError.current) {
+        didToastUserCreditsError.current = true;
+        toastFetchError(e, 'Failed to load user credits');
+      }
       console.log('fetch user credits failed:', e);
     }
   };
 
   const fetchUserInfo = async function () {
     try {
-      const resp = await fetch('/api/user/get-user-info', {
+      const data = await fetchApiData<User>('/api/user/get-user-info', {
         method: 'POST',
       });
-      if (!resp.ok) {
-        throw new Error(`fetch failed with status: ${resp.status}`);
-      }
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new Error(message);
-      }
 
       setUser(data);
     } catch (e) {
+      if (!didToastUserInfoError.current) {
+        didToastUserInfoError.current = true;
+        toastFetchError(e, 'Failed to load user info');
+      }
       console.log('fetch user info failed:', e);
     }
   };

@@ -1,10 +1,16 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import { findUserById, updateUser, UpdateUser } from '@/shared/models/user';
+import { AdminUserUpdateFormSchema } from '@/shared/schemas/actions/admin-user';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
 
@@ -68,31 +74,30 @@ export default async function UserEditPage({
       handler: async (data, passby) => {
         'use server';
 
-        const { user } = passby!;
+        return withAction(async () => {
+          const admin = await requireActionUser();
+          await requireActionPermission(admin.id, PERMISSIONS.USERS_WRITE);
 
-        if (!user) {
-          throw new Error('no auth');
-        }
+          const user = await findUserById(id);
+          if (!user) {
+            throw new Error('User not found');
+          }
 
-        const name = data.get('name') as string;
-        const image = data.get('image') as string;
+          const { name, image } = parseFormData(data, AdminUserUpdateFormSchema);
 
-        const newUser: UpdateUser = {
-          name: name.trim(),
-          image: image as string,
-        };
+          const newUser: UpdateUser = {
+            name,
+            image: image ?? '',
+          };
 
-        const result = await updateUser(user.id as string, newUser);
+          const result = await updateUser(user.id as string, newUser);
 
-        if (!result) {
-          throw new Error('update user failed');
-        }
+          if (!result) {
+            throw new Error('update user failed');
+          }
 
-        return {
-          status: 'success',
-          message: 'user updated',
-          redirect_url: '/admin/users',
-        };
+          return actionOk('user updated', '/admin/users');
+        });
       },
     },
   };

@@ -3,6 +3,7 @@ import { oneTap } from 'better-auth/plugins';
 
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';
+import { serverEnv } from '@/config/server';
 import * as schema from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
 import { getAllConfigs } from '@/shared/models/config';
@@ -22,8 +23,8 @@ trustedOrigins.push('https://accounts.google.com');
 // This ensures zero database calls during build time
 export const authOptions = {
   appName: envConfigs.app_name,
-  baseURL: envConfigs.auth_url,
-  secret: envConfigs.auth_secret,
+  baseURL: serverEnv.authBaseUrl,
+  secret: serverEnv.authSecret,
   trustedOrigins,
   advanced: {
     database: {
@@ -47,9 +48,9 @@ export async function getAuthOptions() {
   return {
     ...authOptions,
     // Add database connection only when actually needed (runtime)
-    database: envConfigs.database_url
+    database: serverEnv.databaseUrl
       ? drizzleAdapter(db(), {
-          provider: getDatabaseProvider(envConfigs.database_provider),
+          provider: getDatabaseProvider(serverEnv.databaseProvider),
           schema: schema,
         })
       : null,
@@ -97,7 +98,7 @@ export function getDatabaseProvider(
       return 'mysql';
     default:
       throw new Error(
-        `Unsupported database provider for auth: ${envConfigs.database_provider}`
+        `Unsupported database provider for auth: ${provider}`
       );
   }
 }
