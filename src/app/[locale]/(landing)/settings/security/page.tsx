@@ -19,7 +19,7 @@ export default async function SecurityPage() {
 
   const t = await getTranslations('settings.security');
 
-  const form: FormType = {
+  const form = {
     fields: [
       {
         name: 'email',
@@ -52,7 +52,7 @@ export default async function SecurityPage() {
       user: user,
     },
     submit: {
-      handler: async (data: FormData, _passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
         return withAction(async () => {
@@ -68,7 +68,7 @@ export default async function SecurityPage() {
         title: t('reset_password.buttons.submit'),
       },
     },
-  };
+  } satisfies FormType;
 
   return (
     <div className="space-y-8">

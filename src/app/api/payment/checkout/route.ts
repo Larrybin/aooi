@@ -9,18 +9,19 @@ import {
 import {
   BadRequestError,
   NotFoundError,
-  UnprocessableEntityError,
   UnauthorizedError,
+  UnprocessableEntityError,
 } from '@/shared/lib/api/errors';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
-import { jsonErr, jsonOk } from '@/shared/lib/api/response';
+import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
-import type { RequestLogger } from '@/shared/lib/request-logger.server';
+import {
+  getRequestLogger,
+  type RequestLogger,
+} from '@/shared/lib/request-logger.server';
 import { getAllConfigs } from '@/shared/models/config';
-import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
 import {
   createOrder,
   NewOrder,
@@ -29,6 +30,7 @@ import {
 } from '@/shared/models/order';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import { getPaymentService } from '@/shared/services/payment';
+import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
 import { PricingCurrency } from '@/shared/types/blocks/pricing';
 
 export const POST = withApi(async (req: Request) => {
@@ -43,7 +45,7 @@ export const POST = withApi(async (req: Request) => {
   const pricing = t.raw('pricing');
 
   const pricingItem = pricing.items.find(
-    (item: any) => item.product_id === product_id
+    (item) => item.product_id === product_id
   );
 
   if (!pricingItem) {
@@ -54,7 +56,7 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid pricing item');
   }
 
-  const user = await requireUser();
+  const user = await requireUser(req);
   if (!user.email) {
     throw new UnauthorizedError('no auth, please sign in');
   }
@@ -214,12 +216,20 @@ export const POST = withApi(async (req: Request) => {
     },
     type: paymentType,
     metadata: {
+      ...(metadata || {}),
       app_name: configs.app_name,
       order_no: orderNo,
       user_id: user.id,
-      ...(metadata || {}),
     },
-    successUrl: `${configs.app_url}/api/payment/callback?order_no=${orderNo}`,
+    successUrl: (() => {
+      try {
+        const url = new URL(callbackUrl);
+        url.searchParams.set('order_no', orderNo);
+        return url.toString();
+      } catch {
+        return callbackUrl;
+      }
+    })(),
     cancelUrl: `${callbackBaseUrl}/pricing`,
   };
 
@@ -293,8 +303,16 @@ export const POST = withApi(async (req: Request) => {
       checkoutInfo: JSON.stringify(checkoutOrder),
     });
 
-    const message = e instanceof Error ? e.message : String(e);
-    return jsonErr(500, 'checkout failed: ' + message);
+    log.error('payment: checkout failed', {
+      orderNo,
+      paymentProviderName,
+      paymentProvider: paymentProvider.name,
+      productId: pricingItem.product_id,
+      currency: checkoutCurrency,
+      error: e,
+    });
+
+    throw new Error('checkout failed');
   }
 });
 
@@ -330,7 +348,7 @@ async function getPaymentProductId(
         productIds[`${productId}_${checkoutCurrency}`] || productIds[productId]
       );
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof UnprocessableEntityError) {
       throw e;
     }

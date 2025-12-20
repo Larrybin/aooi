@@ -14,8 +14,16 @@ import { parseParams } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
-import { findOrderByOrderNo, OrderStatus } from '@/shared/models/order';
-import { findSubscriptionByProviderSubscriptionId } from '@/shared/models/subscription';
+	import {
+	  findOrderByOrderNo,
+	  findOrderByTransactionId,
+	  findOrderByInvoiceId,
+	  OrderStatus,
+	} from '@/shared/models/order';
+import {
+  findSubscriptionByProviderSubscriptionId,
+  SubscriptionStatus,
+} from '@/shared/models/subscription';
 import { PaymentNotifyParamsSchema } from '@/shared/schemas/api/payment/notify';
 import {
   getPaymentService,
@@ -96,14 +104,51 @@ export const POST = withApi(
       await handleCheckoutSuccess({
         order,
         session,
+        log,
       });
     } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
       // only handle subscription payment
       if (session.subscriptionId && session.subscriptionInfo) {
-        if (
-          session.paymentInfo?.subscriptionCycleType ===
-          SubscriptionCycleType.RENEWAL
-        ) {
+	        if (
+	          session.paymentInfo?.subscriptionCycleType ===
+	          SubscriptionCycleType.RENEWAL
+	        ) {
+	          const transactionId = session.paymentInfo?.transactionId?.trim();
+	          const invoiceId = session.paymentInfo?.invoiceId?.trim();
+
+	          if (transactionId) {
+	            const existingOrder = await findOrderByTransactionId({
+	              provider,
+	              transactionId,
+	            });
+	            if (existingOrder) {
+	              log.debug('payment: notify ignored duplicate renewal', {
+	                provider,
+	                eventType,
+	                transactionId,
+	              });
+	              return jsonOk({ message: 'already processed' });
+	            }
+	          } else if (invoiceId) {
+	            const existingOrder = await findOrderByInvoiceId({
+	              provider,
+	              invoiceId,
+	            });
+	            if (existingOrder) {
+	              log.debug('payment: notify ignored duplicate renewal', {
+	                provider,
+	                eventType,
+	                invoiceId,
+	              });
+	              return jsonOk({ message: 'already processed' });
+	            }
+	          } else {
+	            log.warn(
+	              'payment: renewal idempotency key missing (no transactionId/invoiceId), proceeding without duplicate check',
+	              { provider, eventType }
+	            );
+	          }
+
           const existingSubscription =
             await findSubscriptionByProviderSubscriptionId({
               provider: provider,
@@ -116,6 +161,7 @@ export const POST = withApi(
           await handleSubscriptionRenewal({
             subscription: existingSubscription,
             session,
+            log,
           });
         } else {
           log.debug('payment: notify ignored subscription first payment', {
@@ -145,9 +191,20 @@ export const POST = withApi(
         throw new NotFoundError('subscription not found');
       }
 
+      if (existingSubscription.status === SubscriptionStatus.CANCELED) {
+        log.debug('payment: notify ignored canceled subscription', {
+          provider,
+          eventType,
+          subscriptionId: session.subscriptionId,
+          subscriptionNo: existingSubscription.subscriptionNo,
+        });
+        return jsonOk({ message: 'already processed' });
+      }
+
       await handleSubscriptionUpdated({
         subscription: existingSubscription,
         session,
+        log,
       });
     } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
       if (!session.subscriptionId || !session.subscriptionInfo) {
@@ -165,9 +222,20 @@ export const POST = withApi(
         throw new NotFoundError('subscription not found');
       }
 
+      if (existingSubscription.status === SubscriptionStatus.CANCELED) {
+        log.debug('payment: notify ignored canceled subscription', {
+          provider,
+          eventType,
+          subscriptionId: session.subscriptionId,
+          subscriptionNo: existingSubscription.subscriptionNo,
+        });
+        return jsonOk({ message: 'already processed' });
+      }
+
       await handleSubscriptionCanceled({
         subscription: existingSubscription,
         session,
+        log,
       });
     } else {
       log.debug('payment: notify ignored event type', {

@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { signIn } from '@/core/auth/client';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -75,8 +76,8 @@ export function SignIn({
           setLoading(false);
         },
         onSuccess: (ctx) => {},
-        onError: (e: any) => {
-          toast.error(e?.error?.message || 'sign in failed');
+        onError: (ctx: AuthErrorContext) => {
+          toast.error(ctx.error?.message || 'sign in failed');
           setLoading(false);
         },
       }
@@ -114,12 +115,12 @@ export function SignIn({
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">{t('password_title')}</Label>
-                  {/* <Link
-                    href="#"
+                  <Link
+                    href="/forgot-password"
                     className="ml-auto inline-block text-sm underline"
                   >
-                    Forgot your password?
-                  </Link> */}
+                    {t('forgot_password')}
+                  </Link>
                 </div>
 
                 <Input

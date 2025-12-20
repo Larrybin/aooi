@@ -1,4 +1,5 @@
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
 
 const baseNoRestrictedImports = {
   paths: [
@@ -12,6 +13,11 @@ const baseNoRestrictedImports = {
       name: '@/core/db/config',
       message:
         "禁止在运行时代码中导入 '@/core/db/config'（仅用于 drizzle-kit CLI 配置）。",
+    },
+    {
+      name: '@/config/load-dotenv',
+      message:
+        "禁止在运行时代码中导入 '@/config/load-dotenv'（仅用于 scripts/CLI 加载本地 .env*）。",
     },
   ],
 };
@@ -94,11 +100,13 @@ const eslintConfig = [
     ignores: [
       '**/.next/**',
       '**/node_modules/**',
+      '**/.source/**',
       'temp/**',
       'raphael-starterkit-v1-main/**',
     ],
   },
   ...nextCoreWebVitals,
+  ...nextTypescript,
   {
     files: [
       'src/app/api/**/*.{ts,tsx}',
@@ -113,8 +121,23 @@ const eslintConfig = [
     },
   },
   {
+    files: ['**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': ['error', baseNoRestrictedImports],
+    },
+  },
+  {
+    files: ['scripts/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          ...baseNoRestrictedImports,
+          paths: baseNoRestrictedImports.paths.filter(
+            (rule) => rule.name !== '@/config/load-dotenv'
+          ),
+        },
+      ],
     },
   },
   {
@@ -132,6 +155,15 @@ const eslintConfig = [
             },
           ],
         },
+      ],
+    },
+  },
+  {
+    files: ['src/shared/types/blocks/**/*.d.ts'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': [
+        'error',
+        { allowInterfaces: 'with-single-extends' },
       ],
     },
   },
@@ -384,4 +416,3 @@ const eslintConfig = [
 ];
 
 export default eslintConfig;
-

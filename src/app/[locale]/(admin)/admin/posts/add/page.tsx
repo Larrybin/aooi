@@ -1,23 +1,17 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
-import { withAction } from '@/shared/lib/action/with-action';
-import { getUuid } from '@/shared/lib/hash';
-import { addPost, NewPost, PostStatus, PostType } from '@/shared/models/post';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import {
   getTaxonomies,
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import { AdminPostFormSchema } from '@/shared/schemas/actions/admin-post';
-import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
+
+import { createPostAction } from '../actions';
 
 export default async function PostAddPage({
   params,
@@ -25,22 +19,19 @@ export default async function PostAddPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to add posts
-  await requirePermission({
-    code: PERMISSIONS.POSTS_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.POSTS_WRITE,
   });
 
   const t = await getTranslations('admin.posts');
 
-  const crumbs: Crumb[] = [
-    { title: t('add.crumbs.admin'), url: '/admin' },
-    { title: t('add.crumbs.posts'), url: '/admin/posts' },
-    { title: t('add.crumbs.add'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'add.crumbs.admin', url: '/admin' },
+    { key: 'add.crumbs.posts', url: '/admin/posts' },
+    { key: 'add.crumbs.add' },
+  ]);
 
   const categories = await getTaxonomies({
     type: TaxonomyType.CATEGORY,
@@ -111,52 +102,7 @@ export default async function PostAddPage({
       button: {
         title: t('add.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        return withAction(async () => {
-          const user = await requireActionUser();
-          await requireActionPermission(user.id, PERMISSIONS.POSTS_WRITE);
-
-          const {
-            slug,
-            title,
-            description,
-            content,
-            categories,
-            image,
-            authorName,
-            authorImage,
-          } = parseFormData(data, AdminPostFormSchema, {
-            message: 'slug and title are required',
-          });
-
-          const newPost: NewPost = {
-            id: getUuid(),
-            userId: user.id,
-            parentId: '', // todo: select parent category
-            slug: slug.toLowerCase(),
-            type: PostType.ARTICLE,
-            title,
-            description: description ?? '',
-            image: image ?? '',
-            content: content ?? '',
-            categories: categories ?? '',
-            tags: '',
-            authorName: authorName ?? '',
-            authorImage: authorImage ?? '',
-            status: PostStatus.PUBLISHED,
-          };
-
-          const result = await addPost(newPost);
-
-          if (!result) {
-            throw new Error('add post failed');
-          }
-
-          return actionOk('post added', '/admin/posts');
-        });
-      },
+      handler: createPostAction,
     },
   };
 

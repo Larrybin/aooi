@@ -11,6 +11,10 @@ import { useChatContext } from '@/shared/contexts/chat';
 
 import { ChatInput } from './input';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 export function FollowUp({
   chatInstance,
 }: {
@@ -36,7 +40,8 @@ export function FollowUp({
           last.role === 'assistant' &&
           last.metadata &&
           typeof last.metadata === 'object' &&
-          (last.metadata as Record<string, any>).type === 'error' &&
+          isRecord(last.metadata) &&
+          last.metadata.type === 'error' &&
           last.parts?.[0]?.type === 'text' &&
           last.parts[0].text === errorMessage
         ) {
@@ -80,7 +85,7 @@ export function FollowUp({
   const submitMessage = useCallback(
     async (
       message: PromptInputMessage,
-      body: Record<string, any>
+      body: Record<string, unknown>
     ): Promise<void> => {
       const hasText = Boolean(message.text);
       const hasAttachments = Boolean(message.files?.length);
@@ -90,17 +95,6 @@ export function FollowUp({
 
       lastErrorRef.current = null;
 
-      const payload =
-        typeof body === 'string'
-          ? (() => {
-              try {
-                return JSON.parse(body);
-              } catch {
-                return {};
-              }
-            })()
-          : body;
-
       try {
         await Promise.resolve(
           sendMessage(
@@ -109,7 +103,7 @@ export function FollowUp({
               files: message.files,
             },
             {
-              body: payload,
+              body,
             }
           )
         );
@@ -137,7 +131,40 @@ export function FollowUp({
       messages.length === 0
     ) {
       // auto send message in new chat
-      submitMessage(chat.content, chat.metadata ?? {});
+      const parsedMessage = (() => {
+        try {
+          return JSON.parse(chat.content) as unknown;
+        } catch {
+          return null;
+        }
+      })();
+
+      const parsedBody = chat.metadata
+        ? (() => {
+            try {
+              return JSON.parse(chat.metadata) as unknown;
+            } catch {
+              return null;
+            }
+          })()
+        : null;
+
+      if (!parsedMessage || !isRecord(parsedMessage)) {
+        return;
+      }
+
+      const message: PromptInputMessage = {
+        text: typeof parsedMessage.text === 'string' ? parsedMessage.text : '',
+        files: Array.isArray(parsedMessage.files)
+          ? (parsedMessage.files as PromptInputMessage['files'])
+          : undefined,
+      };
+
+      const body: Record<string, unknown> = isRecord(parsedBody) ? parsedBody : {};
+
+      void submitMessage(message, body).catch(() => {
+        // submitMessage already appends an error message; avoid unhandled rejection.
+      });
     }
   }, [params.id, chat, submitMessage, messages.length]);
 

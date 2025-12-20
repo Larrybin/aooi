@@ -21,7 +21,7 @@ export default async function CreateApiKeyPage() {
 
   const t = await getTranslations('settings.apikeys');
 
-  const form: FormType = {
+  const form = {
     title: t('add.title'),
     fields: [
       {
@@ -36,7 +36,7 @@ export default async function CreateApiKeyPage() {
       user: user,
     },
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
         return withAction(async () => {
@@ -64,7 +64,7 @@ export default async function CreateApiKeyPage() {
         title: t('add.buttons.submit'),
       },
     },
-  };
+  } satisfies FormType;
 
   const crumbs: Crumb[] = [
     {

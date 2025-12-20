@@ -39,10 +39,10 @@ import {
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { useAppContext } from '@/shared/contexts/app';
+import { isPlainObject } from '@/shared/lib/api/client';
+import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
+import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
 import {
-  formatMessageWithRequestId,
-  getRequestIdFromError,
-  getRequestIdFromResponse,
   RequestIdError,
 } from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
@@ -137,34 +137,20 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       }
 
       // request api to query task
-      const resp = await fetch('/api/ai/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ taskId }),
-      });
-      const requestId = getRequestIdFromResponse(resp);
+      const data = await fetchJson<{ status: string; taskInfo: unknown }>(
+        '/api/ai/query',
+        { method: 'POST', body: { taskId } },
+        {
+          validate: (value): value is { status: string; taskInfo: unknown } =>
+            isPlainObject(value) &&
+            typeof (value as { status?: unknown }).status === 'string' &&
+            Boolean((value as { status: string }).status) &&
+            isPlainObject((value as { taskInfo?: unknown }).taskInfo),
+          invalidDataMessage: 'Query task info failed',
+        }
+      );
 
-      if (!resp.ok) {
-        throw new RequestIdError(
-          `request failed with status: ${resp.status}`,
-          requestId
-        );
-      }
-
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new RequestIdError(message, requestId);
-      }
-
-      const { status, taskInfo } = data as {
-        status?: string;
-        taskInfo?: unknown;
-      };
-      if (!status || !taskInfo || typeof taskInfo !== 'object') {
-        throw new RequestIdError('Query task info failed', requestId);
-      }
+      const { status, taskInfo } = data;
 
       const task = taskInfo as {
         errorCode?: string;
@@ -173,7 +159,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       };
       const { errorCode, errorMessage, songs } = task;
       if (errorCode || errorMessage) {
-        throw new RequestIdError(errorMessage || 'Query task failed', requestId);
+        throw new RequestIdError(errorMessage || 'Query task failed');
       }
 
       // handle task status
@@ -276,16 +262,14 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       // Still processing - update progress
       setProgress((prev) => Math.min(prev + 3, 80));
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error polling task:', error);
       setIsGenerating(false);
       setProgress(0);
       setGenerationStartTime(null);
-      toast.error(
-        formatMessageWithRequestId(
-          'Create song failed: ' + (error?.message || 'unknown error'),
-          getRequestIdFromError(error)
-        )
+      toastFetchError(
+        error,
+        `Create song failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
       );
 
       fetchUserCredits();
@@ -342,7 +326,19 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       }
     }
 
-    const params: any = {
+    const params: {
+      mediaType: 'music';
+      provider: string;
+      model: string;
+      prompt?: string;
+      options?: {
+        customMode: boolean;
+        style?: string;
+        title?: string;
+        instrumental?: boolean;
+        lyrics?: string;
+      };
+    } = {
       mediaType: 'music',
       provider: provider,
       model: model,
@@ -373,46 +369,29 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     setGenerationStartTime(Date.now()); // Set generation start time
 
     try {
-      const resp = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params),
-      });
-      const requestId = getRequestIdFromResponse(resp);
+      const data = await fetchJson<{ id: string }>(
+        '/api/ai/generate',
+        { method: 'POST', body: params },
+        {
+          validate: (value): value is { id: string } =>
+            isPlainObject(value) &&
+            typeof (value as { id?: unknown }).id === 'string' &&
+            Boolean((value as { id: string }).id.trim()),
+          invalidDataMessage: 'Failed to generate music',
+        }
+      );
 
-      if (!resp.ok) {
-        throw new RequestIdError(
-          `request failed with status: ${resp.status}`,
-          requestId
-        );
-      }
-
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new RequestIdError(
-          message || 'Failed to generate music',
-          requestId
-        );
-      }
-
-      const { id: taskId } = data;
-      if (!taskId) {
-        throw new RequestIdError('Failed to generate music', requestId);
-      }
+      const taskId = data.id.trim();
 
       // refresh user credits
       await fetchUserCredits();
 
       setTaskId(taskId);
       setProgress(20);
-    } catch (err: any) {
-      toast.error(
-        formatMessageWithRequestId(
-          'Failed to generate music: ' + (err?.message || 'unknown error'),
-          getRequestIdFromError(err)
-        )
+    } catch (err: unknown) {
+      toastFetchError(
+        err,
+        `Failed to generate music: ${err instanceof Error && err.message ? err.message : 'unknown error'}`
       );
       setIsGenerating(false);
       setProgress(0);
@@ -477,14 +456,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     try {
       toast.info(t('generator.downloading'));
 
-      // Fetch the audio file
-      const response = await fetch(song.audioUrl);
-      if (!response.ok) {
-        throw new Error('Failed to fetch audio file');
-      }
-
-      // Convert to blob
-      const blob = await response.blob();
+      const blob = await fetchBlobWithTimeout(song.audioUrl, 20000);
 
       // Create object URL
       const blobUrl = URL.createObjectURL(blob);

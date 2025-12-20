@@ -3,14 +3,9 @@ import {
   convertToModelMessages,
   createIdGenerator,
   generateId,
-  stepCountIs,
   streamText,
-  TextUIPart,
-  tool,
   UIMessage,
-  validateUIMessages,
 } from 'ai';
-import { z } from 'zod';
 
 import {
   BadRequestError,
@@ -45,7 +40,7 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid message');
   }
 
-  const user = await requireUser();
+  const user = await requireUser(req);
 
   const chat = await findChatById(chatId);
   if (!chat) {

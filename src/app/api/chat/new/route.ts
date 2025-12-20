@@ -10,7 +10,7 @@ import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
 export const POST = withApi(async (req: Request) => {
   const { message, body } = await parseJson(req, ChatNewBodySchema);
 
-  const user = await requireUser();
+  const user = await requireUser(req);
 
   // todo: check user credits
 
@@ -39,8 +39,7 @@ export const POST = withApi(async (req: Request) => {
     model: body.model,
     provider: provider,
     title: title,
-    parts: '',
-    // parts: JSON.stringify(parts),
+    parts: JSON.stringify(parts),
     metadata: JSON.stringify(body),
     content: JSON.stringify(message),
   };

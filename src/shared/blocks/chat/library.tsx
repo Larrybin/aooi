@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   IconDots,
@@ -33,6 +33,7 @@ import {
 import { useAppContext } from '@/shared/contexts/app';
 import { useChatContext } from '@/shared/contexts/chat';
 import { fetchApiData } from '@/shared/lib/api/client';
+import { toastFetchError } from '@/shared/lib/api/fetch-json';
 import type { Chat } from '@/shared/types/chat';
 
 export function ChatLibrary({}) {
@@ -45,6 +46,8 @@ export function ChatLibrary({}) {
 
   const { chats, setChats } = useChatContext();
   const [hasMore, setHasMore] = useState(false);
+
+  const didToastFetchChatsError = useRef(false);
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -67,8 +70,11 @@ export function ChatLibrary({}) {
 
         setChats(data.list || []);
         setHasMore(Boolean(data.hasMore));
-      } catch (e: any) {
-        console.log('fetch chats failed:', e);
+      } catch (e: unknown) {
+        if (!didToastFetchChatsError.current) {
+          didToastFetchChatsError.current = true;
+          toastFetchError(e, 'Failed to load chats');
+        }
       }
     };
 

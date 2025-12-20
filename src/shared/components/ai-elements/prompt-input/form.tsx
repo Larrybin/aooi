@@ -1,6 +1,7 @@
 "use client";
 
 import { InputGroup } from "@/shared/components/ui/input-group";
+import { fetchBlobWithTimeout } from "@/shared/lib/fetch/client";
 import { cn } from "@/shared/lib/utils";
 import type { FileUIPart } from "ai";
 import { nanoid } from "nanoid";
@@ -244,8 +245,7 @@ export const PromptInput = ({
   };
 
   const convertBlobUrlToDataUrl = async (url: string): Promise<string> => {
-    const response = await fetch(url);
-    const blob = await response.blob();
+    const blob = await fetchBlobWithTimeout(url, 20000);
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
@@ -355,4 +355,3 @@ export const PromptInput = ({
     </LocalAttachmentsContext.Provider>
   );
 };
-

@@ -1,5 +1,4 @@
 import 'server-only';
-import '@/config/load-dotenv';
 
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';

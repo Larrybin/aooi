@@ -11,7 +11,7 @@ export interface Setting {
   value?: string | string[] | boolean | number;
   group?: string;
   tab?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 export interface SettingGroup {
@@ -20,4 +20,3 @@ export interface SettingGroup {
   description?: string;
   tab: string;
 }
-

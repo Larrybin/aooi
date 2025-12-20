@@ -10,6 +10,8 @@
  *   npx tsx scripts/init-rbac.ts --admin-email=your@email.com
  */
 
+import '@/config/load-dotenv';
+
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
@@ -492,4 +494,3 @@ initializeRBAC()
     console.error(error);
     process.exit(1);
   });
-import '@/config/load-dotenv';

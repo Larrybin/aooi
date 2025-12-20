@@ -1,8 +1,11 @@
 import 'server-only';
 
+import { assertPostgresOnlyDatabaseProvider } from '@/core/db/postgres-only';
+
+assertPostgresOnlyDatabaseProvider(process.env.DATABASE_PROVIDER);
+
 export const serverEnv = {
   databaseUrl: process.env.DATABASE_URL ?? '',
-  databaseProvider: process.env.DATABASE_PROVIDER ?? 'postgresql',
   dbSingletonEnabled: process.env.DB_SINGLETON_ENABLED ?? 'false',
 
   authBaseUrl:

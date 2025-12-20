@@ -1,3 +1,23 @@
+function getHeaderValue(headers: Headers, name: string): string | null {
+  const value = headers.get(name);
+  return value && value.trim() ? value.trim() : null;
+}
+
+export function generateRequestId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid;
+  return `req_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+export function getOrCreateRequestId(headers: Headers): string {
+  return (
+    getHeaderValue(headers, 'x-request-id') ||
+    getHeaderValue(headers, 'x-vercel-id') ||
+    getHeaderValue(headers, 'cf-ray') ||
+    generateRequestId()
+  );
+}
+
 export class RequestIdError extends Error {
   readonly requestId?: string;
   readonly status?: number;
@@ -17,17 +37,12 @@ export class RequestIdError extends Error {
 }
 
 export function getRequestIdFromResponse(response: Response): string | undefined {
-  const candidates = [
-    response.headers.get('x-request-id'),
-    response.headers.get('x-vercel-id'),
-    response.headers.get('cf-ray'),
-  ];
-
-  for (const value of candidates) {
-    if (value && value.trim()) return value.trim();
-  }
-
-  return undefined;
+  return (
+    getHeaderValue(response.headers, 'x-request-id') ||
+    getHeaderValue(response.headers, 'x-vercel-id') ||
+    getHeaderValue(response.headers, 'cf-ray') ||
+    undefined
+  );
 }
 
 export function getRequestIdFromError(error: unknown): string | undefined {

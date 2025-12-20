@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { AIManager, KieProvider, ReplicateProvider } from '@/extensions/ai';
+import { AIManager } from '@/extensions/ai';
+import { KieProvider, ReplicateProvider } from '@/extensions/ai/providers';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';

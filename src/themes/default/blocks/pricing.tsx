@@ -245,7 +245,7 @@ export function Pricing({
 
       const checkoutUrl = data.checkoutUrl.trim();
       window.location.assign(checkoutUrl);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.log('checkout failed: ', e);
 
       if (e instanceof RequestIdError && e.status === 401) {

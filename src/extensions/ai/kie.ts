@@ -7,6 +7,44 @@ import {
   AITaskResult,
   AITaskStatus,
 } from '.';
+import { safeFetchJson } from '@/shared/lib/fetch/server';
+
+type KieGenerateData = { taskId: string } & Record<string, unknown>;
+
+type KieGenerateResponse = {
+  code: number;
+  msg: string;
+  data?: KieGenerateData;
+};
+
+type KieSunoSong = {
+  id: string;
+  createTime: string;
+  audioUrl: string;
+  imageUrl: string;
+  duration: number;
+  prompt: string;
+  title: string;
+  tags: string;
+  style: string;
+  modelName?: string;
+  artist?: string;
+  album?: string;
+};
+
+type KieQueryData = {
+  status: string;
+  response?: { sunoData?: KieSunoSong[] };
+  errorCode?: string;
+  errorMessage?: string;
+  createTime?: string;
+} & Record<string, unknown>;
+
+type KieQueryResponse = {
+  code: number;
+  msg: string;
+  data?: KieQueryData;
+};
 
 /**
  * Kie configs
@@ -97,16 +135,15 @@ export class KieProvider implements AIProvider {
     //   audioWeight: 0.65,
     // };
 
-    const resp = await fetch(apiUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-    if (!resp.ok) {
-      throw new Error(`request failed with status: ${resp.status}`);
-    }
-
-    const { code, msg, data } = await resp.json();
+    const { code, msg, data } = await safeFetchJson<KieGenerateResponse>(
+      apiUrl,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      },
+      { timeoutMs: 15000, cache: 'no-store', errorMessage: 'request kie api failed' }
+    );
 
     if (code !== 200) {
       throw new Error(`generate music failed: ${msg}`);
@@ -145,15 +182,14 @@ export class KieProvider implements AIProvider {
       Authorization: `Bearer ${this.configs.apiKey}`,
     };
 
-    const resp = await fetch(apiUrl, {
-      method: 'GET',
-      headers,
-    });
-    if (!resp.ok) {
-      throw new Error(`request failed with status: ${resp.status}`);
-    }
-
-    const { code, msg, data } = await resp.json();
+    const { code, msg, data } = await safeFetchJson<KieQueryResponse>(
+      apiUrl,
+      {
+        method: 'GET',
+        headers,
+      },
+      { timeoutMs: 15000, cache: 'no-store', errorMessage: 'request kie api failed' }
+    );
 
     if (code !== 200) {
       throw new Error(msg);
@@ -163,33 +199,22 @@ export class KieProvider implements AIProvider {
       throw new Error(`query failed`);
     }
 
-    const songs: AISong[] = data?.response?.sunoData?.map((song: {
-      id: string;
-      createTime: string;
-      audioUrl: string;
-      imageUrl: string;
-      duration: number;
-      prompt: string;
-      title: string;
-      tags: string;
-      style: string;
-      modelName?: string;
-      artist?: string;
-      album?: string;
-    }) => ({
-      id: song.id,
-      createTime: new Date(song.createTime),
-      audioUrl: song.audioUrl,
-      imageUrl: song.imageUrl,
-      duration: song.duration,
-      prompt: song.prompt,
-      title: song.title,
-      tags: song.tags,
-      style: song.style,
-      model: song.modelName,
-      artist: song.artist,
-      album: song.album,
-    }));
+    const songs = data.response?.sunoData?.map(
+      (song): AISong => ({
+        id: song.id,
+        createTime: new Date(song.createTime),
+        audioUrl: song.audioUrl,
+        imageUrl: song.imageUrl,
+        duration: song.duration,
+        prompt: song.prompt,
+        title: song.title,
+        tags: song.tags,
+        style: song.style,
+        model: song.modelName,
+        artist: song.artist,
+        album: song.album,
+      })
+    );
 
     return {
       taskId,

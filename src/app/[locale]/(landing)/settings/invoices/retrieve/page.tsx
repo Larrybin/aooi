@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { Empty } from '@/shared/blocks/common';
+import { toErrorMessage } from '@/shared/lib/errors';
 import {
   findOrderByOrderNo,
   Order,
@@ -62,8 +63,8 @@ export default async function RetrieveInvoicePage({
     await updateOrderByOrderNo(order.orderNo, {
       invoiceUrl: invoiceUrl,
     });
-  } catch (error: any) {
-    return <Empty message={error.message || 'get invoice failed'} />;
+  } catch (error: unknown) {
+    return <Empty message={toErrorMessage(error) || 'get invoice failed'} />;
   }
 
   if (!invoiceUrl) {

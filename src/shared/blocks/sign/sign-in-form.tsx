@@ -6,12 +6,14 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { signIn } from '@/core/auth/client';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useAppContext } from '@/shared/contexts/app';
+import { toErrorMessage } from '@/shared/lib/errors';
 
 import { SocialProviders } from './social-providers';
 
@@ -71,14 +73,14 @@ export function SignInForm({
             setLoading(false);
           },
           onSuccess: (ctx) => {},
-          onError: (e: any) => {
-            toast.error(e?.error?.message || 'sign in failed');
+          onError: (ctx: AuthErrorContext) => {
+            toast.error(ctx.error?.message || 'sign in failed');
             setLoading(false);
           },
         }
       );
-    } catch (e: any) {
-      toast.error(e.message || 'sign in failed');
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || 'sign in failed');
     } finally {
       setLoading(false);
     }
@@ -104,12 +106,15 @@ export function SignInForm({
             </div>
 
             <div className="grid gap-2">
-              {/* <div className="flex items-center">
-              <Label htmlFor="password">{t("password_title")}</Label>
-              <Link href="#" className="ml-auto inline-block text-sm underline">
-                Forgot your password?
-              </Link>
-            </div> */}
+              <div className="flex items-center">
+                <Label htmlFor="password">{t('password_title')}</Label>
+                <Link
+                  href="/forgot-password"
+                  className="ml-auto inline-block text-sm underline"
+                >
+                  {t('forgot_password')}
+                </Link>
+              </div>
 
               <Input
                 id="password"

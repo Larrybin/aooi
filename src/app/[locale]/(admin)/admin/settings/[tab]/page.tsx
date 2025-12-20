@@ -53,7 +53,7 @@ export default async function SettingsPage({
   const tabs = await getSettingTabs(tab ?? 'auth');
   const hasConfigsError = Boolean(configsError);
 
-  const handleSubmit = async (data: FormData, passby: any) => {
+  const handleSubmit = async (data: FormData, _passby: unknown) => {
     'use server';
 
     return withAction(async () => {
@@ -165,7 +165,7 @@ export default async function SettingsPage({
     });
   };
 
-  let forms: FormType[] = [];
+  const forms: FormType[] = [];
 
   settingGroups.forEach((group) => {
     if (group.tab !== tab) {

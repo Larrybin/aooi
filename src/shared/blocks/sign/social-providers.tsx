@@ -5,6 +5,7 @@ import { RiGithubFill, RiGoogleFill } from 'react-icons/ri';
 import { toast } from 'sonner';
 
 import { signIn } from '@/core/auth/client';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import { useRouter } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -52,8 +53,8 @@ export function SocialProviders({
           setIsShowSignModal(false);
         },
         onSuccess: (ctx) => {},
-        onError: (e: any) => {
-          toast.error(e?.error?.message || 'sign in failed');
+        onError: (ctx: AuthErrorContext) => {
+          toast.error(ctx.error?.message || 'sign in failed');
           setLoading(false);
         },
       }

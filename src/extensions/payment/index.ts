@@ -203,7 +203,7 @@ export enum PaymentEventType {
   SUBSCRIBE_CANCELED = 'subscribe.canceled', // subscription canceled
 }
 
-export interface EventInfo {}
+export type EventInfo = Record<string, unknown>;
 
 /**
  * Webhook error types (for stable HTTP status mapping in Route Handlers)
@@ -421,7 +421,4 @@ export class PaymentManager {
 // Global payment manager instance
 export const paymentManager = new PaymentManager();
 
-// Export all providers
-export * from './stripe';
-export * from './creem';
-export * from './paypal';
+// Providers are exported via `./providers` (server-only)

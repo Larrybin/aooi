@@ -5,6 +5,12 @@ import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import { db } from '@/core/db';
 import { permission, role, rolePermission, userRole } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
+import { logger } from '@/shared/lib/logger.server';
+import {
+  buildPublicPermissionMisconfigurationError,
+  buildRoleDeletedAtMissingHint,
+  isMissingRoleDeletedAtColumnError,
+} from '@/core/db/schema-check';
 
 // Types
 export type Role = typeof role.$inferSelect;
@@ -35,6 +41,27 @@ export const ROLES = {
 export enum RoleStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
+}
+
+function normalizeRbacSchemaError(error: unknown): never {
+  if (!isMissingRoleDeletedAtColumnError(error)) {
+    throw error;
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const hint = buildRoleDeletedAtMissingHint();
+
+  logger.error('[rbac] schema mismatch detected', {
+    pgCode: '42703',
+    missingColumn: 'public.role.deleted_at',
+    hint,
+  });
+
+  if (isProduction) {
+    throw buildPublicPermissionMisconfigurationError();
+  }
+
+  throw new Error(hint);
 }
 
 function matchesPermissionCode(
@@ -301,15 +328,19 @@ export async function getUserPermissions(userId: string): Promise<Permission[]> 
 
 async function getUserPermissionCodes(userId: string): Promise<string[]> {
   const now = new Date();
-  const result = await db()
-    .selectDistinct({ code: permission.code })
-    .from(userRole)
-    .innerJoin(role, eq(userRole.roleId, role.id))
-    .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
-    .innerJoin(permission, eq(rolePermission.permissionId, permission.id))
-    .where(buildActiveUserRoleWhere(userId, now));
+  try {
+    const result = await db()
+      .selectDistinct({ code: permission.code })
+      .from(userRole)
+      .innerJoin(role, eq(userRole.roleId, role.id))
+      .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
+      .innerJoin(permission, eq(rolePermission.permissionId, permission.id))
+      .where(buildActiveUserRoleWhere(userId, now));
 
-  return result.map((row) => row.code);
+    return result.map((row) => row.code);
+  } catch (error: unknown) {
+    normalizeRbacSchemaError(error);
+  }
 }
 
 async function getUserPermissionCodeSet(

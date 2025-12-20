@@ -7,12 +7,8 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 
 import { Button } from '@/shared/components/ui/button';
-import {
-  formatMessageWithRequestId,
-  getRequestIdFromError,
-  getRequestIdFromResponse,
-  RequestIdError,
-} from '@/shared/lib/request-id';
+import { fetchApiData, isPlainObject } from '@/shared/lib/api/client';
+import { toastFetchError } from '@/shared/lib/api/fetch-json';
 import { cn } from '@/shared/lib/utils';
 
 export type UploadStatus = 'idle' | 'uploading' | 'uploaded' | 'error';
@@ -53,25 +49,19 @@ const uploadImageFile = async (file: File) => {
   const formData = new FormData();
   formData.append('files', file);
 
-  const response = await fetch('/api/storage/upload-image', {
-    method: 'POST',
-    body: formData,
-  });
-  const requestId = getRequestIdFromResponse(response);
+  const data = await fetchApiData<{ urls: string[] }>(
+    '/api/storage/upload-image',
+    { method: 'POST', body: formData },
+    {
+      validate: (value): value is { urls: string[] } =>
+        isPlainObject(value) &&
+        Array.isArray((value as { urls?: unknown }).urls) &&
+        typeof (value as { urls: unknown[] }).urls[0] === 'string',
+      invalidDataMessage: 'invalid upload response',
+    }
+  );
 
-  if (!response.ok) {
-    throw new RequestIdError(
-      `Upload failed with status ${response.status}`,
-      requestId
-    );
-  }
-
-  const result = await response.json();
-  if (result.code !== 0 || !result.data?.urls?.length) {
-    throw new RequestIdError(result.message || 'Upload failed', requestId);
-  }
-
-  return result.data.urls[0] as string;
+  return data.urls[0].trim();
 };
 
 export function ImageUploader({
@@ -244,14 +234,13 @@ export function ImageUploader({
             });
             return next;
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Upload failed:', error);
-          const msg = formatMessageWithRequestId(
-            error?.message ? `Upload failed: ${error.message}` : 'Upload failed',
-            getRequestIdFromError(error)
-          );
-          toast.error(
-            msg
+          toastFetchError(
+            error,
+            error instanceof Error && error.message
+              ? `Upload failed: ${error.message}`
+              : 'Upload failed'
           );
           setItems((prev) => {
             const next = prev.map((current) =>

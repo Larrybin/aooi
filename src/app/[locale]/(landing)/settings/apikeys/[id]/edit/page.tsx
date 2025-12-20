@@ -38,7 +38,7 @@ export default async function EditApiKeyPage({
 
   const t = await getTranslations('settings.apikeys');
 
-  const form: FormType = {
+  const form = {
     title: t('edit.title'),
     fields: [
       {
@@ -55,7 +55,7 @@ export default async function EditApiKeyPage({
     },
     data: apikey,
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
         return withAction(async () => {
@@ -83,7 +83,7 @@ export default async function EditApiKeyPage({
         title: t('edit.buttons.submit'),
       },
     },
-  };
+  } satisfies FormType;
 
   const crumbs: Crumb[] = [
     {

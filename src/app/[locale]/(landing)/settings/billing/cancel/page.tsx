@@ -74,7 +74,7 @@ export default async function CancelBillingPage({
     },
   ];
 
-  const handleCancelSubscription = async (data: FormData, passby: any) => {
+  const handleCancelSubscription = async (data: FormData, _passby: unknown) => {
     'use server';
 
     return withAction(async () => {

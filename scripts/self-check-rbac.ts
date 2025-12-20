@@ -15,9 +15,9 @@
  *   so the created records become inert. Permission rows remain (unique code with random suffix).
  */
 
-import { and, eq } from 'drizzle-orm';
-
 import '@/config/load-dotenv';
+
+import { and, eq } from 'drizzle-orm';
 
 import { serverEnv } from '@/config/server';
 import { db } from '@/core/db';

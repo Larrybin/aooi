@@ -2,6 +2,7 @@
  * Usage:
  * - Use `jsonOk` / `jsonErr` in Route Handlers (especially in wrappers).
  * - Response JSON structure matches legacy `{code,message,data}`; only HTTP status changes.
+ * - Note: legacy `src/shared/lib/resp.ts` has been removed; keep response helpers unified here.
  */
 
 export type ApiOkEnvelope = {
@@ -32,7 +33,7 @@ export function jsonErr(
   data?: unknown,
   init?: ResponseInit
 ): Response {
-  const body: ApiErrEnvelope = { code: -1, message, data: data ?? [] };
+  const body: ApiErrEnvelope = { code: -1, message, data: data ?? null };
 
   return Response.json(body, { ...init, status });
 }

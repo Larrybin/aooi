@@ -10,13 +10,18 @@ import {
 } from 'react';
 
 import { getAuthClient, useSession } from '@/core/auth/client';
-import { useRouter } from '@/core/i18n/navigation';
 import { fetchApiData, isPlainObject } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 import type { User } from '@/shared/models/user';
 
+type OneTapParams = {
+  callbackURL: string;
+  onPromptNotification?: (notification: unknown) => void;
+  fetchOptions?: Record<string, unknown>;
+};
+
 type OneTapCapable = {
-  oneTap: (...args: any[]) => Promise<any>;
+  oneTap: (params: OneTapParams) => Promise<unknown>;
 };
 
 export interface ContextValue {
@@ -36,7 +41,6 @@ const AppContext = createContext({} as ContextValue);
 export const useAppContext = () => useContext(AppContext);
 
 export const AppContextProvider = ({ children }: { children: ReactNode }) => {
-  const router = useRouter();
   const [configs, setConfigs] = useState<Record<string, string>>({});
   const didToastConfigsError = useRef(false);
   const didToastUserInfoError = useRef(false);
@@ -128,7 +132,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       const client = getAuthClient(configs) as unknown as OneTapCapable;
       await client.oneTap({
         callbackURL: '/',
-        onPromptNotification: (notification: any) => {
+        onPromptNotification: (notification: unknown) => {
           // Handle prompt dismissal silently
           // This callback is triggered when the prompt is dismissed or skipped
           console.log('One Tap prompt notification:', notification);
@@ -139,7 +143,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         //   },
         // },
       });
-    } catch (error) {
+    } catch {
       // Silently handle One Tap cancellation errors
       // These errors occur when users close the prompt or decline to sign in
       // Common errors: FedCM NetworkError, AbortError, etc.

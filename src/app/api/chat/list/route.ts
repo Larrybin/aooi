@@ -8,7 +8,7 @@ import { ChatListBodySchema } from '@/shared/schemas/api/chat/list';
 export const POST = withApi(async (req: Request) => {
   const { page, limit } = await parseJson(req, ChatListBodySchema);
 
-  const user = await requireUser();
+  const user = await requireUser(req);
 
   const chats = await getChats({
     userId: user.id,

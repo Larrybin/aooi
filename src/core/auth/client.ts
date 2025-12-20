@@ -19,7 +19,14 @@ export const authClient = createAuthClient({
 });
 
 // export auth client methods
-export const { signIn, signUp, signOut, useSession } = authClient;
+export const {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  requestPasswordReset,
+  resetPassword,
+} = authClient;
 
 // get auth client with configs
 export function getAuthClient(configs: Record<string, string>) {

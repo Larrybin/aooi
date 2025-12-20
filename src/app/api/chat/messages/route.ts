@@ -14,7 +14,7 @@ import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
 export const POST = withApi(async (req: Request) => {
   const { chatId, page, limit } = await parseJson(req, ChatMessagesBodySchema);
 
-  const user = await requireUser();
+  const user = await requireUser(req);
 
   const chat = await findChatById(chatId);
   if (!chat) {

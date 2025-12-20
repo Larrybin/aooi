@@ -38,12 +38,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { useAppContext } from '@/shared/contexts/app';
-import {
-  formatMessageWithRequestId,
-  getRequestIdFromError,
-  getRequestIdFromResponse,
-  RequestIdError,
-} from '@/shared/lib/request-id';
+import { isPlainObject } from '@/shared/lib/api/client';
+import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
+import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
 
 interface ImageGeneratorProps {
   allowMultipleImages?: boolean;
@@ -115,7 +112,7 @@ interface ImageTaskResult {
   status?: string;
 }
 
-interface BackendTaskInfo extends ImageTaskResult {}
+type BackendTaskInfo = ImageTaskResult;
 
 function extractImageUrlsFromTaskInfo(taskInfo: BackendTaskInfo | null): string[] {
   if (!taskInfo?.images || !Array.isArray(taskInfo.images)) {
@@ -249,37 +246,29 @@ export function ImageGenerator({
           return true;
         }
 
-        const resp = await fetch('/api/ai/query', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ taskId: id }),
-        });
-        const requestId = getRequestIdFromResponse(resp);
-
-        if (!resp.ok) {
-          throw new RequestIdError(
-            `request failed with status: ${resp.status}`,
-            requestId
-          );
-        }
-
-        const { code, message, data } = await resp.json();
-        if (code !== 0) {
-          throw new RequestIdError(message || 'Query task failed', requestId);
-        }
-
-          const task = data as BackendTask;
-          const currentStatus = task.status as AITaskStatus;
-          setTaskStatus(currentStatus);
-
-          const imageUrls = extractImageUrlsFromTaskInfo(task.taskInfo);
-
-          if (currentStatus === AITaskStatus.PENDING) {
-            setProgress((prev) => Math.max(prev, 20));
-            return false;
+        const task = await fetchJson<BackendTask>(
+          '/api/ai/query',
+          { method: 'POST', body: { taskId: id } },
+          {
+            validate: (value): value is BackendTask =>
+              isPlainObject(value) &&
+              typeof (value as { id?: unknown }).id === 'string' &&
+              typeof (value as { status?: unknown }).status === 'string' &&
+              typeof (value as { provider?: unknown }).provider === 'string' &&
+              typeof (value as { model?: unknown }).model === 'string',
+            invalidDataMessage: 'Query task failed',
           }
+        );
+
+        const currentStatus = task.status as AITaskStatus;
+        setTaskStatus(currentStatus);
+
+        const imageUrls = extractImageUrlsFromTaskInfo(task.taskInfo);
+
+        if (currentStatus === AITaskStatus.PENDING) {
+          setProgress((prev) => Math.max(prev, 20));
+          return false;
+        }
 
         if (currentStatus === AITaskStatus.PROCESSING) {
           if (imageUrls.length > 0) {
@@ -334,13 +323,11 @@ export function ImageGenerator({
 
         setProgress((prev) => Math.min(prev + 5, 95));
         return false;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error polling image task:', error);
-        toast.error(
-          formatMessageWithRequestId(
-            `Query task failed: ${error?.message || 'unknown error'}`,
-            getRequestIdFromError(error)
-          )
+        toastFetchError(
+          error,
+          `Query task failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
         );
         resetTaskState();
 
@@ -422,59 +409,45 @@ export function ImageGenerator({
     setGenerationStartTime(Date.now());
 
     try {
-      const options: any = {};
+      const options: { image_input?: string[] } = {};
 
       if (!isTextToImageMode) {
         options.image_input = referenceImageUrls;
       }
 
-      const resp = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const data = await fetchJson<{ id: string }>(
+        '/api/ai/generate',
+        {
+          method: 'POST',
+          body: {
+            mediaType: AIMediaType.IMAGE,
+            scene: isTextToImageMode ? 'text-to-image' : 'image-to-image',
+            provider,
+            model,
+            prompt: trimmedPrompt,
+            options,
+          },
         },
-        body: JSON.stringify({
-          mediaType: AIMediaType.IMAGE,
-          scene: isTextToImageMode ? 'text-to-image' : 'image-to-image',
-          provider,
-          model,
-          prompt: trimmedPrompt,
-          options,
-        }),
-      });
-      const requestId = getRequestIdFromResponse(resp);
+        {
+          validate: (value): value is { id: string } =>
+            isPlainObject(value) &&
+            typeof (value as { id?: unknown }).id === 'string' &&
+            Boolean((value as { id: string }).id.trim()),
+          invalidDataMessage: 'Failed to create an image task',
+        }
+      );
 
-      if (!resp.ok) {
-        throw new RequestIdError(
-          `request failed with status: ${resp.status}`,
-          requestId
-        );
-      }
-
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new RequestIdError(
-          message || 'Failed to create an image task',
-          requestId
-        );
-      }
-
-      const newTaskId = data?.id;
-      if (!newTaskId) {
-        throw new RequestIdError('Task id missing in response', requestId);
-      }
+      const newTaskId = data.id.trim();
 
       setTaskId(newTaskId);
       setProgress(25);
 
       await fetchUserCredits();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to generate image:', error);
-      toast.error(
-        formatMessageWithRequestId(
-          `Failed to generate image: ${error?.message || 'unknown error'}`,
-          getRequestIdFromError(error)
-        )
+      toastFetchError(
+        error,
+        `Failed to generate image: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
       );
       resetTaskState();
     }
@@ -487,12 +460,7 @@ export function ImageGenerator({
 
     try {
       setDownloadingImageId(image.id);
-      const resp = await fetch(image.url);
-      if (!resp.ok) {
-        throw new Error('Failed to fetch image');
-      }
-
-      const blob = await resp.blob();
+      const blob = await fetchBlobWithTimeout(image.url, 20000);
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;

@@ -13,6 +13,9 @@ function formatConfigError(parts: string[]): Error {
 
 async function assertRoleDeletedAtColumnExists(databaseUrl: string) {
   const postgres = (await import('postgres')).default;
+  const { assertRoleDeletedAtColumnExists } = await import('./core/db/schema-check');
+  const { logger } = await import('./shared/lib/logger.server');
+
   const sql = postgres(databaseUrl, {
     prepare: false,
     max: 1,
@@ -21,38 +24,14 @@ async function assertRoleDeletedAtColumnExists(databaseUrl: string) {
   });
 
   try {
-    let rows: { length: number };
-    try {
-      rows = (await sql`
-        select 1
-        from information_schema.columns
-        where table_schema = 'public'
-          and table_name = 'role'
-          and column_name = 'deleted_at'
-        limit 1
-      `) as unknown as { length: number };
-    } catch (error: unknown) {
-      throw formatConfigError([
-        'Database connectivity check failed in production.',
-        'Verify DATABASE_URL, network access, and database credentials.',
-        'Then apply migrations: pnpm db:migrate',
-        `Cause: ${error instanceof Error ? error.message : String(error)}`,
-      ]);
-    }
-
-    if (rows.length === 0) {
-      throw formatConfigError([
-        'Database schema check failed in production: missing column public.role.deleted_at.',
-        'This usually means migrations were not applied.',
-        'Run: pnpm db:migrate',
-        'Expected migration: src/config/db/migrations/0001_nasty_vindicator.sql',
-        'Migrations directory: src/config/db/migrations',
-        'Migration log table (default): __drizzle_migrations',
-      ]);
-    }
+    await assertRoleDeletedAtColumnExists({
+      sql,
+      isProduction: true,
+      logger,
+    });
   } finally {
     try {
-      await sql.end({ timeout: 5 });
+      await sql.end?.({ timeout: 5 });
     } catch {
       // ignore cleanup errors
     }

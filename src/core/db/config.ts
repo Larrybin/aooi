@@ -1,12 +1,12 @@
 import { defineConfig } from 'drizzle-kit';
-import { createRequire } from 'node:module';
+import { loadEnvConfig } from '@next/env';
+
+import { assertPostgresOnlyDatabaseProvider } from './postgres-only';
 
 function loadDotenvForDrizzleKit() {
   try {
-    const require = createRequire(import.meta.url);
-    const dotenv = require('dotenv');
-    dotenv.config({ path: '.env.development' });
-    dotenv.config({ path: '.env', override: false });
+    const isDev = process.env.NODE_ENV !== 'production';
+    loadEnvConfig(process.cwd(), isDev);
   } catch {
     // optional
   }
@@ -19,18 +19,12 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is not set');
 }
 
-const databaseProvider = (process.env.DATABASE_PROVIDER ?? 'postgresql') as
-  | 'sqlite'
-  | 'postgresql'
-  | 'mysql'
-  | 'turso'
-  | 'singlestore'
-  | 'gel';
+assertPostgresOnlyDatabaseProvider(process.env.DATABASE_PROVIDER);
 
 export default defineConfig({
   out: './src/config/db/migrations',
   schema: './src/config/db/schema.ts',
-  dialect: databaseProvider,
+  dialect: 'postgresql',
   dbCredentials: {
     url: databaseUrl,
   },

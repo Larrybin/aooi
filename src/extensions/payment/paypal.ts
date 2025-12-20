@@ -2,6 +2,7 @@ import {
   CheckoutSession,
   PaymentConfigs,
   PaymentEvent,
+  PaymentEventType,
   PaymentOrder,
   PaymentProvider,
   PaymentSession,
@@ -13,6 +14,93 @@ import {
 } from '.';
 
 import { logger } from '@/shared/lib/logger.server';
+import { safeFetch } from '@/shared/lib/fetch/server';
+import { z } from 'zod';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+function readString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function readPath(root: unknown, path: string[]): unknown {
+  let current: unknown = root;
+  for (const segment of path) {
+    if (Array.isArray(current)) {
+      const index = Number(segment);
+      if (!Number.isInteger(index)) return undefined;
+      current = current[index];
+      continue;
+    }
+
+    if (!isRecord(current)) return undefined;
+    current = current[segment];
+  }
+  return current;
+}
+
+function readStringPath(root: unknown, path: string[]): string | undefined {
+  return readString(readPath(root, path));
+}
+
+function extractPayPalTransactionId(result: unknown): string | undefined {
+  // Subscription API surface: billing_info.last_payment.transaction_id
+  const fromLastPayment = readStringPath(result, [
+    'billing_info',
+    'last_payment',
+    'transaction_id',
+  ]);
+  if (fromLastPayment) return fromLastPayment;
+
+  // Orders API surface: purchase_units[0].payments.captures[0].id / sales[0].id
+  const fromCapture = readStringPath(result, [
+    'purchase_units',
+    '0',
+    'payments',
+    'captures',
+    '0',
+    'id',
+  ]);
+  if (fromCapture) return fromCapture;
+
+  const fromSale = readStringPath(result, [
+    'purchase_units',
+    '0',
+    'payments',
+    'sales',
+    '0',
+    'id',
+  ]);
+  if (fromSale) return fromSale;
+
+  return undefined;
+}
+
+function extractPayPalInvoiceId(result: unknown): string | undefined {
+  return (
+    readStringPath(result, ['invoice_id']) ||
+    readStringPath(result, ['purchase_units', '0', 'invoice_id'])
+  );
+}
+
+const payPalWebhookEventSchema = z
+  .object({
+    event_type: z.string().min(1),
+    id: z.string().optional(),
+    resource_type: z.string().optional(),
+    resource: z.unknown().optional(),
+  })
+  .passthrough();
+
+const payPalWebhookResourceSummarySchema = z
+  .object({
+    id: z.string().optional(),
+    status: z.string().optional(),
+  })
+  .passthrough();
 
 /**
  * PayPal payment provider configs
@@ -51,7 +139,6 @@ export class PayPalProvider implements PaymentProvider {
   }: {
     order: PaymentOrder;
   }): Promise<CheckoutSession> {
-    try {
       await this.ensureAccessToken();
 
       if (!order.price) {
@@ -124,15 +211,11 @@ export class PayPalProvider implements PaymentProvider {
         checkoutResult: result,
         metadata: order.metadata || {},
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   async createSubscriptionPayment(
     order: PaymentOrder
   ): Promise<CheckoutSession> {
-    try {
       await this.ensureAccessToken();
 
       if (!order.plan) {
@@ -272,9 +355,6 @@ export class PayPalProvider implements PaymentProvider {
         checkoutResult: subscriptionResponse,
         metadata: order.metadata || {},
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   async getPaymentSession({
@@ -282,7 +362,6 @@ export class PayPalProvider implements PaymentProvider {
   }: {
     sessionId?: string;
   }): Promise<PaymentSession> {
-    try {
       if (!sessionId) {
         throw new Error('sessionId is required');
       }
@@ -303,62 +382,66 @@ export class PayPalProvider implements PaymentProvider {
         );
       }
 
-      if (result.error) {
-        throw new Error(result.error.message || 'get payment failed');
-      }
+	      if (result.error) {
+	        throw new Error(result.error.message || 'get payment failed');
+	      }
 
-      return {
-        provider: this.name,
-        paymentStatus: this.mapPayPalStatus(result.status),
-        paymentInfo: {
-          discountCode: '',
-          discountAmount: undefined,
-          discountCurrency: undefined,
-          paymentAmount: result.amount,
-          paymentCurrency: result.currency,
-          paymentEmail: result.customer_email,
-          paidAt: new Date(),
-        },
-        paymentResult: result,
-        metadata: result.metadata,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
+	      const transactionId = extractPayPalTransactionId(result);
+	      const invoiceId = extractPayPalInvoiceId(result);
+
+	      return {
+	        provider: this.name,
+	        paymentStatus: this.mapPayPalStatus(result.status),
+	        paymentInfo: {
+	          discountCode: '',
+	          discountAmount: undefined,
+	          discountCurrency: undefined,
+	          transactionId,
+	          paymentAmount: result.amount,
+	          paymentCurrency: result.currency,
+	          paymentEmail: result.customer_email,
+	          invoiceId,
+	          paidAt: new Date(),
+	        },
+	        paymentResult: result,
+	        metadata: result.metadata,
+	      };
+	  }
 
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
+    const rawBody = await req.text();
+    const signature = req.headers.get('paypal-signature') as string;
+    const headers = Object.fromEntries(req.headers.entries());
+
+    if (!this.configs.webhookSecret) {
+      throw new WebhookConfigError('webhookSecret not configured');
+    }
+
+    let event: unknown;
     try {
-      const rawBody = await req.text();
-      const signature = req.headers.get('paypal-signature') as string;
-      const headers = Object.fromEntries(req.headers.entries());
+      event = JSON.parse(rawBody);
+    } catch {
+      throw new WebhookPayloadError('invalid webhook payload');
+    }
 
-      if (!this.configs.webhookSecret) {
-        throw new WebhookConfigError('webhookSecret not configured');
-      }
+    const parsedEvent = payPalWebhookEventSchema.safeParse(event);
+    if (!parsedEvent.success) {
+      throw new WebhookPayloadError('invalid webhook payload');
+    }
+    const webhookEvent = parsedEvent.data;
 
-      let event: any;
-      try {
-        event = JSON.parse(rawBody);
-      } catch {
-        throw new WebhookPayloadError('invalid webhook payload');
-      }
-      if (!event || !event.event_type) {
-        throw new WebhookPayloadError('invalid webhook payload');
-      }
-
-      // verify webhook with PayPal (simplified verification)
-      await this.ensureAccessToken();
+    // verify webhook with PayPal (simplified verification)
+    await this.ensureAccessToken();
 
       const verifyPayload = {
         auth_algo: headers?.['paypal-auth-algo'],
         cert_id: headers?.['paypal-cert-id'],
         transmission_id: headers?.['paypal-transmission-id'],
-        transmission_sig: headers?.['paypal-transmission-sig'],
-        transmission_time: headers?.['paypal-transmission-time'],
-        webhook_id: this.configs.webhookSecret,
-        webhook_event: event,
-      };
+      transmission_sig: headers?.['paypal-transmission-sig'],
+      transmission_time: headers?.['paypal-transmission-time'],
+      webhook_id: this.configs.webhookSecret,
+      webhook_event: webhookEvent,
+    };
 
       const verifyResponse = await this.makeRequest(
         '/v1/notifications/verify-webhook-signature',
@@ -370,26 +453,32 @@ export class PayPalProvider implements PaymentProvider {
         throw new WebhookVerificationError('invalid webhook signature');
       }
 
-      // Process the webhook event
-      logger.debug('paypal webhook event received', {
-        eventType: event.event_type,
-        eventId: (event as any).id,
-        resourceType: (event as any).resource_type,
-      });
-      logger.debug('paypal webhook resource summary', {
-        resourceId: (event.resource as any)?.id,
-        resourceStatus: (event.resource as any)?.status,
-        hasResource: Boolean(event.resource),
-      });
+    // Process the webhook event
+    logger.debug('paypal webhook event received', {
+      eventType: webhookEvent.event_type,
+      eventId: webhookEvent.id,
+      resourceType: webhookEvent.resource_type,
+    });
 
-      return {
-        eventType: event.event_type,
-        eventResult: event,
-        paymentSession: undefined,
-      };
-    } catch (error) {
-      throw error;
+    const resourceSummary = payPalWebhookResourceSummarySchema.safeParse(webhookEvent.resource);
+    logger.debug('paypal webhook resource summary', {
+      resourceId: resourceSummary.success ? resourceSummary.data.id : undefined,
+      resourceStatus: resourceSummary.success ? resourceSummary.data.status : undefined,
+      hasResource: Boolean(webhookEvent.resource),
+    });
+
+    const mappedEventType = this.mapPayPalEventType(webhookEvent.event_type);
+    if (!mappedEventType) {
+      throw new WebhookPayloadError(
+        `unsupported paypal webhook event type: ${webhookEvent.event_type}`
+      );
     }
+
+    return {
+      eventType: mappedEventType,
+      eventResult: webhookEvent,
+      paymentSession: undefined,
+    };
   }
 
   private async ensureAccessToken() {
@@ -401,16 +490,30 @@ export class PayPalProvider implements PaymentProvider {
       `${this.configs.clientId}:${this.configs.clientSecret}`
     ).toString('base64');
 
-    const response = await fetch(`${this.baseUrl}/v1/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+    const response = await safeFetch(
+      `${this.baseUrl}/v1/oauth2/token`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
       },
-      body: 'grant_type=client_credentials',
-    });
+      { timeoutMs: 15000, cache: 'no-store' }
+    );
 
     const data = await response.json();
+
+    if (!response.ok) {
+      const detail =
+        typeof data?.error_description === 'string' && data.error_description.trim()
+          ? data.error_description.trim()
+          : typeof data?.error === 'string' && data.error.trim()
+            ? data.error.trim()
+            : `status ${response.status}`;
+      throw new Error(`PayPal authentication failed: ${detail}`);
+    }
 
     if (data.error) {
       throw new Error(
@@ -442,7 +545,7 @@ export class PayPalProvider implements PaymentProvider {
       config.body = JSON.stringify(data);
     }
 
-    const response = await fetch(url, config);
+    const response = await safeFetch(url, config, { timeoutMs: 15000, cache: 'no-store' });
     if (!response.ok) {
       const result = await response.json();
       let errorMessage = result.name;
@@ -473,6 +576,27 @@ export class PayPalProvider implements PaymentProvider {
         return PaymentStatus.FAILED;
       default:
         return PaymentStatus.PROCESSING;
+    }
+  }
+
+  private mapPayPalEventType(eventType: string): PaymentEventType | undefined {
+    switch (eventType) {
+      case 'CHECKOUT.ORDER.APPROVED':
+      case 'CHECKOUT.ORDER.COMPLETED':
+        return PaymentEventType.CHECKOUT_SUCCESS;
+      case 'PAYMENT.CAPTURE.COMPLETED':
+      case 'PAYMENT.SALE.COMPLETED':
+        return PaymentEventType.PAYMENT_SUCCESS;
+      case 'PAYMENT.CAPTURE.DENIED':
+      case 'PAYMENT.CAPTURE.DECLINED':
+      case 'PAYMENT.SALE.DENIED':
+        return PaymentEventType.PAYMENT_FAILED;
+      case 'BILLING.SUBSCRIPTION.UPDATED':
+        return PaymentEventType.SUBSCRIBE_UPDATED;
+      case 'BILLING.SUBSCRIPTION.CANCELLED':
+        return PaymentEventType.SUBSCRIBE_CANCELED;
+      default:
+        return undefined;
     }
   }
 }

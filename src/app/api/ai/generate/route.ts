@@ -1,5 +1,9 @@
 import { envConfigs } from '@/config';
-import { AIMediaType, AITaskStatus, type AIGenerateParams } from '@/extensions/ai';
+import {
+  AIMediaType,
+  AITaskStatus,
+  type AIGenerateParams,
+} from '@/extensions/ai';
 import { BadRequestError, ForbiddenError } from '@/shared/lib/api/errors';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
@@ -7,7 +11,7 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
 import { createAITask, NewAITask } from '@/shared/models/ai_task';
-import { consumeCredits, getRemainingCredits } from '@/shared/models/credit';
+import { getRemainingCredits } from '@/shared/models/credit';
 import { AiGenerateBodySchema } from '@/shared/schemas/api/ai/generate';
 import { getAIService } from '@/shared/services/ai';
 
@@ -22,7 +26,7 @@ export const POST = withApi(async (request: Request) => {
     throw new BadRequestError('invalid provider');
   }
 
-  const user = await requireUser();
+  const user = await requireUser(request);
 
   let costCredits = 2;
   let finalScene = scene;

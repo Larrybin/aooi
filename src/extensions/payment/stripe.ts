@@ -55,7 +55,6 @@ export class StripeProvider implements PaymentProvider {
   }: {
     order: PaymentOrder;
   }): Promise<CheckoutSession> {
-    try {
       // check payment price
       if (!order.price) {
         throw new Error('price is required');
@@ -194,9 +193,6 @@ export class StripeProvider implements PaymentProvider {
         checkoutResult: session,
         metadata: order.metadata || {},
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -207,7 +203,6 @@ export class StripeProvider implements PaymentProvider {
   }: {
     sessionId: string;
   }): Promise<PaymentSession> {
-    try {
       if (!sessionId) {
         throw new Error('sessionId is required');
       }
@@ -215,16 +210,12 @@ export class StripeProvider implements PaymentProvider {
       const session = await this.client.checkout.sessions.retrieve(sessionId);
 
       return await this.buildPaymentSessionFromCheckoutSession(session);
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
    * Get payment event from webhook notification
    */
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
-    try {
       const rawBody = await req.text();
       const signature = req.headers.get('stripe-signature') as string;
 
@@ -278,9 +269,6 @@ export class StripeProvider implements PaymentProvider {
         eventResult: event,
         paymentSession: paymentSession,
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   async getPaymentInvoice({
@@ -288,7 +276,6 @@ export class StripeProvider implements PaymentProvider {
   }: {
     invoiceId: string;
   }): Promise<PaymentInvoice> {
-    try {
       const invoice = await this.client.invoices.retrieve(invoiceId);
       if (!invoice.id) {
         throw new Error('Invoice not found');
@@ -300,9 +287,6 @@ export class StripeProvider implements PaymentProvider {
         amount: invoice.amount_paid,
         currency: invoice.currency,
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   async getPaymentBilling({
@@ -312,7 +296,6 @@ export class StripeProvider implements PaymentProvider {
     customerId: string;
     returnUrl?: string;
   }): Promise<PaymentBilling> {
-    try {
       const billing = await this.client.billingPortal.sessions.create({
         customer: customerId,
         return_url: returnUrl,
@@ -325,9 +308,6 @@ export class StripeProvider implements PaymentProvider {
       return {
         billingUrl: billing.url,
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   async cancelSubscription({
@@ -335,7 +315,6 @@ export class StripeProvider implements PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession> {
-    try {
       if (!subscriptionId) {
         throw new Error('subscriptionId is required');
       }
@@ -348,9 +327,6 @@ export class StripeProvider implements PaymentProvider {
       }
 
       return await this.buildPaymentSessionFromSubscription(subscription);
-    } catch (error) {
-      throw error;
-    }
   }
 
   private mapStripeEventType(eventType: string): PaymentEventType {
@@ -407,7 +383,7 @@ export class StripeProvider implements PaymentProvider {
   ): Promise<PaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
-    let billingUrl = '';
+    const billingUrl = '';
 
     if (session.subscription) {
       subscription = await this.client.subscriptions.retrieve(
@@ -456,7 +432,7 @@ export class StripeProvider implements PaymentProvider {
   ): Promise<PaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
-    let billingUrl = '';
+    const billingUrl = '';
 
     if (invoice.lines.data.length > 0) {
       const data = invoice.lines.data[0];

@@ -8,6 +8,7 @@ import {
   SidebarFooter as SidebarFooterComponent,
 } from '@/shared/components/ui/sidebar';
 import { type Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
+import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
 
 import { Nav } from './nav';
 import { SidebarButtons } from './sidebar-buttons';
@@ -17,9 +18,11 @@ import { SidebarUser } from './sidebar-user';
 
 export function Sidebar({
   sidebar,
+  initialUser,
   ...props
 }: React.ComponentProps<typeof SidebarComponent> & {
   sidebar: SidebarType;
+  initialUser?: AuthSessionUserSnapshot | null;
 }) {
   return (
     <SidebarComponent collapsible={sidebar.collapsible || 'icon'} {...props}>
@@ -34,7 +37,9 @@ export function Sidebar({
         )}
       </SidebarContent>
       <SidebarFooterComponent>
-        {sidebar.user && <SidebarUser user={sidebar.user} />}
+        {sidebar.user && (
+          <SidebarUser user={sidebar.user} initialUser={initialUser} />
+        )}
         {sidebar.footer && <SidebarFooter footer={sidebar.footer} />}
       </SidebarFooterComponent>
     </SidebarComponent>

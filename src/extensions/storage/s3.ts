@@ -6,6 +6,7 @@ import type {
   StorageUploadResult,
 } from '.';
 import { toUint8Array } from '.';
+import { safeFetch } from '@/shared/lib/fetch/server';
 
 /**
  * S3 storage provider configs
@@ -105,7 +106,11 @@ export class S3Provider implements StorageProvider {
     options: StorageDownloadUploadOptions
   ): Promise<StorageUploadResult> {
     try {
-      const response = await fetch(options.url);
+      const response = await safeFetch(
+        options.url,
+        { method: 'GET' },
+        { timeoutMs: 30000, cache: 'no-store' }
+      );
       if (!response.ok) {
         return {
           success: false,

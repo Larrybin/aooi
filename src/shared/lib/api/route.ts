@@ -41,7 +41,7 @@ function attachRequestIdHeader(
   }
 }
 
-export function withApi<T extends (...args: any[]) => unknown>(handler: T): T {
+export function withApi<T extends (...args: unknown[]) => unknown>(handler: T): T {
   return (async (...args: Parameters<T>) => {
     const reqLogger = toRequestLogger(args);
     try {

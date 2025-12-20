@@ -19,7 +19,7 @@ export default async function ProfilePage() {
 
   const t = await getTranslations('settings.profile');
 
-  const form: FormType = {
+  const form = {
     fields: [
       {
         name: 'email',
@@ -42,7 +42,7 @@ export default async function ProfilePage() {
       user: user,
     },
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
         return withAction(async () => {
@@ -52,19 +52,19 @@ export default async function ProfilePage() {
           });
 
           const imageValue = data.get('image');
-        logger.debug('settings: profile update image field received', {
-          route: '/settings/profile',
-          imageType: typeof imageValue,
-          isNull: imageValue === null,
-          isString: typeof imageValue === 'string',
-        });
+          logger.debug('settings: profile update image field received', {
+            route: '/settings/profile',
+            imageType: typeof imageValue,
+            isNull: imageValue === null,
+            isString: typeof imageValue === 'string',
+          });
 
-        const updatedUser: UpdateUser = {
-          name,
-          image: image ?? '',
-        };
+          const updatedUser: UpdateUser = {
+            name,
+            image: image ?? '',
+          };
 
-        await updateUser(user.id, updatedUser);
+          await updateUser(user.id, updatedUser);
 
           return actionOk('Profile updated', '/settings/profile');
         });
@@ -73,7 +73,7 @@ export default async function ProfilePage() {
         title: t('edit.buttons.submit'),
       },
     },
-  };
+  } satisfies FormType;
 
   return (
     <div className="space-y-8">

@@ -1,23 +1,18 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { z } from 'zod';
+import { getTranslations } from 'next-intl/server';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { jsonStringArraySchema, parseFormData } from '@/shared/lib/action/form';
-import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
-import { withAction } from '@/shared/lib/action/with-action';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import {
-  assignPermissionsToRole,
   getPermissions,
   getRoleById,
   getRolePermissions,
 } from '@/shared/services/rbac';
-import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
+
+import { updateRolePermissionsAction } from '../../actions';
 
 export default async function RoleEditPermissionsPage({
   params,
@@ -25,13 +20,10 @@ export default async function RoleEditPermissionsPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to edit posts
-  await requirePermission({
-    code: PERMISSIONS.ROLES_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.ROLES_WRITE,
   });
 
   const role = await getRoleById(id);
@@ -41,11 +33,11 @@ export default async function RoleEditPermissionsPage({
 
   const t = await getTranslations('admin.roles');
 
-  const crumbs: Crumb[] = [
-    { title: t('edit_permissions.crumbs.admin'), url: '/admin' },
-    { title: t('edit_permissions.crumbs.roles'), url: '/admin/roles' },
-    { title: t('edit_permissions.crumbs.edit_permissions'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'edit_permissions.crumbs.admin', url: '/admin' },
+    { key: 'edit_permissions.crumbs.roles', url: '/admin/roles' },
+    { key: 'edit_permissions.crumbs.edit_permissions' },
+  ]);
 
   const permissions = await getPermissions();
   const permissionsOptions = permissions.map((permission) => ({
@@ -95,28 +87,7 @@ export default async function RoleEditPermissionsPage({
       button: {
         title: t('edit_permissions.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        return withAction(async () => {
-          const user = await requireActionUser();
-          await requireActionPermission(user.id, PERMISSIONS.ROLES_WRITE);
-
-          const role = await getRoleById(id);
-          if (!role) {
-            throw new Error('Role not found');
-          }
-
-          const schema = z.object({ permissions: jsonStringArraySchema });
-          const { permissions } = parseFormData(data, schema, {
-            message: 'invalid permissions',
-          });
-
-          await assignPermissionsToRole(role.id as string, permissions);
-
-          return actionOk('permissions updated', '/admin/roles');
-        });
-      },
+      handler: updateRolePermissionsAction.bind(null, id),
     },
   };
 

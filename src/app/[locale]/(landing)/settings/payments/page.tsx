@@ -2,12 +2,13 @@ import { getTranslations } from 'next-intl/server';
 
 import { PaymentType } from '@/extensions/payment';
 import { Empty } from '@/shared/blocks/common';
+import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
 import {
   getOrders,
   getOrdersCount,
-  type Order,
   OrderStatus,
+  type Order,
 } from '@/shared/models/order';
 import { getUserInfo } from '@/shared/models/user';
 import { Tab } from '@/shared/types/blocks/common';
@@ -16,11 +17,29 @@ import { type Table } from '@/shared/types/blocks/table';
 export default async function PaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: number; pageSize?: number; type?: string }>;
+  searchParams: Promise<{
+    page?: number;
+    pageSize?: number;
+    type?: string;
+    order_no?: string;
+  }>;
 }) {
-  const { page: pageNum, pageSize, type } = await searchParams;
+  const {
+    page: pageNum,
+    pageSize,
+    type,
+    order_no: orderNo,
+  } = await searchParams;
   const page = pageNum || 1;
   const limit = pageSize || 20;
+
+  const cleanQuery = new URLSearchParams();
+  if (pageNum) cleanQuery.set('page', String(pageNum));
+  if (pageSize) cleanQuery.set('pageSize', String(pageSize));
+  if (type) cleanQuery.set('type', String(type));
+  const cleanUrl = cleanQuery.toString()
+    ? `/settings/payments?${cleanQuery.toString()}`
+    : '/settings/payments';
 
   const user = await getUserInfo();
   if (!user) {
@@ -196,6 +215,7 @@ export default async function PaymentsPage({
 
   return (
     <div className="space-y-8">
+      <PaymentCallbackHandler orderNo={orderNo} cleanUrl={cleanUrl} />
       <TableCard
         title={t('list.title')}
         description={t('list.description')}

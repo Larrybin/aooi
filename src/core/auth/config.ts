@@ -1,12 +1,16 @@
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTap } from 'better-auth/plugins';
+import type { BetterAuthOptions } from 'better-auth';
 
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';
 import { serverEnv } from '@/config/server';
 import * as schema from '@/config/db/schema';
+import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';
+import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs } from '@/shared/models/config';
+import { getEmailService } from '@/shared/services/email';
 
 // Trusted origins for Better Auth
 // - app_url: current application origin
@@ -41,22 +45,65 @@ export const authOptions = {
   },
 };
 
+type SendResetPasswordData = Parameters<
+  NonNullable<NonNullable<BetterAuthOptions['emailAndPassword']>['sendResetPassword']>
+>[0];
+
 // Dynamic auth options - WITH database connection
 // Only used in API routes that actually need database access
 export async function getAuthOptions() {
   const configs = await getAllConfigs();
+  const isEmailAuthEnabled = configs.email_auth_enabled !== 'false';
   return {
     ...authOptions,
     // Add database connection only when actually needed (runtime)
     database: serverEnv.databaseUrl
       ? drizzleAdapter(db(), {
-          provider: getDatabaseProvider(serverEnv.databaseProvider),
+          provider: 'pg',
           schema: schema,
         })
       : null,
-    emailAndPassword: {
-      enabled: configs.email_auth_enabled !== 'false',
-    },
+    emailAndPassword: isEmailAuthEnabled
+      ? {
+          enabled: true,
+          sendResetPassword: async ({ user, url }: SendResetPasswordData) => {
+            void (async () => {
+              if (!user?.email) {
+                return;
+              }
+
+              try {
+                const emailService = await getEmailService();
+                const result = await emailService.sendEmail({
+                  to: user.email,
+                  subject: `${envConfigs.app_name} - Reset password`,
+                  ...buildResetPasswordEmailPayload({ url }),
+                });
+
+                if (!result.success) {
+                  logger.error('[auth] sendResetPassword failed', {
+                    userId: user.id,
+                    provider: result.provider,
+                    error: result.error,
+                  });
+                  return;
+                }
+
+                logger.debug('[auth] sendResetPassword ok', {
+                  userId: user.id,
+                  provider: result.provider,
+                  messageId: result.messageId,
+                });
+              } catch (error: unknown) {
+                logger.error('[auth] sendResetPassword threw', {
+                  userId: user.id,
+                  error,
+                });
+              }
+            })();
+          },
+        }
+      : { enabled: false },
     socialProviders: await getSocialProviders(configs),
     plugins:
       configs.google_client_id && configs.google_one_tap_enabled === 'true'
@@ -67,7 +114,7 @@ export async function getAuthOptions() {
 
 export async function getSocialProviders(configs: Record<string, string>) {
   // get configs from db
-  const providers: any = {};
+  const providers: Record<string, { clientId: string; clientSecret: string }> = {};
 
   if (configs.google_client_id && configs.google_client_secret) {
     providers.google = {
@@ -84,21 +131,4 @@ export async function getSocialProviders(configs: Record<string, string>) {
   }
 
   return providers;
-}
-
-export function getDatabaseProvider(
-  provider: string
-): 'sqlite' | 'pg' | 'mysql' {
-  switch (provider) {
-    case 'sqlite':
-      return 'sqlite';
-    case 'postgresql':
-      return 'pg';
-    case 'mysql':
-      return 'mysql';
-    default:
-      throw new Error(
-        `Unsupported database provider for auth: ${provider}`
-      );
-  }
 }

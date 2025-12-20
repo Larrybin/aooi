@@ -1,6 +1,6 @@
 /**
  * Usage:
- * - `requireUser()` for authentication (401).
+ * - `requireUser(req)` for authentication (401) + CSRF (cookie + write requests).
  * - `requirePermission(userId, permissionCode)` for authorization (403).
  */
 
@@ -9,9 +9,11 @@ import 'server-only';
 import { getUserInfo } from '@/shared/models/user';
 import { hasPermission } from '@/shared/services/rbac';
 
+import { assertCsrf } from './csrf.server';
 import { ForbiddenError, UnauthorizedError } from './errors';
 
-export async function requireUser() {
+export async function requireUser(req: Request) {
+  assertCsrf(req);
   const user = await getUserInfo();
   if (!user) {
     throw new UnauthorizedError('no auth, please sign in');

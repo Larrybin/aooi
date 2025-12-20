@@ -44,7 +44,7 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid params');
   }
 
-  const user = await requireUser();
+  const user = await requireUser(req);
 
   const task = await findAITaskById(taskId);
   if (!task || !task.taskId) {

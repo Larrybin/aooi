@@ -1,29 +1,19 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
-import { withAction } from '@/shared/lib/action/with-action';
-import {
-  findPost,
-  PostStatus,
-  PostType,
-  updatePost,
-  UpdatePost,
-} from '@/shared/models/post';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
+import { findPost } from '@/shared/models/post';
 import {
   getTaxonomies,
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import { AdminPostFormSchema } from '@/shared/schemas/actions/admin-post';
-import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
+
+import { updatePostAction } from '../../actions';
 
 export default async function PostEditPage({
   params,
@@ -31,13 +21,10 @@ export default async function PostEditPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to edit posts
-  await requirePermission({
-    code: PERMISSIONS.POSTS_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.POSTS_WRITE,
   });
 
   const post = await findPost({ id });
@@ -47,11 +34,11 @@ export default async function PostEditPage({
 
   const t = await getTranslations('admin.posts');
 
-  const crumbs: Crumb[] = [
-    { title: t('edit.crumbs.admin'), url: '/admin' },
-    { title: t('edit.crumbs.posts'), url: '/admin/posts' },
-    { title: t('edit.crumbs.edit'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.posts', url: '/admin/posts' },
+    { key: 'edit.crumbs.edit' },
+  ]);
 
   const categories = await getTaxonomies({
     type: TaxonomyType.CATEGORY,
@@ -123,55 +110,7 @@ export default async function PostEditPage({
       button: {
         title: t('edit.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        return withAction(async () => {
-          const user = await requireActionUser();
-          await requireActionPermission(user.id, PERMISSIONS.POSTS_WRITE);
-
-          const post = await findPost({ id });
-          if (!post) {
-            throw new Error('Post not found');
-          }
-
-          const {
-            slug,
-            title,
-            description,
-            content,
-            categories,
-            image,
-            authorName,
-            authorImage,
-          } = parseFormData(data, AdminPostFormSchema, {
-            message: 'slug and title are required',
-          });
-
-          const nextPost: UpdatePost = {
-            parentId: '', // todo: select parent category
-            slug: slug.toLowerCase(),
-            type: PostType.ARTICLE,
-            title,
-            description: description ?? '',
-            image: image ?? '',
-            content: content ?? '',
-            categories: categories ?? '',
-            tags: '',
-            authorName: authorName ?? '',
-            authorImage: authorImage ?? '',
-            status: PostStatus.PUBLISHED,
-          };
-
-          const result = await updatePost(post.id, nextPost);
-
-          if (!result) {
-            throw new Error('update post failed');
-          }
-
-          return actionOk('post updated', '/admin/posts');
-        });
-      },
+      handler: updatePostAction.bind(null, id),
     },
   };
 

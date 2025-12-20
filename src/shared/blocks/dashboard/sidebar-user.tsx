@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { ChevronsUpDown, Loader2, LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -30,24 +30,42 @@ import {
   useSidebar,
 } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
+import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
 import { NavItem } from '@/shared/types/blocks/common';
 import { SidebarUser as SidebarUserType } from '@/shared/types/blocks/dashboard';
 
-// SSR/CSR hydration bug fix: Avoid rendering session-dependent UI until mounted on client
-export function SidebarUser({ user }: { user: SidebarUserType }) {
+type SidebarUserProps = {
+  user: SidebarUserType;
+  initialUser?: AuthSessionUserSnapshot | null;
+};
+
+// SSR/CSR hydration fix: render from a server-provided snapshot on the first pass,
+// then sync with the client session after hydration.
+export function SidebarUser({ user, initialUser }: SidebarUserProps) {
   const t = useTranslations('common.sign');
   const { data: session, isPending } = useSession();
   const { isMobile, open } = useSidebar();
   const router = useRouter();
+  const [hasMounted, setHasMounted] = useState(false);
 
   const { setIsShowSignModal } = useAppContext();
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydration gate: switch from SSR snapshot to client session after mount (avoid larger refactor for now).
+    setHasMounted(true);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
     router.push(user.signout_callback || '/sign-in');
   };
 
-  if (session?.user) {
+  const sessionUser = session?.user as AuthSessionUserSnapshot | undefined;
+  const authUser = !hasMounted
+    ? (sessionUser ?? initialUser)
+    : (sessionUser ?? (isPending ? initialUser : null));
+
+  if (authUser) {
     return (
       <SidebarMenu className="gap-4 px-3">
         <SidebarMenuItem>
@@ -59,20 +77,20 @@ export function SidebarUser({ user }: { user: SidebarUserType }) {
               >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={session?.user?.image || ''}
-                    alt={session?.user?.name}
+                    src={authUser.image || ''}
+                    alt={authUser.name || undefined}
                   />
                   <AvatarFallback className="rounded-lg">
-                    {session?.user?.name?.charAt(0)}
+                    {authUser.name?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
-                    {session?.user?.name}
+                    {authUser.name}
                   </span>
                   {user.show_email && (
                     <span className="truncate text-xs">
-                      {session?.user?.email}
+                      {authUser.email}
                     </span>
                   )}
                 </div>
@@ -89,20 +107,20 @@ export function SidebarUser({ user }: { user: SidebarUserType }) {
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage
-                      src={session?.user?.image || ''}
-                      alt={session?.user?.name}
+                      src={authUser.image || ''}
+                      alt={authUser.name || undefined}
                     />
                     <AvatarFallback className="rounded-lg">
-                      {session?.user?.name?.charAt(0) || 'U'}
+                      {authUser.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {session?.user?.name}
+                      {authUser.name}
                     </span>
                     {user.show_email && (
                       <span className="truncate text-xs">
-                        {session?.user?.email}
+                        {authUser.email}
                       </span>
                     )}
                   </div>

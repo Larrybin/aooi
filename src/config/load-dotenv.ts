@@ -1,4 +1,4 @@
-import { createRequire } from 'node:module';
+import { loadEnvConfig } from '@next/env';
 
 function shouldLoadDotenvForScripts(): boolean {
   return (
@@ -20,12 +20,10 @@ export function loadDotenvForScripts() {
   }
 
   try {
-    const require = createRequire(import.meta.url);
-    const dotenv = require('dotenv');
-    dotenv.config({ path: '.env.development' });
-    dotenv.config({ path: '.env', override: false });
+    const isDev = process.env.NODE_ENV !== 'production';
+    loadEnvConfig(process.cwd(), isDev);
   } catch {
-    // Silently fail - dotenv might not be available in some environments
+    // Silently fail - env loading is optional in some environments
   }
 }
 

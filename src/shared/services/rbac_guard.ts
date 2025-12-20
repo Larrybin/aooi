@@ -206,7 +206,7 @@ export async function requireAdminAccess({
 }: {
   redirectUrl?: string;
   locale?: string;
-}): Promise<void> {
+}): Promise<unknown> {
   const user = await getSignUser();
 
   if (!user) {
@@ -223,6 +223,8 @@ export async function requireAdminAccess({
       `Permission required: ${PERMISSIONS.ADMIN_ACCESS}`
     );
   }
+
+  return user;
 }
 
 /**
@@ -231,7 +233,6 @@ export async function requireAdminAccess({
  */
 export async function getCurrentUserWithPermission({
   code,
-  locale,
 }: {
   code: string;
   locale?: string;
@@ -264,7 +265,7 @@ export async function checkPageAccess({
 /**
  * Higher-order function for API routes with permission check
  */
-export function withPermission<T extends (...args: any[]) => any>(
+export function withPermission<T extends (...args: unknown[]) => unknown>(
   handler: T,
   {
     code,
@@ -283,7 +284,7 @@ export function withPermission<T extends (...args: any[]) => any>(
 /**
  * Higher-order function for API routes with role check
  */
-export function withRole<T extends (...args: any[]) => any>(
+export function withRole<T extends (...args: unknown[]) => unknown>(
   handler: T,
   {
     roleName,

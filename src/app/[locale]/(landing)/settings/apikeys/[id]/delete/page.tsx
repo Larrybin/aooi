@@ -39,7 +39,7 @@ export default async function DeleteApiKeyPage({
 
   const t = await getTranslations('settings.apikeys');
 
-  const form: FormType = {
+  const form = {
     title: t('delete.title'),
     fields: [
       {
@@ -69,7 +69,7 @@ export default async function DeleteApiKeyPage({
     },
     data: apikey,
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
         return withAction(async () => {
@@ -103,7 +103,7 @@ export default async function DeleteApiKeyPage({
         icon: 'RiDeleteBinLine',
       },
     },
-  };
+  } satisfies FormType;
 
   const crumbs: Crumb[] = [
     {

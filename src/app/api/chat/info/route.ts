@@ -9,7 +9,7 @@ import { ChatInfoBodySchema } from '@/shared/schemas/api/chat/info';
 
 export const POST = withApi(async (req: Request) => {
   const { chatId } = await parseJson(req, ChatInfoBodySchema);
-  const user = await requireUser();
+  const user = await requireUser(req);
 
   const chat = await findChatById(chatId);
   if (!chat) {

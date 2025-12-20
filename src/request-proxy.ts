@@ -3,7 +3,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import createIntlMiddleware from 'next-intl/middleware';
 
 import { routing } from '@/core/i18n/config';
-import { locales, type Locale } from '@/config/locale';
+import { defaultLocale, locales, type Locale } from '@/config/locale';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -11,7 +11,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Handle internationalization first
-  const intlResponse = intlMiddleware(request);
+  let response = intlMiddleware(request);
 
   // Extract locale from pathname
   const localeSegment = pathname.split('/')[1];
@@ -48,13 +48,20 @@ export async function proxy(request: NextRequest) {
     // will be done in the layout or individual pages using requirePermission()
   }
 
-  intlResponse.headers.set('x-pathname', request.nextUrl.pathname);
-  intlResponse.headers.set('x-url', request.url);
+  // When `localeDetection=false`, unprefixed routes (e.g. /pricing) don't carry locale information.
+  // Our app routes are rooted under `app/[locale]`, so we internally rewrite to the default locale
+  // while keeping the URL unchanged for the user.
+  if (!isValidLocale) {
+    const rewriteTo = request.nextUrl.clone();
+    rewriteTo.pathname = pathname === '/' ? `/${defaultLocale}` : `/${defaultLocale}${pathname}`;
+
+    response = NextResponse.rewrite(rewriteTo, { headers: response.headers });
+    response.headers.set('x-rewrite-to', rewriteTo.pathname);
+  }
+
+  response.headers.set('x-pathname', request.nextUrl.pathname);
+  response.headers.set('x-url', request.url);
 
   // For all other routes (including /, /sign-in, /sign-up, /sign-out), just return the intl response
-  return intlResponse;
+  return response;
 }
-
-export const config = {
-  matcher: '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
-};

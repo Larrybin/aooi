@@ -119,7 +119,7 @@ function buildFieldSchema(field: FormFieldType) {
   }
 
   if (field.type === 'checkbox') {
-    let schema = z.array(z.string());
+    const schema = z.array(z.string());
 
     return schema;
   }

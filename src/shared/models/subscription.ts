@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { subscription } from '@/config/db/schema';
@@ -47,6 +47,24 @@ export async function updateSubscriptionBySubscriptionNo(
     .update(subscription)
     .set(updateSubscription)
     .where(eq(subscription.subscriptionNo, subscriptionNo))
+    .returning();
+
+  return result;
+}
+
+export async function updateSubscriptionBySubscriptionNoIfNotCanceled(
+  subscriptionNo: string,
+  updateSubscription: UpdateSubscription
+) {
+  const [result] = await db()
+    .update(subscription)
+    .set(updateSubscription)
+    .where(
+      and(
+        eq(subscription.subscriptionNo, subscriptionNo),
+        ne(subscription.status, SubscriptionStatus.CANCELED)
+      )
+    )
     .returning();
 
   return result;

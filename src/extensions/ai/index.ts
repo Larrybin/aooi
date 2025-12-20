@@ -145,6 +145,3 @@ export class AIManager {
 
 // ai manager
 export const aiManager = new AIManager();
-
-export * from './kie';
-export * from './replicate';

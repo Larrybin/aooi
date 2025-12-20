@@ -1,21 +1,16 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { role } from '@/config/db/schema';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import {
-  requireActionPermission,
-  requireActionUser,
-} from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
-import { withAction } from '@/shared/lib/action/with-action';
-import { Crumb } from '@/shared/types/blocks/common';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { Form } from '@/shared/types/blocks/form';
+
+import { restoreRoleAction } from '../../actions';
 
 export default async function RoleRestorePage({
   params,
@@ -23,12 +18,10 @@ export default async function RoleRestorePage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  setRequestLocale(locale);
 
-  await requirePermission({
-    code: PERMISSIONS.ROLES_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.ROLES_WRITE,
   });
 
   const t = await getTranslations('admin.roles');
@@ -42,11 +35,11 @@ export default async function RoleRestorePage({
     return <Empty message="Role is not deleted" />;
   }
 
-  const crumbs: Crumb[] = [
-    { title: t('edit.crumbs.admin'), url: '/admin' },
-    { title: t('edit.crumbs.roles'), url: '/admin/roles?includeDeleted=1' },
-    { title: t('restore.crumbs.restore'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.roles', url: '/admin/roles?includeDeleted=1' },
+    { key: 'restore.crumbs.restore' },
+  ]);
 
   const form: Form<typeof roleRow, { role: typeof roleRow }> = {
     title: t('restore.title'),
@@ -86,35 +79,7 @@ export default async function RoleRestorePage({
       button: {
         title: t('restore.buttons.submit'),
       },
-      handler: async (data) => {
-        'use server';
-
-        return withAction(async () => {
-          const admin = await requireActionUser();
-          await requireActionPermission(admin.id, PERMISSIONS.ROLES_WRITE);
-
-          const [roleRow] = await db().select().from(role).where(eq(role.id, id));
-          if (!roleRow) {
-            throw new Error('Role not found');
-          }
-          if (!roleRow.deletedAt) {
-            throw new Error('Role is not deleted');
-          }
-
-          try {
-            await db()
-              .update(role)
-              .set({ deletedAt: null, updatedAt: new Date() })
-              .where(eq(role.id, id));
-          } catch (error) {
-            throw new Error(
-              'restore role failed: another active role with the same name may already exist'
-            );
-          }
-
-          return actionOk('role restored', '/admin/roles?includeDeleted=1');
-        });
-      },
+      handler: restoreRoleAction.bind(null, id),
     },
   };
 

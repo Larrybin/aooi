@@ -45,7 +45,7 @@ export function ChatInput({
 }: {
   handleSubmit: (
     message: PromptInputMessage,
-    body: Record<string, any>
+    body: Record<string, unknown>
   ) => void | Promise<void>;
   status?: UseChatHelpers<UIMessage>['status'];
   error?: string | null;
@@ -85,7 +85,7 @@ export function ChatInput({
       <PromptInput
         onSubmit={async (message) => {
           try {
-            handleSubmit(message, { model, webSearch, reasoning });
+            await handleSubmit(message, { model, webSearch, reasoning });
             setInput('');
           } catch (err) {
             // Allow parent to control error display/state. Do not clear input.

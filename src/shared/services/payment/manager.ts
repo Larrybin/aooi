@@ -1,11 +1,11 @@
 import 'server-only';
 
+import { PaymentManager } from '@/extensions/payment';
 import {
   CreemProvider,
-  PaymentManager,
   PayPalProvider,
   StripeProvider,
-} from '@/extensions/payment';
+} from '@/extensions/payment/providers';
 import type { Configs } from '@/shared/models/config';
 import { logger } from '@/shared/lib/logger.server';
 import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
@@ -21,6 +21,12 @@ export function getPaymentServiceWithConfigs(configs: Configs) {
   const defaultProvider = configs.default_payment_provider;
 
   if (configs.stripe_enabled === 'true') {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const signingSecret = configs.stripe_signing_secret || '';
+    if (isProduction && !signingSecret.trim()) {
+      throw new Error('stripe_signing_secret is required in production');
+    }
+
     let allowedPaymentMethods: string[] = ['card'];
     const stripePaymentMethodsConfig = configs.stripe_payment_methods;
 
