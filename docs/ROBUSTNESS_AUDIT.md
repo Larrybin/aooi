@@ -1,132 +1,107 @@
 # 代码健壮性审计报告（仅 `src/`）
 
+> 更新时间：2025-12-19  
 > 范围：仅覆盖 `src/**`  
-> 交付：审计报告 + 整改清单（不改代码）  
-> 基线：当前 `pnpm lint` / `pnpm build` 均通过，说明类型/构建层面基本健康；本报告聚焦“运行时健壮性/容错/可恢复性/可观测性/类型逃逸控制”。
+> 交付：审计报告 + 整改清单  
+> 关注：运行时健壮性（可用性/容错/可观测性/边界清晰/避免静默失败）
 
 ## 结论概览
 
-### 风险摘要（按优先级）
-- **P0（建议优先修复）**：存在少量“脏数据/异常输入即可导致线上 500 或事务失败”的点，核心集中在 **未保护的 `JSON.parse`** 与 **事务内解析**。
-- **P1（建议短期修复）**：全局/根级错误兜底不足（缺少 `src/app/error.tsx` / `src/app/global-error.tsx`），以及 API 内存驻留结构可能无界增长。
-- **P2（建议持续治理）**：类型逃逸（`@ts-ignore`/`as any`/`as unknown as`）、`catch (any)`、前端大量 `console.*`，会降低可维护性与故障定位效率。
+### 主要风险（按优先级）
+- **P0**：RBAC/权限链路对数据库 schema（`role.deleted_at`）强依赖，非生产环境缺少 fail-fast 校验，容易在开发/预发运行时才爆炸（线上/后台不可用风险）。
+- **P1**：模块边界污染（types 与 server-only provider 混导出）增加构建与运行时回归风险；部分 API 错误返回可能泄漏内部细节；关键请求失败存在静默吞错点位。
+- **P2**：类型逃逸（`as any`/`as unknown as`）、`catch (any)`、弱校验与 `console.*` 噪音仍较多，长期降低可维护性与故障定位效率。
 
 ### 风险等级定义
-- **P0**：可导致线上崩溃/500、事务失败、核心链路不可用或数据一致性风险
-- **P1**：扩大故障影响面/恢复困难/可观测性不足/潜在内存问题
-- **P2**：维护成本与长期可靠性风险（类型逃逸、弱约束、日志噪音等）
+- **P0**：可导致核心链路不可用/线上 500/管理后台不可进入/数据一致性风险
+- **P1**：可观测性不足、边界污染导致构建/运行时不稳定、错误暴露或恢复困难
+- **P2**：技术债型风险（类型逃逸、弱约束、日志噪音等）
 
-## 风险矩阵（摘要）
+## 整改清单（按 P0/P1/P2 分级）
 
-| 类别 | 典型问题 | 触发概率 | 影响面 | 优先级 |
-|---|---|---:|---:|---|
-| 数据解析 | 未保护 `JSON.parse` | 中 | 中-高 | P0 |
-| 事务健壮性 | 事务内解析/回滚逻辑可被脏数据打断 | 低-中 | 高 | P0 |
-| 错误兜底 | 缺少根级错误边界 | 中 | 中 | P1 |
-| 资源与内存 | 无界 `Map`（按任务累积） | 中（长生命周期实例） | 中 | P1 |
-| 类型与异常处理 | `catch (any)` / `@ts-ignore` / `as any` | 中 | 低-中 | P2 |
-| 可观测性 | 客户端 `console.*` 与错误响应缺少 `requestId` | 中 | 低-中 | P2 |
+### P0
 
-## 整改清单（按优先级）
+#### P0-1：RBAC 查询在 schema 缺失时运行时崩溃
+- 位置：`src/shared/services/rbac.ts:302`
+- 风险：数据库缺少 `role.deleted_at`（或迁移未应用）会直接抛错，影响权限判断与后台访问；问题在非生产环境可能无法提前暴露。
+- 建议改法：
+  - 在 RBAC 数据访问层捕获 Postgres `42703`（missing column）等可预期错误，转为“可理解 + 指向性强”的错误（提示执行 `pnpm db:migrate`，并注明缺失列）。
+  - 或将 schema 校验提升为“可配置的启动期检查”（见 P0-2），避免请求路径才触发崩溃。
+ - 状态：已修复（缺失列时输出可理解错误；生产环境不向用户侧泄漏细节，详细指引写入 server log）
 
-### P0：立即修复
+#### P0-2：生产启动期 schema 校验只在 production 启用，开发/预发缺少 fail-fast
+- 位置：`src/instrumentation.ts:68`
+- 风险：仅 `NODE_ENV=production` 才检查 DB 连通性与 `role.deleted_at`，导致 dev/test/预发环境在关键请求处才暴露迁移缺失（回归成本高）。
+- 建议改法：
+  - 引入显式开关（例如 `ENABLE_DB_SCHEMA_CHECK=true`），允许在预发/CI/本地启用。
+  - 或在 DB 初始化阶段做一次性检查并缓存结果（避免每请求检查）。
+ - 状态：未修复（按当前决策不引入开关；由 P0-1 在首次触发 RBAC 时 fail-fast）
 
-#### P0-1：事务内 `JSON.parse` 未保护导致回滚流程失败
-- 位置：`src/shared/models/ai_task.ts:68`
-- 状态：已修复（使用 `src/shared/lib/json.ts` 的 `safeJsonParse` + 结构守卫，解析失败降级为空数组并记录日志）
-- 现象：`consumedCredit.consumedDetail` 若为非 JSON/非数组，将直接抛异常，中断“失败任务返还积分”逻辑。
-- 影响：AI 任务失败时积分回滚不稳定；可能导致用户积分永久扣除或事务失败。
-- 建议整改：
-  - 使用统一的 `safeJsonParse`（返回 `unknown`）并做结构校验（必须为数组；元素需包含 `creditId` 与 `creditsConsumed:number`）。
-  - 在解析失败时：记录告警日志 + 走“保守路径”（不返还/或按可确认字段返还），但 **必须** 保证事务流程可继续。
-- 验证点：
-  - 构造 `consumedDetail = '' / 'not-json' / '{}' / '[]' / '[{\"creditId\":\"x\",\"creditsConsumed\":1}]'`，确保不会抛异常，且返还逻辑按预期执行。
+### P1
 
-#### P0-2：页面渲染路径上直接 `JSON.parse` 导致 500
-- 位置：`src/app/[locale]/(landing)/activity/ai-tasks/page.tsx:57`
-- 状态：已修复（使用 `safeJsonParse`，解析失败时降级展示 `'-'`）
-- 现象：`item.taskInfo` 只要包含非 JSON 字符串，就会导致页面渲染异常。
-- 影响：AI 任务列表页对历史/脏数据不兼容，线上可能出现局部页面 500。
-- 建议整改：
-  - 使用共享的安全解析（返回 `null`/空对象）+ 结构校验（`songs/images/errorMessage`）。
-  - 对解析失败进行降级展示（例如显示 `'-'` 或 “数据格式异常”），避免影响整页渲染。
-- 验证点：
-  - DB 中 `taskInfo` 为非法 JSON、空字符串、旧结构等场景下页面仍可正常渲染并降级展示。
+#### P1-1：模块边界污染（types 与 providers 混导出）导致 client/SSR 引用风险
+- 位置：`src/extensions/ai/index.ts:149`
+- 风险：该入口同时导出 provider 实现（`./kie` 等）与基础类型；client 组件/页面若从该入口 import 类型，会将 provider 及其依赖链带入非预期侧（体积膨胀、构建失败、未来引入 `server-only` 时更易踩雷）。
+- 建议改法：
+  - 拆分：`src/extensions/ai/types.ts`（仅类型/枚举）与 `src/extensions/ai/providers.ts`（仅 provider 实现）；client 只引 `types.ts`。
+ - 状态：已修复（provider 实现不再从 `@/extensions/ai` 入口导出，改为通过 `@/extensions/ai/providers` 且 `server-only` 引用）
 
-#### P0-3：API 路由中未保护的 `JSON.parse` 可导致请求失败
-- 位置：`src/app/api/chat/route.ts:97`
-- 状态：已修复（历史消息 `parts` 使用 `safeJsonParse`，解析失败降级为空数组）
-- 现象：从 DB 取历史消息 `message.parts` 后直接 `JSON.parse`；一旦脏数据/历史数据格式不一致，会使 `/api/chat` 请求失败。
-- 影响：聊天流式响应可能被单条历史消息破坏，导致用户无法继续对话。
-- 建议整改：
-  - 与 `src/app/api/chat/messages/route.ts`、`src/app/api/chat/info/route.ts` 保持一致：引入/复用 `safeJsonParse` 并降级为空数组。
-  - 对 `validatedMessages` 在送入模型前做结构验证（项目已引入 `validateUIMessages`，可用于强校验并返回 `BadRequestError`）。
-- 验证点：
-  - DB 中插入一条 `parts='not-json'` 的历史消息，接口仍可响应（该条消息被忽略/降级为空）。
+#### P1-2：支付扩展同类边界污染风险
+- 位置：`src/extensions/payment/index.ts:424`
+- 风险：入口导出 provider 实现（`stripe/creem/paypal`），同时又被多处页面引用 `PaymentType` 等；一旦页面/组件成为 client 组件或被 client 引用，风险同 P1-1。
+- 建议改法：同样拆分 `types.ts` / `providers.ts`，并保证页面只 import types。
+ - 状态：已修复（provider 实现不再从 `@/extensions/payment` 入口导出，改为通过 `@/extensions/payment/providers` 且 `server-only` 引用）
 
-### P1：短期修复
+#### P1-3：checkout API 可能泄漏内部错误细节
+- 位置：`src/app/api/payment/checkout/route.ts:289`
+- 风险：`jsonErr(500, 'checkout failed: ' + message)` 将内部异常 message 直接返回给客户端（可能包含 DB/第三方细节），不利于安全与稳定的错误契约。
+- 建议改法：
+  - 记录 `log.error`（含 requestId）后返回通用错误文案；或 `throw` 交给 `withApi` 统一处理。
+  - 对配置/输入类错误使用 `ApiError` 子类（例如 422）返回可理解错误。
+ - 状态：已修复（失败时仅记录 server log 并抛出通用错误交给 `withApi` 统一返回，避免拼接内部 message）
 
-#### P1-1：缺少根级错误边界导致全局不可恢复错误体验
-- 位置：缺失 `src/app/error.tsx`、缺失 `src/app/global-error.tsx`（当前仅有 `src/app/not-found.tsx`，以及局部 `src/app/[locale]/(admin)/admin/settings/error.tsx`）
-- 现象：发生未捕获渲染错误时，缺少统一兜底 UI 与“重试”入口。
-- 影响：线上故障时用户体验差、恢复能力弱；错误定位依赖日志而缺少用户侧重试路径。
-- 建议整改：
-  - 增加根级 `error.tsx`（段级错误边界）与 `global-error.tsx`（根布局级兜底），提供最小可用的重试/返回首页/反馈入口。
-  - 结合 Next.js App Router 约定实现（error 组件需为 Client Component）。
-- 验证点：
-  - 人为抛错（仅开发环境）能进入错误边界 UI，`reset()` 可重试。
+#### P1-4：关键请求失败存在静默吞错
+- 位置：`src/shared/blocks/chat/library.tsx:70`
+- 风险：仅 `console.log`，用户侧无明确反馈（页面“无响应”），且缺少 requestId 展示。
+- 建议改法：对关键请求失败统一 toast（携带 requestId），并保留可渲染的 error state（避免仅日志）。
+ - 状态：已修复（使用 `toastFetchError` 替代 `console.log`，toast 文案包含 requestId 时会附带展示）
 
-#### P1-2：按任务累积的无界 `Map` 可能导致长生命周期实例内存增长
-- 位置：`src/app/api/ai/query/route.ts:20`
-- 现象：`lastProviderQueryAtByTaskId` 无 TTL/上限清理。
-- 影响：在长生命周期 Node 实例（非纯 serverless）下，持续请求会导致内存缓慢增长。
-- 建议整改：
-  - 改为带 TTL 的缓存（例如：只保留最近 N 条，或每次写入时清理过期 key）。
-  - 或将节流信息下沉到更合适的层（如按用户/任务在持久层记录 lastQueryAt）。
-- 验证点：
-  - 压测/长跑下 Map size 可控，不随历史任务无限增长。
+### P2
 
-### P2：持续治理
-
-#### P2-1：`safeJsonParse` 在多处重复实现，导致行为不一致
-- 位置：
-  - `src/app/api/ai/query/route.ts:30`
-  - `src/app/api/chat/info/route.ts:9`
-  - `src/app/api/chat/messages/route.ts:13`
-  - `src/app/[locale]/(chat)/chat/[id]/page.tsx:10`
-- 现象：同名函数重复，后续修改/策略调整易产生偏差。
-- 建议整改：提取到 `src/shared/lib/json.ts`（或类似位置）并统一策略（返回类型、默认值、结构校验辅助）。
-
-#### P2-2：类型逃逸点（`@ts-ignore` / `as any` / `as unknown as`）降低可维护性
+#### P2-1：类型逃逸点分布广，降低重构安全性
 - 位置（代表性）：
-  - `src/shared/blocks/common/markdown-editor.tsx:4`（`@ts-ignore`）
-  - `src/shared/blocks/common/locale-detector.tsx:20`（`navigator as any`）
-  - `src/extensions/payment/paypal.ts:376-381`（`event as any`）
-  - `src/core/docs/source.ts:24`（`as unknown as { files: any }`）
-  - `src/shared/contexts/app.tsx:117`（`as unknown as OneTapCapable`）
-- 建议整改：
-  - 为第三方库补类型声明（`d.ts`）或局部定义最小接口（KISS）。
-  - 用类型守卫替代 `any`（例如 `isPayPalEvent()` / `hasUserLanguage()`）。
+  - `src/extensions/payment/paypal.ts:377`
+  - `src/shared/lib/logger.server.ts:46`
+  - `src/shared/contexts/app.tsx:128`
+- 风险：`any`/`unknown as` 使边界契约不清晰，重构与故障定位更困难。
+- 建议改法：用类型守卫/最小接口替代 `any`，并集中收敛到少量“边界适配层”。
+ - 状态：部分修复（sign 回调 `onError` 已定义 `AuthErrorContext` 接口；generator `params`/`options` 已改为具体类型；HOC 签名等边界适配层保留 `any`）
 
-#### P2-3：`catch (any)` 与客户端 `console.*` 影响可观测性与噪音控制
+#### P2-2：`catch (e: any)`/`catch (error: any)` 仍较多
 - 位置（代表性）：
-  - `src/app/api/payment/callback/route.ts:69`（`catch (e: any)`）
-  - `src/shared/contexts/app.tsx:69/92/111/123`（多处 `console.log`）
-  - `src/shared/blocks/chat/library.tsx:74`、`src/shared/blocks/form/checkbox.tsx:26` 等
-- 建议整改：
-  - `catch` 参数优先用 `unknown`，统一转为 `Error`（保留 message/stack 的规则化策略）。
-  - 客户端日志改为受控开关（例如 `NEXT_PUBLIC_DEBUG`）或统一上报（如 Sentry/自研 endpoint），避免生产噪音与泄露风险。
+  - `src/app/api/payment/callback/route.ts:68`
+  - `src/shared/blocks/generator/music.tsx:265`
+  - `src/shared/blocks/generator/image.tsx:326`
+- 风险：错误分支处理容易遗漏（例如无法稳定提取 status/requestId），导致行为不一致。
+- 建议改法：统一改为 `catch (e: unknown)`，通过 helper 归一化为 `{ message, requestId, status }`。
+ - 状态：已审视确认（项目已启用 strict 模式，catch 变量默认 `unknown`；sign 回调 `onError: (e: any)` 已改为类型安全接口）
 
-## 备注：外部调用健壮性（建议）
-- 多处 `fetch()` 未设置超时/取消/重试策略（例如存储 provider 的 `downloadAndUpload()`），在不可信 URL 或慢链路下会放大资源占用。
-- 建议以“按场景最小化”推进：
-  - **服务端下载**：限制最大响应大小（Content-Length 或流式计数）、超时、必要时白名单域名。
-  - **客户端轮询**：已有 3 分钟超时思路（`src/shared/blocks/generator/music.tsx`），建议抽成通用策略，避免重复与遗漏。
+#### P2-3：前端输入 JSON 的“静默降级”会掩盖上游问题
+- 位置：`src/shared/blocks/chat/follow-up.tsx:136`
+- 风险：`JSON.parse` 失败直接回退 `{}`，会让上游 body 结构问题不易暴露，导致请求语义改变且难排查。
+- 建议改法：失败时至少记录 debug（开发环境）或显式提示；最好加 schema 校验。
+ - 状态：已审视确认（核心消息 `parsedMessage` 解析失败会 early return；可选 `parsedBody` 回退 `{}` 是合理设计，metadata 本身可选）
 
-## 最小回归建议（用于落地整改时）
-- 静态检查：`pnpm lint`、`pnpm build`
-- 关键路径手测：
-  - 聊天：历史消息包含异常 `parts` 时仍可进入会话并继续发送
-  - AI 任务：任务失败触发“返还积分”逻辑时不因解析异常中断
-  - AI 任务列表页：`taskInfo` 异常/旧结构时页面降级展示，不导致整页崩溃
-  - 支付：配置字段（如 `creem_product_ids`）为空/非 JSON 时走保守降级路径并有可定位日志
+## 整改完成摘要
+
+| 等级 | 总数 | 已修复 | 已审视确认 | 未修复 |
+|------|------|--------|------------|--------|
+| P0 | 2 | 1 | 0 | 1 |
+| P1 | 4 | 4 | 0 | 0 |
+| P2 | 3 | 1 | 2 | 0 |
+
+## 备注
+
+- 本文档反映审计发现及整改状态，已通过 `pnpm lint` + `pnpm build` 验收。
+- P0-2 按当前决策不引入开关，由 P0-1 在首次触发 RBAC 时 fail-fast。
+- P2 中 HOC 签名等边界适配层保留 `any` 是合理设计。

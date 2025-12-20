@@ -1,14 +1,89 @@
 # ShipAny Template Two
 
+A production-ready AI SaaS template built with Next.js App Router, TypeScript, and modern tooling.
+
+## Architecture Overview
+
+```
+src/
+├── app/           # Next.js routes, layouts, API handlers
+├── core/          # Domain logic (auth, database, i18n, theme)
+├── shared/        # Shared utilities, models, services, UI components
+├── extensions/    # Third-party integrations (payment, AI, storage)
+├── config/        # Configuration, DB schema, locale messages
+└── themes/        # UI themes
+
+docs/              # Engineering documentation
+content/           # MDX content (docs, blog, legal pages)
+scripts/           # Maintenance and automation scripts
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm
+- PostgreSQL database
+
+### Installation
+
+```bash
+# Install dependencies
+pnpm install
+
+# Copy environment file
+cp .env.example .env
+
+# Configure your environment variables
+# Edit .env with your database URL, auth secrets, etc.
+
+# Run database migrations
+pnpm db:migrate
+
+# Start development server
+pnpm dev
+```
+
+Visit http://localhost:3000
+
+### Initialize RBAC (Optional)
+
+```bash
+# Create default roles and permissions
+npx tsx scripts/init-rbac.ts
+
+# Assign super_admin role to a user
+npx tsx scripts/init-rbac.ts --admin-email=your@email.com
+```
+
 ## Getting Started
 
-read [ShipAny Document](https://shipany.ai/docs/quick-start) to start your AI SaaS project.
+Read [ShipAny Document](https://shipany.ai/docs/quick-start) to start your AI SaaS project.
 
-## Engineering Docs
+## Documentation
 
-- Full guide: `docs/CODE_REVIEW.md`
-- PR checklist (docs site): `content/docs/code-review-checklist.zh.mdx` (route: `/zh/docs/code-review-checklist`)
-- Logging conventions (docs site): `content/docs/logging-conventions.zh.mdx` (route: `/zh/docs/logging-conventions`)
+### Engineering Guides
+
+| Document | Description |
+|----------|-------------|
+| [Auth Guide](docs/guides/auth.md) | Authentication with Better Auth |
+| [RBAC Guide](docs/guides/rbac.md) | Role-Based Access Control |
+| [Payment Guide](docs/guides/payment.md) | Multi-provider payment integration |
+| [Database Guide](docs/guides/database.md) | Drizzle ORM and migrations |
+
+### Code Quality
+
+| Document | Description |
+|----------|-------------|
+| [Code Review](docs/CODE_REVIEW.md) | Full code review guide |
+| [Architecture Review](docs/ARCHITECTURE_REVIEW.md) | Architecture audit report |
+| [Contributing](CONTRIBUTING.md) | Contribution guidelines |
+
+### Docs Site
+
+- PR checklist: `content/docs/code-review-checklist.zh.mdx` (route: `/zh/docs/code-review-checklist`)
+- Logging conventions: `content/docs/logging-conventions.zh.mdx` (route: `/zh/docs/logging-conventions`)
 
 ## Deployment Notes
 

@@ -12,8 +12,11 @@
   - 日常：建议小步提交，一个 PR 聚焦一个问题或功能。
   - 特殊：首次全量审查可以跨模块，但仍按本文件顺序逐项过一遍。
 - 先机后人：
-  - 要求通过 `pnpm lint`、`pnpm format:check`、TypeScript 编译后再人工 review。
+  - 要求通过 `pnpm lint`、`pnpm format:check`、`pnpm build`（含 TypeScript 检查）后再人工 review。
   - 机器负责“底线”，人重点看设计、边界条件和长期可维护性。
+- 以护栏为准：
+  - 依赖方向与 Server/Client 边界以 `eslint.config.mjs` 为单一事实来源（不要靠口头约定）。
+  - `src/shared` 分层约定见 `docs/architecture/shared-layering.md`（变更触及边界时，优先用 ESLint 规则固化）。
 - 新旧代码策略：
   - 本次是**第一次全量审查**，允许识别并记录历史技术债，但评论时明确“建议后续拆卡处理”。
   - 后续日常开发优先保证“新代码符合当前标准”，旧代码按需渐进式治理。
@@ -33,7 +36,7 @@
   - Client 组件不做安全关键逻辑判断（鉴权、权限、计费等），仅负责展示和用户交互。
 - 组件角色清晰：
   - `src/app` 下的 `page.tsx` / `layout.tsx` / `template.tsx` 保持瘦：路由结构 + 数据注入，不堆叠业务细节。
-  - 复杂 UI 抽到 `src/shared` / `src/features` 组件，核心业务逻辑下沉到 `src/core` 域服务。
+  - 复杂 UI 抽到 `src/shared/blocks` / `src/shared/components`；业务编排下沉到 `src/shared/services`；核心能力下沉到 `src/core`；三方集成适配下沉到 `src/extensions`。
 
 ### 1.2 TypeScript 边界约束
 
@@ -79,9 +82,13 @@
 - better-auth 集成：
   - 优先使用 better-auth 提供的统一 API 获取当前用户与租户信息，避免自建零散的鉴权工具函数。
   - better-auth 配置与类型应通过 `@better-auth/cli` 生成，而不是手写；若 PR 修改了认证逻辑，应检查生成脚本是否需要更新。
+- CSRF（Cookie 会话 + 有副作用操作）：
+  - 对“需要登录 + 写请求”的 Route Handler 统一使用 `requireUser(req)`（`src/shared/lib/api/guard.ts`），由 guard 执行 `Origin/Referer` 与 `Host/X-Forwarded-Host` 的同源校验。
+  - 禁止绕过 guard 直接读取 session/用户信息后执行写操作（避免引入未受保护的入口）。
 - 错误处理：
   - 明确区分业务错误（4xx）与系统错误（5xx），保证响应结构统一（如 `code` + `message` + 可选 `details`）。
   - Route Handler 返回应使用语义正确的 HTTP status（400/401/403/404/500 等），响应体仍保持 `{code,message,data}`（降低前端联动成本）。
+  - Route Handler 优先使用 `withApi()`（`src/shared/lib/api/route.ts`）统一做错误归一化与响应封装，避免散落的 `try/catch + NextResponse.json()` 导致错误契约不一致。
   - 禁止将数据库错误、支付网关返回原文等内部信息直接透传给前端，防止泄露实现细节或敏感信息。
 
 ### 2.3 数据库迁移（Drizzle Migrations）
@@ -91,9 +98,14 @@
   - 审查变更时关注：
     - 是否仅使用 `push` 改 schema 而无对应迁移脚本。
     - 是否有手写 SQL 改结构但未记录在迁移中。
+- 本仓库约束（Postgres-only）：
+  - drizzle-kit 配置为 `src/core/db/config.ts`，迁移输出目录为 `src/config/db/migrations`。
+  - `DATABASE_PROVIDER` 在运行时/CLI 中被限制为 `postgresql`（错误配置需 fail-fast）。
+- 迁移交付策略（必须明确）：
+  - 当前 `.gitignore` 忽略了 `src/config/db/migrations` 与 `*.sql`；任何涉及 schema 变更的 PR 必须说明迁移文件如何交付（纳入版本控制 / CI 生成并随部署分发 / 明确改用 `push` 且解释其环境约束）。
 - 连接与安全：
   - 迁移建议使用单连接执行（官方推荐），避免多连接导致不一致。
-  - 连接配置需区分 Postgres 与 LibSQL/Turso 等不同驱动，避免使用不跨驱动的特性（特定扩展函数、方言专属语法等）。
+  - 避免在迁移中引入“环境专属/不可回滚”的变更（例如依赖人工顺序执行、或对历史数据做不可逆破坏性改写）。
 
 ### 2.4 支付 & 计费（creem）
 
@@ -107,12 +119,12 @@
   - 审查时确认：即便同一通知重复到达，也不会导致重复扣款或重复状态迁移。
 - 金额与币种：
   - 后端以 creem 通知/结算记录为准，前端金额仅用于展示，不参与最终决策。
-  - 金额和币种转换逻辑应集中在 `src/core/billing`，避免散落在各个 Route / 组件中。
+  - 金额与币种逻辑应集中在服务端编排层（例如 `src/shared/services/payment/**` + `src/extensions/payment/**`），避免散落在各个 Route / 组件中。
 
 ### 2.5 邮件（resend）
 
 - 模板与文案：
-  - 邮件模板统一放在 `src/core/email` 或等价目录中集中管理，避免在各个 handler 内部直接拼接 HTML 字符串。
+  - 邮件 provider 与发送能力集中在 `src/extensions/email/**` 与 `src/shared/services/email.ts`，避免在各个 handler 内部直接拼接 HTML 字符串/直接调用 SDK。
   - 模板文案应复用国际化资源或集中常量，避免在多处硬编码内容导致维护困难。
 - 发送可靠性：
   - 关键邮件（注册激活、密码重置、账单通知等）发送失败必须至少记录结构化日志，必要时提供重试/补发机制。
