@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   index,
@@ -5,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable(
@@ -370,7 +372,7 @@ export const role = pgTable(
   'role',
   {
     id: text('id').primaryKey(),
-    name: text('name').notNull().unique(), // admin, editor, viewer
+    name: text('name').notNull(), // admin, editor, viewer
     title: text('title').notNull(),
     description: text('description'),
     status: text('status').notNull(),
@@ -379,10 +381,14 @@ export const role = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
     sort: integer('sort').default(0).notNull(),
+    deletedAt: timestamp('deleted_at'),
   },
   (table) => [
     // Query active roles
     index('idx_role_status').on(table.status),
+    uniqueIndex('role_name_alive_unique')
+      .on(table.name)
+      .where(sql`${table.deletedAt} is null`),
   ]
 );
 

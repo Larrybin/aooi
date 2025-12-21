@@ -1,41 +1,41 @@
-'use client';
+import Image, { type ImageProps } from 'next/image';
 
-import { LazyLoadImage } from 'react-lazy-load-image-component';
-
-import 'react-lazy-load-image-component/src/effects/blur.css';
-
-export function LazyImage({
-  src,
-  alt,
-  className,
-  width,
-  height,
-  placeholderSrc,
-  title,
-  fill,
-  priority,
-  sizes,
-}: {
+type LazyImageCommonProps = {
   src: string;
   alt: string;
   className?: string;
-  width?: number;
-  height?: number;
-  placeholderSrc?: string;
-  title?: string;
-  fill?: boolean;
+  style?: ImageProps['style'];
   priority?: boolean;
+  fetchPriority?: ImageProps['fetchPriority'];
+  quality?: ImageProps['quality'];
+  loading?: ImageProps['loading'];
+  placeholder?: ImageProps['placeholder'];
+  blurDataURL?: ImageProps['blurDataURL'];
+  unoptimized?: boolean;
+  title?: string;
+};
+
+type LazyImageFixedProps = {
+  width: number;
+  height: number;
+  fill?: never;
   sizes?: string;
-}) {
-  return (
-    <LazyLoadImage
-      src={src}
-      alt={alt}
-      width={width}
-      height={height}
-      effect="blur" // 支持 blur、opacity 等
-      placeholderSrc={placeholderSrc} // 可选
-      className={className}
-    />
-  );
+};
+
+type LazyImageFillProps = {
+  fill: true;
+  sizes: string;
+  width?: never;
+  height?: never;
+};
+
+export type LazyImageProps = LazyImageCommonProps &
+  (LazyImageFixedProps | LazyImageFillProps);
+
+export function LazyImage({ src, alt, ...props }: LazyImageProps) {
+  if (!src) {
+    return null;
+  }
+
+  return <Image src={src} alt={alt} {...props} />;
 }

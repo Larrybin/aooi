@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Check, Lightbulb, Loader2, SendHorizonal, Zap } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
 import { SmartIcon } from '@/shared/blocks/common';
 import { PaymentModal } from '@/shared/blocks/payment/payment-modal';
@@ -25,9 +24,12 @@ import {
 } from '@/shared/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { useAppContext } from '@/shared/contexts/app';
+import { isPlainObject } from '@/shared/lib/api/client';
+import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
 import { getCookie } from '@/shared/lib/cookie';
+import { RequestIdError } from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
-import { Subscription } from '@/shared/models/subscription';
+import type { Subscription } from '@/shared/models/subscription';
 import {
   PricingCurrency,
   PricingItem,
@@ -87,13 +89,8 @@ export function Pricing({
 }) {
   const locale = useLocale();
   const t = useTranslations('pricing.page');
-  const {
-    user,
-    isShowPaymentModal,
-    setIsShowSignModal,
-    setIsShowPaymentModal,
-    configs,
-  } = useAppContext();
+  const { user, setIsShowSignModal, setIsShowPaymentModal, configs } =
+    useAppContext();
 
   const [group, setGroup] = useState(() => {
     // find current pricing item
@@ -115,90 +112,50 @@ export function Pricing({
   const [isLoading, setIsLoading] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
 
-  // Currency state management for each item
-  // Store selected currency and displayed item for each product_id
-  const [itemCurrencies, setItemCurrencies] = useState<
-    Record<string, { selectedCurrency: string; displayedItem: PricingItem }>
+  const [selectedCurrencies, setSelectedCurrencies] = useState<
+    Record<string, string>
   >({});
 
-  // Initialize currency states for all items
-  useEffect(() => {
-    if (pricing.items && pricing.items.length > 0) {
-      const initialCurrencyStates: Record<
-        string,
-        { selectedCurrency: string; displayedItem: PricingItem }
-      > = {};
+  const itemCurrencies = useMemo(() => {
+    const result: Record<
+      string,
+      { selectedCurrency: string; displayedItem: PricingItem }
+    > = {};
+    if (!pricing.items || pricing.items.length === 0) return result;
 
-      pricing.items.forEach((item) => {
-        const currencies = getCurrenciesFromItem(item);
-        const selectedCurrency = getInitialCurrency(
-          currencies,
-          locale,
-          item.currency
-        );
+    for (const item of pricing.items) {
+      const currencies = getCurrenciesFromItem(item);
+      const selectedCurrency =
+        selectedCurrencies[item.product_id] ||
+        getInitialCurrency(currencies, locale, item.currency);
 
-        // Create displayed item with selected currency
-        const currencyData = currencies.find(
-          (c) => c.currency.toLowerCase() === selectedCurrency.toLowerCase()
-        );
+      const currencyData = currencies.find(
+        (c) => c.currency.toLowerCase() === selectedCurrency.toLowerCase()
+      );
 
-        const displayedItem = currencyData
-          ? {
-              ...item,
-              currency: currencyData.currency,
-              amount: currencyData.amount,
-              price: currencyData.price,
-              original_price: currencyData.original_price,
-              // Override with currency-specific payment settings if available
-              payment_product_id:
-                currencyData.payment_product_id || item.payment_product_id,
-              payment_providers:
-                currencyData.payment_providers || item.payment_providers,
-            }
-          : item;
+      const displayedItem = currencyData
+        ? {
+            ...item,
+            currency: currencyData.currency,
+            amount: currencyData.amount,
+            price: currencyData.price,
+            original_price: currencyData.original_price,
+            payment_product_id:
+              currencyData.payment_product_id || item.payment_product_id,
+            payment_providers:
+              currencyData.payment_providers || item.payment_providers,
+          }
+        : item;
 
-        initialCurrencyStates[item.product_id] = {
-          selectedCurrency,
-          displayedItem,
-        };
-      });
-
-      setItemCurrencies(initialCurrencyStates);
+      result[item.product_id] = { selectedCurrency, displayedItem };
     }
-  }, [pricing.items, locale]);
+
+    return result;
+  }, [pricing.items, locale, selectedCurrencies]);
 
   // Handler for currency change
   const handleCurrencyChange = (productId: string, currency: string) => {
-    const item = pricing.items?.find((i) => i.product_id === productId);
-    if (!item) return;
-
-    const currencies = getCurrenciesFromItem(item);
-    const currencyData = currencies.find(
-      (c) => c.currency.toLowerCase() === currency.toLowerCase()
-    );
-
-    if (currencyData) {
-      const displayedItem = {
-        ...item,
-        currency: currencyData.currency,
-        amount: currencyData.amount,
-        price: currencyData.price,
-        original_price: currencyData.original_price,
-        // Override with currency-specific payment settings if available
-        payment_product_id:
-          currencyData.payment_product_id || item.payment_product_id,
-        payment_providers:
-          currencyData.payment_providers || item.payment_providers,
-      };
-
-      setItemCurrencies((prev) => ({
-        ...prev,
-        [productId]: {
-          selectedCurrency: currency,
-          displayedItem,
-        },
-      }));
-    }
+    setSelectedCurrencies((prev) => ({ ...prev, [productId]: currency }));
   };
 
   const handlePayment = async (item: PricingItem) => {
@@ -275,15 +232,25 @@ export function Pricing({
       setIsLoading(true);
       setProductId(item.product_id);
 
-      const response = await fetch('/api/payment/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params),
-      });
+      const data = await fetchJson<{ checkoutUrl: string }>(
+        '/api/payment/checkout',
+        { method: 'POST', body: params },
+        {
+          validate: (value): value is { checkoutUrl: string } =>
+            isPlainObject(value) &&
+            typeof (value as { checkoutUrl?: unknown }).checkoutUrl ===
+              'string' &&
+            Boolean((value as { checkoutUrl: string }).checkoutUrl.trim()),
+          invalidDataMessage: 'invalid checkout response',
+        }
+      );
 
-      if (response.status === 401) {
+      const checkoutUrl = data.checkoutUrl.trim();
+      window.location.assign(checkoutUrl);
+    } catch (e: unknown) {
+      console.log('checkout failed: ', e);
+
+      if (e instanceof RequestIdError && e.status === 401) {
         setIsLoading(false);
         setProductId(null);
         setPricingItem(null);
@@ -291,37 +258,15 @@ export function Pricing({
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(`request failed with status ${response.status}`);
-      }
-
-      const { code, message, data } = await response.json();
-      if (code !== 0) {
-        throw new Error(message);
-      }
-
-      const { checkoutUrl } = data;
-      if (!checkoutUrl) {
-        throw new Error('checkout url not found');
-      }
-
-      window.location.href = checkoutUrl;
-    } catch (e: any) {
-      console.log('checkout failed: ', e);
-      toast.error('checkout failed: ' + e.message);
+      toastFetchError(
+        e,
+        `checkout failed: ${e instanceof Error && e.message ? e.message : 'unknown error'}`
+      );
 
       setIsLoading(false);
       setProductId(null);
     }
   };
-
-  useEffect(() => {
-    if (pricing.items) {
-      const featuredItem = pricing.items.find((i) => i.is_featured);
-      setProductId(featuredItem?.product_id || pricing.items[0]?.product_id);
-      setIsLoading(false);
-    }
-  }, [pricing.items]);
 
   return (
     <section

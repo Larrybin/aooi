@@ -4,9 +4,7 @@ import {
   AIConfigs,
   AIGenerateParams,
   AIImage,
-  AIMediaType,
   AIProvider,
-  AISong,
   AITaskResult,
   AITaskStatus,
 } from '.';
@@ -46,7 +44,7 @@ export class ReplicateProvider implements AIProvider {
   }: {
     params: AIGenerateParams;
   }): Promise<AITaskResult> {
-    const { mediaType, model, prompt, options, async, callbackUrl } = params;
+    const { model, prompt, callbackUrl } = params;
 
     if (!model) {
       throw new Error('model is required');
@@ -58,7 +56,7 @@ export class ReplicateProvider implements AIProvider {
 
     // build request params
     const input: Record<string, unknown> = {
-      prompt: params.prompt,
+      prompt,
       ...(params.options || {}),
     };
 

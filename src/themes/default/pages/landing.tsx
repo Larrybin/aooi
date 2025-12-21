@@ -14,7 +14,7 @@ import {
 } from '@/themes/default/blocks';
 
 export default async function LandingPage({
-  locale,
+  locale: _locale,
   page,
 }: {
   locale?: string;

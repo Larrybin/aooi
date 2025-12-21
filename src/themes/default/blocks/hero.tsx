@@ -44,6 +44,20 @@ export function Hero({
     texts = hero.title?.split(highlightText, 2);
   }
 
+  const fallbackHeroImageRatio = { width: 2434, height: 1642 };
+
+  const getImageWrapperStyle = (image?: {
+    width?: number;
+    height?: number;
+  }) => {
+    const width = image?.width ?? fallbackHeroImageRatio.width;
+    const height = image?.height ?? fallbackHeroImageRatio.height;
+    if (!width || !height) {
+      return undefined;
+    }
+    return { aspectRatio: `${width} / ${height}` } as const;
+  };
+
   return (
     <>
       <section
@@ -156,16 +170,36 @@ export function Hero({
                 aria-hidden
                 className="h-3 w-full bg-[repeating-linear-gradient(-45deg,var(--color-foreground),var(--color-foreground)_1px,transparent_1px,transparent_4px)] opacity-5"
               />
-              <LazyImage
-                className="border-border/25 relative z-2 hidden border dark:block"
-                src={hero.image_invert?.src || hero.image?.src || ''}
-                alt={hero.image_invert?.alt || hero.image?.alt || ''}
-              />
-              <LazyImage
-                className="border-border/25 relative z-2 border dark:hidden"
-                src={hero.image?.src || hero.image_invert?.src || ''}
-                alt={hero.image?.alt || hero.image_invert?.alt || ''}
-              />
+              <div className="border-border/25 relative z-2 hidden w-full overflow-hidden border dark:block">
+                <div
+                  className="relative w-full"
+                  style={getImageWrapperStyle(hero.image_invert ?? hero.image)}
+                >
+                  <LazyImage
+                    src={hero.image_invert?.src || hero.image?.src || ''}
+                    alt={hero.image_invert?.alt || hero.image?.alt || ''}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 1152px"
+                    fetchPriority="high"
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+              <div className="border-border/25 relative z-2 w-full overflow-hidden border dark:hidden">
+                <div
+                  className="relative w-full"
+                  style={getImageWrapperStyle(hero.image ?? hero.image_invert)}
+                >
+                  <LazyImage
+                    src={hero.image?.src || hero.image_invert?.src || ''}
+                    alt={hero.image?.alt || hero.image_invert?.alt || ''}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 1152px"
+                    fetchPriority="high"
+                    className="object-contain"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </motion.section>
@@ -175,7 +209,6 @@ export function Hero({
         numSquares={30}
         maxOpacity={0.1}
         duration={3}
-        repeatDelay={1}
         className={cn(
           '[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]',
           'inset-x-0 inset-y-[-30%] h-[200%] skew-y-12'

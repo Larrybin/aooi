@@ -1,0 +1,269 @@
+# API Reference
+
+This document covers the API route patterns, common utilities, and available endpoints.
+
+## Route Handler Patterns
+
+### Standard Structure
+
+All API routes use the `withApi()` wrapper for consistent error handling:
+
+```typescript
+// src/app/api/example/route.ts
+import { requireUser } from '@/shared/lib/api/guard';
+import { parseJson } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
+
+export const POST = withApi(async (req: Request) => {
+  // 1. Authentication
+  const user = await requireUser(req);
+
+  // 2. Parse & validate input
+  const body = await parseJson(req, MyRequestSchema);
+
+  // 3. Business logic
+  const result = await doSomething(body);
+
+  // 4. Return response
+  return jsonOk({ data: result });
+});
+```
+
+### Request Parsing
+
+```typescript
+import { z } from 'zod';
+
+import { parseJson, parseParams, parseQuery } from '@/shared/lib/api/parse';
+
+// Parse JSON body
+const BodySchema = z.object({
+  name: z.string(),
+  amount: z.number(),
+});
+const body = await parseJson(req, BodySchema);
+
+// Parse query parameters
+const QuerySchema = z.object({
+  page: z.coerce.number().default(1),
+  limit: z.coerce.number().default(10),
+});
+const query = parseQuery(req.url, QuerySchema);
+
+// Parse route params
+const ParamsSchema = z.object({
+  id: z.string(),
+});
+const params = await parseParams(routeParams, ParamsSchema);
+```
+
+### Response Helpers
+
+```typescript
+import { jsonCreated, jsonNoContent, jsonOk } from '@/shared/lib/api/response';
+
+// 200 OK with data
+return jsonOk({ user: userData });
+
+// 201 Created
+return jsonCreated({ id: newId });
+
+// 204 No Content
+return jsonNoContent();
+```
+
+### Error Handling
+
+```typescript
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+  UnprocessableEntityError,
+} from '@/shared/lib/api/errors';
+
+// 400 Bad Request
+throw new BadRequestError('Invalid input');
+
+// 401 Unauthorized
+throw new UnauthorizedError('Not authenticated');
+
+// 403 Forbidden
+throw new ForbiddenError('Access denied');
+
+// 404 Not Found
+throw new NotFoundError('Resource not found');
+
+// 422 Unprocessable Entity
+throw new UnprocessableEntityError('Validation failed');
+```
+
+## Authentication Guards
+
+```typescript
+import { requireUser } from '@/shared/lib/api/guard';
+
+// Throws UnauthorizedError if not authenticated
+// Also enforces CSRF check for cookie-based write requests.
+const user = await requireUser(req);
+
+// User object includes:
+// - id: string
+// - email: string
+// - name: string
+// - image?: string
+```
+
+## Available Endpoints
+
+### Authentication
+
+| Method | Endpoint             | Description                                         |
+| ------ | -------------------- | --------------------------------------------------- |
+| `*`    | `/api/auth/[...all]` | Better Auth handler (signin, signup, signout, etc.) |
+
+### User
+
+| Method | Endpoint                     | Description             |
+| ------ | ---------------------------- | ----------------------- |
+| `POST` | `/api/user/get-user-info`    | Get current user info   |
+| `POST` | `/api/user/get-user-credits` | Get user credit balance |
+
+### Payment
+
+| Method | Endpoint                         | Description                               |
+| ------ | -------------------------------- | ----------------------------------------- |
+| `POST` | `/api/payment/checkout`          | Create checkout session                   |
+| `GET`  | `/api/payment/callback`          | Legacy: redirect-only checkout callback   |
+| `POST` | `/api/payment/callback`          | Finalize checkout (requires login + CSRF) |
+| `POST` | `/api/payment/notify/[provider]` | Webhook notifications                     |
+
+#### Checkout Request
+
+```typescript
+// POST /api/payment/checkout
+{
+  "product_id": "pro_monthly",    // Required: Product ID from pricing
+  "currency": "usd",               // Optional: Override currency
+  "locale": "en",                  // Optional: Locale for callbacks
+  "payment_provider": "stripe",    // Optional: Specific provider
+  "metadata": {}                   // Optional: Custom metadata
+}
+```
+
+#### Checkout Response
+
+```typescript
+{
+  "code": 0,
+  "data": {
+    "sessionId": "cs_xxx",
+    "checkoutUrl": "https://checkout.stripe.com/..."
+  }
+}
+```
+
+### Chat / AI
+
+| Method | Endpoint             | Description       |
+| ------ | -------------------- | ----------------- |
+| `POST` | `/api/chat`          | Chat completion   |
+| `POST` | `/api/chat/new`      | Create new chat   |
+| `POST` | `/api/chat/list`     | List user chats   |
+| `POST` | `/api/chat/info`     | Get chat info     |
+| `POST` | `/api/chat/messages` | Get chat messages |
+| `POST` | `/api/ai/generate`   | AI generation     |
+| `POST` | `/api/ai/query`      | AI query          |
+
+### Configuration
+
+| Method | Endpoint                  | Description        |
+| ------ | ------------------------- | ------------------ |
+| `POST` | `/api/config/get-configs` | Get public configs |
+
+### Storage
+
+| Method | Endpoint                    | Description                      |
+| ------ | --------------------------- | -------------------------------- |
+| `POST` | `/api/storage/upload-image` | Upload image to storage provider |
+
+### Email
+
+| Method | Endpoint                | Description              |
+| ------ | ----------------------- | ------------------------ |
+| `POST` | `/api/email/send-email` | Send transactional email |
+
+### Documentation
+
+| Method | Endpoint           | Description                  |
+| ------ | ------------------ | ---------------------------- |
+| `GET`  | `/api/docs/search` | Search documentation content |
+
+## Response Format
+
+### Success Response
+
+```typescript
+{
+  "code": 0,
+  "message": "ok",
+  "data": { /* response data */ }
+}
+```
+
+### Error Response
+
+```typescript
+{
+  "code": -1,
+  "message": "Error description",
+  "data": { /* optional details, often null */ }
+}
+// HTTP status code carries 4xx/5xx.
+```
+
+## Request ID Tracking
+
+All requests include `x-request-id` header for tracing:
+
+```typescript
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
+
+export const POST = withApi(async (req: Request) => {
+  const { log, requestId } = getRequestLogger(req);
+
+  log.info('Processing request', { userId: user.id });
+  log.error('Something failed', { error });
+
+  // requestId is automatically included in all logs
+});
+```
+
+## Middleware
+
+The middleware (`src/middleware.ts`) handles:
+
+1. **Request ID injection** - Adds `x-request-id` to all requests
+2. **Internationalization** - Routes through next-intl
+3. **Light auth check** - Checks session cookie for protected routes
+
+Protected routes (`/admin`, `/settings`, `/activity`) require a session cookie. Full authentication is verified in the route handler.
+
+## Best Practices
+
+1. **Always use `withApi()`** - For consistent error handling and logging
+2. **Validate all inputs** - Use Zod schemas with parse helpers
+3. **Use typed errors** - Throw specific error classes
+4. **Log appropriately** - Use request logger for traceability
+5. **Guard at entry** - Check auth/permissions at route entry
+
+## Related Files
+
+- `src/shared/lib/api/route.ts` - `withApi()` wrapper
+- `src/shared/lib/api/guard.ts` - Auth guards
+- `src/shared/lib/api/parse.ts` - Request parsing
+- `src/shared/lib/api/response.ts` - Response helpers
+- `src/shared/lib/api/errors.ts` - Error classes
+- `src/middleware.ts` - Request middleware

@@ -17,7 +17,8 @@ const PREFERRED_LOCALE_KEY = 'locale';
 function detectBrowserLocale(): string | null {
   if (typeof window === 'undefined') return null;
 
-  const browserLang = navigator.language || (navigator as any).userLanguage;
+  const nav = navigator as Navigator & { userLanguage?: string };
+  const browserLang = nav.language || nav.userLanguage;
   if (!browserLang) {
     return null;
   }
@@ -83,7 +84,6 @@ export function LocaleDetector() {
       switchToLocale(preferredLocale);
       return;
     }
-
   }, [currentLocale, switchToLocale]);
 
   // Adjust header and main content position when banner is shown

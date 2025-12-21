@@ -1,5 +1,9 @@
+import 'server-only';
+
 import { AdsenseProvider, AdsManager } from '@/extensions/ads';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get ads manager with configs
@@ -18,15 +22,6 @@ export function getAdsManagerWithConfigs(configs: Configs) {
 /**
  * global ads service
  */
-let adsService: AdsManager | null = null;
-
-/**
- * get ads service instance
- */
 export async function getAdsService(): Promise<AdsManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    adsService = getAdsManagerWithConfigs(configs);
-  }
-  return adsService;
+  return await buildServiceFromLatestConfigs(getAdsManagerWithConfigs);
 }

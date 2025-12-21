@@ -1,10 +1,11 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
-import { Button, Crumb, Tab } from '@/shared/types/blocks/common';
+import { requirePermission } from '@/shared/services/rbac_guard';
+import { Button, Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function ChatsPage({

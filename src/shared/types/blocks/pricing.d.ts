@@ -1,4 +1,5 @@
 import { Button } from '@/types/blocks/base/button';
+import { PaymentInterval } from '@/extensions/payment';
 
 export interface PricingGroup {
   name?: string;
@@ -34,7 +35,7 @@ export interface PricingItem {
   button?: Button;
   tip?: string;
   is_featured?: boolean;
-  interval: 'one-time' | 'day' | 'week' | 'month' | 'year';
+  interval: PaymentInterval;
   product_id: string;
   payment_product_id?: string;
   payment_providers?: string[];

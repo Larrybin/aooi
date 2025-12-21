@@ -1,5 +1,3 @@
-import { getTranslations } from 'next-intl/server';
-
 import { redirect } from '@/core/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common';
@@ -12,7 +10,6 @@ export default async function RefreshAITaskPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  const t = await getTranslations('activity.ai-tasks');
 
   const task = await findAITaskById(id);
   if (!task || !task.taskId || !task.provider || !task.status) {

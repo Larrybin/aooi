@@ -1,0 +1,73 @@
+/**
+ * Usage:
+ * - Throw `ApiError` (or subclasses) from Route Handlers and guards.
+ * - Wrap handlers with `withApi()` to convert errors into `{code,message,data}` with HTTP status.
+ */
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly data?: unknown;
+
+  constructor(status: number, message: string, data?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
+export class BadRequestError extends ApiError {
+  constructor(message = 'invalid request', data?: unknown) {
+    super(400, message, data);
+    this.name = 'BadRequestError';
+  }
+}
+
+export class UnauthorizedError extends ApiError {
+  constructor(message = 'unauthorized', data?: unknown) {
+    super(401, message, data);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+export class ForbiddenError extends ApiError {
+  constructor(message = 'forbidden', data?: unknown) {
+    super(403, message, data);
+    this.name = 'ForbiddenError';
+  }
+}
+
+export class NotFoundError extends ApiError {
+  constructor(message = 'not found', data?: unknown) {
+    super(404, message, data);
+    this.name = 'NotFoundError';
+  }
+}
+
+export class UnprocessableEntityError extends ApiError {
+  constructor(message = 'unprocessable entity', data?: unknown) {
+    super(422, message, data);
+    this.name = 'UnprocessableEntityError';
+  }
+}
+
+export class ConflictError extends ApiError {
+  constructor(message = 'conflict', data?: unknown) {
+    super(409, message, data);
+    this.name = 'ConflictError';
+  }
+}
+
+export class TooManyRequestsError extends ApiError {
+  constructor(message = 'too many requests', data?: unknown) {
+    super(429, message, data);
+    this.name = 'TooManyRequestsError';
+  }
+}
+
+export class UpstreamError extends ApiError {
+  constructor(status: 502 | 503, message = 'bad gateway', data?: unknown) {
+    super(status, message, data);
+    this.name = 'UpstreamError';
+  }
+}

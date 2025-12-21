@@ -22,10 +22,10 @@ interface UploadImageProps {
 export function UploadImage({
   field,
   formField,
-  data,
+  data: _data,
   metadata,
-  uploadUrl = '/api/storage/upload-image',
-  onUpload,
+  uploadUrl: _uploadUrl = '/api/storage/upload-image',
+  onUpload: _onUpload,
 }: UploadImageProps) {
   const maxImages = metadata?.max || 1;
   const maxSizeMB = metadata?.maxSizeMB || 10;

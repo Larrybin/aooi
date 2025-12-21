@@ -1,7 +1,7 @@
 "use client";
 
 import { Moon, SunDim } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { cn } from "@/shared/lib/utils";
 import { useTheme } from "next-themes";
@@ -12,6 +12,13 @@ type props = {
 
 export const AnimatedThemeToggler = ({ className }: props) => {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   const isDarkMode = theme === "dark";
 
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -48,6 +55,18 @@ export const AnimatedThemeToggler = ({ className }: props) => {
       }
     );
   };
+
+  if (!mounted) {
+    return (
+      <button
+        aria-hidden="true"
+        type="button"
+        disabled
+        className={cn(className)}
+      />
+    );
+  }
+
   return (
     <button ref={buttonRef} onClick={changeTheme} className={cn(className)}>
       {isDarkMode ? <SunDim /> : <Moon />}

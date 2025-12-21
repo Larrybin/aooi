@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-// @ts-ignore
 import { OverType } from 'overtype';
+
+type OverTypeInstance = ReturnType<(typeof OverType)['init']>[0];
 
 export function MarkdownEditor({
   value,
@@ -18,7 +19,7 @@ export function MarkdownEditor({
   showToolbar?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<OverType>(null);
+  const editorRef = useRef<OverTypeInstance>(null);
   const initialOptionsRef = useRef({
     value,
     onChange,

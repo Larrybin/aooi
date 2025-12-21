@@ -11,6 +11,13 @@ import { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import { useChatContext } from '@/shared/contexts/chat';
+import { isPlainObject } from '@/shared/lib/api/client';
+import { fetchJson } from '@/shared/lib/api/fetch-json';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+} from '@/shared/lib/request-id';
+import type { Chat } from '@/shared/types/chat';
 
 import { ChatInput } from './input';
 
@@ -28,28 +35,25 @@ export function ChatGenerator() {
 
   const fetchNewChat = async (
     msg: PromptInputMessage,
-    body: Record<string, any>
+    body: Record<string, unknown>
   ) => {
     setStatus('submitted');
     setError(null);
 
     try {
-      const resp: Response = await fetch('/api/chat/new', {
-        method: 'POST',
-        body: JSON.stringify({ message: msg, body: body }),
-      });
-      if (!resp.ok) {
-        throw new Error(`request failed with status: ${resp.status}`);
-      }
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new Error(message);
-      }
+      const data = await fetchJson<Chat>(
+        '/api/chat/new',
+        { method: 'POST', body: { message: msg, body: body } },
+        {
+          validate: (value): value is Chat =>
+            isPlainObject(value) &&
+            typeof (value as { id?: unknown }).id === 'string' &&
+            Boolean((value as { id: string }).id.trim()),
+          invalidDataMessage: 'failed to create chat',
+        }
+      );
 
-      const { id } = data;
-      if (!id) {
-        throw new Error('failed to create chat');
-      }
+      const id = data.id.trim();
 
       setChats([data, ...chats]);
 
@@ -59,9 +63,13 @@ export function ChatGenerator() {
       });
       setStatus(undefined);
       setError(null);
-    } catch (e: any) {
-      const message =
+    } catch (e: unknown) {
+      const baseMessage =
         e instanceof Error ? e.message : 'request failed, please try again';
+      const message = formatMessageWithRequestId(
+        baseMessage,
+        getRequestIdFromError(e)
+      );
       setStatus('error');
       setError(message);
       toast.error(message);
@@ -71,7 +79,7 @@ export function ChatGenerator() {
 
   const handleSubmit = async (
     message: PromptInputMessage,
-    body: Record<string, any>
+    body: Record<string, unknown>
   ) => {
     // check user sign
     if (!user) {

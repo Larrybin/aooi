@@ -5,7 +5,6 @@ import { Form } from '@/shared/blocks/form';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -14,7 +13,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/shared/components/ui/card';
@@ -24,7 +22,7 @@ import { Form as FormType } from '@/shared/types/blocks/form';
 
 export function FormCard<
   TData extends Record<string, unknown> = Record<string, unknown>,
-  TPassby = unknown
+  TPassby = unknown,
 >({
   title,
   description,

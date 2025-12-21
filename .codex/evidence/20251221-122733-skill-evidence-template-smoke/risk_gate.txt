@@ -1,0 +1,24 @@
+# 风险闸门（risk_gate）
+- 风险等级：中
+- 需要确认：否
+- 仓库配置：D:/Cursor project/shipany-template-two/codex-workflow.config.json
+- 仓库配置 schemaVersion：1
+- 变更文件数：4
+- 待执行命令数：1
+
+## 触发原因
+- 未检测到明确高风险信号（仍建议保持最小验证）
+
+## 变更文件（抽样）
+- codex-workflow.config.json
+- docs/CONVENTIONS.md
+- prompts/workflow.md
+- scripts/conventions-index.mjs
+
+## 待执行命令
+- `pnpm lint`
+
+## 最小验证集合（建议）
+- `pnpm format:check`
+- `pnpm lint`
+- `pnpm build`

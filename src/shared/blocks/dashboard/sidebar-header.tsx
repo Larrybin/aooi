@@ -28,8 +28,9 @@ export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
                     <Image
                       src={header.brand.logo.src}
                       alt={header.brand.logo.alt || ''}
-                      width={80}
-                      height={80}
+                      width={32}
+                      height={32}
+                      sizes="32px"
                       className="h-auto w-8 shrink-0"
                     />
                   )}

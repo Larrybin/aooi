@@ -1,48 +1,48 @@
-import { respData, respErr } from '@/shared/lib/resp';
-import { ChatStatus, getChats, getChatsCount } from '@/shared/models/chat';
+import { ForbiddenError, NotFoundError } from '@/shared/lib/api/errors';
+import { requireUser } from '@/shared/lib/api/guard';
+import { parseJson } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
+import { safeJsonParse } from '@/shared/lib/json';
+import { findChatById } from '@/shared/models/chat';
 import {
   getChatMessages,
   getChatMessagesCount,
 } from '@/shared/models/chat_message';
-import { getUserInfo } from '@/shared/models/user';
+import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
 
-export async function POST(req: Request) {
-  try {
-    let { chatId, page, limit } = await req.json();
-    if (!chatId) {
-      return respErr('chatId is required');
-    }
+export const POST = withApi(async (req: Request) => {
+  const { chatId, page, limit } = await parseJson(req, ChatMessagesBodySchema);
 
-    if (!page) {
-      page = 1;
-    }
-    if (!limit) {
-      limit = 30;
-    }
+  const user = await requireUser(req);
 
-    const user = await getUserInfo();
-    if (!user) {
-      return respErr('no auth, please sign in');
-    }
-
-    const messages = await getChatMessages({
-      chatId,
-      page,
-      limit,
-    });
-    const total = await getChatMessagesCount({
-      chatId,
-    });
-
-    return respData({
-      list: messages,
-      total,
-      page,
-      limit,
-      hasMore: page * limit < total,
-    });
-  } catch (e: any) {
-    console.log('get chat messages failed:', e);
-    return respErr(`get chat messages failed: ${e.message}`);
+  const chat = await findChatById(chatId);
+  if (!chat) {
+    throw new NotFoundError('chat not found');
   }
-}
+
+  if (chat.userId !== user.id) {
+    throw new ForbiddenError('no permission to access this chat');
+  }
+
+  const messages = await getChatMessages({
+    chatId,
+    page,
+    limit,
+  });
+  const total = await getChatMessagesCount({
+    chatId,
+  });
+
+  return jsonOk({
+    list: messages.map((message) => ({
+      ...message,
+      parts: safeJsonParse(message.parts) ?? [],
+      metadata: safeJsonParse(message.metadata),
+    })),
+    total,
+    page,
+    limit,
+    hasMore: page * limit < total,
+  });
+});

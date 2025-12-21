@@ -1,18 +1,31 @@
+import { loadEnvConfig } from '@next/env';
 import { defineConfig } from 'drizzle-kit';
 
-import { envConfigs } from '@/config';
+import { assertPostgresOnlyDatabaseProvider } from './postgres-only';
+
+function loadDotenvForDrizzleKit() {
+  try {
+    const isDev = process.env.NODE_ENV !== 'production';
+    loadEnvConfig(process.cwd(), isDev);
+  } catch {
+    // optional
+  }
+}
+
+loadDotenvForDrizzleKit();
+
+const databaseUrl = process.env.DATABASE_URL ?? '';
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not set');
+}
+
+assertPostgresOnlyDatabaseProvider(process.env.DATABASE_PROVIDER);
 
 export default defineConfig({
   out: './src/config/db/migrations',
   schema: './src/config/db/schema.ts',
-  dialect: envConfigs.database_provider as
-    | 'sqlite'
-    | 'postgresql'
-    | 'mysql'
-    | 'turso'
-    | 'singlestore'
-    | 'gel',
+  dialect: 'postgresql',
   dbCredentials: {
-    url: envConfigs.database_url ?? '',
+    url: databaseUrl,
   },
 });

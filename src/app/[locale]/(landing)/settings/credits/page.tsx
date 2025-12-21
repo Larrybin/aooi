@@ -4,12 +4,12 @@ import { Empty } from '@/shared/blocks/common';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
 import {
-  type Credit,
   CreditStatus,
   CreditTransactionType,
   getCredits,
   getCreditsCount,
   getRemainingCredits,
+  type Credit,
 } from '@/shared/models/credit';
 import { getUserInfo } from '@/shared/models/user';
 import { Tab } from '@/shared/types/blocks/common';

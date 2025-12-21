@@ -1,7 +1,7 @@
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { Calendar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 
 import { Link } from '@/core/i18n/navigation';
 import { Tabs } from '@/shared/blocks/common/tabs';
@@ -75,6 +75,7 @@ export function Blog({
                         className="aspect-16/9 h-full w-full object-cover object-center"
                         width={960}
                         height={540}
+                        sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
                   )}

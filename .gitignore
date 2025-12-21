@@ -54,12 +54,22 @@ wrangler.toml
 .wrangler
 src/shared/types/cloudflare.d.ts
 
-src/config/db/migrations
-
 .debug 
 .test
 
 *.sql
+!src/config/db/migrations/**/*.sql
 .source
 
 .chats
+
+# nested starterkit (not part of main app)
+/raphael-starterkit-v1-main/
+
+.vercel
+
+# local agent notes / scratch
+/temp/
+
+# local IDE history (do not commit)
+.specstory/history/

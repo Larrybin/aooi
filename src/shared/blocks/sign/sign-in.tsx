@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { signIn } from '@/core/auth/client';
-import { Link, useRouter } from '@/core/i18n/navigation';
+import { Link } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -19,6 +19,7 @@ import {
 } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
 import { SocialProviders } from './social-providers';
 
@@ -29,13 +30,11 @@ export function SignIn({
   configs: Record<string, string>;
   callbackUrl: string;
 }) {
-  const router = useRouter();
   const t = useTranslations('common.sign');
   const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
   const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
@@ -68,15 +67,15 @@ export function SignIn({
         callbackURL: localizedCallbackUrl,
       },
       {
-        onRequest: (ctx) => {
+        onRequest: () => {
           setLoading(true);
         },
-        onResponse: (ctx) => {
+        onResponse: () => {
           setLoading(false);
         },
-        onSuccess: (ctx) => {},
-        onError: (e: any) => {
-          toast.error(e?.error?.message || 'sign in failed');
+        onSuccess: () => {},
+        onError: (ctx: AuthErrorContext) => {
+          toast.error(ctx.error?.message || 'sign in failed');
           setLoading(false);
         },
       }
@@ -114,12 +113,12 @@ export function SignIn({
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">{t('password_title')}</Label>
-                  {/* <Link
-                    href="#"
+                  <Link
+                    href="/forgot-password"
                     className="ml-auto inline-block text-sm underline"
                   >
-                    Forgot your password?
-                  </Link> */}
+                    {t('forgot_password')}
+                  </Link>
                 </div>
 
                 <Input

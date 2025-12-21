@@ -1,5 +1,6 @@
 {
   "groups": {
+    "general_ui": "界面",
     "email_auth": "邮箱认证",
     "google_auth": "Google认证",
     "github_auth": "Github认证",
@@ -31,6 +32,7 @@
       "settings": "设置"
     },
     "tabs": {
+      "general": "通用",
       "auth": "认证",
       "payment": "支付",
       "email": "邮箱",

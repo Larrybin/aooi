@@ -3,14 +3,14 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { PanelCard } from '@/shared/blocks/panel';
+import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
-import { Button } from '@/shared/components/ui/button';
 import {
   getCurrentSubscription,
   getSubscriptions,
   getSubscriptionsCount,
-  type Subscription,
   SubscriptionStatus,
+  type Subscription,
 } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
 import { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
@@ -19,11 +19,29 @@ import { type Table } from '@/shared/types/blocks/table';
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: number; pageSize?: number; status?: string }>;
+  searchParams: Promise<{
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    order_no?: string;
+  }>;
 }) {
-  const { page: pageNum, pageSize, status } = await searchParams;
+  const {
+    page: pageNum,
+    pageSize,
+    status,
+    order_no: orderNo,
+  } = await searchParams;
   const page = pageNum || 1;
   const limit = pageSize || 20;
+
+  const cleanQuery = new URLSearchParams();
+  if (pageNum) cleanQuery.set('page', String(pageNum));
+  if (pageSize) cleanQuery.set('pageSize', String(pageSize));
+  if (status) cleanQuery.set('status', String(status));
+  const cleanUrl = cleanQuery.toString()
+    ? `/settings/billing?${cleanQuery.toString()}`
+    : '/settings/billing';
 
   const user = await getUserInfo();
   if (!user) {
@@ -101,7 +119,7 @@ export default async function BillingPage({
       {
         title: t('fields.current_period'),
         callback: function (item) {
-          let period = (
+          const period = (
             <div>
               {`${moment(item.currentPeriodStart).format('YYYY-MM-DD')}`} ~
               <br />
@@ -232,6 +250,7 @@ export default async function BillingPage({
 
   return (
     <div className="space-y-8">
+      <PaymentCallbackHandler orderNo={orderNo} cleanUrl={cleanUrl} />
       <PanelCard
         label={currentSubscription?.status}
         title={t('view.title')}

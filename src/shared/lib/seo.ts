@@ -2,6 +2,12 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
 
+type MetadataFields = {
+  title: string;
+  description: string;
+  keywords: string;
+};
+
 // get metadata for page component
 export function getMetadata(
   options: {
@@ -37,7 +43,7 @@ export function getMetadata(
     );
 
     // translated metadata
-    let translatedMetadata: any = {};
+    let translatedMetadata: Partial<MetadataFields> = {};
     if (options.metadataKey) {
       translatedMetadata = await getTranslatedMetadata(
         options.metadataKey,

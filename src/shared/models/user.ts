@@ -1,11 +1,12 @@
-import { headers } from 'next/headers';
+import 'server-only';
+
 import { count, desc, eq, inArray } from 'drizzle-orm';
 
-import { getAuth } from '@/core/auth';
 import { db } from '@/core/db';
 import { user } from '@/config/db/schema';
+import { getSignedInUser } from '@/shared/lib/auth-session.server';
 
-import { Permission, Role } from '../services/rbac';
+import type { Permission, Role } from '../services/rbac';
 import { getRemainingCredits } from './credit';
 
 export interface UserCredits {
@@ -88,12 +89,7 @@ export async function getUserCredits(userId: string) {
 }
 
 export async function getSignUser() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  return session?.user;
+  return await getSignedInUser();
 }
 
 export type WithUserId = {

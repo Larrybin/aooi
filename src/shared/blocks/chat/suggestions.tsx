@@ -2,7 +2,6 @@ import {
   Suggestion,
   Suggestions,
 } from '@/shared/components/ai-elements/suggestion';
-import { useChatContext } from '@/shared/contexts/chat';
 
 export function ChatSuggestions() {
   const suggestions = [
@@ -16,7 +15,7 @@ export function ChatSuggestions() {
     'Explain cloud computing basics',
   ];
 
-  const handleSuggestionClick = (suggestion: string) => {
+  const handleSuggestionClick = (_suggestion: string) => {
     // setStatus('submitted');
     // addUserMessage(suggestion);
   };

@@ -9,6 +9,8 @@
  *   npx tsx scripts/assign-role.ts --email=user@example.com --role=viewer --expires-days=30
  */
 
+import '@/config/load-dotenv';
+
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';

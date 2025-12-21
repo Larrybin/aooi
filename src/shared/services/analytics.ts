@@ -1,3 +1,5 @@
+import 'server-only';
+
 import {
   AnalyticsManager,
   ClarityAnalyticsProvider,
@@ -6,7 +8,9 @@ import {
   PlausibleAnalyticsProvider,
   VercelAnalyticsProvider,
 } from '@/extensions/analytics';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get analytics manager with configs
@@ -58,15 +62,6 @@ export function getAnalyticsManagerWithConfigs(configs: Configs) {
 /**
  * global analytics service
  */
-let analyticsService: AnalyticsManager | null = null;
-
-/**
- * get analytics service instance
- */
 export async function getAnalyticsService(): Promise<AnalyticsManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    analyticsService = getAnalyticsManagerWithConfigs(configs);
-  }
-  return analyticsService;
+  return await buildServiceFromLatestConfigs(getAnalyticsManagerWithConfigs);
 }

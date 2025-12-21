@@ -1,0 +1,50 @@
+---
+title: Logging Conventions
+---
+
+This project uses a server-only logger to:
+
+- Reduce production noise (prod logs default to `error` only)
+- Support `debug` logs only when `NEXT_PUBLIC_DEBUG=true`
+- Redact sensitive fields by key name
+- Make logs searchable by consistent structured fields
+
+## Use in Route Handlers
+
+Prefer `getRequestLogger(req)` to bind request context (`route`, `requestId`, `method`) once:
+
+- `src/shared/lib/request-logger.server.ts`
+
+## Structured Fields
+
+Common fields (recommended):
+
+| Field       | Type      | Notes                                                       |
+| ----------- | --------- | ----------------------------------------------------------- |
+| `route`     | `string`  | URL pathname only (no query)                                |
+| `requestId` | `string`  | Prefer `x-request-id`, fallback to platform ids             |
+| `method`    | `string`  | HTTP method                                                 |
+| `provider`  | `string`  | Payment/email/etc provider name                             |
+| `userId`    | `string`  | Sensitive; log only when necessary (prefer debug or hashed) |
+| `error`     | `unknown` | Prefer `Error` object; logger will serialize + redact       |
+
+## Security Rules
+
+- Never log full webhook payloads, auth headers, cookies, or raw tokens.
+- Prefer summaries (ids/statuses/counts) over full objects.
+- Keep response error messages generic; detailed context belongs in server logs.
+
+## Redaction Rules (by key name)
+
+The logger recursively redacts objects: when a key name matches the rules below, the value is replaced with `"[REDACTED]"`.
+
+> Source of truth is `src/shared/lib/logger.server.ts`. This section is a synchronized summary of the current implementation.
+
+| Rule type       | Matching examples (key)                                    |
+| --------------- | ---------------------------------------------------------- |
+| Exact keys      | `authorization`, `cookie`, `set-cookie`                    |
+| Password-like   | `password`, `pwd`, `pass` (substring match)                |
+| Secret-like     | `secret`, `client_secret`, `private_key` (substring match) |
+| Token-like      | `token` (substring match)                                  |
+| API key-like    | `api_key`, `apikey`, `api-key` (substring match)           |
+| Session id-like | `session*id` (contains `session` and ends with `id`)       |

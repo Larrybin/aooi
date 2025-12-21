@@ -1,5 +1,6 @@
 {
   "groups": {
+    "general_ui": "UI",
     "email_auth": "Email Auth",
     "google_auth": "Google Auth",
     "github_auth": "Github Auth",
@@ -31,6 +32,7 @@
       "settings": "Settings"
     },
     "tabs": {
+      "general": "General",
       "auth": "Auth",
       "payment": "Payment",
       "email": "Email",

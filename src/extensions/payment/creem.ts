@@ -1,3 +1,7 @@
+import { z } from 'zod';
+
+import { safeFetchJson } from '@/shared/lib/fetch/server';
+
 import {
   CheckoutSession,
   PaymentBilling,
@@ -13,7 +17,132 @@ import {
   SubscriptionCycleType,
   SubscriptionInfo,
   SubscriptionStatus,
+  WebhookConfigError,
+  WebhookPayloadError,
+  WebhookVerificationError,
 } from '.';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const getErrorMessage = (error: unknown): string | undefined => {
+  if (typeof error === 'string' && error) return error;
+  if (isRecord(error) && typeof error.message === 'string' && error.message) {
+    return error.message;
+  }
+  return undefined;
+};
+
+const parseOrThrow = <Schema extends z.ZodTypeAny>(
+  schema: Schema,
+  value: unknown,
+  error: Error
+): z.infer<Schema> => {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    throw error;
+  }
+  return parsed.data;
+};
+
+const creemWebhookEventSchema = z
+  .object({
+    eventType: z.string().min(1),
+    object: z.unknown(),
+  })
+  .passthrough();
+
+const creemCheckoutSessionSchema = z
+  .object({
+    id: z.string().optional(),
+    status: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    product: z.unknown().optional(),
+    subscription: z.unknown().optional(),
+    order: z.unknown().optional(),
+    last_transaction: z.unknown().optional(),
+    customer: z
+      .object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        email: z.string().optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
+
+const creemOrderLikeSchema = z
+  .object({
+    status: z.string().optional(),
+    transaction: z.string().optional(),
+    id: z.string().optional(),
+    description: z.string().optional(),
+    amount: z.number().optional(),
+    amount_paid: z.number().optional(),
+    currency: z.string().optional(),
+    discount_amount: z.number().optional(),
+    created_at: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough();
+
+const creemSubscriptionSchema = z
+  .object({
+    id: z.string(),
+    status: z.string(),
+    cancel_at: z.unknown().optional(),
+    canceled_at: z.union([z.string(), z.number()]).optional(),
+    current_period_start_date: z.union([z.string(), z.number()]),
+    current_period_end_date: z.union([z.string(), z.number()]),
+    created_at: z.union([z.string(), z.number()]).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    product: z.unknown().optional(),
+  })
+  .passthrough();
+
+const creemProductSchema = z
+  .object({
+    id: z.string().optional(),
+    billing_period: z.string().optional(),
+    description: z.string().optional(),
+    price: z.number().optional(),
+    currency: z.string().optional(),
+  })
+  .passthrough();
+
+const creemInvoiceSchema = z
+  .object({
+    status: z.string().optional(),
+    order: z.unknown().optional(),
+    last_transaction: z.unknown().optional(),
+    subscription: z.unknown().optional(),
+    customer: z
+      .object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        email: z.string().optional(),
+      })
+      .optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+const creemCreateCheckoutResponseSchema = z
+  .object({
+    id: z.string().optional(),
+    checkout_url: z.string().optional(),
+    error: z.unknown().optional(),
+  })
+  .passthrough();
+
+const creemBillingResponseSchema = z
+  .object({
+    customer_portal_link: z.string().optional(),
+  })
+  .passthrough();
+
+type CreemCheckoutSession = z.infer<typeof creemCheckoutSessionSchema>;
+type CreemSubscription = z.infer<typeof creemSubscriptionSchema>;
+type CreemProduct = z.infer<typeof creemProductSchema>;
 
 /**
  * Creem payment provider configs
@@ -49,61 +178,64 @@ export class CreemProvider implements PaymentProvider {
   }: {
     order: PaymentOrder;
   }): Promise<CheckoutSession> {
-    try {
-      if (!order.productId) {
-        throw new Error('productId is required');
-      }
-
-      // build payment payload
-      const payload: Record<string, unknown> = {
-        product_id: order.productId,
-        request_id: order.requestId || undefined,
-        units: 1,
-        discount_code: order.discount
-          ? {
-              code: order.discount.code,
-            }
-          : undefined,
-        customer: order.customer
-          ? {
-              id: order.customer.id,
-              email: order.customer.email,
-            }
-          : undefined,
-        custom_fields: order.customFields
-          ? order.customFields.map((customField: PaymentCustomField) => ({
-              type: customField.type,
-              key: customField.name,
-              label: customField.label,
-              optional: !customField.isRequired as boolean,
-              text: customField.metadata,
-            }))
-          : undefined,
-        success_url: order.successUrl,
-        metadata: order.metadata,
-      };
-
-      const result = await this.makeRequest('/v1/checkouts', 'POST', payload);
-
-      // create payment failed
-      if (result.error) {
-        throw new Error(result.error.message || 'create payment failed');
-      }
-
-      // create payment success
-      return {
-        provider: this.name,
-        checkoutParams: payload,
-        checkoutInfo: {
-          sessionId: result.id,
-          checkoutUrl: result.checkout_url,
-        },
-        checkoutResult: result,
-        metadata: order.metadata || {},
-      };
-    } catch (error) {
-      throw error;
+    if (!order.productId) {
+      throw new Error('productId is required');
     }
+
+    const payload: Record<string, unknown> = {
+      product_id: order.productId,
+      request_id: order.requestId || undefined,
+      units: 1,
+      discount_code: order.discount
+        ? {
+            code: order.discount.code,
+          }
+        : undefined,
+      customer: order.customer
+        ? {
+            id: order.customer.id,
+            email: order.customer.email,
+          }
+        : undefined,
+      custom_fields: order.customFields
+        ? order.customFields.map((customField: PaymentCustomField) => ({
+            type: customField.type,
+            key: customField.name,
+            label: customField.label,
+            optional: !customField.isRequired as boolean,
+            text: customField.metadata,
+          }))
+        : undefined,
+      success_url: order.successUrl,
+      metadata: order.metadata,
+    };
+
+    const rawResult = await this.makeRequest('/v1/checkouts', 'POST', payload);
+    const result = parseOrThrow(
+      creemCreateCheckoutResponseSchema,
+      rawResult,
+      new Error('create payment failed')
+    );
+
+    const errorMessage = getErrorMessage(result.error);
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    }
+
+    if (!result.id || !result.checkout_url) {
+      throw new Error('create payment failed');
+    }
+
+    return {
+      provider: this.name,
+      checkoutParams: payload,
+      checkoutInfo: {
+        sessionId: result.id,
+        checkoutUrl: result.checkout_url,
+      },
+      checkoutResult: rawResult,
+      metadata: order.metadata || {},
+    };
   }
 
   // get payment by session id
@@ -113,110 +245,117 @@ export class CreemProvider implements PaymentProvider {
   }: {
     sessionId: string;
   }): Promise<PaymentSession> {
-    try {
-      // retrieve payment
-      const session = await this.makeRequest(
-        `/v1/checkouts?checkout_id=${sessionId}`,
-        'GET'
-      );
+    const rawSession = await this.makeRequest(
+      `/v1/checkouts?checkout_id=${sessionId}`,
+      'GET'
+    );
 
-      if (!session.id || !session.order) {
-        throw new Error(session.error || 'get payment failed');
-      }
-
-      return await this.buildPaymentSessionFromCheckoutSession(session);
-    } catch (error) {
-      throw error;
+    const parsedSession = creemCheckoutSessionSchema.safeParse(rawSession);
+    if (
+      !parsedSession.success ||
+      !parsedSession.data.id ||
+      !parsedSession.data.order
+    ) {
+      const errorMessage = isRecord(rawSession)
+        ? getErrorMessage(rawSession.error)
+        : undefined;
+      throw new Error(errorMessage || 'get payment failed');
     }
+
+    return await this.buildPaymentSessionFromCheckoutSession(
+      parsedSession.data
+    );
   }
 
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
-    try {
-      const rawBody = await req.text();
-      const signature = req.headers.get('creem-signature') as string;
+    const rawBody = await req.text();
+    const signature = req.headers.get('creem-signature') as string;
 
-      if (!rawBody || !signature) {
-        throw new Error('Invalid webhook request');
-      }
-
-      if (!this.configs.signingSecret) {
-        throw new Error('Signing Secret not configured');
-      }
-
-      const computedSignature = await this.generateSignature(
-        rawBody,
-        this.configs.signingSecret
-      );
-
-      if (computedSignature !== signature) {
-        throw new Error('Invalid webhook signature');
-      }
-
-      // parse the webhook payload
-      const event = JSON.parse(rawBody);
-
-      if (!event || !event.eventType) {
-        throw new Error('Invalid webhook payload');
-      }
-
-      let paymentSession: PaymentSession | undefined = undefined;
-
-      const eventType = this.mapCreemEventType(event.eventType);
-
-      if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-        paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-          event.object
-        );
-      } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
-        paymentSession = await this.buildPaymentSessionFromInvoice(
-          event.object
-        );
-      } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
-        paymentSession = await this.buildPaymentSessionFromSubscription(
-          event.object
-        );
-      } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
-        paymentSession = await this.buildPaymentSessionFromSubscription(
-          event.object
-        );
-      }
-
-      if (!paymentSession) {
-        throw new Error('Invalid webhook event');
-      }
-
-      return {
-        eventType: eventType,
-        eventResult: event,
-        paymentSession: paymentSession,
-      };
-    } catch (error) {
-      throw error;
+    if (!rawBody || !signature) {
+      throw new WebhookVerificationError('invalid webhook request');
     }
+
+    if (!this.configs.signingSecret) {
+      throw new WebhookConfigError('signing secret not configured');
+    }
+
+    const computedSignature = await this.generateSignature(
+      rawBody,
+      this.configs.signingSecret
+    );
+
+    if (computedSignature !== signature) {
+      throw new WebhookVerificationError('invalid webhook signature');
+    }
+
+    let event: unknown;
+    try {
+      event = JSON.parse(rawBody);
+    } catch {
+      throw new WebhookPayloadError('invalid webhook payload');
+    }
+
+    const webhookEvent = parseOrThrow(
+      creemWebhookEventSchema,
+      event,
+      new WebhookPayloadError('invalid webhook payload')
+    );
+
+    const eventType = this.mapCreemEventType(webhookEvent.eventType);
+
+    let paymentSession: PaymentSession | undefined = undefined;
+    if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
+      paymentSession = await this.buildPaymentSessionFromCheckoutSession(
+        webhookEvent.object
+      );
+    } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
+      paymentSession = await this.buildPaymentSessionFromInvoice(
+        webhookEvent.object
+      );
+    } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
+      paymentSession = await this.buildPaymentSessionFromSubscription(
+        webhookEvent.object
+      );
+    } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
+      paymentSession = await this.buildPaymentSessionFromSubscription(
+        webhookEvent.object
+      );
+    }
+
+    if (!paymentSession) {
+      throw new WebhookPayloadError('invalid webhook event');
+    }
+
+    return {
+      eventType,
+      eventResult: webhookEvent,
+      paymentSession,
+    };
   }
 
   async getPaymentBilling({
     customerId,
-    returnUrl,
   }: {
     customerId: string;
     returnUrl?: string;
   }): Promise<PaymentBilling> {
-    try {
-      const billing = await this.makeRequest('/v1/customers/billing', 'POST', {
-        customer_id: customerId,
-      });
+    const rawBilling = await this.makeRequest('/v1/customers/billing', 'POST', {
+      customer_id: customerId,
+    });
 
-      if (!billing.customer_portal_link) {
-        throw new Error('get billing url failed');
-      }
+    const billing = parseOrThrow(
+      creemBillingResponseSchema,
+      rawBilling,
+      new Error('get billing url failed')
+    );
 
-      return {
-        billingUrl: billing.customer_portal_link,
-      };
-    } catch (error) {
-      throw error;
+    if (!billing.customer_portal_link) {
+      throw new Error('get billing url failed');
     }
+
+    return {
+      billingUrl: billing.customer_portal_link,
+    };
   }
 
   async cancelSubscription({
@@ -224,20 +363,21 @@ export class CreemProvider implements PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession> {
-    try {
-      const result = await this.makeRequest(
-        `/v1/subscriptions/${subscriptionId}/cancel`,
-        'POST'
-      );
+    const rawResult = await this.makeRequest(
+      `/v1/subscriptions/${subscriptionId}/cancel`,
+      'POST'
+    );
 
-      if (!result.canceled_at) {
-        throw new Error('cancel subscription failed');
-      }
-
-      return await this.buildPaymentSessionFromSubscription(result);
-    } catch (error) {
-      throw error;
+    const subscription = parseOrThrow(
+      creemSubscriptionSchema,
+      rawResult,
+      new Error('cancel subscription failed')
+    );
+    if (!subscription.canceled_at) {
+      throw new Error('cancel subscription failed');
     }
+
+    return await this.buildPaymentSessionFromSubscription(subscription);
   }
 
   private async generateSignature(
@@ -290,14 +430,11 @@ export class CreemProvider implements PaymentProvider {
       config.body = JSON.stringify(data);
     }
 
-    const response = await fetch(url, config);
-    if (!response.ok) {
-      throw new Error(
-        `request creem api failed with status: ${response.status}`
-      );
-    }
-
-    return await response.json();
+    return await safeFetchJson<unknown>(url, config, {
+      timeoutMs: 15000,
+      cache: 'no-store',
+      errorMessage: 'request creem api failed',
+    });
   }
 
   private mapCreemEventType(eventType: string): PaymentEventType {
@@ -324,61 +461,84 @@ export class CreemProvider implements PaymentProvider {
     }
   }
 
-  private mapCreemStatus(session: any): PaymentStatus {
-    const status = session.status;
-    const order = session.order || session.last_transaction;
-    const orderStatus = order?.status;
+  private mapCreemStatusFromCheckoutSession(
+    session: CreemCheckoutSession
+  ): PaymentStatus {
+    const orderCandidate = session.order ?? session.last_transaction;
+    const order = creemOrderLikeSchema.safeParse(orderCandidate);
+    const orderStatus = order.success ? order.data.status : undefined;
 
     if (orderStatus === 'paid') {
       return PaymentStatus.SUCCESS;
     } else {
       // todo: handle other status
-      throw new Error(`Unknown Creem session status: ${status}`);
+      throw new Error(`Unknown Creem session status: ${session.status}`);
     }
+  }
+
+  private mapCreemStatus(session: unknown): PaymentStatus {
+    const checkedSession = parseOrThrow(
+      creemCheckoutSessionSchema,
+      session,
+      new WebhookPayloadError('invalid creem session payload')
+    );
+    return this.mapCreemStatusFromCheckoutSession(checkedSession);
   }
 
   // build payment session from checkout session
   private async buildPaymentSessionFromCheckoutSession(
-    session: any
+    session: unknown
   ): Promise<PaymentSession> {
-    let subscription =
-      session.subscription ??
-      (session as { subscription?: { id: string } }).subscription;
+    const checkedSession = parseOrThrow(
+      creemCheckoutSessionSchema,
+      session,
+      new WebhookPayloadError('invalid creem checkout session payload')
+    );
 
-    if (session.subscription) {
-      subscription = session.subscription;
-    }
+    const subscriptionCandidate = checkedSession.subscription;
+    const subscription = subscriptionCandidate
+      ? parseOrThrow(
+          creemSubscriptionSchema,
+          subscriptionCandidate,
+          new WebhookPayloadError('invalid creem subscription payload')
+        )
+      : undefined;
 
-    const order = session.order || session.last_transaction;
+    const orderCandidate =
+      checkedSession.order ?? checkedSession.last_transaction;
+    const order = creemOrderLikeSchema.safeParse(orderCandidate);
+    const checkedOrder = order.success ? order.data : undefined;
 
     const result: PaymentSession = {
       provider: this.name,
-      paymentStatus: this.mapCreemStatus(session),
+      paymentStatus: this.mapCreemStatusFromCheckoutSession(checkedSession),
       paymentInfo: {
-        transactionId: order?.transaction || order?.id,
-        amount: order?.amount || 0,
-        currency: order?.currency || '',
+        transactionId: checkedOrder?.transaction || checkedOrder?.id,
+        amount: checkedOrder?.amount || 0,
+        currency: checkedOrder?.currency || '',
         discountCode: '',
-        discountAmount: order?.discount_amount || 0,
-        discountCurrency: order?.currency || '',
-        paymentAmount: order?.amount_paid || 0,
-        paymentCurrency: order?.currency || '',
-        paymentEmail: session.customer?.email,
-        paymentUserName: session.customer?.name,
-        paymentUserId: session.customer?.id,
-        paidAt: order?.created_at ? new Date(order.created_at) : undefined,
+        discountAmount: checkedOrder?.discount_amount || 0,
+        discountCurrency: checkedOrder?.currency || '',
+        paymentAmount: checkedOrder?.amount_paid || 0,
+        paymentCurrency: checkedOrder?.currency || '',
+        paymentEmail: checkedSession.customer?.email,
+        paymentUserName: checkedSession.customer?.name,
+        paymentUserId: checkedSession.customer?.id,
+        paidAt: checkedOrder?.created_at
+          ? new Date(checkedOrder.created_at)
+          : undefined,
         invoiceId: '', // todo: invoice id
         invoiceUrl: '',
       },
-      paymentResult: session,
-      metadata: session.metadata,
+      paymentResult: checkedSession,
+      metadata: checkedSession.metadata,
     };
 
     if (subscription) {
       result.subscriptionId = subscription.id;
       result.subscriptionInfo = await this.buildSubscriptionInfo(
         subscription,
-        session.product
+        checkedSession.product
       );
       result.subscriptionResult = subscription;
     }
@@ -387,12 +547,30 @@ export class CreemProvider implements PaymentProvider {
   }
 
   // build payment session from subscription session
-  private async buildPaymentSessionFromInvoice(invoice: any): Promise<PaymentSession> {
-    const order = invoice.order || invoice.last_transaction;
+  private async buildPaymentSessionFromInvoice(
+    invoice: unknown
+  ): Promise<PaymentSession> {
+    const checkedInvoice = parseOrThrow(
+      creemInvoiceSchema,
+      invoice,
+      new WebhookPayloadError('invalid creem invoice payload')
+    );
 
-    const subscription = invoice.subscription || invoice;
+    const orderCandidate =
+      checkedInvoice.order ?? checkedInvoice.last_transaction;
+    const order = creemOrderLikeSchema.safeParse(orderCandidate);
+    const checkedOrder = order.success ? order.data : undefined;
 
-    const subscriptionCreatedAt = new Date(subscription.created_at);
+    const subscriptionCandidate = checkedInvoice.subscription ?? checkedInvoice;
+    const subscription = parseOrThrow(
+      creemSubscriptionSchema,
+      subscriptionCandidate,
+      new WebhookPayloadError('invalid creem subscription payload')
+    );
+
+    const subscriptionCreatedAt = subscription.created_at
+      ? new Date(subscription.created_at)
+      : new Date(0);
     const currentPeriodStartAt = new Date(
       subscription.current_period_start_date
     );
@@ -406,27 +584,29 @@ export class CreemProvider implements PaymentProvider {
 
     const result: PaymentSession = {
       provider: this.name,
-      paymentStatus: this.mapCreemStatus(invoice),
+      paymentStatus: this.mapCreemStatus(checkedInvoice),
       paymentInfo: {
-        description: order?.description,
-        amount: order?.amount || 0,
-        currency: order?.currency || '',
-        transactionId: order?.transaction || order?.id,
+        description: checkedOrder?.description,
+        amount: checkedOrder?.amount || 0,
+        currency: checkedOrder?.currency || '',
+        transactionId: checkedOrder?.transaction || checkedOrder?.id,
         discountCode: '',
-        discountAmount: order?.discount_amount || 0,
-        discountCurrency: order?.currency || '',
-        paymentAmount: order?.amount_paid || 0,
-        paymentCurrency: order?.currency || '',
-        paymentEmail: invoice.customer?.email,
-        paymentUserName: invoice.customer?.name,
-        paymentUserId: invoice.customer?.id,
-        paidAt: order?.created_at ? new Date(order.created_at) : undefined,
+        discountAmount: checkedOrder?.discount_amount || 0,
+        discountCurrency: checkedOrder?.currency || '',
+        paymentAmount: checkedOrder?.amount_paid || 0,
+        paymentCurrency: checkedOrder?.currency || '',
+        paymentEmail: checkedInvoice.customer?.email,
+        paymentUserName: checkedInvoice.customer?.name,
+        paymentUserId: checkedInvoice.customer?.id,
+        paidAt: checkedOrder?.created_at
+          ? new Date(checkedOrder.created_at)
+          : undefined,
         invoiceId: '', // todo: invoice id
         invoiceUrl: '',
         subscriptionCycleType: cycleType,
       },
-      paymentResult: invoice,
-      metadata: invoice.metadata,
+      paymentResult: checkedInvoice,
+      metadata: checkedInvoice.metadata,
     };
 
     if (subscription) {
@@ -443,38 +623,48 @@ export class CreemProvider implements PaymentProvider {
 
   // build payment session from subscription
   private async buildPaymentSessionFromSubscription(
-    subscription: any
+    subscription: unknown
   ): Promise<PaymentSession> {
+    const checkedSubscription = parseOrThrow(
+      creemSubscriptionSchema,
+      subscription,
+      new WebhookPayloadError('invalid creem subscription payload')
+    );
+
     const result: PaymentSession = {
       provider: this.name,
     };
 
-    if (subscription) {
-      result.subscriptionId = subscription.id;
-      result.subscriptionInfo = await this.buildSubscriptionInfo(
-        subscription,
-        subscription.product
-      );
-      result.subscriptionResult = subscription;
-    }
+    result.subscriptionId = checkedSubscription.id;
+    result.subscriptionInfo = await this.buildSubscriptionInfo(
+      checkedSubscription,
+      checkedSubscription.product
+    );
+    result.subscriptionResult = checkedSubscription;
 
     return result;
   }
 
   // build subscription info from subscription
   private async buildSubscriptionInfo(
-    subscription: any,
-    product?: any
+    subscription: CreemSubscription,
+    product?: unknown
   ): Promise<SubscriptionInfo> {
-    const { interval, count: intervalCount } = this.mapCreemInterval(product);
+    const parsedProduct = creemProductSchema.safeParse(product);
+    const checkedProduct: CreemProduct | undefined = parsedProduct.success
+      ? parsedProduct.data
+      : undefined;
+
+    const { interval, count: intervalCount } =
+      this.mapCreemInterval(checkedProduct);
 
     const subscriptionInfo: SubscriptionInfo = {
       subscriptionId: subscription.id,
-      productId: product?.id,
+      productId: checkedProduct?.id,
       planId: '',
-      description: product?.description,
-      amount: product?.price,
-      currency: product?.currency,
+      description: checkedProduct?.description,
+      amount: checkedProduct?.price,
+      currency: checkedProduct?.currency,
       currentPeriodStart: new Date(subscription.current_period_start_date),
       currentPeriodEnd: new Date(subscription.current_period_end_date),
       interval: interval,
@@ -486,14 +676,18 @@ export class CreemProvider implements PaymentProvider {
       if (subscription.cancel_at) {
         subscriptionInfo.status = SubscriptionStatus.PENDING_CANCEL;
         // cancel apply at
-        subscriptionInfo.canceledAt = new Date(subscription.canceled_at);
+        if (subscription.canceled_at !== undefined) {
+          subscriptionInfo.canceledAt = new Date(subscription.canceled_at);
+        }
       } else {
         subscriptionInfo.status = SubscriptionStatus.ACTIVE;
       }
     } else if (subscription.status === 'canceled') {
       // subscription canceled
       subscriptionInfo.status = SubscriptionStatus.CANCELED;
-      subscriptionInfo.canceledAt = new Date(subscription.canceled_at);
+      if (subscription.canceled_at !== undefined) {
+        subscriptionInfo.canceledAt = new Date(subscription.canceled_at);
+      }
     } else if (subscription.status === 'trialing') {
       subscriptionInfo.status = SubscriptionStatus.TRIALING;
     } else if (subscription.status === 'paused') {

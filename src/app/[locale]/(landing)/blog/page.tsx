@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
+import { logger } from '@/shared/lib/logger.server';
 import { getMetadata } from '@/shared/lib/seo';
 import { getPostsAndCategories } from '@/shared/models/post';
 import {
@@ -55,7 +56,7 @@ export default async function BlogPage({
 
     categories.unshift(currentCategory);
   } catch (error) {
-    console.log('getting posts failed:', error);
+    logger.warn('landing: get posts failed', { route: '/blog', locale, error });
   }
 
   // build blog data

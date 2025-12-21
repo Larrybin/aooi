@@ -38,6 +38,9 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { useAppContext } from '@/shared/contexts/app';
+import { isPlainObject } from '@/shared/lib/api/client';
+import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
+import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
 
 interface ImageGeneratorProps {
   allowMultipleImages?: boolean;
@@ -60,7 +63,7 @@ interface BackendTask {
   provider: string;
   model: string;
   prompt: string | null;
-  taskResult: string | null;
+  taskInfo: BackendTaskInfo | null;
 }
 
 type ImageGeneratorTab = 'text-to-image' | 'image-to-image';
@@ -95,81 +98,40 @@ const PROVIDER_OPTIONS = [
 ];
 
 interface ImageTaskResult {
-  output?: unknown;
-  images?: unknown;
-  data?: unknown;
-  error?: string;
-  failure_reason?: string;
+  images?: Array<
+    | {
+        imageUrl?: string;
+        url?: string;
+      }
+    | string
+    | null
+    | undefined
+  >;
+  errorMessage?: string;
+  errorCode?: string;
+  status?: string;
 }
 
-function parseTaskResult(taskResult: string | null): ImageTaskResult | null {
-  if (!taskResult) {
-    return null;
-  }
+type BackendTaskInfo = ImageTaskResult;
 
-  try {
-    return JSON.parse(taskResult) as ImageTaskResult;
-  } catch (error) {
-    console.warn('Failed to parse taskResult:', error);
-    return null;
-  }
-}
-
-function extractImageUrls(result: ImageTaskResult | null): string[] {
-  if (!result) {
+function extractImageUrlsFromTaskInfo(
+  taskInfo: BackendTaskInfo | null
+): string[] {
+  if (!taskInfo?.images || !Array.isArray(taskInfo.images)) {
     return [];
   }
 
-  const output = result.output ?? result.images ?? result.data;
-
-  if (!output) {
-    return [];
-  }
-
-  if (typeof output === 'string') {
-    return [output];
-  }
-
-  if (Array.isArray(output)) {
-    return output
-      .flatMap((item) => {
-        if (!item) return [];
-        if (typeof item === 'string') return [item];
-        if (typeof item === 'object') {
-          const candidate =
-            'url' in item && typeof item.url === 'string'
-              ? item.url
-              : 'uri' in item && typeof item.uri === 'string'
-                ? item.uri
-                : 'image' in item && typeof item.image === 'string'
-                  ? item.image
-                  : 'src' in item && typeof item.src === 'string'
-                    ? item.src
-                    : undefined;
-          return typeof candidate === 'string' ? [candidate] : [];
-        }
-        return [];
-      })
-      .filter(Boolean);
-  }
-
-  if (typeof output === 'object') {
-    const candidate =
-      'url' in output && typeof output.url === 'string'
-        ? output.url
-        : 'uri' in output && typeof output.uri === 'string'
-          ? output.uri
-          : 'image' in output && typeof output.image === 'string'
-            ? output.image
-            : 'src' in output && typeof output.src === 'string'
-              ? output.src
-              : undefined;
-    if (typeof candidate === 'string') {
-      return [candidate];
-    }
-  }
-
-  return [];
+  return taskInfo.images
+    .map((image) => {
+      if (!image) return undefined;
+      if (typeof image === 'string') return image;
+      if (typeof image === 'object') {
+        if (typeof image.imageUrl === 'string') return image.imageUrl;
+        if (typeof image.url === 'string') return image.url;
+      }
+      return undefined;
+    })
+    .filter((url): url is string => Boolean(url));
 }
 
 export function ImageGenerator({
@@ -286,29 +248,24 @@ export function ImageGenerator({
           return true;
         }
 
-        const resp = await fetch('/api/ai/query', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ taskId: id }),
-        });
+        const task = await fetchJson<BackendTask>(
+          '/api/ai/query',
+          { method: 'POST', body: { taskId: id } },
+          {
+            validate: (value): value is BackendTask =>
+              isPlainObject(value) &&
+              typeof (value as { id?: unknown }).id === 'string' &&
+              typeof (value as { status?: unknown }).status === 'string' &&
+              typeof (value as { provider?: unknown }).provider === 'string' &&
+              typeof (value as { model?: unknown }).model === 'string',
+            invalidDataMessage: 'Query task failed',
+          }
+        );
 
-        if (!resp.ok) {
-          throw new Error(`request failed with status: ${resp.status}`);
-        }
-
-        const { code, message, data } = await resp.json();
-        if (code !== 0) {
-          throw new Error(message || 'Query task failed');
-        }
-
-        const task = data as BackendTask;
         const currentStatus = task.status as AITaskStatus;
         setTaskStatus(currentStatus);
 
-        const parsedResult = parseTaskResult(task.taskResult);
-        const imageUrls = extractImageUrls(parsedResult);
+        const imageUrls = extractImageUrlsFromTaskInfo(task.taskInfo);
 
         if (currentStatus === AITaskStatus.PENDING) {
           setProgress((prev) => Math.max(prev, 20));
@@ -356,9 +313,7 @@ export function ImageGenerator({
 
         if (currentStatus === AITaskStatus.FAILED) {
           const errorMessage =
-            parsedResult?.error ||
-            parsedResult?.failure_reason ||
-            'Generate image failed';
+            task.taskInfo?.errorMessage || 'Generate image failed';
           toast.error(errorMessage);
           resetTaskState();
 
@@ -369,9 +324,12 @@ export function ImageGenerator({
 
         setProgress((prev) => Math.min(prev + 5, 95));
         return false;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error polling image task:', error);
-        toast.error(`Query task failed: ${error.message}`);
+        toastFetchError(
+          error,
+          `Query task failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
+        );
         resetTaskState();
 
         fetchUserCredits();
@@ -452,48 +410,46 @@ export function ImageGenerator({
     setGenerationStartTime(Date.now());
 
     try {
-      const options: any = {};
+      const options: { image_input?: string[] } = {};
 
       if (!isTextToImageMode) {
         options.image_input = referenceImageUrls;
       }
 
-      const resp = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const data = await fetchJson<{ id: string }>(
+        '/api/ai/generate',
+        {
+          method: 'POST',
+          body: {
+            mediaType: AIMediaType.IMAGE,
+            scene: isTextToImageMode ? 'text-to-image' : 'image-to-image',
+            provider,
+            model,
+            prompt: trimmedPrompt,
+            options,
+          },
         },
-        body: JSON.stringify({
-          mediaType: AIMediaType.IMAGE,
-          scene: isTextToImageMode ? 'text-to-image' : 'image-to-image',
-          provider,
-          model,
-          prompt: trimmedPrompt,
-          options,
-        }),
-      });
+        {
+          validate: (value): value is { id: string } =>
+            isPlainObject(value) &&
+            typeof (value as { id?: unknown }).id === 'string' &&
+            Boolean((value as { id: string }).id.trim()),
+          invalidDataMessage: 'Failed to create an image task',
+        }
+      );
 
-      if (!resp.ok) {
-        throw new Error(`request failed with status: ${resp.status}`);
-      }
-
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new Error(message || 'Failed to create an image task');
-      }
-
-      const newTaskId = data?.id;
-      if (!newTaskId) {
-        throw new Error('Task id missing in response');
-      }
+      const newTaskId = data.id.trim();
 
       setTaskId(newTaskId);
       setProgress(25);
 
       await fetchUserCredits();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to generate image:', error);
-      toast.error(`Failed to generate image: ${error.message}`);
+      toastFetchError(
+        error,
+        `Failed to generate image: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
+      );
       resetTaskState();
     }
   };
@@ -505,12 +461,7 @@ export function ImageGenerator({
 
     try {
       setDownloadingImageId(image.id);
-      const resp = await fetch(image.url);
-      if (!resp.ok) {
-        throw new Error('Failed to fetch image');
-      }
-
-      const blob = await resp.blob();
+      const blob = await fetchBlobWithTimeout(image.url, 20000);
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
@@ -747,7 +698,9 @@ export function ImageGenerator({
                           <LazyImage
                             src={image.url}
                             alt={image.prompt || 'Generated image'}
-                            className="h-full w-full object-cover"
+                            fill
+                            sizes="(max-width: 640px) 100vw, 50vw"
+                            className="object-cover"
                           />
 
                           <div className="absolute right-2 bottom-2 flex justify-end text-sm">

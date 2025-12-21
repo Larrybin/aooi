@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 
 import { SidebarInset, SidebarProvider } from '@/shared/components/ui/sidebar';
+import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
 import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 import { Sidebar } from './sidebar';
@@ -8,9 +9,11 @@ import { Sidebar } from './sidebar';
 export function DashboardLayout({
   children,
   sidebar,
+  initialUser,
 }: {
   children: ReactNode;
   sidebar: SidebarType;
+  initialUser?: AuthSessionUserSnapshot | null;
 }) {
   return (
     <SidebarProvider
@@ -22,7 +25,11 @@ export function DashboardLayout({
       }
     >
       {sidebar && (
-        <Sidebar variant={sidebar.variant || 'inset'} sidebar={sidebar} />
+        <Sidebar
+          variant={sidebar.variant || 'inset'}
+          sidebar={sidebar}
+          initialUser={initialUser}
+        />
       )}
       <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>

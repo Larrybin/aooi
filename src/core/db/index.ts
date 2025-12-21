@@ -1,28 +1,172 @@
+import 'server-only';
+
+import { createRequire } from 'node:module';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import { envConfigs } from '@/config';
+import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
+import { serverEnv } from '@/config/server';
 import { isCloudflareWorker } from '@/shared/lib/env';
+import { logger } from '@/shared/lib/logger.server';
 
 // Global database connection instance (singleton pattern)
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 let client: ReturnType<typeof postgres> | null = null;
 
-export function db() {
-  let databaseUrl = envConfigs.database_url;
+let schemaCheckPromise: Promise<void> | null = null;
+let schemaCheckDatabaseUrl: string | null = null;
 
-  let isHyperdrive = false;
+function getOrCreateSchemaCheckPromise(
+  sql: ReturnType<typeof postgres>,
+  databaseUrl: string
+) {
+  if (schemaCheckPromise && schemaCheckDatabaseUrl === databaseUrl) {
+    return schemaCheckPromise;
+  }
 
-  if (isCloudflareWorker) {
-    const { env }: { env: any } = { env: {} };
-    // Detect if set Hyperdrive
-    isHyperdrive = 'HYPERDRIVE' in env;
+  schemaCheckDatabaseUrl = databaseUrl;
+  schemaCheckPromise = assertRoleDeletedAtColumnExists({
+    sql,
+    isProduction: process.env.NODE_ENV === 'production',
+    logger,
+  });
+  schemaCheckPromise.catch(() => undefined);
+  return schemaCheckPromise;
+}
 
-    if (isHyperdrive) {
-      const hyperdrive = env.HYPERDRIVE;
-      databaseUrl = hyperdrive.connectionString;
-      console.log('using Hyperdrive connection');
+function createSchemaCheckedClient(
+  sql: ReturnType<typeof postgres>,
+  schemaReady: Promise<void>
+): ReturnType<typeof postgres> {
+  function wrapQuery<T extends object>(query: T): T {
+    return new Proxy(query, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+
+        if (prop === 'then' || prop === 'catch' || prop === 'finally') {
+          return typeof value === 'function'
+            ? (...args: unknown[]) =>
+                schemaReady.then(() =>
+                  Reflect.apply(
+                    value as (...args: unknown[]) => unknown,
+                    target,
+                    args
+                  )
+                )
+            : value;
+        }
+
+        if (typeof value === 'function') {
+          return (...args: unknown[]) =>
+            schemaReady.then(() =>
+              Reflect.apply(
+                value as (...args: unknown[]) => unknown,
+                target,
+                args
+              )
+            );
+        }
+
+        return value;
+      },
+    }) as unknown as T;
+  }
+
+  const proxy = new Proxy(sql, {
+    apply(target, thisArg, argArray) {
+      const query = Reflect.apply(target, thisArg, argArray as unknown as []);
+      return wrapQuery(query as unknown as object);
+    },
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+
+      if (prop === 'end') {
+        return typeof value === 'function' ? value.bind(target) : value;
+      }
+
+      if (prop === 'unsafe') {
+        return typeof value === 'function'
+          ? (...args: unknown[]) => {
+              const query = Reflect.apply(
+                value as (...args: unknown[]) => unknown,
+                target,
+                args
+              );
+              return wrapQuery(query as unknown as object);
+            }
+          : value;
+      }
+
+      if (typeof value === 'function') {
+        return (...args: unknown[]) =>
+          schemaReady.then(() =>
+            Reflect.apply(
+              value as (...args: unknown[]) => unknown,
+              target,
+              args
+            )
+          );
+      }
+
+      return value;
+    },
+  });
+
+  return proxy as unknown as ReturnType<typeof postgres>;
+}
+
+type CloudflareWorkersEnv = {
+  HYPERDRIVE?: {
+    connectionString?: string;
+  };
+} & Record<string, unknown>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function tryGetCloudflareWorkersEnv(): CloudflareWorkersEnv | null {
+  try {
+    const require = createRequire(import.meta.url);
+    const workers = require('cloudflare:workers');
+
+    if (!isRecord(workers) || !('env' in workers)) {
+      return null;
     }
+
+    const env = (workers as { env?: unknown }).env;
+    return isRecord(env) ? (env as CloudflareWorkersEnv) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function db() {
+  let databaseUrl = serverEnv.databaseUrl;
+
+  const cloudflareEnv = tryGetCloudflareWorkersEnv();
+  const hasCloudflareWorkersEnv = cloudflareEnv !== null;
+  const runningInCloudflareWorkers =
+    hasCloudflareWorkersEnv || isCloudflareWorker;
+
+  if (runningInCloudflareWorkers) {
+    if (!hasCloudflareWorkersEnv) {
+      throw new Error(
+        'Detected Cloudflare Workers environment but failed to access bindings env via "cloudflare:workers". Ensure your Worker enables `nodejs_compat` and supports the `cloudflare:workers` module.'
+      );
+    }
+
+    const hyperdriveConnectionString =
+      cloudflareEnv?.HYPERDRIVE?.connectionString;
+
+    if (!hyperdriveConnectionString) {
+      throw new Error(
+        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml (see wrangler.toml.example) as: [[hyperdrive]] binding = "HYPERDRIVE".'
+      );
+    }
+
+    databaseUrl = hyperdriveConnectionString;
+    logger.info('db: using Hyperdrive connection');
   }
 
   if (!databaseUrl) {
@@ -30,21 +174,23 @@ export function db() {
   }
 
   // In Cloudflare Workers, create new connection each time
-  if (isCloudflareWorker) {
-    console.log('in Cloudflare Workers environment');
+  if (runningInCloudflareWorkers) {
+    logger.info('db: in Cloudflare Workers environment');
     // Workers environment uses minimal configuration
-    const client = postgres(databaseUrl, {
+    const rawClient = postgres(databaseUrl, {
       prepare: false,
       max: 1, // Limit to 1 connection in Workers
       idle_timeout: 10, // Shorter timeout for Workers
       connect_timeout: 5,
     });
 
-    return drizzle(client);
+    const schemaReady = getOrCreateSchemaCheckPromise(rawClient, databaseUrl);
+    const checkedClient = createSchemaCheckedClient(rawClient, schemaReady);
+    return drizzle(checkedClient);
   }
 
   // Singleton mode: reuse existing connection (good for traditional servers)
-  if (envConfigs.db_singleton_enabled === 'true') {
+  if (serverEnv.dbSingletonEnabled === 'true') {
     // Return existing instance if already initialized
     if (dbInstance) {
       return dbInstance;
@@ -58,7 +204,9 @@ export function db() {
       connect_timeout: 10, // Connection timeout (seconds)
     });
 
-    dbInstance = drizzle({ client });
+    const schemaReady = getOrCreateSchemaCheckPromise(client, databaseUrl);
+    const checkedClient = createSchemaCheckedClient(client, schemaReady);
+    dbInstance = drizzle(checkedClient);
     return dbInstance;
   }
 
@@ -71,15 +219,25 @@ export function db() {
     connect_timeout: 10,
   });
 
-  return drizzle({ client: serverlessClient });
+  const schemaReady = getOrCreateSchemaCheckPromise(
+    serverlessClient,
+    databaseUrl
+  );
+  const checkedClient = createSchemaCheckedClient(
+    serverlessClient,
+    schemaReady
+  );
+  return drizzle(checkedClient);
 }
 
 // Optional: Function to close database connection (useful for testing or graceful shutdown)
 // Note: Only works in singleton mode
 export async function closeDb() {
-  if (envConfigs.db_singleton_enabled && client) {
+  if (serverEnv.dbSingletonEnabled === 'true' && client) {
     await client.end();
     client = null;
     dbInstance = null;
+    schemaCheckPromise = null;
+    schemaCheckDatabaseUrl = null;
   }
 }

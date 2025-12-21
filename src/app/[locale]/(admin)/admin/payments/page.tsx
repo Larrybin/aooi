@@ -1,15 +1,16 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { PaymentType } from '@/extensions/payment';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getOrders,
   getOrdersCount,
   OrderStatus,
   type Order,
 } from '@/shared/models/order';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Crumb, Filter, Search, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

@@ -1,12 +1,23 @@
-import { and, asc, count, desc, eq, gt, isNull, or, sum } from 'drizzle-orm';
+import 'server-only';
+
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  isNull,
+  or,
+  sql,
+  sum,
+} from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { credit } from '@/config/db/schema';
-import { PaymentType } from '@/extensions/payment';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 
-import { Order } from './order';
-import { appendUserToResult, getUserByUserIds, User } from './user';
+import { appendUserToResult, User } from './user';
 
 export type Credit = typeof credit.$inferSelect & {
   user?: User;
@@ -194,7 +205,7 @@ export async function consumeCredits({
     let remainingToConsume = credits; // remaining credits to consume
 
     // only deal with 10000 credit grant records
-    let batchNo = 1; // batch no
+    let batchNo = 0; // batch no
     const maxBatchNo = 10; // max batch no
     const batchSize = 1000; // batch size
     type ConsumedItem = {
@@ -212,6 +223,13 @@ export async function consumeCredits({
     const consumedItems: ConsumedItem[] = [];
 
     while (remainingToConsume > 0) {
+      batchNo += 1;
+
+      // if too many batches, throw error
+      if (batchNo > maxBatchNo) {
+        throw new Error(`Too many batches: ${batchNo} > ${maxBatchNo}`);
+      }
+
       // get batch credits
       const batchCredits = await tx
         .select()
@@ -231,10 +249,10 @@ export async function consumeCredits({
         .orderBy(
           // FIFO queue: expired credits first, then by expiration date
           // NULL values (never expires) will be ordered last
-          asc(credit.expiresAt)
+          sql`${credit.expiresAt} asc nulls last`,
+          asc(credit.createdAt)
         )
         .limit(batchSize) // batch size
-        .offset((batchNo - 1) * batchSize) // offset
         .for('update'); // lock for update
 
       // no more credits
@@ -269,14 +287,14 @@ export async function consumeCredits({
           batchNo: batchNo,
         });
 
-        batchNo += 1;
         remainingToConsume -= toConsume;
-
-        // if too many batches, throw error
-        if (batchNo > maxBatchNo) {
-          throw new Error(`Too many batches: ${batchNo} > ${maxBatchNo}`);
-        }
       }
+    }
+
+    if (remainingToConsume > 0) {
+      throw new Error(
+        `Insufficient credits during consume, ${credits - remainingToConsume} < ${credits}`
+      );
     }
 
     // 3. create consumed credit

@@ -1,12 +1,14 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { getRoleById, updateRole, UpdateRole } from '@/shared/services/rbac';
-import { Crumb } from '@/shared/types/blocks/common';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
+import { getRoleById } from '@/shared/services/rbac';
 import { Form } from '@/shared/types/blocks/form';
+
+import { updateRoleAction } from '../../actions';
 
 export default async function RoleEditPage({
   params,
@@ -14,13 +16,10 @@ export default async function RoleEditPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to edit posts
-  await requirePermission({
-    code: PERMISSIONS.ROLES_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.ROLES_WRITE,
   });
 
   const role = await getRoleById(id as string);
@@ -30,11 +29,11 @@ export default async function RoleEditPage({
 
   const t = await getTranslations('admin.roles');
 
-  const crumbs: Crumb[] = [
-    { title: t('edit.crumbs.admin'), url: '/admin' },
-    { title: t('edit.crumbs.roles'), url: '/admin/roles' },
-    { title: t('edit.crumbs.edit'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.roles', url: '/admin/roles' },
+    { key: 'edit.crumbs.edit' },
+  ]);
 
   const form: Form<typeof role, { role: typeof role }> = {
     fields: [
@@ -66,35 +65,7 @@ export default async function RoleEditPage({
       button: {
         title: t('edit.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        const role = passby?.role;
-
-        if (!role) {
-          throw new Error('no auth');
-        }
-
-        const title = data.get('title') as string;
-        const description = data.get('description') as string;
-
-        const newRole: UpdateRole = {
-          title: title.trim(),
-          description: description as string,
-        };
-
-        const result = await updateRole(role.id as string, newRole);
-
-        if (!result) {
-          throw new Error('update role failed');
-        }
-
-        return {
-          status: 'success',
-          message: 'role updated',
-          redirect_url: '/admin/roles',
-        };
-      },
+      handler: updateRoleAction.bind(null, id),
     },
   };
 

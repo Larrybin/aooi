@@ -1,18 +1,17 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { getUuid } from '@/shared/lib/hash';
-import { addPost, NewPost, PostStatus, PostType } from '@/shared/models/post';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import {
   getTaxonomies,
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import { getUserInfo } from '@/shared/models/user';
-import { Crumb } from '@/shared/types/blocks/common';
 import { Form } from '@/shared/types/blocks/form';
+
+import { createPostAction } from '../actions';
 
 export default async function PostAddPage({
   params,
@@ -20,22 +19,19 @@ export default async function PostAddPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to add posts
-  await requirePermission({
-    code: PERMISSIONS.POSTS_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.POSTS_WRITE,
   });
 
   const t = await getTranslations('admin.posts');
 
-  const crumbs: Crumb[] = [
-    { title: t('add.crumbs.admin'), url: '/admin' },
-    { title: t('add.crumbs.posts'), url: '/admin/posts' },
-    { title: t('add.crumbs.add'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'add.crumbs.admin', url: '/admin' },
+    { key: 'add.crumbs.posts', url: '/admin/posts' },
+    { key: 'add.crumbs.add' },
+  ]);
 
   const categories = await getTaxonomies({
     type: TaxonomyType.CATEGORY,
@@ -106,56 +102,7 @@ export default async function PostAddPage({
       button: {
         title: t('add.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        const user = await getUserInfo();
-        if (!user) {
-          throw new Error('no auth');
-        }
-
-        const slug = data.get('slug') as string;
-        const title = data.get('title') as string;
-        const description = data.get('description') as string;
-        const content = data.get('content') as string;
-        const categories = data.get('categories') as string;
-        const image = data.get('image') as string;
-        const authorName = data.get('authorName') as string;
-        const authorImage = data.get('authorImage') as string;
-
-        if (!slug?.trim() || !title?.trim()) {
-          throw new Error('slug and title are required');
-        }
-
-        const newPost: NewPost = {
-          id: getUuid(),
-          userId: user.id,
-          parentId: '', // todo: select parent category
-          slug: slug.trim().toLowerCase(),
-          type: PostType.ARTICLE,
-          title: title.trim(),
-          description: description.trim(),
-          image: image as string,
-          content: content.trim(),
-          categories: categories.trim(),
-          tags: '',
-          authorName: authorName.trim(),
-          authorImage: authorImage as string,
-          status: PostStatus.PUBLISHED,
-        };
-
-        const result = await addPost(newPost);
-
-        if (!result) {
-          throw new Error('add post failed');
-        }
-
-        return {
-          status: 'success',
-          message: 'post added',
-          redirect_url: '/admin/posts',
-        };
-      },
+      handler: createPostAction,
     },
   };
 

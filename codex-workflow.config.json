@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "riskGate": {
+    "mode": "hard",
+    "exitCode": 3,
+    "useBuiltins": true,
+    "validationScripts": ["format:check", "lint", "build"],
+    "highRiskFilePrefixes": ["src/app/api/", "src/pages/api/"],
+    "highRiskFileExact": ["src/middleware.ts"],
+    "highRiskPathTokens": [
+      "auth",
+      "billing",
+      "stripe",
+      "db",
+      "prisma",
+      "drizzle",
+      "migration",
+      "migrations"
+    ],
+    "highRiskCommandTokens": [
+      "git push",
+      "git reset --hard",
+      "git commit",
+      "db:migrate",
+      "prisma migrate",
+      "drizzle",
+      "drop",
+      "truncate",
+      "reset"
+    ]
+  }
+}

@@ -15,7 +15,6 @@ import {
 
 type PaginatorProps = {
   total?: number;
-  perPage?: number;
   currentPage: number;
   totalPages: number;
   onPageChange: (pageNumber: number) => void;
@@ -25,7 +24,6 @@ type PaginatorProps = {
 
 function Paginator({
   total,
-  perPage,
   currentPage,
   totalPages,
   onPageChange,
@@ -140,7 +138,7 @@ export function Pagination({
   total,
   limit,
   page = 1,
-  url,
+  url: _url,
   className,
 }: {
   total: number;
@@ -170,7 +168,6 @@ export function Pagination({
   return (
     <Paginator
       total={Number(total)}
-      perPage={Number(limit)}
       currentPage={Number(page)}
       totalPages={Number(totalPages)}
       onPageChange={handlePageChange}

@@ -6,6 +6,10 @@ import { toast } from 'sonner';
 
 import { Button } from '@/shared/components/ui/button';
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
+import {
+  fetchJsonEnvelope,
+  toastFetchError,
+} from '@/shared/lib/api/fetch-json';
 import { cn } from '@/shared/lib/utils';
 import type { Subscribe as SubscribeType } from '@/shared/types/blocks/landing';
 
@@ -30,28 +34,25 @@ export function Subscribe({
 
     try {
       setLoading(true);
-      const resp = await fetch(subscribe.submit.action, {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
-
-      if (!resp.ok) {
-        throw new Error(`request failed with status ${resp.status}`);
-      }
-
-      const { code, message, data } = await resp.json();
-      if (code !== 0) {
-        throw new Error(message);
-      }
+      const { message } = await fetchJsonEnvelope<unknown>(
+        subscribe.submit.action,
+        {
+          method: 'POST',
+          body: { email },
+        }
+      );
 
       setLoading(false);
 
       if (message) {
         toast.success(message);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLoading(false);
-      toast.error(e.message || 'subscribe failed');
+      toastFetchError(
+        e,
+        e instanceof Error && e.message ? e.message : 'subscribe failed'
+      );
     }
   };
 

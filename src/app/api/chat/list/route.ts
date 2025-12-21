@@ -1,42 +1,31 @@
-import { respData, respErr } from '@/shared/lib/resp';
+import { requireUser } from '@/shared/lib/api/guard';
+import { parseJson } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
 import { ChatStatus, getChats, getChatsCount } from '@/shared/models/chat';
-import { getUserInfo } from '@/shared/models/user';
+import { ChatListBodySchema } from '@/shared/schemas/api/chat/list';
 
-export async function POST(req: Request) {
-  try {
-    let { page, limit } = await req.json();
-    if (!page) {
-      page = 1;
-    }
-    if (!limit) {
-      limit = 30;
-    }
+export const POST = withApi(async (req: Request) => {
+  const { page, limit } = await parseJson(req, ChatListBodySchema);
 
-    const user = await getUserInfo();
-    if (!user) {
-      return respErr('no auth, please sign in');
-    }
+  const user = await requireUser(req);
 
-    const chats = await getChats({
-      userId: user.id,
-      status: ChatStatus.CREATED,
-      page,
-      limit,
-    });
-    const total = await getChatsCount({
-      userId: user.id,
-      status: ChatStatus.CREATED,
-    });
+  const chats = await getChats({
+    userId: user.id,
+    status: ChatStatus.CREATED,
+    page,
+    limit,
+  });
+  const total = await getChatsCount({
+    userId: user.id,
+    status: ChatStatus.CREATED,
+  });
 
-    return respData({
-      list: chats,
-      total,
-      page,
-      limit,
-      hasMore: page * limit < total,
-    });
-  } catch (e: any) {
-    console.log('get chat list failed:', e);
-    return respErr(`get chat list failed: ${e.message}`);
-  }
-}
+  return jsonOk({
+    list: chats,
+    total,
+    page,
+    limit,
+    hasMore: page * limit < total,
+  });
+});

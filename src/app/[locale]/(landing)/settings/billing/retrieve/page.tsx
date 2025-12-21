@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { envConfigs } from '@/config';
 import { Empty } from '@/shared/blocks/common';
+import { toErrorMessage } from '@/shared/lib/errors';
 import {
   findSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNo,
@@ -16,7 +17,7 @@ export default async function RetrieveBillingPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ subscription_no: string }>;
 }) {
-  const { locale } = await params;
+  const { locale: _locale } = await params;
   const { subscription_no } = await searchParams;
 
   if (!subscription_no) {
@@ -65,8 +66,8 @@ export default async function RetrieveBillingPage({
     await updateSubscriptionBySubscriptionNo(subscription.subscriptionNo, {
       billingUrl: billing.billingUrl,
     });
-  } catch (error: any) {
-    return <Empty message={error.message || 'get billing failed'} />;
+  } catch (error: unknown) {
+    return <Empty message={toErrorMessage(error) || 'get billing failed'} />;
   }
 
   if (!billingUrl) {

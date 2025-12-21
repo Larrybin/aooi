@@ -20,6 +20,7 @@ import {
 } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
 import { SocialProviders } from './social-providers';
 
@@ -90,19 +91,19 @@ export function SignUp({
         name,
       },
       {
-        onRequest: (ctx) => {
+        onRequest: () => {
           setLoading(true);
         },
-        onResponse: (ctx) => {
+        onResponse: () => {
           setLoading(false);
         },
-        onSuccess: (ctx) => {
+        onSuccess: () => {
           // report affiliate
           reportAffiliate({ userEmail: email });
           router.push(localizedCallbackUrl);
         },
-        onError: (e: any) => {
-          toast.error(e?.error?.message || 'sign up failed');
+        onError: (ctx: AuthErrorContext) => {
+          toast.error(ctx.error?.message || 'sign up failed');
           setLoading(false);
         },
       }

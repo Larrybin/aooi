@@ -1,5 +1,10 @@
-import { AIManager, KieProvider, ReplicateProvider } from '@/extensions/ai';
-import { Configs, getAllConfigs } from '@/shared/models/config';
+import 'server-only';
+
+import { AIManager } from '@/extensions/ai';
+import { KieProvider, ReplicateProvider } from '@/extensions/ai/providers';
+import type { Configs } from '@/shared/models/config';
+
+import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
 /**
  * get ai manager with configs
@@ -29,15 +34,6 @@ export function getAIManagerWithConfigs(configs: Configs) {
 /**
  * global ai service
  */
-let aiService: AIManager | null = null;
-
-/**
- * get ai service manager
- */
 export async function getAIService(): Promise<AIManager> {
-  if (true) {
-    const configs = await getAllConfigs();
-    aiService = getAIManagerWithConfigs(configs);
-  }
-  return aiService;
+  return await buildServiceFromLatestConfigs(getAIManagerWithConfigs);
 }

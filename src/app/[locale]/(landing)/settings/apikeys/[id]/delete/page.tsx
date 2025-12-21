@@ -2,6 +2,10 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import {
   ApikeyStatus,
   findApikeyById,
@@ -9,6 +13,7 @@ import {
   UpdateApikey,
 } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
+import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form as FormType } from '@/shared/types/blocks/form';
 
@@ -34,7 +39,7 @@ export default async function DeleteApiKeyPage({
 
   const t = await getTranslations('settings.apikeys');
 
-  const form: FormType = {
+  const form = {
     title: t('delete.title'),
     fields: [
       {
@@ -64,40 +69,33 @@ export default async function DeleteApiKeyPage({
     },
     data: apikey,
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
-        const { user, apikey } = passby;
+        return withAction(async () => {
+          const user = await requireActionUser();
+          const apikey = await findApikeyById(id);
+          if (!apikey) {
+            throw new Error('apikey not found');
+          }
 
-        if (!apikey) {
-          throw new Error('apikey not found');
-        }
+          if (apikey.userId !== user.id) {
+            throw new Error('no permission');
+          }
 
-        if (!user) {
-          throw new Error('no auth');
-        }
+          parseFormData(data, SettingsApiKeyUpsertFormSchema, {
+            message: 'title is required',
+          });
 
-        if (apikey.userId !== user.id) {
-          throw new Error('no permission');
-        }
+          const updatedApikey: UpdateApikey = {
+            status: ApikeyStatus.DELETED,
+            deletedAt: new Date(),
+          };
 
-        const title = data.get('title') as string;
-        if (!title?.trim()) {
-          throw new Error('title is required');
-        }
+          await updateApikey(apikey.id, updatedApikey);
 
-        const updatedApikey: UpdateApikey = {
-          status: ApikeyStatus.DELETED,
-          deletedAt: new Date(),
-        };
-
-        await updateApikey(apikey.id, updatedApikey);
-
-        return {
-          status: 'success',
-          message: 'API Key deleted',
-          redirect_url: '/settings/apikeys',
-        };
+          return actionOk('API Key deleted', '/settings/apikeys');
+        });
       },
       button: {
         title: t('delete.buttons.submit'),
@@ -105,7 +103,7 @@ export default async function DeleteApiKeyPage({
         icon: 'RiDeleteBinLine',
       },
     },
-  };
+  } satisfies FormType;
 
   const crumbs: Crumb[] = [
     {

@@ -3,11 +3,11 @@ import {
   BrandLogo,
   BuiltWith,
   Copyright,
+  GeneralSocialLinks,
   LocaleSelector,
   ThemeToggler,
 } from '@/shared/blocks/common';
-import { SmartIcon } from '@/shared/blocks/common/smart-icon';
-import { NavItem } from '@/shared/types/blocks/common';
+import type { NavItem } from '@/shared/types/blocks/common';
 import { Footer as FooterType } from '@/shared/types/blocks/landing';
 
 export function Footer({ footer }: { footer: FooterType }) {
@@ -55,9 +55,9 @@ export function Footer({ footer }: { footer: FooterType }) {
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
-          {footer.show_built_with !== false ? <BuiltWith /> : null}
+          <BuiltWith />
           <div className="min-w-0 flex-1" />
-          {footer.show_theme !== false ? <ThemeToggler type="toggle" /> : null}
+          <ThemeToggler type="toggle" />
           {footer.show_locale !== false ? (
             <LocaleSelector type="button" />
           ) : null}
@@ -94,22 +94,7 @@ export function Footer({ footer }: { footer: FooterType }) {
             </div>
           ) : null}
 
-          {footer.social ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              {footer.social?.items.map((item: NavItem, index) => (
-                <Link
-                  key={index}
-                  href={item.url || ''}
-                  target={item.target || ''}
-                  className="text-muted-foreground hover:text-primary bg-background block cursor-pointer rounded-full p-2 duration-150"
-                >
-                  {item.icon && (
-                    <SmartIcon name={item.icon as string} size={20} />
-                  )}
-                </Link>
-              ))}
-            </div>
-          ) : null}
+          <GeneralSocialLinks />
         </div>
       </div>
     </footer>

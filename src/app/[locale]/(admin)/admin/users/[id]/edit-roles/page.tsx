@@ -1,21 +1,16 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
-import {
-  PERMISSIONS,
-  requireAllPermissions,
-  requirePermission,
-} from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findUserById } from '@/shared/models/user';
-import {
-  assignRolesToUser,
-  getRoles,
-  getUserRoles,
-} from '@/shared/services/rbac';
-import { Crumb } from '@/shared/types/blocks/common';
+import { getRoles, getUserRoles } from '@/shared/services/rbac';
+import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import { Form } from '@/shared/types/blocks/form';
+
+import { updateUserRolesAction } from '../../actions';
 
 export default async function UserEditRolesPage({
   params,
@@ -23,9 +18,12 @@ export default async function UserEditRolesPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to edit posts
+  // This page requires multiple permissions, use requireAllPermissions directly
+  await setupAdminPage({
+    locale,
+    permission: PERMISSIONS.USERS_WRITE,
+  });
   await requireAllPermissions({
     codes: [PERMISSIONS.USERS_WRITE, PERMISSIONS.ROLES_WRITE],
     redirectUrl: '/admin/no-permission',
@@ -39,11 +37,11 @@ export default async function UserEditRolesPage({
 
   const t = await getTranslations('admin.users');
 
-  const crumbs: Crumb[] = [
-    { title: t('edit_roles.crumbs.admin'), url: '/admin' },
-    { title: t('edit_roles.crumbs.users'), url: '/admin/users' },
-    { title: t('edit_roles.crumbs.edit_roles'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'edit_roles.crumbs.admin', url: '/admin' },
+    { key: 'edit_roles.crumbs.users', url: '/admin/users' },
+    { key: 'edit_roles.crumbs.edit_roles' },
+  ]);
 
   const roles = await getRoles();
   const rolesOptions = roles.map((role) => ({
@@ -55,10 +53,7 @@ export default async function UserEditRolesPage({
   const userRoles = await getUserRoles(user.id as string);
   const userRoleIds = userRoles.map((role) => role.id);
 
-  const form: Form<
-    typeof user & { roles: string[] },
-    { user: typeof user }
-  > = {
+  const form: Form<typeof user & { roles: string[] }, { user: typeof user }> = {
     fields: [
       {
         name: 'email',
@@ -86,32 +81,7 @@ export default async function UserEditRolesPage({
       button: {
         title: t('edit_roles.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        const { user } = passby!;
-
-        if (!user) {
-          throw new Error('no auth');
-        }
-
-        let roles = data.get('roles') as unknown as string[];
-        if (typeof roles === 'string') {
-          try {
-            roles = JSON.parse(roles);
-          } catch (error) {
-            throw new Error('invalid roles');
-          }
-        }
-
-        await assignRolesToUser(user.id as string, roles);
-
-        return {
-          status: 'success',
-          message: 'roles updated',
-          redirect_url: '/admin/users',
-        };
-      },
+      handler: updateUserRolesAction.bind(null, id),
     },
   };
 

@@ -1,11 +1,30 @@
+import 'server-only';
+
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { aiTask, credit } from '@/config/db/schema';
 import { AITaskStatus } from '@/extensions/ai';
+import { safeJsonParse } from '@/shared/lib/json';
+import { logger } from '@/shared/lib/logger.server';
 import { appendUserToResult, User } from '@/shared/models/user';
 
 import { consumeCredits, CreditStatus } from './credit';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isConsumedItem(
+  value: unknown
+): value is { creditId: string; creditsConsumed: number } {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.creditId === 'string' &&
+    typeof value.creditsConsumed === 'number' &&
+    value.creditsConsumed > 0
+  );
+}
 
 export type AITask = typeof aiTask.$inferSelect & {
   user?: User;
@@ -63,14 +82,24 @@ export async function updateAITaskById(id: string, updateAITask: UpdateAITask) {
         .from(credit)
         .where(eq(credit.id, updateAITask.creditId));
       if (consumedCredit && consumedCredit.status === CreditStatus.ACTIVE) {
-        const consumedItems = JSON.parse(consumedCredit.consumedDetail || '[]');
+        const consumedItemsRaw = safeJsonParse<unknown>(
+          consumedCredit.consumedDetail
+        );
+        const consumedItems = Array.isArray(consumedItemsRaw)
+          ? consumedItemsRaw
+          : [];
+        if (!Array.isArray(consumedItemsRaw)) {
+          logger.error('credit: invalid consumedDetail payload', {
+            creditId: updateAITask.creditId,
+          });
+        }
 
         // console.log('consumedItems', consumedItems);
 
         // add back consumed credits
         await Promise.all(
-          consumedItems.map((item: any) => {
-            if (item && item.creditId && item.creditsConsumed > 0) {
+          consumedItems.map((item: unknown) => {
+            if (isConsumedItem(item)) {
               return tx
                 .update(credit)
                 .set({

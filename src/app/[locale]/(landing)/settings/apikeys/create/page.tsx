@@ -2,9 +2,14 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import { getNonceStr, getUuid } from '@/shared/lib/hash';
 import { ApikeyStatus, createApikey, NewApikey } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
+import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import { Crumb } from '@/shared/types/blocks/common';
 import { Form as FormType } from '@/shared/types/blocks/form';
 
@@ -16,7 +21,7 @@ export default async function CreateApiKeyPage() {
 
   const t = await getTranslations('settings.apikeys');
 
-  const form: FormType = {
+  const form = {
     title: t('add.title'),
     fields: [
       {
@@ -31,42 +36,39 @@ export default async function CreateApiKeyPage() {
       user: user,
     },
     submit: {
-      handler: async (data: FormData, passby: any) => {
+      handler: async (data: FormData, _passby: unknown) => {
         'use server';
 
-        const { user } = passby;
-        if (!user) {
-          throw new Error('no auth');
-        }
+        return withAction(async () => {
+          const user = await requireActionUser();
+          const { title } = parseFormData(
+            data,
+            SettingsApiKeyUpsertFormSchema,
+            {
+              message: 'title is required',
+            }
+          );
 
-        const title = data.get('title') as string;
-        if (!title?.trim()) {
-          throw new Error('title is required');
-        }
+          const key = `sk-${getNonceStr(32)}`;
 
-        const key = `sk-${getNonceStr(32)}`;
+          const newApikey: NewApikey = {
+            id: getUuid(),
+            userId: user.id,
+            title,
+            key,
+            status: ApikeyStatus.ACTIVE,
+          };
 
-        const newApikey: NewApikey = {
-          id: getUuid(),
-          userId: user.id,
-          title: title.trim(),
-          key: key,
-          status: ApikeyStatus.ACTIVE,
-        };
+          await createApikey(newApikey);
 
-        await createApikey(newApikey);
-
-        return {
-          status: 'success',
-          message: 'API Key created',
-          redirect_url: '/settings/apikeys',
-        };
+          return actionOk('API Key created', '/settings/apikeys');
+        });
       },
       button: {
         title: t('add.buttons.submit'),
       },
     },
-  };
+  } satisfies FormType;
 
   const crumbs: Crumb[] = [
     {

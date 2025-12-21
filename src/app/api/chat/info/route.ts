@@ -1,31 +1,29 @@
-import { respData, respErr } from '@/shared/lib/resp';
+import { ForbiddenError, NotFoundError } from '@/shared/lib/api/errors';
+import { requireUser } from '@/shared/lib/api/guard';
+import { parseJson } from '@/shared/lib/api/parse';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
+import { safeJsonParse } from '@/shared/lib/json';
 import { findChatById } from '@/shared/models/chat';
-import { getUserInfo } from '@/shared/models/user';
+import { ChatInfoBodySchema } from '@/shared/schemas/api/chat/info';
 
-export async function POST(req: Request) {
-  try {
-    let { chatId } = await req.json();
-    if (!chatId) {
-      return respErr('chatId is required');
-    }
+export const POST = withApi(async (req: Request) => {
+  const { chatId } = await parseJson(req, ChatInfoBodySchema);
+  const user = await requireUser(req);
 
-    const user = await getUserInfo();
-    if (!user) {
-      return respErr('no auth, please sign in');
-    }
-
-    const chat = await findChatById(chatId);
-    if (!chat) {
-      return respErr('chat not found');
-    }
-
-    if (chat.userId !== user.id) {
-      return respErr('no permission to access this chat');
-    }
-
-    return respData(chat);
-  } catch (e: any) {
-    console.log('get chat info failed:', e);
-    return respErr(`get chat info failed: ${e.message}`);
+  const chat = await findChatById(chatId);
+  if (!chat) {
+    throw new NotFoundError('chat not found');
   }
-}
+
+  if (chat.userId !== user.id) {
+    throw new ForbiddenError('no permission to access this chat');
+  }
+
+  return jsonOk({
+    ...chat,
+    parts: safeJsonParse(chat.parts) ?? [],
+    metadata: safeJsonParse(chat.metadata),
+    content: safeJsonParse(chat.content),
+  });
+});

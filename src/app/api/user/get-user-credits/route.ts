@@ -1,19 +1,12 @@
-import { respData, respErr } from '@/shared/lib/resp';
+import { requireUser } from '@/shared/lib/api/guard';
+import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
 import { getRemainingCredits } from '@/shared/models/credit';
-import { getUserInfo } from '@/shared/models/user';
 
-export async function POST(req: Request) {
-  try {
-    const user = await getUserInfo();
-    if (!user) {
-      return respErr('no auth, please sign in');
-    }
+export const POST = withApi(async (req: Request) => {
+  const user = await requireUser(req);
 
-    const credits = await getRemainingCredits(user.id);
+  const credits = await getRemainingCredits(user.id);
 
-    return respData({ remainingCredits: credits });
-  } catch (e) {
-    console.log('get user credits failed:', e);
-    return respErr('get user credits failed');
-  }
-}
+  return jsonOk({ remainingCredits: credits, expiresAt: null });
+});

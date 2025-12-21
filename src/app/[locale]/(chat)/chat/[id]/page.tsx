@@ -1,91 +1,62 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { UIMessage } from 'ai';
+import { redirect } from 'next/navigation';
+import type { UIMessage } from 'ai';
 
 import { ChatBox } from '@/shared/blocks/chat/box';
-import { Loader } from '@/shared/components/ai-elements/loader';
-import { Chat } from '@/shared/types/chat';
+import { safeJsonParse } from '@/shared/lib/json';
+import { findChatById } from '@/shared/models/chat';
+import {
+  ChatMessageStatus,
+  getChatMessages,
+} from '@/shared/models/chat_message';
+import { getUserInfo } from '@/shared/models/user';
+import type { Chat } from '@/shared/types/chat';
 
-export default function ChatPage() {
-  const params = useParams();
+export default async function ChatPage({
+  params,
+}: {
+  params: Promise<{ locale: string; id: string }>;
+}) {
+  const { locale, id: chatId } = await params;
 
-  const [initialChat, setInitialChat] = useState<Chat | null>(null);
-  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(
-    null
-  );
+  const user = await getUserInfo();
+  if (!user) {
+    redirect(`/${locale}/sign-in`);
+  }
 
-  useEffect(() => {
-    const fetchMessages = async (chatId: string) => {
-      try {
-        const resp = await fetch('/api/chat/messages', {
-          method: 'POST',
-          body: JSON.stringify({ chatId, page: 1, limit: 100 }),
-        });
-        if (!resp.ok) {
-          throw new Error(`request failed with status: ${resp.status}`);
-        }
-        const { code, message, data } = await resp.json();
-        if (code !== 0) {
-          throw new Error(message);
-        }
+  const chat = await findChatById(chatId);
+  if (!chat || chat.userId !== user.id) {
+    redirect(`/${locale}/no-permission`);
+  }
 
-        const { list } = data;
-        setInitialMessages(
-          list.map((item: any) => ({
-            id: item.id,
-            role: item.role,
-            parts: item.parts ? JSON.parse(item.parts) : [],
-            metadata: item.metadata ? JSON.parse(item.metadata) : undefined,
-          })) as UIMessage[]
-        );
-      } catch (e: any) {
-        console.log('fetch messages failed:', e);
-      }
-    };
+  const messages = await getChatMessages({
+    chatId,
+    status: ChatMessageStatus.CREATED,
+    page: 1,
+    limit: 100,
+  });
 
-    const fetchChat = async (chatId: string) => {
-      try {
-        const resp = await fetch('/api/chat/info', {
-          method: 'POST',
-          body: JSON.stringify({ chatId }),
-        });
-        if (!resp.ok) {
-          throw new Error(`request failed with status: ${resp.status}`);
-        }
-        const { code, message, data } = await resp.json();
-        if (code !== 0) {
-          throw new Error(message);
-        }
+  const initialChat = {
+    id: chat.id,
+    title: chat.title ?? '',
+    createdAt:
+      chat.createdAt instanceof Date
+        ? chat.createdAt.toISOString()
+        : String(chat.createdAt),
+    model: chat.model ?? '',
+    provider: chat.provider ?? '',
+    parts: safeJsonParse(chat.parts) ?? [],
+    metadata: safeJsonParse(chat.metadata),
+    content: safeJsonParse(chat.content),
+  } as unknown as Chat;
 
-        setInitialChat({
-          id: data.id,
-          title: data.title,
-          createdAt: data.createdAt,
-          model: data.model,
-          provider: data.provider,
-          parts: data.parts ? JSON.parse(data.parts) : [],
-          metadata: data.metadata ? JSON.parse(data.metadata) : undefined,
-          content: data.content ? JSON.parse(data.content) : undefined,
-        } as Chat);
+  const initialMessages: UIMessage[] = messages.map((message) => ({
+    id: message.id,
+    role: message.role as UIMessage['role'],
+    parts: safeJsonParse(message.parts) ?? [],
+    metadata: safeJsonParse(message.metadata) ?? undefined,
+  })) as UIMessage[];
 
-        if (data.id) {
-          fetchMessages(data.id);
-        }
-      } catch (e: any) {
-        console.log('fetch chat failed:', e);
-      }
-    };
-
-    fetchChat(params.id as string);
-  }, [params.id]);
-
-  return initialChat && initialMessages ? (
+  return (
     <ChatBox initialChat={initialChat} initialMessages={initialMessages} />
-  ) : (
-    <div className="flex h-screen items-center justify-center p-8">
-      <Loader />
-    </div>
   );
 }

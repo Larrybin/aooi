@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getThemePage } from '@/core/theme';
 import { envConfigs } from '@/config';
 import { Empty } from '@/shared/blocks/common';
+import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
 import { getPost } from '@/shared/models/post';
 
 export async function generateMetadata({
@@ -47,15 +48,18 @@ export default async function BlogDetailPage({
   setRequestLocale(locale);
 
   // load blog data
-  const t = await getTranslations('blog');
-
   const post = await getPost({ slug, locale });
 
   if (!post) {
     return <Empty message={`Post not found`} />;
   }
 
+  const postWithBody =
+    !post.body && post.content
+      ? { ...post, body: <MarkdownContent content={post.content} /> }
+      : post;
+
   const Page = await getThemePage('blog-detail');
 
-  return <Page locale={locale} post={post} />;
+  return <Page locale={locale} post={postWithBody} />;
 }

@@ -8,6 +8,7 @@
     "sort": "排序",
     "created_at": "创建时间",
     "updated_at": "更新时间",
+    "deleted_at": "删除时间",
     "permissions": "权限",
     "actions": "操作"
   },
@@ -21,7 +22,28 @@
       "create": "创建角色",
       "edit": "编辑角色",
       "edit_permissions": "编辑权限",
+      "delete": "删除角色",
+      "restore": "恢复角色",
+      "show_deleted": "查看已删除",
+      "hide_deleted": "隐藏已删除"
+    }
+  },
+  "delete": {
+    "title": "删除角色",
+    "crumbs": {
       "delete": "删除角色"
+    },
+    "buttons": {
+      "submit": "删除"
+    }
+  },
+  "restore": {
+    "title": "恢复角色",
+    "crumbs": {
+      "restore": "恢复角色"
+    },
+    "buttons": {
+      "submit": "恢复"
     }
   },
   "edit": {

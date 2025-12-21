@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { and, count, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
@@ -10,12 +12,7 @@ import {
   UpdateSubscription,
   updateSubscriptionBySubscriptionNo,
 } from './subscription';
-import {
-  appendUserToResult,
-  type WithAttachedUser,
-  type WithUserId,
-  User,
-} from './user';
+import { appendUserToResult, User, type WithUserId } from './user';
 
 export type Order = typeof order.$inferSelect & {
   user?: User;
@@ -141,6 +138,43 @@ export async function findOrderByOrderNo(orderNo: string) {
     .select()
     .from(order)
     .where(eq(order.orderNo, orderNo));
+
+  return result;
+}
+
+export async function findOrderByTransactionId({
+  provider,
+  transactionId,
+}: {
+  provider: string;
+  transactionId: string;
+}) {
+  const [result] = await db()
+    .select()
+    .from(order)
+    .where(
+      and(
+        eq(order.transactionId, transactionId),
+        eq(order.paymentProvider, provider)
+      )
+    );
+
+  return result;
+}
+
+export async function findOrderByInvoiceId({
+  provider,
+  invoiceId,
+}: {
+  provider: string;
+  invoiceId: string;
+}) {
+  const [result] = await db()
+    .select()
+    .from(order)
+    .where(
+      and(eq(order.invoiceId, invoiceId), eq(order.paymentProvider, provider))
+    );
 
   return result;
 }
@@ -322,6 +356,20 @@ export async function updateSubscriptionInTransaction({
           .where(
             and(
               eq(order.transactionId, newOrder.transactionId),
+              eq(order.paymentProvider, newOrder.paymentProvider)
+            )
+          );
+
+        existingOrder = existingOrderResult;
+      }
+
+      if (!existingOrder && newOrder.invoiceId && newOrder.paymentProvider) {
+        const [existingOrderResult] = await tx
+          .select()
+          .from(order)
+          .where(
+            and(
+              eq(order.invoiceId, newOrder.invoiceId),
               eq(order.paymentProvider, newOrder.paymentProvider)
             )
           );

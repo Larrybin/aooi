@@ -37,11 +37,7 @@ export const cacheGet = (key: string): string | null => {
 
 // set data to cache
 // expiresAt: absolute timestamp, -1 means no expire
-export const cacheSet = (
-  key: string,
-  value: string,
-  expiresAt: number = 0
-) => {
+export const cacheSet = (key: string, value: string, expiresAt: number = 0) => {
   if (!hasLocalStorage()) {
     return;
   }

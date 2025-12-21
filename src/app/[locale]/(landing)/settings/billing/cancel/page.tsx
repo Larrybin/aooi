@@ -1,8 +1,13 @@
 import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
+import { z } from 'zod';
 
 import { Empty } from '@/shared/blocks/common';
 import { FormCard } from '@/shared/blocks/form';
+import { parseFormData } from '@/shared/lib/action/form';
+import { requireActionUser } from '@/shared/lib/action/guard';
+import { actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
 import {
   findSubscriptionBySubscriptionNo,
   SubscriptionStatus,
@@ -21,7 +26,7 @@ export default async function CancelBillingPage({
   searchParams: Promise<{ subscription_no: string }>;
 }) {
   const t = await getTranslations('settings.billing.cancel');
-  const { locale } = await params;
+  const { locale: _locale } = await params;
   const { subscription_no } = await searchParams;
 
   if (!subscription_no) {
@@ -69,50 +74,51 @@ export default async function CancelBillingPage({
     },
   ];
 
-  const handleCancelSubscription = async (data: FormData, passby: any) => {
+  const handleCancelSubscription = async (data: FormData, _passby: unknown) => {
     'use server';
 
-    const { subscription, user } = passby;
-    if (!user) {
-      throw new Error('no auth');
-    }
+    return withAction(async () => {
+      const user = await requireActionUser();
+      parseFormData(data, z.record(z.string(), z.string()));
+      if (!subscription_no) {
+        throw new Error('invalid subscription no');
+      }
 
-    if (!subscription || !subscription.subscriptionId) {
-      throw new Error('invalid subscription');
-    }
+      const subscription =
+        await findSubscriptionBySubscriptionNo(subscription_no);
+      if (!subscription || !subscription.subscriptionId) {
+        throw new Error('invalid subscription');
+      }
 
-    if (subscription.userId !== user.id) {
-      throw new Error('no permission');
-    }
+      if (subscription.userId !== user.id) {
+        throw new Error('no permission');
+      }
 
-    if (
-      subscription.status !== SubscriptionStatus.ACTIVE &&
-      subscription.status !== SubscriptionStatus.TRIALING
-    ) {
-      throw new Error('subscription is not active or trialing');
-    }
+      if (
+        subscription.status !== SubscriptionStatus.ACTIVE &&
+        subscription.status !== SubscriptionStatus.TRIALING
+      ) {
+        throw new Error('subscription is not active or trialing');
+      }
 
-    const paymentService = await getPaymentService();
-    const paymentProvider = paymentService.getProvider(
-      subscription.paymentProvider
-    );
+      const paymentService = await getPaymentService();
+      const paymentProvider = paymentService.getProvider(
+        subscription.paymentProvider
+      );
 
-    const result = await paymentProvider?.cancelSubscription?.({
-      subscriptionId: subscription.subscriptionId,
+      const result = await paymentProvider?.cancelSubscription?.({
+        subscriptionId: subscription.subscriptionId,
+      });
+      if (!result) {
+        throw new Error('cancel subscription failed');
+      }
+
+      await updateSubscriptionBySubscriptionNo(subscription.subscriptionNo, {
+        status: SubscriptionStatus.CANCELED,
+      });
+
+      return actionOk('Subscription canceled', '/settings/billing');
     });
-    if (!result) {
-      throw new Error('cancel subscription failed');
-    }
-
-    await updateSubscriptionBySubscriptionNo(subscription.subscriptionNo, {
-      status: SubscriptionStatus.CANCELED,
-    });
-
-    return {
-      status: 'success' as const,
-      message: 'Subscription canceled',
-      redirect_url: '/settings/billing',
-    };
   };
 
   const form: Form = {

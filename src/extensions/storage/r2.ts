@@ -1,11 +1,13 @@
-import type {
-  StorageConfigs,
-  StorageDownloadUploadOptions,
-  StorageProvider,
-  StorageUploadOptions,
-  StorageUploadResult,
+import { safeFetch } from '@/shared/lib/fetch/server';
+
+import {
+  toUint8Array,
+  type StorageConfigs,
+  type StorageDownloadUploadOptions,
+  type StorageProvider,
+  type StorageUploadOptions,
+  type StorageUploadResult,
 } from '.';
-import { toUint8Array } from '.';
 
 /**
  * R2 storage provider configs
@@ -112,7 +114,11 @@ export class R2Provider implements StorageProvider {
     options: StorageDownloadUploadOptions
   ): Promise<StorageUploadResult> {
     try {
-      const response = await fetch(options.url);
+      const response = await safeFetch(
+        options.url,
+        { method: 'GET' },
+        { timeoutMs: 30000, cache: 'no-store' }
+      );
       if (!response.ok) {
         return {
           success: false,

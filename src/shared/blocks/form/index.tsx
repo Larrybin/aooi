@@ -1,6 +1,5 @@
 'use client';
 
-import { isArray } from 'util';
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
@@ -20,7 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/shared/components/ui/form';
-import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import {
   FormField as FormFieldType,
@@ -119,7 +117,7 @@ function buildFieldSchema(field: FormFieldType) {
   }
 
   if (field.type === 'checkbox') {
-    let schema = z.array(z.string());
+    const schema = z.array(z.string());
 
     return schema;
   }
@@ -184,7 +182,7 @@ const generateFormSchema = (fields: FormFieldType[]) => {
 
 export function Form<
   TData extends Record<string, unknown> = Record<string, unknown>,
-  TPassby = unknown
+  TPassby = unknown,
 >({
   title,
   description,
@@ -213,9 +211,9 @@ export function Form<
   fields.forEach((field) => {
     if (field.name) {
       if (field.type === 'switch') {
-        const val = (data as Record<string, unknown> | undefined)?.[
-          field.name
-        ] ?? field.value;
+        const val =
+          (data as Record<string, unknown> | undefined)?.[field.name] ??
+          field.value;
         defaultValues[field.name] =
           val === true || val === 'true' || val === 1 || val === '1';
       } else if (
@@ -224,9 +222,9 @@ export function Form<
         field.metadata.max > 1
       ) {
         // Multiple image upload: default value is an array
-        const val = (data as Record<string, unknown> | undefined)?.[
-          field.name
-        ] ?? field.value;
+        const val =
+          (data as Record<string, unknown> | undefined)?.[field.name] ??
+          field.value;
         if (typeof val === 'string' && val) {
           // If it's a comma-separated string, convert to array
           defaultValues[field.name] = val.split(',').filter(Boolean);
@@ -237,15 +235,13 @@ export function Form<
         }
       } else if (field.type === 'number') {
         // Convert number to string for input fields (HTML inputs always return strings)
-        const val = (data as Record<string, unknown> | undefined)?.[
-          field.name
-        ] ?? field.value;
+        const val =
+          (data as Record<string, unknown> | undefined)?.[field.name] ??
+          field.value;
         defaultValues[field.name] =
           val !== null && val !== undefined ? String(val) : '';
       } else {
-        const val = (data as Record<string, unknown> | undefined)?.[
-          field.name
-        ];
+        const val = (data as Record<string, unknown> | undefined)?.[field.name];
         defaultValues[field.name] = val ?? field.value ?? '';
       }
     }
@@ -314,8 +310,7 @@ export function Form<
       setLoading(false);
     } catch (err: unknown) {
       console.log('submit form error', err);
-      const message =
-        err instanceof Error ? err.message : 'submit form failed';
+      const message = err instanceof Error ? err.message : 'submit form failed';
       toast.error(message);
       setLoading(false);
     }
@@ -327,8 +322,10 @@ export function Form<
         onSubmit={form.handleSubmit(onSubmit)}
         className="w-full space-y-0 pb-2 md:max-w-xl"
       >
-        {/* {title && <h2 className="text-lg font-bold">{title}</h2>}
-        {description && <p className="text-muted-foreground">{description}</p>} */}
+        {title ? <h2 className="text-lg font-bold">{title}</h2> : null}
+        {description ? (
+          <p className="text-muted-foreground">{description}</p>
+        ) : null}
         <div className="mb-6 space-y-6">
           {fields.map((item, index) => {
             return (

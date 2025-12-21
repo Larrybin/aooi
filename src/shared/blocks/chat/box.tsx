@@ -18,7 +18,7 @@ export function ChatBox({
   initialChat?: Chat;
   initialMessages?: UIMessage[];
 }) {
-  const { chat, setChat } = useChatContext();
+  const { setChat } = useChatContext();
 
   // create chat instance
   const chatInstance = useChat({

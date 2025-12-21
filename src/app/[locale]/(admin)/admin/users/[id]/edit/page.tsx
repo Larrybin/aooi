@@ -1,12 +1,14 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS, requirePermission } from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
-import { findUserById, updateUser, UpdateUser } from '@/shared/models/user';
-import { Crumb } from '@/shared/types/blocks/common';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
+import { findUserById } from '@/shared/models/user';
 import { Form } from '@/shared/types/blocks/form';
+
+import { updateUserAction } from '../../actions';
 
 export default async function UserEditPage({
   params,
@@ -14,13 +16,10 @@ export default async function UserEditPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  setRequestLocale(locale);
 
-  // Check if user has permission to edit posts
-  await requirePermission({
-    code: PERMISSIONS.USERS_WRITE,
-    redirectUrl: '/admin/no-permission',
+  await setupAdminPage({
     locale,
+    permission: PERMISSIONS.USERS_WRITE,
   });
 
   const user = await findUserById(id);
@@ -30,11 +29,11 @@ export default async function UserEditPage({
 
   const t = await getTranslations('admin.users');
 
-  const crumbs: Crumb[] = [
-    { title: t('edit.crumbs.admin'), url: '/admin' },
-    { title: t('edit.crumbs.users'), url: '/admin/users' },
-    { title: t('edit.crumbs.edit'), is_active: true },
-  ];
+  const crumbs = buildAdminCrumbs(t, [
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.users', url: '/admin/users' },
+    { key: 'edit.crumbs.edit' },
+  ]);
 
   const form: Form<typeof user, { user: typeof user }> = {
     fields: [
@@ -65,35 +64,7 @@ export default async function UserEditPage({
       button: {
         title: t('edit.buttons.submit'),
       },
-      handler: async (data, passby) => {
-        'use server';
-
-        const { user } = passby!;
-
-        if (!user) {
-          throw new Error('no auth');
-        }
-
-        const name = data.get('name') as string;
-        const image = data.get('image') as string;
-
-        const newUser: UpdateUser = {
-          name: name.trim(),
-          image: image as string,
-        };
-
-        const result = await updateUser(user.id as string, newUser);
-
-        if (!result) {
-          throw new Error('update user failed');
-        }
-
-        return {
-          status: 'success',
-          message: 'user updated',
-          redirect_url: '/admin/users',
-        };
-      },
+      handler: updateUserAction.bind(null, id),
     },
   };
 

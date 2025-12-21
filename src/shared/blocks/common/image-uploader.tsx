@@ -1,12 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { IconUpload, IconX } from '@tabler/icons-react';
 import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 
 import { Button } from '@/shared/components/ui/button';
+import { fetchApiData, isPlainObject } from '@/shared/lib/api/client';
+import { toastFetchError } from '@/shared/lib/api/fetch-json';
 import { cn } from '@/shared/lib/utils';
 
 export type UploadStatus = 'idle' | 'uploading' | 'uploaded' | 'error';
@@ -47,21 +49,19 @@ const uploadImageFile = async (file: File) => {
   const formData = new FormData();
   formData.append('files', file);
 
-  const response = await fetch('/api/storage/upload-image', {
-    method: 'POST',
-    body: formData,
-  });
+  const data = await fetchApiData<{ urls: string[] }>(
+    '/api/storage/upload-image',
+    { method: 'POST', body: formData },
+    {
+      validate: (value): value is { urls: string[] } =>
+        isPlainObject(value) &&
+        Array.isArray((value as { urls?: unknown }).urls) &&
+        typeof (value as { urls: unknown[] }).urls[0] === 'string',
+      invalidDataMessage: 'invalid upload response',
+    }
+  );
 
-  if (!response.ok) {
-    throw new Error(`Upload failed with status ${response.status}`);
-  }
-
-  const result = await response.json();
-  if (result.code !== 0 || !result.data?.urls?.length) {
-    throw new Error(result.message || 'Upload failed');
-  }
-
-  return result.data.urls[0] as string;
+  return data.urls[0].trim();
 };
 
 export function ImageUploader({
@@ -234,10 +234,13 @@ export function ImageUploader({
             });
             return next;
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Upload failed:', error);
-          toast.error(
-            error?.message ? `Upload failed: ${error.message}` : 'Upload failed'
+          toastFetchError(
+            error,
+            error instanceof Error && error.message
+              ? `Upload failed: ${error.message}`
+              : 'Upload failed'
           );
           setItems((prev) => {
             const next = prev.map((current) =>

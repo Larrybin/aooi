@@ -21,9 +21,11 @@ const iconHelper = (icon: string | undefined) => {
 export const toLoaderSource = <Config extends SourceConfig>(
   input: Source<Config>
 ): Source<Config> => {
-  const anyInput = input as unknown as { files: any };
+  const inputWithFiles = input as unknown as { files: unknown };
   const files =
-    typeof anyInput.files === 'function' ? anyInput.files() : anyInput.files;
+    typeof inputWithFiles.files === 'function'
+      ? (inputWithFiles.files as () => unknown)()
+      : inputWithFiles.files;
   return { files } as Source<Config>;
 };
 

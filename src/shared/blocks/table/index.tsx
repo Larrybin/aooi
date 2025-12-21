@@ -5,14 +5,13 @@ import {
   TableBody,
   TableCell,
   Table as TableComponent,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table';
-import type { Pagination, NavItem } from '@/shared/types/blocks/common';
-import type { TableColumn } from '@/shared/types/blocks/table';
 import type { User as UserType } from '@/shared/models/user';
+import type { NavItem } from '@/shared/types/blocks/common';
+import type { TableColumn } from '@/shared/types/blocks/table';
 
 import { Copy } from './copy';
 import { Dropdown } from './dropdown';
@@ -26,12 +25,10 @@ export function Table<T extends object>({
   columns,
   data,
   emptyMessage,
-  pagination,
 }: {
   columns?: TableColumn<T>[];
   data?: T[];
   emptyMessage?: string;
-  pagination?: Pagination;
 }) {
   if (!columns) {
     columns = [];
@@ -74,10 +71,12 @@ export function Table<T extends object>({
                       <Image
                         placeholder={column.placeholder}
                         value={value as string}
-                        metadata={column.metadata as {
-                          width?: number;
-                          height?: number;
-                        }}
+                        metadata={
+                          column.metadata as {
+                            width?: number;
+                            height?: number;
+                          }
+                        }
                         className={column.className}
                         alt={
                           column.placeholder ||
@@ -90,9 +89,11 @@ export function Table<T extends object>({
                       <Time
                         placeholder={column.placeholder}
                         value={value as string | Date}
-                        metadata={column.metadata as {
-                          format?: string;
-                        }}
+                        metadata={
+                          column.metadata as {
+                            format?: string;
+                          }
+                        }
                         className={column.className}
                       />
                     );
@@ -101,13 +102,15 @@ export function Table<T extends object>({
                       <Label
                         placeholder={column.placeholder}
                         value={value as string}
-                        metadata={column.metadata as {
-                          variant?:
-                            | 'default'
-                            | 'secondary'
-                            | 'destructive'
-                            | 'outline';
-                        }}
+                        metadata={
+                          column.metadata as {
+                            variant?:
+                              | 'default'
+                              | 'secondary'
+                              | 'destructive'
+                              | 'outline';
+                          }
+                        }
                         className={column.className}
                       />
                     );
@@ -116,9 +119,11 @@ export function Table<T extends object>({
                       <Copy
                         placeholder={column.placeholder}
                         value={value as string}
-                        metadata={column.metadata as {
-                          message?: string;
-                        }}
+                        metadata={
+                          column.metadata as {
+                            message?: string;
+                          }
+                        }
                         className={column.className}
                       >
                         {rawContent as ReactNode}
