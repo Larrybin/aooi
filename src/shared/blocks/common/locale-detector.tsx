@@ -84,7 +84,6 @@ export function LocaleDetector() {
       switchToLocale(preferredLocale);
       return;
     }
-
   }, [currentLocale, switchToLocale]);
 
   // Adjust header and main content position when banner is shown

@@ -7,7 +7,7 @@ import { Pricing as PricingType } from '@/shared/types/blocks/pricing';
 import { FAQ, Pricing, Testimonials } from '@/themes/default/blocks';
 
 export default async function PricingPage({
-  locale,
+  locale: _locale,
   pricing,
   currentSubscription,
   faq,

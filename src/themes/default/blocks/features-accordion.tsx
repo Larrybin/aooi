@@ -104,7 +104,9 @@ export function FeaturesAccordion({
                       src={images[activeItem].src}
                       className="size-full object-cover object-left-top dark:mix-blend-lighten"
                       alt={images[activeItem].alt}
-                      width={images[activeItem].width ?? fallbackImageSize.width}
+                      width={
+                        images[activeItem].width ?? fallbackImageSize.width
+                      }
                       height={
                         images[activeItem].height ?? fallbackImageSize.height
                       }

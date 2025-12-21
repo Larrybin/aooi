@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, asc, count, desc, eq } from 'drizzle-orm';
+import { and, asc, count, eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { chatMessage } from '@/config/db/schema';

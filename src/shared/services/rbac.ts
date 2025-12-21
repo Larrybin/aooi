@@ -3,14 +3,14 @@ import 'server-only';
 import { and, eq, gt, isNull, or } from 'drizzle-orm';
 
 import { db } from '@/core/db';
-import { permission, role, rolePermission, userRole } from '@/config/db/schema';
-import { getUuid } from '@/shared/lib/hash';
-import { logger } from '@/shared/lib/logger.server';
 import {
   buildPublicPermissionMisconfigurationError,
   buildRoleDeletedAtMissingHint,
   isMissingRoleDeletedAtColumnError,
 } from '@/core/db/schema-check';
+import { permission, role, rolePermission, userRole } from '@/config/db/schema';
+import { getUuid } from '@/shared/lib/hash';
+import { logger } from '@/shared/lib/logger.server';
 
 // Types
 export type Role = typeof role.$inferSelect;
@@ -306,7 +306,9 @@ export async function getUserRoles(userId: string): Promise<Role[]> {
 /**
  * Get user's permissions (through roles)
  */
-export async function getUserPermissions(userId: string): Promise<Permission[]> {
+export async function getUserPermissions(
+  userId: string
+): Promise<Permission[]> {
   const now = new Date();
   return await db()
     .selectDistinct({
@@ -434,7 +436,10 @@ export async function hasAllPermissions(
 /**
  * Check if user has a specific role
  */
-export async function hasRole(userId: string, roleName: string): Promise<boolean> {
+export async function hasRole(
+  userId: string,
+  roleName: string
+): Promise<boolean> {
   const roles = await getUserRoles(userId);
   return roles.some((r) => r.name === roleName);
 }

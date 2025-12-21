@@ -1,7 +1,7 @@
 'use client';
 
-import { fetchWithTimeout } from '@/shared/lib/fetch/timeout';
 import { sanitizeUrlForLog } from '@/shared/lib/fetch/sanitize-url';
+import { fetchWithTimeout } from '@/shared/lib/fetch/timeout';
 
 export async function fetchBlobWithTimeout(
   url: string,

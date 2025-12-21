@@ -1,12 +1,13 @@
-import type {
-  StorageConfigs,
-  StorageDownloadUploadOptions,
-  StorageProvider,
-  StorageUploadOptions,
-  StorageUploadResult,
-} from '.';
-import { toUint8Array } from '.';
 import { safeFetch } from '@/shared/lib/fetch/server';
+
+import {
+  toUint8Array,
+  type StorageConfigs,
+  type StorageDownloadUploadOptions,
+  type StorageProvider,
+  type StorageUploadOptions,
+  type StorageUploadResult,
+} from '.';
 
 /**
  * S3 storage provider configs

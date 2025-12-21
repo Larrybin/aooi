@@ -48,6 +48,7 @@ The auth API is exposed via a catch-all route at `/api/auth/[...all]`:
 ```typescript
 // src/app/api/auth/[...all]/route.ts
 import { toNextJsHandler } from 'better-auth/next-js';
+
 import { getAuth } from '@/core/auth';
 
 export async function POST(request: Request) {
@@ -80,7 +81,7 @@ const session = await auth.api.getSession({ headers: request.headers });
 ### Basic Auth Client
 
 ```typescript
-import { signIn, signUp, signOut, useSession } from '@/core/auth/client';
+import { signIn, signOut, signUp, useSession } from '@/core/auth/client';
 
 // Sign in with email/password
 await signIn.email({ email, password });
@@ -114,41 +115,41 @@ const authClient = getAuthClient(configs);
 
 Enabled by default. Can be toggled via database config:
 
-| Config Key | Value | Description |
-|------------|-------|-------------|
+| Config Key           | Value          | Description                |
+| -------------------- | -------------- | -------------------------- |
 | `email_auth_enabled` | `true`/`false` | Enable email/password auth |
 
 ### Social Providers
 
 #### Google OAuth
 
-| Config Key | Description |
-|------------|-------------|
-| `google_client_id` | Google OAuth Client ID |
-| `google_client_secret` | Google OAuth Client Secret |
+| Config Key               | Description                   |
+| ------------------------ | ----------------------------- |
+| `google_client_id`       | Google OAuth Client ID        |
+| `google_client_secret`   | Google OAuth Client Secret    |
 | `google_one_tap_enabled` | Enable Google One Tap sign-in |
 
 #### GitHub OAuth
 
-| Config Key | Description |
-|------------|-------------|
-| `github_client_id` | GitHub OAuth Client ID |
+| Config Key             | Description                |
+| ---------------------- | -------------------------- |
+| `github_client_id`     | GitHub OAuth Client ID     |
 | `github_client_secret` | GitHub OAuth Client Secret |
 
 ## Environment Variables
 
 ### Required
 
-| Variable | Description |
-|----------|-------------|
+| Variable                              | Description                                            |
+| ------------------------------------- | ------------------------------------------------------ |
 | `BETTER_AUTH_SECRET` or `AUTH_SECRET` | Secret key for signing tokens (required in production) |
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL`                        | PostgreSQL connection string                           |
 
 ### Optional
 
-| Variable | Description |
-|----------|-------------|
-| `BETTER_AUTH_URL` | Override auth base URL |
+| Variable              | Description                   |
+| --------------------- | ----------------------------- |
+| `BETTER_AUTH_URL`     | Override auth base URL        |
 | `NEXT_PUBLIC_APP_URL` | Application URL for callbacks |
 
 ## Database Schema
@@ -195,6 +196,7 @@ AUTH_SECRET or BETTER_AUTH_SECRET must be set in production
 ### Session Not Persisting
 
 **Possible causes**:
+
 1. `NEXT_PUBLIC_APP_URL` doesn't match the actual domain
 2. Cookies blocked by browser (check SameSite settings)
 3. HTTPS required but running on HTTP
@@ -207,7 +209,8 @@ AUTH_SECRET or BETTER_AUTH_SECRET must be set in production
 OAuth callback error: redirect_uri_mismatch
 ```
 
-**Solution**: 
+**Solution**:
+
 1. Check OAuth provider settings for correct callback URL: `https://your-domain.com/api/auth/callback/google`
 2. Ensure `NEXT_PUBLIC_APP_URL` is set correctly
 3. Verify client ID and secret are correct
@@ -215,6 +218,7 @@ OAuth callback error: redirect_uri_mismatch
 ### "Database connection failed" During Auth
 
 **Solution**:
+
 1. Verify `DATABASE_URL` is set correctly
 2. Run `pnpm db:migrate` to apply migrations
 3. Check database connectivity
@@ -222,6 +226,7 @@ OAuth callback error: redirect_uri_mismatch
 ### Google One Tap Not Working
 
 **Possible causes**:
+
 1. `google_one_tap_enabled` not set to `true` in database config
 2. Missing `google_client_id` in database config
 3. Domain not verified in Google Cloud Console

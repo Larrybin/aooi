@@ -1,9 +1,10 @@
 'use client';
 
+import Image from 'next/image';
+
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
 import { cn } from '@/shared/lib/utils';
 import { Logos as LogosType } from '@/shared/types/blocks/landing';
-import Image from 'next/image';
 
 export function Logos({
   logos,

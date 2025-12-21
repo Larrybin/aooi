@@ -46,7 +46,10 @@ export function Hero({
 
   const fallbackHeroImageRatio = { width: 2434, height: 1642 };
 
-  const getImageWrapperStyle = (image?: { width?: number; height?: number }) => {
+  const getImageWrapperStyle = (image?: {
+    width?: number;
+    height?: number;
+  }) => {
     const width = image?.width ?? fallbackHeroImageRatio.width;
     const height = image?.height ?? fallbackHeroImageRatio.height;
     if (!width || !height) {

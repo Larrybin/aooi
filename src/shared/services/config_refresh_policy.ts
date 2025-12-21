@@ -1,7 +1,6 @@
 import 'server-only';
 
-import type { Configs } from '@/shared/models/config';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigs, type Configs } from '@/shared/models/config';
 
 export type ConfigRefreshPolicy = 'always';
 

@@ -38,4 +38,3 @@ export const aiSettings: Setting[] = [
     tab: 'ai',
   },
 ];
-

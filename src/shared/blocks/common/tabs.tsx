@@ -33,10 +33,7 @@ export function Tabs({
                   asChild={!!tab.url}
                 >
                   {tab.url ? (
-                    <Link
-                      href={tab.url}
-                      target={tab.target || '_self'}
-                    >
+                    <Link href={tab.url} target={tab.target || '_self'}>
                       {tab.title}
                     </Link>
                   ) : (

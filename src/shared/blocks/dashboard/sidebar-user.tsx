@@ -89,9 +89,7 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
                     {authUser.name}
                   </span>
                   {user.show_email && (
-                    <span className="truncate text-xs">
-                      {authUser.email}
-                    </span>
+                    <span className="truncate text-xs">{authUser.email}</span>
                   )}
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
@@ -119,9 +117,7 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
                       {authUser.name}
                     </span>
                     {user.show_email && (
-                      <span className="truncate text-xs">
-                        {authUser.email}
-                      </span>
+                      <span className="truncate text-xs">{authUser.email}</span>
                     )}
                   </div>
                 </div>

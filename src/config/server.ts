@@ -13,8 +13,5 @@ export const serverEnv = {
     process.env.AUTH_URL ??
     process.env.NEXT_PUBLIC_APP_URL ??
     'http://localhost:3000',
-  authSecret:
-    process.env.BETTER_AUTH_SECRET ??
-    process.env.AUTH_SECRET ??
-    '',
+  authSecret: process.env.BETTER_AUTH_SECRET ?? process.env.AUTH_SECRET ?? '',
 };

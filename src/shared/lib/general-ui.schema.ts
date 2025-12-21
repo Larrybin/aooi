@@ -20,4 +20,3 @@ export const generalSocialLinkSchema = z
   .passthrough();
 
 export const generalSocialLinksSchema = z.array(generalSocialLinkSchema);
-

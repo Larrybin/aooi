@@ -124,6 +124,16 @@ const eslintConfig = [
     files: ['**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': ['error', baseNoRestrictedImports],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+          varsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   {
@@ -151,7 +161,7 @@ const eslintConfig = [
             {
               group: ['@/core/**'],
               message:
-                "请避免在 shared/types 中依赖 core（类型层反向依赖会放大耦合）。建议将类型下沉到 shared/types 或改为直接依赖三方 type。",
+                '请避免在 shared/types 中依赖 core（类型层反向依赖会放大耦合）。建议将类型下沉到 shared/types 或改为直接依赖三方 type。',
             },
           ],
         },
@@ -191,7 +201,7 @@ const eslintConfig = [
             {
               group: ['next/**'],
               message:
-                "请避免在 shared/models 中依赖 next/**（建议将请求/headers/navigation 等边界下沉到 shared/lib 的 *.server 模块或由 services 编排）。",
+                '请避免在 shared/models 中依赖 next/**（建议将请求/headers/navigation 等边界下沉到 shared/lib 的 *.server 模块或由 services 编排）。',
             },
             {
               group: ['@/shared/blocks/**', '@/shared/components/**'],
@@ -211,7 +221,7 @@ const eslintConfig = [
             {
               group: ['@/core/auth', '@/core/auth/**'],
               message:
-                "请避免在 shared/models 中依赖 core/auth。建议将会话获取下沉到 shared/lib 的 server-only 边界，再由 models 调用该边界或由 services 负责编排。",
+                '请避免在 shared/models 中依赖 core/auth。建议将会话获取下沉到 shared/lib 的 server-only 边界，再由 models 调用该边界或由 services 负责编排。',
             },
           ],
         },
@@ -313,12 +323,14 @@ const eslintConfig = [
             {
               regex: '\\.client(\\.|$)',
               allowTypeImports: true,
-              message: "shared/content 禁止导入 '*.client'（client-only 模块）。",
+              message:
+                "shared/content 禁止导入 '*.client'（client-only 模块）。",
             },
             {
               group: ['@/**/client/**'],
               allowTypeImports: true,
-              message: "shared/content 禁止导入 '**/client/**'（client-only 模块）。",
+              message:
+                "shared/content 禁止导入 '**/client/**'（client-only 模块）。",
             },
           ],
         },
@@ -386,7 +398,10 @@ const eslintConfig = [
   {
     files: ['src/app/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['error', serverEntryNoRestrictedClientOnlyImports],
+      'no-restricted-imports': [
+        'error',
+        serverEntryNoRestrictedClientOnlyImports,
+      ],
     },
   },
   {

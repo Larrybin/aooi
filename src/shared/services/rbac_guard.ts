@@ -1,14 +1,14 @@
 import 'server-only';
 
-import { redirect } from '@/core/i18n/navigation';
 import { cache } from 'react';
 
+import { redirect } from '@/core/i18n/navigation';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignUser } from '@/shared/models/user';
 import {
+  createPermissionChecker,
   hasAnyRole,
   hasRole,
-  createPermissionChecker,
 } from '@/shared/services/rbac';
 
 export { PERMISSIONS };

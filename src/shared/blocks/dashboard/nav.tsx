@@ -2,7 +2,7 @@
 
 import { ChevronRight } from 'lucide-react';
 
-import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
+import { Link, usePathname } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Collapsible,
@@ -24,7 +24,6 @@ import { NavItem, type Nav as NavType } from '@/shared/types/blocks/common';
 
 export function Nav({ nav, className }: { nav: NavType; className?: string }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <SidebarGroup className={className}>
@@ -45,8 +44,7 @@ export function Nav({ nav, className }: { nav: NavType; className?: string }) {
                       tooltip={item?.title}
                       className={`${
                         item?.is_active ||
-                        (item?.url &&
-                          pathname.startsWith(item?.url as string))
+                        (item?.url && pathname.startsWith(item?.url as string))
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/90 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/90 active:text-sidebar-accent-foreground min-w-8 duration-200 ease-linear'
                           : ''
                       }`}
@@ -62,8 +60,7 @@ export function Nav({ nav, className }: { nav: NavType; className?: string }) {
                     tooltip={item?.title}
                     className={`${
                       item?.is_active ||
-                      (item?.url &&
-                        pathname.startsWith(item?.url as string))
+                      (item?.url && pathname.startsWith(item?.url as string))
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/90 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/90 active:text-sidebar-accent-foreground min-w-8 duration-200 ease-linear'
                         : ''
                     }`}

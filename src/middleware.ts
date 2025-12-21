@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
 import { proxy } from '@/request-proxy';
+
 import { getOrCreateRequestId } from '@/shared/lib/request-id';
 
 export async function middleware(request: NextRequest) {
@@ -26,4 +26,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/api/:path*', '/((?!_next|_vercel|.*\\..*).*)'],
 };
-

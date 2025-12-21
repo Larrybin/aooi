@@ -3,7 +3,10 @@
 import { toast } from 'sonner';
 
 import { fetchApiData } from '@/shared/lib/api/client';
-import { formatMessageWithRequestId, getRequestIdFromError } from '@/shared/lib/request-id';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+} from '@/shared/lib/request-id';
 
 export type FetchJsonInit = Omit<RequestInit, 'body' | 'headers'> & {
   headers?: HeadersInit;
@@ -55,6 +58,7 @@ export async function fetchJsonEnvelope<T>(
 }
 
 export function toastFetchError(error: unknown, message: string): void {
-  toast.error(formatMessageWithRequestId(message, getRequestIdFromError(error)));
+  toast.error(
+    formatMessageWithRequestId(message, getRequestIdFromError(error))
+  );
 }
-

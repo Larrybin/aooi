@@ -65,20 +65,21 @@ Read [ShipAny Document](https://shipany.ai/docs/quick-start) to start your AI Sa
 
 ### Engineering Guides
 
-| Document | Description |
-|----------|-------------|
-| [Auth Guide](docs/guides/auth.md) | Authentication with Better Auth |
-| [RBAC Guide](docs/guides/rbac.md) | Role-Based Access Control |
-| [Payment Guide](docs/guides/payment.md) | Multi-provider payment integration |
-| [Database Guide](docs/guides/database.md) | Drizzle ORM and migrations |
+| Document                                  | Description                        |
+| ----------------------------------------- | ---------------------------------- |
+| [Auth Guide](docs/guides/auth.md)         | Authentication with Better Auth    |
+| [RBAC Guide](docs/guides/rbac.md)         | Role-Based Access Control          |
+| [Payment Guide](docs/guides/payment.md)   | Multi-provider payment integration |
+| [Database Guide](docs/guides/database.md) | Drizzle ORM and migrations         |
 
 ### Code Quality
 
-| Document | Description |
-|----------|-------------|
-| [Code Review](docs/CODE_REVIEW.md) | Full code review guide |
-| [Architecture Review](docs/ARCHITECTURE_REVIEW.md) | Architecture audit report |
-| [Contributing](CONTRIBUTING.md) | Contribution guidelines |
+| Document                                           | Description                                              |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| [Conventions Index](docs/CONVENTIONS.md)           | Entry point for repository conventions and code patterns |
+| [Code Review](docs/CODE_REVIEW.md)                 | Full code review guide                                   |
+| [Architecture Review](docs/ARCHITECTURE_REVIEW.md) | Architecture audit report                                |
+| [Contributing](CONTRIBUTING.md)                    | Contribution guidelines                                  |
 
 ### Docs Site
 

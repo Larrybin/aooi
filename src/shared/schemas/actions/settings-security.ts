@@ -5,4 +5,3 @@ import { nonEmptyTrimmedStringSchema } from './common';
 export const SettingsSecurityFormSchema = z.object({
   password: nonEmptyTrimmedStringSchema,
 });
-

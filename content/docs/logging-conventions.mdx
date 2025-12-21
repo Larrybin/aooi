@@ -19,14 +19,14 @@ Prefer `getRequestLogger(req)` to bind request context (`route`, `requestId`, `m
 
 Common fields (recommended):
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `route` | `string` | URL pathname only (no query) |
-| `requestId` | `string` | Prefer `x-request-id`, fallback to platform ids |
-| `method` | `string` | HTTP method |
-| `provider` | `string` | Payment/email/etc provider name |
-| `userId` | `string` | Sensitive; log only when necessary (prefer debug or hashed) |
-| `error` | `unknown` | Prefer `Error` object; logger will serialize + redact |
+| Field       | Type      | Notes                                                       |
+| ----------- | --------- | ----------------------------------------------------------- |
+| `route`     | `string`  | URL pathname only (no query)                                |
+| `requestId` | `string`  | Prefer `x-request-id`, fallback to platform ids             |
+| `method`    | `string`  | HTTP method                                                 |
+| `provider`  | `string`  | Payment/email/etc provider name                             |
+| `userId`    | `string`  | Sensitive; log only when necessary (prefer debug or hashed) |
+| `error`     | `unknown` | Prefer `Error` object; logger will serialize + redact       |
 
 ## Security Rules
 
@@ -40,11 +40,11 @@ The logger recursively redacts objects: when a key name matches the rules below,
 
 > Source of truth is `src/shared/lib/logger.server.ts`. This section is a synchronized summary of the current implementation.
 
-| Rule type | Matching examples (key) |
-| --- | --- |
-| Exact keys | `authorization`, `cookie`, `set-cookie` |
-| Password-like | `password`, `pwd`, `pass` (substring match) |
-| Secret-like | `secret`, `client_secret`, `private_key` (substring match) |
-| Token-like | `token` (substring match) |
-| API key-like | `api_key`, `apikey`, `api-key` (substring match) |
-| Session id-like | `session*id` (contains `session` and ends with `id`) |
+| Rule type       | Matching examples (key)                                    |
+| --------------- | ---------------------------------------------------------- |
+| Exact keys      | `authorization`, `cookie`, `set-cookie`                    |
+| Password-like   | `password`, `pwd`, `pass` (substring match)                |
+| Secret-like     | `secret`, `client_secret`, `private_key` (substring match) |
+| Token-like      | `token` (substring match)                                  |
+| API key-like    | `api_key`, `apikey`, `api-key` (substring match)           |
+| Session id-like | `session*id` (contains `session` and ends with `id`)       |

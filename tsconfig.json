@@ -35,5 +35,11 @@
     ".next\\dev/types/**/*.ts",
     ".next\\dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "out", "dist", "raphael-starterkit-v1-main"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "raphael-starterkit-v1-main"
+  ]
 }

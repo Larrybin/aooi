@@ -160,7 +160,9 @@ export function FollowUp({
           : undefined,
       };
 
-      const body: Record<string, unknown> = isRecord(parsedBody) ? parsedBody : {};
+      const body: Record<string, unknown> = isRecord(parsedBody)
+        ? parsedBody
+        : {};
 
       void submitMessage(message, body).catch(() => {
         // submitMessage already appends an error message; avoid unhandled rejection.

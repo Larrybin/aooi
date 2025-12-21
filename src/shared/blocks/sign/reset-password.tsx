@@ -100,13 +100,9 @@ export function ResetPassword({
             {t('reset_password_disabled')}
           </p>
         ) : showInvalidToken ? (
-          <p className="text-sm text-neutral-500">
-            {t('invalid_reset_token')}
-          </p>
+          <p className="text-sm text-neutral-500">{t('invalid_reset_token')}</p>
         ) : showMissingToken ? (
-          <p className="text-sm text-neutral-500">
-            {t('missing_reset_token')}
-          </p>
+          <p className="text-sm text-neutral-500">{t('missing_reset_token')}</p>
         ) : (
           <div className="grid gap-4">
             <div className="grid gap-2">

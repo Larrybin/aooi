@@ -7,7 +7,7 @@ import { MarkdownEditor } from '../common/markdown-editor';
 export function Markdown({
   field,
   formField,
-  data,
+  data: _data,
 }: {
   field: FormField;
   formField: ControllerRenderProps<Record<string, unknown>, string>;

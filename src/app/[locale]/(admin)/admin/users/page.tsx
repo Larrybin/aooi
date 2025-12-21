@@ -1,13 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { Badge } from '@/shared/components/ui/badge';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getRemainingCredits } from '@/shared/models/credit';
 import { getUsers, getUsersCount, type User } from '@/shared/models/user';
 import { getUserRoles } from '@/shared/services/rbac';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Crumb, Search } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

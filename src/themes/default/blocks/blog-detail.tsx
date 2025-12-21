@@ -1,9 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import { TOCItems, TOCProvider } from 'fumadocs-ui/components/layout/toc';
 import { CalendarIcon, ListIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 
 import { MarkdownPreview } from '@/shared/blocks/common';
 import { Crumb } from '@/shared/blocks/common/crumb';

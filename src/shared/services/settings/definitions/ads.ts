@@ -12,4 +12,3 @@ export const adsSettings: Setting[] = [
     tab: 'ads',
   },
 ];
-

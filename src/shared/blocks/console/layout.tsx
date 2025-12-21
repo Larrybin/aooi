@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 
 import { Link, usePathname } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
@@ -22,7 +22,7 @@ export function ConsoleLayout({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchQuery = '';
   const filteredItems = nav?.items.filter((item) =>
     item.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -60,6 +60,11 @@ export function ConsoleLayout({
         <div className="container">
           <div className="py-8">
             <h1 className="text-foreground text-3xl font-semibold">{title}</h1>
+            {description ? (
+              <p className="text-muted-foreground mt-2 text-sm">
+                {description}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

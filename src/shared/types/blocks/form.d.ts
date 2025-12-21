@@ -60,7 +60,7 @@ export interface FormSubmit<TPassby = unknown> {
 
 export interface Form<
   TData extends Record<string, unknown> = Record<string, unknown>,
-  TPassby = unknown
+  TPassby = unknown,
 > {
   title?: string;
   description?: string;

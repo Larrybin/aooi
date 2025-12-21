@@ -12,9 +12,11 @@ export function toErrorMessage(error: unknown): string {
   }
 }
 
-export function toError(error: unknown, fallbackMessage = 'Unknown error'): Error {
+export function toError(
+  error: unknown,
+  fallbackMessage = 'Unknown error'
+): Error {
   if (error instanceof Error) return error;
   const message = toErrorMessage(error);
   return new Error(message || fallbackMessage);
 }
-

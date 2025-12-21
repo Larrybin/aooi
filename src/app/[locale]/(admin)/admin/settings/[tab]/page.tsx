@@ -1,27 +1,30 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionPermissions, requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk, actionErr } from '@/shared/lib/action/result';
+import {
+  requireActionPermissions,
+  requireActionUser,
+} from '@/shared/lib/action/guard';
+import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
 import { getConfigsSafe, saveConfigs } from '@/shared/models/config';
-import {
-  parseCreemProductIdsMappingConfig,
-  parseStripePaymentMethodsConfig,
-} from '@/shared/services/settings/validators/payment';
+import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import {
   getSettingGroups,
   getSettings,
   getSettingTabs,
 } from '@/shared/services/settings';
+import {
+  parseCreemProductIdsMappingConfig,
+  parseStripePaymentMethodsConfig,
+} from '@/shared/services/settings/validators/payment';
 import type { Crumb } from '@/shared/types/blocks/common';
-import type { Form as FormType, FormField } from '@/shared/types/blocks/form';
+import type { FormField, Form as FormType } from '@/shared/types/blocks/form';
 
 export default async function SettingsPage({
   params,
@@ -87,7 +90,9 @@ export default async function SettingsPage({
               const issues = result.error.issues
                 .slice(0, 3)
                 .map((issue) => {
-                  const path = issue.path.length ? issue.path.join('.') : 'root';
+                  const path = issue.path.length
+                    ? issue.path.join('.')
+                    : 'root';
                   return `${path}: ${issue.message}`;
                 })
                 .join('; ');
@@ -210,11 +215,9 @@ export default async function SettingsPage({
       <Header crumbs={crumbs} />
       <Main>
         {configsError && (
-          <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="border-destructive bg-destructive/10 text-destructive mb-4 rounded-md border p-3 text-sm">
             <p className="font-semibold">{loadErrorTitle}</p>
-            <p className="mt-1 text-xs text-destructive/80">
-              {loadErrorDesc}
-            </p>
+            <p className="text-destructive/80 mt-1 text-xs">{loadErrorDesc}</p>
           </div>
         )}
         <MainHeader title={t('edit.title')} tabs={tabs} />

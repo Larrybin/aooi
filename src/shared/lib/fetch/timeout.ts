@@ -25,8 +25,9 @@ export async function fetchWithTimeout(
   const controller = new AbortController();
   const externalSignal = init?.signal;
 
-  const cleanupExternal =
-    externalSignal ? attachAbortListener(externalSignal, () => controller.abort()) : () => {};
+  const cleanupExternal = externalSignal
+    ? attachAbortListener(externalSignal, () => controller.abort())
+    : () => {};
 
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -37,4 +38,3 @@ export async function fetchWithTimeout(
     cleanupExternal();
   }
 }
-

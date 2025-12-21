@@ -6,4 +6,3 @@ export class ActionError extends Error {
     this.name = 'ActionError';
   }
 }
-

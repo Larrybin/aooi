@@ -42,26 +42,8 @@ import { useAppContext } from '@/shared/contexts/app';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
 import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
-import {
-  RequestIdError,
-} from '@/shared/lib/request-id';
+import { RequestIdError } from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
-
-interface SongData {
-  id: string;
-  audioUrl: string;
-  sourceAudioUrl: string;
-  streamAudioUrl: string;
-  sourceStreamAudioUrl: string;
-  imageUrl: string;
-  sourceImageUrl: string;
-  prompt: string;
-  modelName: string;
-  title: string;
-  tags: string;
-  createTime: number;
-  duration: number;
-}
 
 interface GeneratedSong {
   id: string;
@@ -86,7 +68,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     useAppContext();
 
   // Form state
-  const [provider, setProvider] = useState('kie');
+  const [provider] = useState('kie');
   const [model, setModel] = useState('V5');
   const [customMode, setCustomMode] = useState(false);
   const [title, setTitle] = useState('');
@@ -122,64 +104,122 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   }, []);
 
   // Task polling
-  const pollTaskStatus = useCallback(async (taskId: string) => {
-    try {
-      // Check timeout (3 minutes = 180000ms)
-      if (generationStartTime) {
-        const elapsedTime = Date.now() - generationStartTime;
-        if (elapsedTime > 180000) {
+  const pollTaskStatus = useCallback(
+    async (taskId: string) => {
+      try {
+        // Check timeout (3 minutes = 180000ms)
+        if (generationStartTime) {
+          const elapsedTime = Date.now() - generationStartTime;
+          if (elapsedTime > 180000) {
+            setProgress(0);
+            setIsGenerating(false);
+            setGenerationStartTime(null);
+            toast.error('Generate music timed out. Please try again.');
+            return true; // Stop polling
+          }
+        }
+
+        // request api to query task
+        const data = await fetchJson<{ status: string; taskInfo: unknown }>(
+          '/api/ai/query',
+          { method: 'POST', body: { taskId } },
+          {
+            validate: (value): value is { status: string; taskInfo: unknown } =>
+              isPlainObject(value) &&
+              typeof (value as { status?: unknown }).status === 'string' &&
+              Boolean((value as { status: string }).status) &&
+              isPlainObject((value as { taskInfo?: unknown }).taskInfo),
+            invalidDataMessage: 'Query task info failed',
+          }
+        );
+
+        const { status, taskInfo } = data;
+
+        const task = taskInfo as {
+          errorCode?: string;
+          errorMessage?: string;
+          songs?: AISong[];
+        };
+        const { errorCode, errorMessage, songs } = task;
+        if (errorCode || errorMessage) {
+          throw new RequestIdError(errorMessage || 'Query task failed');
+        }
+
+        // handle task status
+
+        // task pending
+        if (status === AITaskStatus.PENDING) {
+          setProgress(10);
+          return false;
+        }
+
+        // task processing
+        if (status === AITaskStatus.PROCESSING && songs && songs.length > 0) {
+          setProgress(20);
+
+          const isTextSuccess = songs.some((song) => !!song.imageUrl);
+          const isFirstSuccess = songs.some((song) => !!song.audioUrl);
+
+          // text success
+          if (isTextSuccess) {
+            setProgress(60);
+            setGeneratedSongs(
+              songs.map(
+                (song): GeneratedSong => ({
+                  id: song.id ?? '',
+                  title: song.title ?? '',
+                  duration: song.duration,
+                  audioUrl: song.audioUrl,
+                  imageUrl: song.imageUrl ?? '',
+                  artist: song.artist ?? '',
+                  style: song.style ?? '',
+                  status: '',
+                  prompt: song.prompt,
+                })
+              )
+            );
+            return false;
+          }
+
+          // first success
+          if (isFirstSuccess) {
+            setProgress(85);
+            setGeneratedSongs(
+              songs.map(
+                (song): GeneratedSong => ({
+                  id: song.id ?? '',
+                  title: song.title ?? '',
+                  duration: song.duration,
+                  audioUrl: song.audioUrl,
+                  imageUrl: song.imageUrl ?? '',
+                  artist: song.artist ?? '',
+                  style: song.style ?? '',
+                  status: '',
+                  prompt: song.prompt,
+                })
+              )
+            );
+            return false;
+          }
+
+          // final success
+          return false;
+        }
+
+        // task failed, final status
+        if (status === AITaskStatus.FAILED) {
           setProgress(0);
           setIsGenerating(false);
           setGenerationStartTime(null);
-          toast.error('Generate music timed out. Please try again.');
-          return true; // Stop polling
+          toast.error('Generate music failed: ' + errorMessage);
+
+          fetchUserCredits();
+
+          return true;
         }
-      }
 
-      // request api to query task
-      const data = await fetchJson<{ status: string; taskInfo: unknown }>(
-        '/api/ai/query',
-        { method: 'POST', body: { taskId } },
-        {
-          validate: (value): value is { status: string; taskInfo: unknown } =>
-            isPlainObject(value) &&
-            typeof (value as { status?: unknown }).status === 'string' &&
-            Boolean((value as { status: string }).status) &&
-            isPlainObject((value as { taskInfo?: unknown }).taskInfo),
-          invalidDataMessage: 'Query task info failed',
-        }
-      );
-
-      const { status, taskInfo } = data;
-
-      const task = taskInfo as {
-        errorCode?: string;
-        errorMessage?: string;
-        songs?: AISong[];
-      };
-      const { errorCode, errorMessage, songs } = task;
-      if (errorCode || errorMessage) {
-        throw new RequestIdError(errorMessage || 'Query task failed');
-      }
-
-      // handle task status
-
-      // task pending
-      if (status === AITaskStatus.PENDING) {
-        setProgress(10);
-        return false;
-      }
-
-      // task processing
-      if (status === AITaskStatus.PROCESSING && songs && songs.length > 0) {
-        setProgress(20);
-
-        const isTextSuccess = songs.some((song) => !!song.imageUrl);
-        const isFirstSuccess = songs.some((song) => !!song.audioUrl);
-
-        // text success
-        if (isTextSuccess) {
-          setProgress(60);
+        // task success, final status
+        if (status === AITaskStatus.SUCCESS && songs && songs.length > 0) {
           setGeneratedSongs(
             songs.map(
               (song): GeneratedSong => ({
@@ -195,88 +235,33 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
               })
             )
           );
-          return false;
+
+          setProgress(100);
+          setIsGenerating(false);
+          setGenerationStartTime(null);
+          return true;
         }
 
-        // first success
-        if (isFirstSuccess) {
-          setProgress(85);
-          setGeneratedSongs(
-            songs.map(
-              (song): GeneratedSong => ({
-                id: song.id ?? '',
-                title: song.title ?? '',
-                duration: song.duration,
-                audioUrl: song.audioUrl,
-                imageUrl: song.imageUrl ?? '',
-                artist: song.artist ?? '',
-                style: song.style ?? '',
-                status: '',
-                prompt: song.prompt,
-              })
-            )
-          );
-          return false;
-        }
-
-        // final success
+        // Still processing - update progress
+        setProgress((prev) => Math.min(prev + 3, 80));
         return false;
-      }
-
-      // task failed, final status
-      if (status === AITaskStatus.FAILED) {
-        setProgress(0);
+      } catch (error: unknown) {
+        console.error('Error polling task:', error);
         setIsGenerating(false);
+        setProgress(0);
         setGenerationStartTime(null);
-        toast.error('Generate music failed: ' + errorMessage);
+        toastFetchError(
+          error,
+          `Create song failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
+        );
 
         fetchUserCredits();
 
-        return true;
+        return true; // Stop polling on error
       }
-
-      // task success, final status
-      if (status === AITaskStatus.SUCCESS && songs && songs.length > 0) {
-        setGeneratedSongs(
-          songs.map(
-            (song): GeneratedSong => ({
-              id: song.id ?? '',
-              title: song.title ?? '',
-              duration: song.duration,
-              audioUrl: song.audioUrl,
-              imageUrl: song.imageUrl ?? '',
-              artist: song.artist ?? '',
-              style: song.style ?? '',
-              status: '',
-              prompt: song.prompt,
-            })
-          )
-        );
-
-        setProgress(100);
-        setIsGenerating(false);
-        setGenerationStartTime(null);
-        return true;
-      }
-
-      // Still processing - update progress
-      setProgress((prev) => Math.min(prev + 3, 80));
-      return false;
-    } catch (error: unknown) {
-      console.error('Error polling task:', error);
-      setIsGenerating(false);
-      setProgress(0);
-      setGenerationStartTime(null);
-      toastFetchError(
-        error,
-        `Create song failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
-      );
-
-      fetchUserCredits();
-
-      return true; // Stop polling on error
-    }
-  }, [generationStartTime, fetchUserCredits]);
+    },
+    [generationStartTime, fetchUserCredits]
+  );
 
   // Start task polling
   useEffect(() => {

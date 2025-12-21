@@ -5,4 +5,3 @@ import { nonEmptyTrimmedStringSchema } from './common';
 export const SettingsApiKeyUpsertFormSchema = z.object({
   title: nonEmptyTrimmedStringSchema,
 });
-

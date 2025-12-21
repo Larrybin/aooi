@@ -1,6 +1,12 @@
 import 'server-only';
 
 import { post } from '@/config/db/schema';
+import {
+  generatePostTocFromMarkdown,
+  getLocalPage as getLocalPageFromContent,
+  getLocalPost as getLocalPostFromContent,
+  getLocalPostsAndCategories as getLocalPostsAndCategoriesFromContent,
+} from '@/shared/content/post_content';
 import { logger } from '@/shared/lib/logger.server';
 import { formatPostDate } from '@/shared/lib/post-date';
 import {
@@ -9,20 +15,13 @@ import {
 } from '@/shared/types/blocks/blog';
 
 import {
-  generatePostTocFromMarkdown,
-  getLocalPage as getLocalPageFromContent,
-  getLocalPost as getLocalPostFromContent,
-  getLocalPostsAndCategories as getLocalPostsAndCategoriesFromContent,
-} from '@/shared/content/post_content';
-
-import { getTaxonomies, TaxonomyStatus, TaxonomyType } from './taxonomy';
-import {
   addPostRow,
   findPostRow,
   getPostRows,
   getPostRowsCount,
   updatePostRow,
 } from './post_repo';
+import { getTaxonomies, TaxonomyStatus, TaxonomyType } from './taxonomy';
 
 export type Post = typeof post.$inferSelect;
 export type NewPost = typeof post.$inferInsert;
@@ -174,7 +173,11 @@ export async function getLocalPage({
   slug: string;
   locale: string;
 }): Promise<BlogPostType | null> {
-  return await getLocalPageFromContent({ slug, locale, pagePrefix: `/${locale}/` });
+  return await getLocalPageFromContent({
+    slug,
+    locale,
+    pagePrefix: `/${locale}/`,
+  });
 }
 
 // get posts and categories, both from local files and database
@@ -192,19 +195,13 @@ export async function getPostsAndCategories({
   categoryPrefix?: string;
 }) {
   let posts: BlogPostType[] = [];
-  const categories: BlogCategoryType[] = [];
 
   // merge posts from both locale and remote, remove duplicates by slug
   // remote posts have higher priority
   const postsMap = new Map<string, BlogPostType>();
 
   // 1. get local posts
-  const {
-    posts: localPosts,
-    postsCount: localPostsCount,
-    categories: localCategories,
-    categoriesCount: localCategoriesCount,
-  } = await getLocalPostsAndCategories({
+  const { posts: localPosts } = await getLocalPostsAndCategories({
     locale,
     postPrefix,
     categoryPrefix,
@@ -220,7 +217,6 @@ export async function getPostsAndCategories({
   // 2. get remote posts
   const {
     posts: remotePosts,
-    postsCount: remotePostsCount,
     categories: remoteCategories,
     categoriesCount: remoteCategoriesCount,
   } = await getRemotePostsAndCategories({

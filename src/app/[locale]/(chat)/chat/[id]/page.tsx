@@ -4,7 +4,10 @@ import type { UIMessage } from 'ai';
 import { ChatBox } from '@/shared/blocks/chat/box';
 import { safeJsonParse } from '@/shared/lib/json';
 import { findChatById } from '@/shared/models/chat';
-import { ChatMessageStatus, getChatMessages } from '@/shared/models/chat_message';
+import {
+  ChatMessageStatus,
+  getChatMessages,
+} from '@/shared/models/chat_message';
 import { getUserInfo } from '@/shared/models/user';
 import type { Chat } from '@/shared/types/chat';
 
@@ -53,5 +56,7 @@ export default async function ChatPage({
     metadata: safeJsonParse(message.metadata) ?? undefined,
   })) as UIMessage[];
 
-  return <ChatBox initialChat={initialChat} initialMessages={initialMessages} />;
+  return (
+    <ChatBox initialChat={initialChat} initialMessages={initialMessages} />
+  );
 }

@@ -45,4 +45,3 @@ export const customerServiceSettings: Setting[] = [
     tab: 'customer_service',
   },
 ];
-

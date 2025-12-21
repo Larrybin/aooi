@@ -1,11 +1,11 @@
+import type { BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTap } from 'better-auth/plugins';
-import type { BetterAuthOptions } from 'better-auth';
 
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';
-import { serverEnv } from '@/config/server';
 import * as schema from '@/config/db/schema';
+import { serverEnv } from '@/config/server';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';
 import { logger } from '@/shared/lib/logger.server';
@@ -46,7 +46,9 @@ export const authOptions = {
 };
 
 type SendResetPasswordData = Parameters<
-  NonNullable<NonNullable<BetterAuthOptions['emailAndPassword']>['sendResetPassword']>
+  NonNullable<
+    NonNullable<BetterAuthOptions['emailAndPassword']>['sendResetPassword']
+  >
 >[0];
 
 // Dynamic auth options - WITH database connection
@@ -114,7 +116,8 @@ export async function getAuthOptions() {
 
 export async function getSocialProviders(configs: Record<string, string>) {
   // get configs from db
-  const providers: Record<string, { clientId: string; clientSecret: string }> = {};
+  const providers: Record<string, { clientId: string; clientSecret: string }> =
+    {};
 
   if (configs.google_client_id && configs.google_client_secret) {
     providers.google = {

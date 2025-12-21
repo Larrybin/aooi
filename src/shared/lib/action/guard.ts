@@ -1,9 +1,10 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getUserInfo } from '@/shared/models/user';
 import { createPermissionChecker } from '@/shared/services/rbac';
-import { cache } from 'react';
 
 import { ActionError } from './errors';
 

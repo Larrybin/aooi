@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { PaymentType } from '@/extensions/payment';
-
+import { PaymentType, type SubscriptionInfo } from '@/extensions/payment';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import {
   calculateCreditExpirationTime,
@@ -10,7 +9,6 @@ import {
   CreditTransactionType,
   type NewCredit,
 } from '@/shared/models/credit';
-import type { SubscriptionInfo } from '@/extensions/payment';
 
 export function getCreditTransactionSceneForPaymentType(
   paymentType: PaymentType
@@ -63,7 +61,9 @@ export function buildGrantCreditForOrder({
     subscriptionNo,
     transactionNo: getSnowId(),
     transactionType: CreditTransactionType.GRANT,
-    transactionScene: getCreditTransactionSceneForPaymentType(order.paymentType),
+    transactionScene: getCreditTransactionSceneForPaymentType(
+      order.paymentType
+    ),
     credits,
     remainingCredits: credits,
     description: 'Grant credit',

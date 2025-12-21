@@ -5,10 +5,10 @@ import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { envConfigs } from '@/config';
-import { defaultLocale } from '@/config/locale';
 import { requestPasswordReset } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
+import { envConfigs } from '@/config';
+import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,
@@ -44,7 +44,9 @@ export function ForgotPassword({
       envConfigs.app_url ||
       (typeof window !== 'undefined' ? window.location.origin : '');
     const resetPath =
-      locale !== defaultLocale ? `/${locale}/reset-password` : '/reset-password';
+      locale !== defaultLocale
+        ? `/${locale}/reset-password`
+        : '/reset-password';
     return new URL(resetPath, baseUrl).toString();
   }, [locale]);
 

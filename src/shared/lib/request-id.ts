@@ -36,7 +36,9 @@ export class RequestIdError extends Error {
   }
 }
 
-export function getRequestIdFromResponse(response: Response): string | undefined {
+export function getRequestIdFromResponse(
+  response: Response
+): string | undefined {
   return (
     getHeaderValue(response.headers, 'x-request-id') ||
     getHeaderValue(response.headers, 'x-vercel-id') ||

@@ -36,18 +36,18 @@ pnpm dev
 
 ## Available Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start development server (http://localhost:3000) |
-| `pnpm build` | Production build |
-| `pnpm build:fast` | Fast production build for larger deployments |
-| `pnpm start` | Run production build |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Format code with Prettier |
-| `pnpm format:check` | Check formatting without changes |
-| `pnpm db:generate` | Generate Drizzle migrations |
-| `pnpm db:migrate` | Apply database migrations |
-| `pnpm db:studio` | Open Drizzle Studio |
+| Command             | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `pnpm dev`          | Start development server (http://localhost:3000) |
+| `pnpm build`        | Production build                                 |
+| `pnpm build:fast`   | Fast production build for larger deployments     |
+| `pnpm start`        | Run production build                             |
+| `pnpm lint`         | Run ESLint                                       |
+| `pnpm format`       | Format code with Prettier                        |
+| `pnpm format:check` | Check formatting without changes                 |
+| `pnpm db:generate`  | Generate Drizzle migrations                      |
+| `pnpm db:migrate`   | Apply database migrations                        |
+| `pnpm db:studio`    | Open Drizzle Studio                              |
 
 ## Code Style
 
@@ -59,13 +59,13 @@ pnpm dev
 
 ### Naming Conventions
 
-| Type | Convention | Example |
-|------|------------|---------|
-| React components | PascalCase | `UserProfile.tsx` |
-| Types/Interfaces | PascalCase | `interface UserData` |
-| Variables/Functions | camelCase | `getUserInfo()` |
-| Environment variables | UPPER_SNAKE_CASE | `DATABASE_URL` |
-| Files (Next.js) | lowercase | `page.tsx`, `layout.tsx`, `route.ts` |
+| Type                  | Convention       | Example                              |
+| --------------------- | ---------------- | ------------------------------------ |
+| React components      | PascalCase       | `UserProfile.tsx`                    |
+| Types/Interfaces      | PascalCase       | `interface UserData`                 |
+| Variables/Functions   | camelCase        | `getUserInfo()`                      |
+| Environment variables | UPPER_SNAKE_CASE | `DATABASE_URL`                       |
+| Files (Next.js)       | lowercase        | `page.tsx`, `layout.tsx`, `route.ts` |
 
 ### File Organization
 
@@ -95,6 +95,7 @@ src/
 ### Before Submitting
 
 1. **Run checks locally**:
+
    ```bash
    pnpm lint
    pnpm format:check
@@ -116,19 +117,24 @@ src/
 
 ```markdown
 ## What
+
 Brief description of changes.
 
 ## Why
+
 Context and motivation.
 
 ## How to Test
+
 1. Step-by-step testing instructions
 2. Expected behavior
 
 ## Screenshots (if UI changes)
+
 Before/after screenshots.
 
 ## Related Issues
+
 Closes #123
 ```
 
@@ -160,17 +166,17 @@ app/ → shared/ → core/ → config/
 Use the `withApi()` wrapper for consistent error handling:
 
 ```typescript
-import { withApi } from '@/shared/lib/api/route';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
+import { withApi } from '@/shared/lib/api/route';
 
 export const POST = withApi(async (req: Request) => {
   const user = await requireUser();
   const body = await parseJson(req, MySchema);
-  
+
   // ... logic
-  
+
   return jsonOk({ data });
 });
 ```

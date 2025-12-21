@@ -3,21 +3,18 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { useRouter } from '@/core/i18n/navigation';
 import { Button } from '@/shared/components/ui/button';
-import { useAppContext } from '@/shared/contexts/app';
 import { cn } from '@/shared/lib/utils';
 import { Button as ButtonType } from '@/shared/types/blocks/common';
 import { PricingItem } from '@/shared/types/blocks/pricing';
 
 export function PaymentProviders({
   configs,
-  callbackUrl,
+  callbackUrl: _callbackUrl,
   loading,
-  setLoading,
+  setLoading: _setLoading,
   pricingItem,
   onCheckout,
   className,
@@ -30,11 +27,6 @@ export function PaymentProviders({
   onCheckout: (item: PricingItem, paymentProvider?: string) => void;
   className?: string;
 }) {
-  const t = useTranslations('common.payment');
-  const router = useRouter();
-
-  const { setIsShowPaymentModal } = useAppContext();
-
   const [paymentProvider, setPaymentProvider] = useState<string | null>(null);
 
   const handlePayment = async ({ provider }: { provider: string }) => {

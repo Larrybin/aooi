@@ -67,4 +67,3 @@ export const authSettings: Setting[] = [
     tab: 'auth',
   },
 ];
-

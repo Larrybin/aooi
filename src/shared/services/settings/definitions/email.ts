@@ -20,4 +20,3 @@ export const emailSettings: Setting[] = [
     tab: 'email',
   },
 ];
-

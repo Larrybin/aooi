@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 
+import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
-import { Button } from '@/shared/components/ui/button';
 
 export function BuiltWith() {
   const { configs } = useAppContext();

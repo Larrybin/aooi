@@ -1,15 +1,19 @@
 'use server';
 
-import { eq, and, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db } from '@/core/db';
 import { role } from '@/config/db/schema';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { validateAndParseForm, validatePermission } from '@/shared/lib/admin/action-utils';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import {
+  validateAndParseForm,
+  validatePermission,
+} from '@/shared/lib/admin/action-utils';
+import { AdminRoleUpdateFormSchema } from '@/shared/schemas/actions/admin-role';
 import {
   assignPermissionsToRole,
   deleteRole,
@@ -17,7 +21,6 @@ import {
   updateRole,
   UpdateRole,
 } from '@/shared/services/rbac';
-import { AdminRoleUpdateFormSchema } from '@/shared/schemas/actions/admin-role';
 
 /**
  * Update role title and description
@@ -53,7 +56,10 @@ export async function updateRoleAction(id: string, formData: FormData) {
 /**
  * Update role permissions
  */
-export async function updateRolePermissionsAction(id: string, formData: FormData) {
+export async function updateRolePermissionsAction(
+  id: string,
+  formData: FormData
+) {
   return withAction(async () => {
     await validatePermission(PERMISSIONS.ROLES_WRITE);
 
@@ -69,7 +75,10 @@ export async function updateRolePermissionsAction(id: string, formData: FormData
       throw new Error('invalid permissions');
     }
 
-    await assignPermissionsToRole(roleRow.id as string, parsed.data.permissions);
+    await assignPermissionsToRole(
+      roleRow.id as string,
+      parsed.data.permissions
+    );
 
     return actionOk('permissions updated', '/admin/roles');
   });
@@ -117,7 +126,7 @@ export async function restoreRoleAction(id: string) {
         .update(role)
         .set({ deletedAt: null, updatedAt: new Date() })
         .where(eq(role.id, id));
-    } catch (error) {
+    } catch {
       throw new Error(
         'restore role failed: another active role with the same name may already exist'
       );

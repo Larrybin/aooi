@@ -1,9 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, Lightbulb, Loader2, SendHorizonal, Zap } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
 import { SmartIcon } from '@/shared/blocks/common';
 import { PaymentModal } from '@/shared/blocks/payment/payment-modal';
@@ -90,13 +89,8 @@ export function Pricing({
 }) {
   const locale = useLocale();
   const t = useTranslations('pricing.page');
-  const {
-    user,
-    isShowPaymentModal,
-    setIsShowSignModal,
-    setIsShowPaymentModal,
-    configs,
-  } = useAppContext();
+  const { user, setIsShowSignModal, setIsShowPaymentModal, configs } =
+    useAppContext();
 
   const [group, setGroup] = useState(() => {
     // find current pricing item
@@ -118,10 +112,15 @@ export function Pricing({
   const [isLoading, setIsLoading] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
 
-  const [selectedCurrencies, setSelectedCurrencies] = useState<Record<string, string>>({});
+  const [selectedCurrencies, setSelectedCurrencies] = useState<
+    Record<string, string>
+  >({});
 
   const itemCurrencies = useMemo(() => {
-    const result: Record<string, { selectedCurrency: string; displayedItem: PricingItem }> = {};
+    const result: Record<
+      string,
+      { selectedCurrency: string; displayedItem: PricingItem }
+    > = {};
     if (!pricing.items || pricing.items.length === 0) return result;
 
     for (const item of pricing.items) {
@@ -141,8 +140,10 @@ export function Pricing({
             amount: currencyData.amount,
             price: currencyData.price,
             original_price: currencyData.original_price,
-            payment_product_id: currencyData.payment_product_id || item.payment_product_id,
-            payment_providers: currencyData.payment_providers || item.payment_providers,
+            payment_product_id:
+              currencyData.payment_product_id || item.payment_product_id,
+            payment_providers:
+              currencyData.payment_providers || item.payment_providers,
           }
         : item;
 
@@ -237,7 +238,8 @@ export function Pricing({
         {
           validate: (value): value is { checkoutUrl: string } =>
             isPlainObject(value) &&
-            typeof (value as { checkoutUrl?: unknown }).checkoutUrl === 'string' &&
+            typeof (value as { checkoutUrl?: unknown }).checkoutUrl ===
+              'string' &&
             Boolean((value as { checkoutUrl: string }).checkoutUrl.trim()),
           invalidDataMessage: 'invalid checkout response',
         }

@@ -53,7 +53,8 @@ export async function proxy(request: NextRequest) {
   // while keeping the URL unchanged for the user.
   if (!isValidLocale) {
     const rewriteTo = request.nextUrl.clone();
-    rewriteTo.pathname = pathname === '/' ? `/${defaultLocale}` : `/${defaultLocale}${pathname}`;
+    rewriteTo.pathname =
+      pathname === '/' ? `/${defaultLocale}` : `/${defaultLocale}${pathname}`;
 
     response = NextResponse.rewrite(rewriteTo, { headers: response.headers });
     response.headers.set('x-rewrite-to', rewriteTo.pathname);

@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { IconUpload, IconX } from '@tabler/icons-react';
 import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 
 import { Button } from '@/shared/components/ui/button';
 import { fetchApiData, isPlainObject } from '@/shared/lib/api/client';

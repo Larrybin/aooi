@@ -1,6 +1,4 @@
-export function safeJsonParse<T>(
-  value: string | null | undefined
-): T | null {
+export function safeJsonParse<T>(value: string | null | undefined): T | null {
   if (!value) return null;
 
   try {
@@ -9,4 +7,3 @@ export function safeJsonParse<T>(
     return null;
   }
 }
-

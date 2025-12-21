@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-import { nonEmptyTrimmedStringSchema, optionalTrimmedStringSchema } from './common';
+import {
+  nonEmptyTrimmedStringSchema,
+  optionalTrimmedStringSchema,
+} from './common';
 
 export const AdminPostFormSchema = z.object({
   slug: nonEmptyTrimmedStringSchema,
@@ -12,4 +15,3 @@ export const AdminPostFormSchema = z.object({
   authorName: optionalTrimmedStringSchema,
   authorImage: optionalTrimmedStringSchema,
 });
-

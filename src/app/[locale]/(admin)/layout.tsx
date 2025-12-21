@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
-import { requireAdminAccess } from '@/shared/services/rbac_guard';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { DashboardLayout } from '@/shared/blocks/dashboard/layout';
+import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
+import { requireAdminAccess } from '@/shared/services/rbac_guard';
 import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 /**

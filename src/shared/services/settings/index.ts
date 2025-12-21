@@ -1,7 +1,5 @@
 import 'server-only';
 
-import type { Setting } from './types';
-
 import { adsSettings } from './definitions/ads';
 import { affiliateSettings } from './definitions/affiliate';
 import { aiSettings } from './definitions/ai';
@@ -12,6 +10,7 @@ import { emailSettings } from './definitions/email';
 import { generalSettings } from './definitions/general';
 import { paymentSettings } from './definitions/payment';
 import { storageSettings } from './definitions/storage';
+import type { Setting } from './types';
 
 export type { Setting, SettingGroup } from './types';
 

@@ -24,6 +24,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "conventions:draft": "node scripts/conventions-index.mjs --out .codex/drafts/CONVENTIONS.generated.md",
+    "conventions:check": "node scripts/conventions-index.mjs --check",
     "db:generate": "npx drizzle-kit generate --config=src/core/db/config.ts",
     "db:migrate": "npx drizzle-kit migrate --config=src/core/db/config.ts",
     "db:push": "npx drizzle-kit push --config=src/core/db/config.ts",

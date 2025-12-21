@@ -1,3 +1,5 @@
+import { safeFetchJson } from '@/shared/lib/fetch/server';
+
 import {
   AIConfigs,
   AIGenerateParams,
@@ -7,7 +9,6 @@ import {
   AITaskResult,
   AITaskStatus,
 } from '.';
-import { safeFetchJson } from '@/shared/lib/fetch/server';
 
 type KieGenerateData = { taskId: string } & Record<string, unknown>;
 
@@ -95,7 +96,10 @@ export class KieProvider implements AIProvider {
       callBackUrl: params.callbackUrl,
     };
 
-    if (params.options && (params.options as { customMode?: boolean }).customMode) {
+    if (
+      params.options &&
+      (params.options as { customMode?: boolean }).customMode
+    ) {
       const customOptions = params.options as {
         customMode?: boolean;
         title?: string;
@@ -116,8 +120,9 @@ export class KieProvider implements AIProvider {
       // not custom mode
       payload.customMode = false;
       payload.prompt = params.prompt;
-      payload.instrumental = (params.options as { instrumental?: boolean })
-        ?.instrumental;
+      payload.instrumental = (
+        params.options as { instrumental?: boolean }
+      )?.instrumental;
     }
 
     // const params = {
@@ -142,7 +147,11 @@ export class KieProvider implements AIProvider {
         headers,
         body: JSON.stringify(payload),
       },
-      { timeoutMs: 15000, cache: 'no-store', errorMessage: 'request kie api failed' }
+      {
+        timeoutMs: 15000,
+        cache: 'no-store',
+        errorMessage: 'request kie api failed',
+      }
     );
 
     if (code !== 200) {
@@ -188,7 +197,11 @@ export class KieProvider implements AIProvider {
         method: 'GET',
         headers,
       },
-      { timeoutMs: 15000, cache: 'no-store', errorMessage: 'request kie api failed' }
+      {
+        timeoutMs: 15000,
+        cache: 'no-store',
+        errorMessage: 'request kie api failed',
+      }
     );
 
     if (code !== 200) {

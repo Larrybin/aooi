@@ -49,22 +49,30 @@ All providers implement this interface:
 interface PaymentProvider {
   readonly name: string;
   configs: PaymentConfigs;
-  
+
   // Create checkout session
   createPayment({ order }: { order: PaymentOrder }): Promise<CheckoutSession>;
-  
+
   // Get payment session details
-  getPaymentSession({ sessionId }: { sessionId: string }): Promise<PaymentSession>;
-  
+  getPaymentSession({
+    sessionId,
+  }: {
+    sessionId: string;
+  }): Promise<PaymentSession>;
+
   // Handle webhook event
   getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent>;
-  
+
   // Optional: Get invoice
-  getPaymentInvoice?({ invoiceId }: { invoiceId: string }): Promise<PaymentInvoice>;
-  
+  getPaymentInvoice?({
+    invoiceId,
+  }: {
+    invoiceId: string;
+  }): Promise<PaymentInvoice>;
+
   // Optional: Get billing portal URL
   getPaymentBilling?({ customerId, returnUrl }): Promise<PaymentBilling>;
-  
+
   // Optional: Cancel subscription
   cancelSubscription?({ subscriptionId }): Promise<PaymentSession>;
 }
@@ -73,10 +81,10 @@ interface PaymentProvider {
 ## Supported Providers
 
 | Provider | One-Time | Subscription | Webhook |
-|----------|----------|--------------|---------|
-| Stripe | ✓ | ✓ | ✓ |
-| PayPal | ✓ | ✓ | ✓ |
-| Creem | ✓ | ✓ | ✓ |
+| -------- | -------- | ------------ | ------- |
+| Stripe   | ✓        | ✓            | ✓       |
+| PayPal   | ✓        | ✓            | ✓       |
+| Creem    | ✓        | ✓            | ✓       |
 
 ## Payment Types
 
@@ -117,28 +125,32 @@ See [API Reference - Checkout Request](../api/reference.md#checkout-request) for
 // src/app/api/payment/checkout/route.ts
 export const POST = withApi(async (req: Request) => {
   // 1. Parse & validate request
-  const { product_id, currency, payment_provider } = 
-    await parseJson(req, PaymentCheckoutBodySchema);
-  
+  const { product_id, currency, payment_provider } = await parseJson(
+    req,
+    PaymentCheckoutBodySchema
+  );
+
   // 2. Get pricing from server-side data (never trust client amount)
-  const pricingItem = pricing.items.find(item => item.product_id === product_id);
-  
+  const pricingItem = pricing.items.find(
+    (item) => item.product_id === product_id
+  );
+
   // 3. Validate payment provider
   const paymentService = await getPaymentService();
   const provider = paymentService.getProvider(paymentProviderName);
-  
+
   // 4. Create order record
   const order = await createOrder({
     orderNo: getSnowId(),
     userId: user.id,
-    amount: checkoutAmount,  // Server-calculated
+    amount: checkoutAmount, // Server-calculated
     currency: checkoutCurrency,
     // ...
   });
-  
+
   // 5. Create checkout session
   const result = await provider.createPayment({ order: checkoutOrder });
-  
+
   // 6. Return checkout URL
   return jsonOk(result.checkoutInfo);
 });
@@ -149,7 +161,7 @@ export const POST = withApi(async (req: Request) => {
 ```typescript
 interface CheckoutInfo {
   sessionId: string;
-  checkoutUrl: string;  // Redirect user here
+  checkoutUrl: string; // Redirect user here
 }
 ```
 
@@ -161,13 +173,13 @@ PENDING → CREATED → PAID (success)
     └─────────┴──→ COMPLETED (failed) / FAILED
 ```
 
-| Status | Description |
-|--------|-------------|
-| `PENDING` | Order saved, waiting for checkout |
-| `CREATED` | Checkout session created, waiting for payment |
-| `PAID` | Payment successful |
-| `COMPLETED` | Checkout completed but failed |
-| `FAILED` | Payment failed |
+| Status      | Description                                   |
+| ----------- | --------------------------------------------- |
+| `PENDING`   | Order saved, waiting for checkout             |
+| `CREATED`   | Checkout session created, waiting for payment |
+| `PAID`      | Payment successful                            |
+| `COMPLETED` | Checkout completed but failed                 |
+| `FAILED`    | Payment failed                                |
 
 ## Webhook Handling
 
@@ -194,11 +206,11 @@ enum PaymentEventType {
 
 The webhook handler maps provider errors to HTTP status codes:
 
-| Error Type | HTTP Status |
-|------------|-------------|
-| `WebhookVerificationError` | 401 Unauthorized |
-| `WebhookPayloadError` | 400 Bad Request |
-| `WebhookConfigError` | 500 Internal Error |
+| Error Type                 | HTTP Status        |
+| -------------------------- | ------------------ |
+| `WebhookVerificationError` | 401 Unauthorized   |
+| `WebhookPayloadError`      | 400 Bad Request    |
+| `WebhookConfigError`       | 500 Internal Error |
 
 ### Idempotency
 
@@ -253,15 +265,15 @@ interface SubscriptionInfo {
 
 ### Database Configs
 
-| Config Key | Description |
-|------------|-------------|
-| `default_payment_provider` | Default provider name |
-| `stripe_secret_key` | Stripe API secret key |
-| `stripe_webhook_secret` | Stripe webhook signing secret |
-| `paypal_client_id` | PayPal client ID |
-| `paypal_client_secret` | PayPal client secret |
-| `creem_api_key` | Creem API key |
-| `creem_product_ids` | JSON mapping of product IDs |
+| Config Key                 | Description                   |
+| -------------------------- | ----------------------------- |
+| `default_payment_provider` | Default provider name         |
+| `stripe_secret_key`        | Stripe API secret key         |
+| `stripe_webhook_secret`    | Stripe webhook signing secret |
+| `paypal_client_id`         | PayPal client ID              |
+| `paypal_client_secret`     | PayPal client secret          |
+| `creem_api_key`            | Creem API key                 |
+| `creem_product_ids`        | JSON mapping of product IDs   |
 
 ### Pricing Configuration
 

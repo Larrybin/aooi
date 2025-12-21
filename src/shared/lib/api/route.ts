@@ -12,7 +12,9 @@ import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { ApiError } from './errors';
 import { jsonErr } from './response';
 
-function toRequestLogger(args: unknown[]): ReturnType<typeof getRequestLogger> | undefined {
+function toRequestLogger(
+  args: unknown[]
+): ReturnType<typeof getRequestLogger> | undefined {
   const maybeReq = args[0];
   return typeof maybeReq === 'object' &&
     maybeReq !== null &&
@@ -41,7 +43,9 @@ function attachRequestIdHeader(
   }
 }
 
-export function withApi<T extends (...args: unknown[]) => unknown>(handler: T): T {
+export function withApi<T extends (...args: unknown[]) => unknown>(
+  handler: T
+): T {
   return (async (...args: Parameters<T>) => {
     const reqLogger = toRequestLogger(args);
     try {

@@ -2,8 +2,8 @@ import 'server-only';
 
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';
-import { serverEnv } from '@/config/server';
 import { config } from '@/config/db/schema';
+import { serverEnv } from '@/config/server';
 import { publicSettingNames } from '@/shared/constants/public-setting-names';
 import { logger } from '@/shared/lib/logger.server';
 

@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
 
 import { SidebarInset, SidebarProvider } from '@/shared/components/ui/sidebar';
-import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
+import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 import { Sidebar } from './sidebar';
 

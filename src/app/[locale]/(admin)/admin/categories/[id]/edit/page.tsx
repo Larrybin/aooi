@@ -1,9 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findTaxonomy } from '@/shared/models/taxonomy';
 import { Form } from '@/shared/types/blocks/form';
@@ -38,7 +38,10 @@ export default async function CategoryEditPage({
   // Use bind to pass id parameter (Next.js recommended pattern)
   const updateWithId = updateCategoryAction.bind(null, id);
 
-  const form: Form<typeof category, { type: 'category'; category: typeof category }> = {
+  const form: Form<
+    typeof category,
+    { type: 'category'; category: typeof category }
+  > = {
     fields: [
       {
         name: 'slug',

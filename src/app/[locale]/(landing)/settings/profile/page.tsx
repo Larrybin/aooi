@@ -47,9 +47,13 @@ export default async function ProfilePage() {
 
         return withAction(async () => {
           const user = await requireActionUser();
-          const { name, image } = parseFormData(data, SettingsProfileFormSchema, {
-            message: 'name is required',
-          });
+          const { name, image } = parseFormData(
+            data,
+            SettingsProfileFormSchema,
+            {
+              message: 'name is required',
+            }
+          );
 
           const imageValue = data.get('image');
           logger.debug('settings: profile update image field received', {

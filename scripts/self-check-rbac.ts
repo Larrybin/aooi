@@ -19,7 +19,6 @@ import '@/config/load-dotenv';
 
 import { and, eq } from 'drizzle-orm';
 
-import { serverEnv } from '@/config/server';
 import { db } from '@/core/db';
 import {
   permission,
@@ -28,6 +27,7 @@ import {
   user,
   userRole,
 } from '@/config/db/schema';
+import { serverEnv } from '@/config/server';
 import { getUuid } from '@/shared/lib/hash';
 import { hasPermission, RoleStatus } from '@/shared/services/rbac';
 
@@ -104,16 +104,18 @@ async function main() {
     updatedAt: now,
   });
 
-  await db().insert(role).values({
-    id: testRoleId,
-    name: `rbac_selfcheck_${suffix}`,
-    title: 'RBAC Self Check',
-    description: 'Created by scripts/self-check-rbac.ts',
-    status: RoleStatus.ACTIVE,
-    createdAt: now,
-    updatedAt: now,
-    sort: 0,
-  });
+  await db()
+    .insert(role)
+    .values({
+      id: testRoleId,
+      name: `rbac_selfcheck_${suffix}`,
+      title: 'RBAC Self Check',
+      description: 'Created by scripts/self-check-rbac.ts',
+      status: RoleStatus.ACTIVE,
+      createdAt: now,
+      updatedAt: now,
+      sort: 0,
+    });
 
   await db().insert(permission).values({
     id: testPermissionExactId,
@@ -137,24 +139,26 @@ async function main() {
     updatedAt: now,
   });
 
-  await db().insert(rolePermission).values([
-    {
-      id: getUuid(),
-      roleId: testRoleId,
-      permissionId: testPermissionExactId,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    },
-    {
-      id: getUuid(),
-      roleId: testRoleId,
-      permissionId: testPermissionWildcardId,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    },
-  ]);
+  await db()
+    .insert(rolePermission)
+    .values([
+      {
+        id: getUuid(),
+        roleId: testRoleId,
+        permissionId: testPermissionExactId,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      },
+      {
+        id: getUuid(),
+        roleId: testRoleId,
+        permissionId: testPermissionWildcardId,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      },
+    ]);
 
   await db().insert(userRole).values({
     id: getUuid(),
@@ -170,13 +174,19 @@ async function main() {
   const wildcardBefore = await hasPermission(testUserId, wildcardTargetCode);
 
   if (!exactBefore) {
-    throw new Error(`Expected exact permission to be true: ${exactPermissionCode}`);
+    throw new Error(
+      `Expected exact permission to be true: ${exactPermissionCode}`
+    );
   }
   if (!wildcardBefore) {
-    throw new Error(`Expected wildcard permission to be true: ${wildcardTargetCode}`);
+    throw new Error(
+      `Expected wildcard permission to be true: ${wildcardTargetCode}`
+    );
   }
 
-  console.log(`${LOG_PREFIX} revoking by expiring user_role (strong consistency)…`);
+  console.log(
+    `${LOG_PREFIX} revoking by expiring user_role (strong consistency)…`
+  );
   await db()
     .update(userRole)
     .set({ expiresAt: new Date(0), updatedAt: new Date() })

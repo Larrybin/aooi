@@ -4,7 +4,6 @@ import { Empty } from '@/shared/blocks/common';
 import { toErrorMessage } from '@/shared/lib/errors';
 import {
   findOrderByOrderNo,
-  Order,
   updateOrderByOrderNo,
 } from '@/shared/models/order';
 import { getUserInfo } from '@/shared/models/user';
@@ -17,7 +16,7 @@ export default async function RetrieveInvoicePage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ order_no: string }>;
 }) {
-  const { locale } = await params;
+  const { locale: _locale } = await params;
   const { order_no } = await searchParams;
 
   if (!order_no) {

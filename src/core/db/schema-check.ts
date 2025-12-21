@@ -58,10 +58,15 @@ export function isMissingRoleDeletedAtColumnError(error: unknown): boolean {
   if (!message) return false;
 
   const normalized = message.toLowerCase().replaceAll('"', '');
-  return normalized.includes('role.deleted_at') && normalized.includes('does not exist');
+  return (
+    normalized.includes('role.deleted_at') &&
+    normalized.includes('does not exist')
+  );
 }
 
-async function hasRoleDeletedAtColumn(sql: PostgresSqlClient): Promise<boolean> {
+async function hasRoleDeletedAtColumn(
+  sql: PostgresSqlClient
+): Promise<boolean> {
   const rows = (await sql`
     select 1
     from information_schema.columns

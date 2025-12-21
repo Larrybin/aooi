@@ -82,8 +82,12 @@ export async function updateAITaskById(id: string, updateAITask: UpdateAITask) {
         .from(credit)
         .where(eq(credit.id, updateAITask.creditId));
       if (consumedCredit && consumedCredit.status === CreditStatus.ACTIVE) {
-        const consumedItemsRaw = safeJsonParse<unknown>(consumedCredit.consumedDetail);
-        const consumedItems = Array.isArray(consumedItemsRaw) ? consumedItemsRaw : [];
+        const consumedItemsRaw = safeJsonParse<unknown>(
+          consumedCredit.consumedDetail
+        );
+        const consumedItems = Array.isArray(consumedItemsRaw)
+          ? consumedItemsRaw
+          : [];
         if (!Array.isArray(consumedItemsRaw)) {
           logger.error('credit: invalid consumedDetail payload', {
             creditId: updateAITask.creditId,

@@ -50,4 +50,3 @@ export const PERMISSIONS = {
   AITASKS_WRITE: 'admin.ai-tasks.write',
   AITASKS_DELETE: 'admin.ai-tasks.delete',
 } as const;
-

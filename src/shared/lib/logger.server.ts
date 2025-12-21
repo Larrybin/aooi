@@ -15,7 +15,8 @@ const sensitiveKeyMatchers: Array<(key: string) => boolean> = [
   (key) => key.includes('password') || key === 'pwd' || key === 'pass',
   (key) => key.includes('secret'),
   (key) => key.includes('token'),
-  (key) => key.includes('api_key') || key.includes('apikey') || key === 'api-key',
+  (key) =>
+    key.includes('api_key') || key.includes('apikey') || key === 'api-key',
   (key) => key.includes('client_secret'),
   (key) => key.includes('private_key'),
   (key) => key.includes('session') && key.endsWith('id'),
@@ -78,7 +79,11 @@ function redactInternal(
   maxArrayLength: number
 ): unknown {
   if (value === null || value === undefined) return value;
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
     return value;
   }
   if (typeof value === 'bigint') return value.toString();
@@ -88,7 +93,13 @@ function redactInternal(
   if (depth >= maxDepth) return '[Truncated]';
 
   if (value instanceof Error) {
-    return redactInternal(serializeError(value), seen, depth + 1, maxDepth, maxArrayLength);
+    return redactInternal(
+      serializeError(value),
+      seen,
+      depth + 1,
+      maxDepth,
+      maxArrayLength
+    );
   }
 
   if (value instanceof Date) return value.toISOString();
@@ -104,7 +115,9 @@ function redactInternal(
     const out: unknown[] = [];
     const len = Math.min(value.length, maxArrayLength);
     for (let i = 0; i < len; i++) {
-      out.push(redactInternal(value[i], seen, depth + 1, maxDepth, maxArrayLength));
+      out.push(
+        redactInternal(value[i], seen, depth + 1, maxDepth, maxArrayLength)
+      );
     }
     if (value.length > len) {
       out.push(`[+${value.length - len} more items]`);
@@ -136,7 +149,13 @@ function redactInternal(
         out[rawKey] = REDACTED;
         continue;
       }
-      out[rawKey] = redactInternal(rawVal, seen, depth + 1, maxDepth, maxArrayLength);
+      out[rawKey] = redactInternal(
+        rawVal,
+        seen,
+        depth + 1,
+        maxDepth,
+        maxArrayLength
+      );
     }
     return out;
   }
@@ -152,7 +171,13 @@ export function redact(
   const maxArrayLength = options?.maxArrayLength ?? DEFAULT_MAX_ARRAY_LENGTH;
 
   try {
-    return redactInternal(value, new WeakSet<object>(), 0, maxDepth, maxArrayLength);
+    return redactInternal(
+      value,
+      new WeakSet<object>(),
+      0,
+      maxDepth,
+      maxArrayLength
+    );
   } catch {
     return '[RedactionFailed]';
   }

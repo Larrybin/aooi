@@ -28,4 +28,3 @@ export default async function ForgotPasswordPage() {
   const configs = await getConfigs();
   return <ForgotPassword configs={configs} />;
 }
-

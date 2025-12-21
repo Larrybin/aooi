@@ -17,7 +17,7 @@ export default async function RetrieveBillingPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ subscription_no: string }>;
 }) {
-  const { locale } = await params;
+  const { locale: _locale } = await params;
   const { subscription_no } = await searchParams;
 
   if (!subscription_no) {

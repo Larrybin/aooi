@@ -5,7 +5,7 @@ import {
 import { CTA, Showcases } from '@/themes/default/blocks';
 
 export default async function ShowcasesPage({
-  locale,
+  locale: _locale,
   showcases,
   cta,
 }: {

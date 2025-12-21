@@ -15,7 +15,10 @@ export function useMedia(query: string, defaultValue = false): boolean {
       matchMedia.addEventListener('change', handleChange);
       return () => matchMedia.removeEventListener('change', handleChange);
     },
-    () => (typeof window === 'undefined' ? defaultValue : window.matchMedia(query).matches),
+    () =>
+      typeof window === 'undefined'
+        ? defaultValue
+        : window.matchMedia(query).matches,
     () => defaultValue
   );
 }

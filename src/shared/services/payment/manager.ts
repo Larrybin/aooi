@@ -6,8 +6,8 @@ import {
   PayPalProvider,
   StripeProvider,
 } from '@/extensions/payment/providers';
-import type { Configs } from '@/shared/models/config';
 import { logger } from '@/shared/lib/logger.server';
+import type { Configs } from '@/shared/models/config';
 import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
 
 import { buildServiceFromLatestConfigs } from '../config_refresh_policy';
@@ -31,22 +31,32 @@ export function getPaymentServiceWithConfigs(configs: Configs) {
     const stripePaymentMethodsConfig = configs.stripe_payment_methods;
 
     if (typeof stripePaymentMethodsConfig === 'string') {
-      const result = parseStripePaymentMethodsConfig(stripePaymentMethodsConfig);
+      const result = parseStripePaymentMethodsConfig(
+        stripePaymentMethodsConfig
+      );
       if (!result.ok) {
-        logger.warn('payment: invalid stripe payment methods config, fallback to card', {
-          error: result.error,
-        });
+        logger.warn(
+          'payment: invalid stripe payment methods config, fallback to card',
+          {
+            error: result.error,
+          }
+        );
       } else {
         allowedPaymentMethods = result.methods;
       }
     }
 
     if (Array.isArray(stripePaymentMethodsConfig)) {
-      const result = parseStripePaymentMethodsConfig(JSON.stringify(stripePaymentMethodsConfig));
+      const result = parseStripePaymentMethodsConfig(
+        JSON.stringify(stripePaymentMethodsConfig)
+      );
       if (!result.ok) {
-        logger.warn('payment: invalid stripe payment methods config, fallback to card', {
-          error: result.error,
-        });
+        logger.warn(
+          'payment: invalid stripe payment methods config, fallback to card',
+          {
+            error: result.error,
+          }
+        );
       } else {
         allowedPaymentMethods = result.methods;
       }
@@ -105,6 +115,8 @@ let paymentService: PaymentManager | null = null;
  * - This avoids stale configs after admin updates (strong consistency).
  */
 export async function getPaymentService(): Promise<PaymentManager> {
-  paymentService = await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs);
+  paymentService = await buildServiceFromLatestConfigs(
+    getPaymentServiceWithConfigs
+  );
   return paymentService;
 }

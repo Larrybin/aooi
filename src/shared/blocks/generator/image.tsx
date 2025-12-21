@@ -114,7 +114,9 @@ interface ImageTaskResult {
 
 type BackendTaskInfo = ImageTaskResult;
 
-function extractImageUrlsFromTaskInfo(taskInfo: BackendTaskInfo | null): string[] {
+function extractImageUrlsFromTaskInfo(
+  taskInfo: BackendTaskInfo | null
+): string[] {
   if (!taskInfo?.images || !Array.isArray(taskInfo.images)) {
     return [];
   }
@@ -309,14 +311,13 @@ export function ImageGenerator({
           return true;
         }
 
-          if (currentStatus === AITaskStatus.FAILED) {
-            const errorMessage =
-              task.taskInfo?.errorMessage ||
-              'Generate image failed';
-            toast.error(errorMessage);
-            resetTaskState();
+        if (currentStatus === AITaskStatus.FAILED) {
+          const errorMessage =
+            task.taskInfo?.errorMessage || 'Generate image failed';
+          toast.error(errorMessage);
+          resetTaskState();
 
-            fetchUserCredits();
+          fetchUserCredits();
 
           return true;
         }
@@ -692,19 +693,19 @@ export function ImageGenerator({
                 {generatedImages.length > 0 ? (
                   <div className="grid gap-6 sm:grid-cols-2">
                     {generatedImages.map((image) => (
-                        <div key={image.id} className="space-y-3">
-                          <div className="relative aspect-square overflow-hidden rounded-lg border">
-                            <LazyImage
-                              src={image.url}
-                              alt={image.prompt || 'Generated image'}
-                              fill
-                              sizes="(max-width: 640px) 100vw, 50vw"
-                              className="object-cover"
-                            />
+                      <div key={image.id} className="space-y-3">
+                        <div className="relative aspect-square overflow-hidden rounded-lg border">
+                          <LazyImage
+                            src={image.url}
+                            alt={image.prompt || 'Generated image'}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 50vw"
+                            className="object-cover"
+                          />
 
-                            <div className="absolute right-2 bottom-2 flex justify-end text-sm">
-                              <Button
-                                size="sm"
+                          <div className="absolute right-2 bottom-2 flex justify-end text-sm">
+                            <Button
+                              size="sm"
                               variant="ghost"
                               className="ml-auto"
                               onClick={() => handleDownloadImage(image)}

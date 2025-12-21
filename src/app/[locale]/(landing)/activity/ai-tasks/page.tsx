@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { AITaskStatus, AISong } from '@/extensions/ai';
+import { AITaskStatus } from '@/extensions/ai';
 import { AudioPlayer, Empty, LazyImage } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
 import { safeJsonParse } from '@/shared/lib/json';
@@ -55,7 +55,9 @@ export default async function AiTasksPage({
             return '-';
           }
 
-          const taskInfo = safeJsonParse<Record<string, unknown>>(item.taskInfo);
+          const taskInfo = safeJsonParse<Record<string, unknown>>(
+            item.taskInfo
+          );
           if (!taskInfo) {
             return '-';
           }
@@ -65,18 +67,16 @@ export default async function AiTasksPage({
               ? taskInfo.errorMessage
               : '';
           if (errorMessage) {
-            return (
-              <div className="text-red-500">
-                Failed: {errorMessage}
-              </div>
-            );
+            return <div className="text-red-500">Failed: {errorMessage}</div>;
           }
 
           const songsValue = taskInfo.songs;
           if (Array.isArray(songsValue) && songsValue.length > 0) {
             const songs = songsValue
               .filter(
-                (song): song is { id: string; audioUrl?: string; title?: string } =>
+                (
+                  song
+                ): song is { id: string; audioUrl?: string; title?: string } =>
                   Boolean(song) && typeof song === 'object'
               )
               .filter((song) => typeof song.audioUrl === 'string');
@@ -106,22 +106,23 @@ export default async function AiTasksPage({
                     (image): image is { imageUrl: string } =>
                       Boolean(image) &&
                       typeof image === 'object' &&
-                      typeof (image as { imageUrl?: unknown }).imageUrl === 'string'
+                      typeof (image as { imageUrl?: unknown }).imageUrl ===
+                        'string'
                   )
                   .map((image, index: number) => (
-                  <div
-                    key={index}
-                    className="relative h-32 w-32 overflow-hidden rounded-md border"
-                  >
-                    <LazyImage
-                      src={image.imageUrl}
-                      alt="Generated image"
-                      fill
-                      sizes="128px"
-                      className="object-contain"
-                    />
-                  </div>
-                ))}
+                    <div
+                      key={index}
+                      className="relative h-32 w-32 overflow-hidden rounded-md border"
+                    >
+                      <LazyImage
+                        src={image.imageUrl}
+                        alt="Generated image"
+                        fill
+                        sizes="128px"
+                        className="object-contain"
+                      />
+                    </div>
+                  ))}
               </div>
             );
           }

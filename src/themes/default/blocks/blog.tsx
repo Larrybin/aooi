@@ -1,7 +1,7 @@
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { Calendar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 
 import { Link } from '@/core/i18n/navigation';
 import { Tabs } from '@/shared/blocks/common/tabs';

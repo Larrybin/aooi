@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { signUp } from '@/core/auth/client';
-import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import { Link } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -21,6 +20,7 @@ import {
 } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
 import { SocialProviders } from './social-providers';
 
@@ -91,13 +91,13 @@ export function SignUp({
         name,
       },
       {
-        onRequest: (ctx) => {
+        onRequest: () => {
           setLoading(true);
         },
-        onResponse: (ctx) => {
+        onResponse: () => {
           setLoading(false);
         },
-        onSuccess: (ctx) => {
+        onSuccess: () => {
           // report affiliate
           reportAffiliate({ userEmail: email });
           router.push(localizedCallbackUrl);

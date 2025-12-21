@@ -1,9 +1,10 @@
 'use client';
 
+import Image from 'next/image';
+
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
 import { Image as ImageType } from '@/shared/types/blocks/common';
 import { Testimonials as TestimonialsType } from '@/shared/types/blocks/landing';
-import Image from 'next/image';
 
 export function Testimonials({
   testimonials,

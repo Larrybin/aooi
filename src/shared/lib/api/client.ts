@@ -1,7 +1,10 @@
 'use client';
 
 import { safeJsonParse } from '@/shared/lib/json';
-import { getRequestIdFromResponse, RequestIdError } from '@/shared/lib/request-id';
+import {
+  getRequestIdFromResponse,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 
 type ApiEnvelope<T> = {
   code: number;
@@ -9,7 +12,9 @@ type ApiEnvelope<T> = {
   data?: T;
 };
 
-export function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainObject(
+  value: unknown
+): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -21,7 +26,8 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 function toUrlString(input: RequestInfo | URL): string | undefined {
   if (typeof input === 'string') return input;
   if (input instanceof URL) return input.toString();
-  if (typeof Request !== 'undefined' && input instanceof Request) return input.url;
+  if (typeof Request !== 'undefined' && input instanceof Request)
+    return input.url;
   return undefined;
 }
 
@@ -67,10 +73,14 @@ export async function fetchApiData<T>(
 
     const data = parsed.data as unknown;
     if (options?.validate && !options.validate(data)) {
-      throw new RequestIdError(options.invalidDataMessage || 'invalid response', requestId, {
-        status: response.status,
-        url,
-      });
+      throw new RequestIdError(
+        options.invalidDataMessage || 'invalid response',
+        requestId,
+        {
+          status: response.status,
+          url,
+        }
+      );
     }
 
     if (options?.returnEnvelope) {
@@ -80,10 +90,14 @@ export async function fetchApiData<T>(
   }
 
   if (!response.ok) {
-    throw new RequestIdError(`request failed with status ${response.status}`, requestId, {
-      status: response.status,
-      url,
-    });
+    throw new RequestIdError(
+      `request failed with status ${response.status}`,
+      requestId,
+      {
+        status: response.status,
+        url,
+      }
+    );
   }
 
   if (parsed === null) {
@@ -98,10 +112,14 @@ export async function fetchApiData<T>(
   }
 
   if (options?.validate && !options.validate(parsed)) {
-    throw new RequestIdError(options.invalidDataMessage || 'invalid response', requestId, {
-      status: response.status,
-      url,
-    });
+    throw new RequestIdError(
+      options.invalidDataMessage || 'invalid response',
+      requestId,
+      {
+        status: response.status,
+        url,
+      }
+    );
   }
 
   if (options?.returnEnvelope) return { data: parsed as T };

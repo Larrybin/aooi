@@ -1,6 +1,6 @@
-import { safeJsonParse } from '@/shared/lib/json';
 import { sanitizeUrlForLog } from '@/shared/lib/fetch/sanitize-url';
 import { fetchWithTimeout } from '@/shared/lib/fetch/timeout';
+import { safeJsonParse } from '@/shared/lib/json';
 
 type FetchServerOptions = {
   timeoutMs: number;
@@ -45,7 +45,9 @@ function buildFetchError(
   const safeUrl = sanitizeUrlForLog(url);
   const base = errorMessage || 'request failed';
   const suffix = detail ? `: ${detail}` : '';
-  return new Error(`${base}: ${response.status} ${response.statusText} ${safeUrl}${suffix}`);
+  return new Error(
+    `${base}: ${response.status} ${response.statusText} ${safeUrl}${suffix}`
+  );
 }
 
 export async function safeFetch(
@@ -68,7 +70,8 @@ export async function safeFetchJson<T>(
   const parsed = safeJsonParse<unknown>(rawText);
 
   if (!response.ok) {
-    const detail = extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
+    const detail =
+      extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
 
@@ -93,7 +96,8 @@ export async function safeFetchArrayBuffer(
   if (!response.ok) {
     const rawText = await safeReadText(response);
     const parsed = safeJsonParse<unknown>(rawText);
-    const detail = extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
+    const detail =
+      extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
   return await response.arrayBuffer();
@@ -108,7 +112,8 @@ export async function safeFetchText(
   const text = await safeReadText(response);
   if (!response.ok) {
     const parsed = safeJsonParse<unknown>(text);
-    const detail = extractErrorDetail(parsed) || text.trim().slice(0, 300) || undefined;
+    const detail =
+      extractErrorDetail(parsed) || text.trim().slice(0, 300) || undefined;
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
   return text;

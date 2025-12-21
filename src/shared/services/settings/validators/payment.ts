@@ -23,11 +23,13 @@ function normalizeStringList(values: string[]): string[] {
   return out;
 }
 
-export function parseStripePaymentMethodsConfig(value: string): {
-  ok: true;
-  methods: string[];
-  normalized: string;
-} | { ok: false; error: string } {
+export function parseStripePaymentMethodsConfig(value: string):
+  | {
+      ok: true;
+      methods: string[];
+      normalized: string;
+    }
+  | { ok: false; error: string } {
   const trimmed = value.trim();
   if (!trimmed) {
     const methods = ['card'];
@@ -60,11 +62,13 @@ export function parseStripePaymentMethodsConfig(value: string): {
   return { ok: true, methods, normalized: normalizeJson(methods) };
 }
 
-export function parseCreemProductIdsMappingConfig(value: string): {
-  ok: true;
-  mapping: Record<string, string>;
-  normalized: string;
-} | { ok: false; error: string } {
+export function parseCreemProductIdsMappingConfig(value: string):
+  | {
+      ok: true;
+      mapping: Record<string, string>;
+      normalized: string;
+    }
+  | { ok: false; error: string } {
   const trimmed = value.trim();
   if (!trimmed) {
     return { ok: true, mapping: {}, normalized: '' };
@@ -97,4 +101,3 @@ export function parseCreemProductIdsMappingConfig(value: string): {
 
   return { ok: true, mapping, normalized: normalizeJson(mapping) };
 }
-

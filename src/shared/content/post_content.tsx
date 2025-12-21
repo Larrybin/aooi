@@ -1,8 +1,8 @@
 import 'server-only';
 
+import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 
-import { getMDXComponents } from '@/mdx-components';
 import { pagesSource, postsSource } from '@/core/docs/source';
 import { generateTOC } from '@/core/docs/toc';
 import { formatPostDate } from '@/shared/lib/post-date';
@@ -132,7 +132,11 @@ export async function getLocalPostsAndCategories({
 
   const posts = localPosts.map((post) => {
     const frontmatter = post.data as LocalPostFrontmatter;
-    const slug = getPostSlugFromUrl({ url: post.url, locale, prefix: postPrefix });
+    const slug = getPostSlugFromUrl({
+      url: post.url,
+      locale,
+      prefix: postPrefix,
+    });
 
     return {
       id: post.path,

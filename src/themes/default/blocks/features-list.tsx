@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { ChevronRight } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common';

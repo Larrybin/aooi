@@ -174,4 +174,3 @@ export const paymentSettings: Setting[] = [
     tab: 'payment',
   },
 ];
-

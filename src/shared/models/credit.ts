@@ -1,14 +1,23 @@
 import 'server-only';
 
-import { and, asc, count, desc, eq, gt, isNull, or, sql, sum } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  isNull,
+  or,
+  sql,
+  sum,
+} from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { credit } from '@/config/db/schema';
-import { PaymentType } from '@/extensions/payment';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 
-import { Order } from './order';
-import { appendUserToResult, getUserByUserIds, User } from './user';
+import { appendUserToResult, User } from './user';
 
 export type Credit = typeof credit.$inferSelect & {
   user?: User;

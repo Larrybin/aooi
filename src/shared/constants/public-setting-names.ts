@@ -17,6 +17,6 @@ export const PUBLIC_SETTING_NAMES = [
   'promotekit_enabled',
   'crisp_enabled',
   'tawk_enabled',
- ] as const;
+] as const;
 
 export const publicSettingNames: readonly string[] = PUBLIC_SETTING_NAMES;

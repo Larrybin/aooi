@@ -1,11 +1,11 @@
 import 'server-only';
 
-import { drizzle } from 'drizzle-orm/postgres-js';
 import { createRequire } from 'node:module';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import { serverEnv } from '@/config/server';
 import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
+import { serverEnv } from '@/config/server';
 import { isCloudflareWorker } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 
@@ -47,7 +47,11 @@ function createSchemaCheckedClient(
           return typeof value === 'function'
             ? (...args: unknown[]) =>
                 schemaReady.then(() =>
-                  Reflect.apply(value as (...args: unknown[]) => unknown, target, args)
+                  Reflect.apply(
+                    value as (...args: unknown[]) => unknown,
+                    target,
+                    args
+                  )
                 )
             : value;
         }
@@ -55,7 +59,11 @@ function createSchemaCheckedClient(
         if (typeof value === 'function') {
           return (...args: unknown[]) =>
             schemaReady.then(() =>
-              Reflect.apply(value as (...args: unknown[]) => unknown, target, args)
+              Reflect.apply(
+                value as (...args: unknown[]) => unknown,
+                target,
+                args
+              )
             );
         }
 
@@ -92,7 +100,11 @@ function createSchemaCheckedClient(
       if (typeof value === 'function') {
         return (...args: unknown[]) =>
           schemaReady.then(() =>
-            Reflect.apply(value as (...args: unknown[]) => unknown, target, args)
+            Reflect.apply(
+              value as (...args: unknown[]) => unknown,
+              target,
+              args
+            )
           );
       }
 
@@ -134,7 +146,8 @@ export function db() {
 
   const cloudflareEnv = tryGetCloudflareWorkersEnv();
   const hasCloudflareWorkersEnv = cloudflareEnv !== null;
-  const runningInCloudflareWorkers = hasCloudflareWorkersEnv || isCloudflareWorker;
+  const runningInCloudflareWorkers =
+    hasCloudflareWorkersEnv || isCloudflareWorker;
 
   if (runningInCloudflareWorkers) {
     if (!hasCloudflareWorkersEnv) {
@@ -143,7 +156,8 @@ export function db() {
       );
     }
 
-    const hyperdriveConnectionString = cloudflareEnv?.HYPERDRIVE?.connectionString;
+    const hyperdriveConnectionString =
+      cloudflareEnv?.HYPERDRIVE?.connectionString;
 
     if (!hyperdriveConnectionString) {
       throw new Error(
@@ -205,8 +219,14 @@ export function db() {
     connect_timeout: 10,
   });
 
-  const schemaReady = getOrCreateSchemaCheckPromise(serverlessClient, databaseUrl);
-  const checkedClient = createSchemaCheckedClient(serverlessClient, schemaReady);
+  const schemaReady = getOrCreateSchemaCheckPromise(
+    serverlessClient,
+    databaseUrl
+  );
+  const checkedClient = createSchemaCheckedClient(
+    serverlessClient,
+    schemaReady
+  );
   return drizzle(checkedClient);
 }
 

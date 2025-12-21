@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import { Monitor, Moon, SunDim } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-import { useAppContext } from '@/shared/contexts/app';
-import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { AnimatedThemeToggler } from '@/shared/components/magicui/animated-theme-toggler';
 import { Button } from '@/shared/components/ui/button';
 import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@/shared/components/ui/toggle-group';
+import { useAppContext } from '@/shared/contexts/app';
+import { isConfigTrue } from '@/shared/lib/general-ui.client';
 
 export function ThemeToggler({
   type = 'icon',

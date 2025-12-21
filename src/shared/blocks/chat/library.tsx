@@ -2,33 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import {
-  IconDots,
-  IconFolder,
-  IconMessageCircle,
-  IconPencil,
-  IconShare3,
-  IconTrash,
-  type Icon,
-} from '@tabler/icons-react';
+import { IconDots, IconMessageCircle } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 
 import { Link } from '@/core/i18n/navigation';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu';
-import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import { useChatContext } from '@/shared/contexts/chat';
@@ -36,9 +19,7 @@ import { fetchApiData } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 import type { Chat } from '@/shared/types/chat';
 
-export function ChatLibrary({}) {
-  const { isMobile } = useSidebar();
-
+export function ChatLibrary() {
   const t = useTranslations('ai.chat.library');
   const params = useParams();
 
@@ -49,8 +30,8 @@ export function ChatLibrary({}) {
 
   const didToastFetchChatsError = useRef(false);
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const page = 1;
+  const limit = 10;
 
   useEffect(() => {
     if (!user) {

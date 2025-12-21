@@ -26,7 +26,7 @@ export default async function CancelBillingPage({
   searchParams: Promise<{ subscription_no: string }>;
 }) {
   const t = await getTranslations('settings.billing.cancel');
-  const { locale } = await params;
+  const { locale: _locale } = await params;
   const { subscription_no } = await searchParams;
 
   if (!subscription_no) {
@@ -84,7 +84,8 @@ export default async function CancelBillingPage({
         throw new Error('invalid subscription no');
       }
 
-      const subscription = await findSubscriptionBySubscriptionNo(subscription_no);
+      const subscription =
+        await findSubscriptionBySubscriptionNo(subscription_no);
       if (!subscription || !subscription.subscriptionId) {
         throw new Error('invalid subscription');
       }

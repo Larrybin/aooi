@@ -1,11 +1,16 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
-import { getPosts, getPostsCount, type Post, PostType } from '@/shared/models/post';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import {
+  getPosts,
+  getPostsCount,
+  PostType,
+  type Post,
+} from '@/shared/models/post';
 import { getTaxonomies } from '@/shared/models/taxonomy';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Button, Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

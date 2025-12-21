@@ -45,4 +45,3 @@ export const storageSettings: Setting[] = [
     tab: 'storage',
   },
 ];
-

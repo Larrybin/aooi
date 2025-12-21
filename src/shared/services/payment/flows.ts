@@ -5,25 +5,24 @@ import {
   PaymentStatus,
   PaymentType,
 } from '@/extensions/payment';
-
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import type { NewCredit } from '@/shared/models/credit';
 import {
-  type NewOrder,
-  type Order,
   OrderStatus,
-  type UpdateOrder,
   updateOrderByOrderNo,
   updateOrderInTransaction,
   updateSubscriptionInTransaction,
+  type NewOrder,
+  type Order,
+  type UpdateOrder,
 } from '@/shared/models/order';
-import type { NewSubscription } from '@/shared/models/subscription';
 import {
   SubscriptionStatus,
-  type Subscription,
-  type UpdateSubscription,
   updateSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNoIfNotCanceled,
+  type NewSubscription,
+  type Subscription,
+  type UpdateSubscription,
 } from '@/shared/models/subscription';
 
 import { buildGrantCreditForOrder } from './credit';
@@ -196,7 +195,8 @@ export async function handleCheckoutSuccess({
     throw new Error('invalid order');
   }
 
-  log?.debug('payment: checkout success start',
+  log?.debug(
+    'payment: checkout success start',
     toOrderFlowLogMeta({ order, session })
   );
 
@@ -245,7 +245,9 @@ export async function handleCheckoutSuccess({
 
       updateOrder.subscriptionNo = newSubscription.subscriptionNo;
       updateOrder.subscriptionId = session.subscriptionId;
-      updateOrder.subscriptionResult = JSON.stringify(session.subscriptionResult);
+      updateOrder.subscriptionResult = JSON.stringify(
+        session.subscriptionResult
+      );
     }
 
     const newCredit = buildGrantCreditForOrder({
@@ -313,7 +315,10 @@ export async function handlePaymentSuccess({
     throw new Error('invalid order');
   }
 
-  log?.debug('payment: payment success start', toOrderFlowLogMeta({ order, session }));
+  log?.debug(
+    'payment: payment success start',
+    toOrderFlowLogMeta({ order, session })
+  );
 
   if (isFinalOrderStatus(order.status)) {
     log?.debug(
@@ -360,7 +365,9 @@ export async function handlePaymentSuccess({
 
       updateOrder.subscriptionNo = newSubscription.subscriptionNo;
       updateOrder.subscriptionId = session.subscriptionId;
-      updateOrder.subscriptionResult = JSON.stringify(session.subscriptionResult);
+      updateOrder.subscriptionResult = JSON.stringify(
+        session.subscriptionResult
+      );
     }
 
     const newCredit = buildGrantCreditForOrder({

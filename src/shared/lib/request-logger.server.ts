@@ -15,4 +15,3 @@ export function getRequestLogger(req: Request): RequestLogger {
   const ctx = getRequestContext(req);
   return { ctx, log: logger.with(ctx) };
 }
-

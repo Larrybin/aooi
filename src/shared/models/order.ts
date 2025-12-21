@@ -12,12 +12,7 @@ import {
   UpdateSubscription,
   updateSubscriptionBySubscriptionNo,
 } from './subscription';
-import {
-  appendUserToResult,
-  type WithAttachedUser,
-  type WithUserId,
-  User,
-} from './user';
+import { appendUserToResult, User, type WithUserId } from './user';
 
 export type Order = typeof order.$inferSelect & {
   user?: User;
@@ -177,7 +172,9 @@ export async function findOrderByInvoiceId({
   const [result] = await db()
     .select()
     .from(order)
-    .where(and(eq(order.invoiceId, invoiceId), eq(order.paymentProvider, provider)));
+    .where(
+      and(eq(order.invoiceId, invoiceId), eq(order.paymentProvider, provider))
+    );
 
   return result;
 }
@@ -366,11 +363,7 @@ export async function updateSubscriptionInTransaction({
         existingOrder = existingOrderResult;
       }
 
-      if (
-        !existingOrder &&
-        newOrder.invoiceId &&
-        newOrder.paymentProvider
-      ) {
+      if (!existingOrder && newOrder.invoiceId && newOrder.paymentProvider) {
         const [existingOrderResult] = await tx
           .select()
           .from(order)

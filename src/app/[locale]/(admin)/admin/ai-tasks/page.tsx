@@ -1,14 +1,14 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getAITasks,
   getAITasksCount,
   type AITask,
 } from '@/shared/models/ai_task';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Button, Crumb, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

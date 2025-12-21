@@ -48,4 +48,3 @@ export const affiliateSettings: Setting[] = [
     tab: 'affiliate',
   },
 ];
-

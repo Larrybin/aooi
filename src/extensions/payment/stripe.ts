@@ -55,144 +55,141 @@ export class StripeProvider implements PaymentProvider {
   }: {
     order: PaymentOrder;
   }): Promise<CheckoutSession> {
-      // check payment price
-      if (!order.price) {
-        throw new Error('price is required');
+    // check payment price
+    if (!order.price) {
+      throw new Error('price is required');
+    }
+
+    // create payment with dynamic product
+
+    // build price data
+    const priceData: Stripe.Checkout.SessionCreateParams.LineItem.PriceData = {
+      currency: order.price.currency,
+      unit_amount: order.price.amount, // unit: cents
+      product_data: {
+        name: order.description || '',
+      },
+    };
+
+    if (order.type === PaymentType.SUBSCRIPTION) {
+      // create subscription payment
+
+      // check payment plan
+      if (!order.plan) {
+        throw new Error('plan is required');
       }
 
-      // create payment with dynamic product
+      // build recurring data
+      priceData.recurring = {
+        interval: order.plan
+          .interval as Stripe.Checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval,
+      };
+    } else {
+      // create one-time payment
+    }
 
-      // build price data
-      const priceData: Stripe.Checkout.SessionCreateParams.LineItem.PriceData =
-        {
-          currency: order.price.currency,
-          unit_amount: order.price.amount, // unit: cents
-          product_data: {
-            name: order.description || '',
-          },
-        };
+    // set or create customer
+    let customerId = '';
+    if (order.customer?.email) {
+      const customers = await this.client.customers.list({
+        email: order.customer.email,
+        limit: 1,
+      });
 
-      if (order.type === PaymentType.SUBSCRIPTION) {
-        // create subscription payment
-
-        // check payment plan
-        if (!order.plan) {
-          throw new Error('plan is required');
-        }
-
-        // build recurring data
-        priceData.recurring = {
-          interval: order.plan
-            .interval as Stripe.Checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval,
-        };
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
       } else {
-        // create one-time payment
-      }
-
-      // set or create customer
-      let customerId = '';
-      if (order.customer?.email) {
-        const customers = await this.client.customers.list({
+        const customer = await this.client.customers.create({
           email: order.customer.email,
-          limit: 1,
+          name: order.customer.name,
+          metadata: order.customer.metadata as Stripe.MetadataParam | undefined,
         });
-
-        if (customers.data.length > 0) {
-          customerId = customers.data[0].id;
-        } else {
-          const customer = await this.client.customers.create({
-            email: order.customer.email,
-            name: order.customer.name,
-            metadata: order.customer.metadata as
-              | Stripe.MetadataParam
-              | undefined,
-          });
-          customerId = customer.id;
-        }
+        customerId = customer.id;
       }
+    }
 
-      // create payment session params
-      const sessionParams: Stripe.Checkout.SessionCreateParams = {
-        mode:
-          order.type === PaymentType.SUBSCRIPTION ? 'subscription' : 'payment',
-        line_items: [
-          {
-            price_data: priceData,
-            quantity: 1,
-          },
-        ],
-      };
+    // create payment session params
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      mode:
+        order.type === PaymentType.SUBSCRIPTION ? 'subscription' : 'payment',
+      line_items: [
+        {
+          price_data: priceData,
+          quantity: 1,
+        },
+      ],
+    };
 
-      // If currency is CNY, enable WeChat Pay and Alipay (only for one-time payments)
-      // Note: WeChat Pay and Alipay through Stripe only supports one-time payments, not subscriptions
-      const currency = order.price.currency.toLowerCase();
-      if (currency === 'cny' && order.type === PaymentType.ONE_TIME) {
-        // Enable WeChat Pay and Alipay for CNY one-time payments
-        sessionParams.payment_method_types = [];
-        sessionParams.payment_method_options = {};
+    // If currency is CNY, enable WeChat Pay and Alipay (only for one-time payments)
+    // Note: WeChat Pay and Alipay through Stripe only supports one-time payments, not subscriptions
+    const currency = order.price.currency.toLowerCase();
+    if (currency === 'cny' && order.type === PaymentType.ONE_TIME) {
+      // Enable WeChat Pay and Alipay for CNY one-time payments
+      sessionParams.payment_method_types = [];
+      sessionParams.payment_method_options = {};
 
-        // get allowed payment methods
-        const allowedPaymentMethods = this.configs.allowedPaymentMethods || [];
+      // get allowed payment methods
+      const allowedPaymentMethods = this.configs.allowedPaymentMethods || [];
 
-        if (allowedPaymentMethods.includes('card')) {
-          sessionParams.payment_method_types.push('card');
-        }
-        if (allowedPaymentMethods.includes('wechat_pay')) {
-          sessionParams.payment_method_types.push('wechat_pay');
-          sessionParams.payment_method_options.wechat_pay = {
-            client: 'web',
-          };
-        }
-        if (allowedPaymentMethods.includes('alipay')) {
-          sessionParams.payment_method_types.push('alipay');
-          sessionParams.payment_method_options.alipay = {};
-        }
-
-        if (allowedPaymentMethods.length === 0) {
-          // not set allowed payment methods, use default payment methods
-          sessionParams.payment_method_types = ['card'];
-        }
+      if (allowedPaymentMethods.includes('card')) {
+        sessionParams.payment_method_types.push('card');
       }
-
-      if (order.type === PaymentType.ONE_TIME) {
-        sessionParams.invoice_creation = {
-          enabled: true,
+      if (allowedPaymentMethods.includes('wechat_pay')) {
+        sessionParams.payment_method_types.push('wechat_pay');
+        sessionParams.payment_method_options.wechat_pay = {
+          client: 'web',
         };
       }
-
-      if (customerId) {
-        sessionParams.customer = customerId;
+      if (allowedPaymentMethods.includes('alipay')) {
+        sessionParams.payment_method_types.push('alipay');
+        sessionParams.payment_method_options.alipay = {};
       }
 
-      if (order.metadata) {
-        sessionParams.metadata = order.metadata as
-          | Stripe.MetadataParam
-          | undefined;
+      if (allowedPaymentMethods.length === 0) {
+        // not set allowed payment methods, use default payment methods
+        sessionParams.payment_method_types = ['card'];
       }
+    }
 
-      if (order.successUrl) {
-        sessionParams.success_url = order.successUrl;
-      }
-
-      if (order.cancelUrl) {
-        sessionParams.cancel_url = order.cancelUrl;
-      }
-
-      const session = await this.client.checkout.sessions.create(sessionParams);
-      if (!session.id || !session.url) {
-        throw new Error('create payment failed');
-      }
-
-      return {
-        provider: this.name,
-        checkoutParams: sessionParams,
-        checkoutInfo: {
-          sessionId: session.id,
-          checkoutUrl: session.url,
-        },
-        checkoutResult: session,
-        metadata: order.metadata || {},
+    if (order.type === PaymentType.ONE_TIME) {
+      sessionParams.invoice_creation = {
+        enabled: true,
       };
+    }
+
+    if (customerId) {
+      sessionParams.customer = customerId;
+    }
+
+    if (order.metadata) {
+      sessionParams.metadata = order.metadata as
+        | Stripe.MetadataParam
+        | undefined;
+    }
+
+    if (order.successUrl) {
+      sessionParams.success_url = order.successUrl;
+    }
+
+    if (order.cancelUrl) {
+      sessionParams.cancel_url = order.cancelUrl;
+    }
+
+    const session = await this.client.checkout.sessions.create(sessionParams);
+    if (!session.id || !session.url) {
+      throw new Error('create payment failed');
+    }
+
+    return {
+      provider: this.name,
+      checkoutParams: sessionParams,
+      checkoutInfo: {
+        sessionId: session.id,
+        checkoutUrl: session.url,
+      },
+      checkoutResult: session,
+      metadata: order.metadata || {},
+    };
   }
 
   /**
@@ -203,72 +200,72 @@ export class StripeProvider implements PaymentProvider {
   }: {
     sessionId: string;
   }): Promise<PaymentSession> {
-      if (!sessionId) {
-        throw new Error('sessionId is required');
-      }
+    if (!sessionId) {
+      throw new Error('sessionId is required');
+    }
 
-      const session = await this.client.checkout.sessions.retrieve(sessionId);
+    const session = await this.client.checkout.sessions.retrieve(sessionId);
 
-      return await this.buildPaymentSessionFromCheckoutSession(session);
+    return await this.buildPaymentSessionFromCheckoutSession(session);
   }
 
   /**
    * Get payment event from webhook notification
    */
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
-      const rawBody = await req.text();
-      const signature = req.headers.get('stripe-signature') as string;
+    const rawBody = await req.text();
+    const signature = req.headers.get('stripe-signature') as string;
 
-      if (!rawBody || !signature) {
-        throw new WebhookVerificationError('invalid webhook request');
-      }
+    if (!rawBody || !signature) {
+      throw new WebhookVerificationError('invalid webhook request');
+    }
 
-      if (!this.configs.signingSecret) {
-        throw new WebhookConfigError('signing secret not configured');
-      }
+    if (!this.configs.signingSecret) {
+      throw new WebhookConfigError('signing secret not configured');
+    }
 
-      let event: Stripe.Event;
-      try {
-        event = this.client.webhooks.constructEvent(
-          rawBody,
-          signature,
-          this.configs.signingSecret
-        );
-      } catch {
-        throw new WebhookVerificationError('invalid webhook signature');
-      }
+    let event: Stripe.Event;
+    try {
+      event = this.client.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.configs.signingSecret
+      );
+    } catch {
+      throw new WebhookVerificationError('invalid webhook signature');
+    }
 
-      let paymentSession: PaymentSession | undefined = undefined;
+    let paymentSession: PaymentSession | undefined = undefined;
 
-      const eventType = this.mapStripeEventType(event.type);
+    const eventType = this.mapStripeEventType(event.type);
 
-      if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-        paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-          event.data.object as Stripe.Response<Stripe.Checkout.Session>
-        );
-      } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
-        paymentSession = await this.buildPaymentSessionFromInvoice(
-          event.data.object as Stripe.Response<Stripe.Invoice>
-        );
-      } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
-        paymentSession = await this.buildPaymentSessionFromSubscription(
-          event.data.object as Stripe.Response<Stripe.Subscription>
-        );
-      } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
-        paymentSession = await this.buildPaymentSessionFromSubscription(
-          event.data.object as Stripe.Response<Stripe.Subscription>
-        );
-      }
+    if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
+      paymentSession = await this.buildPaymentSessionFromCheckoutSession(
+        event.data.object as Stripe.Response<Stripe.Checkout.Session>
+      );
+    } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
+      paymentSession = await this.buildPaymentSessionFromInvoice(
+        event.data.object as Stripe.Response<Stripe.Invoice>
+      );
+    } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
+      paymentSession = await this.buildPaymentSessionFromSubscription(
+        event.data.object as Stripe.Response<Stripe.Subscription>
+      );
+    } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
+      paymentSession = await this.buildPaymentSessionFromSubscription(
+        event.data.object as Stripe.Response<Stripe.Subscription>
+      );
+    }
 
-      if (!paymentSession) {
-        throw new WebhookPayloadError('invalid webhook event');
-      }
+    if (!paymentSession) {
+      throw new WebhookPayloadError('invalid webhook event');
+    }
 
-      return {
-        eventType: eventType,
-        eventResult: event,
-        paymentSession: paymentSession,
-      };
+    return {
+      eventType: eventType,
+      eventResult: event,
+      paymentSession: paymentSession,
+    };
   }
 
   async getPaymentInvoice({
@@ -276,17 +273,17 @@ export class StripeProvider implements PaymentProvider {
   }: {
     invoiceId: string;
   }): Promise<PaymentInvoice> {
-      const invoice = await this.client.invoices.retrieve(invoiceId);
-      if (!invoice.id) {
-        throw new Error('Invoice not found');
-      }
+    const invoice = await this.client.invoices.retrieve(invoiceId);
+    if (!invoice.id) {
+      throw new Error('Invoice not found');
+    }
 
-      return {
-        invoiceId: invoice.id,
-        invoiceUrl: invoice.hosted_invoice_url || undefined,
-        amount: invoice.amount_paid,
-        currency: invoice.currency,
-      };
+    return {
+      invoiceId: invoice.id,
+      invoiceUrl: invoice.hosted_invoice_url || undefined,
+      amount: invoice.amount_paid,
+      currency: invoice.currency,
+    };
   }
 
   async getPaymentBilling({
@@ -296,18 +293,18 @@ export class StripeProvider implements PaymentProvider {
     customerId: string;
     returnUrl?: string;
   }): Promise<PaymentBilling> {
-      const billing = await this.client.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: returnUrl,
-      });
+    const billing = await this.client.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
 
-      if (!billing.url) {
-        throw new Error('get billing url failed');
-      }
+    if (!billing.url) {
+      throw new Error('get billing url failed');
+    }
 
-      return {
-        billingUrl: billing.url,
-      };
+    return {
+      billingUrl: billing.url,
+    };
   }
 
   async cancelSubscription({
@@ -315,18 +312,17 @@ export class StripeProvider implements PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession> {
-      if (!subscriptionId) {
-        throw new Error('subscriptionId is required');
-      }
+    if (!subscriptionId) {
+      throw new Error('subscriptionId is required');
+    }
 
-      const subscription =
-        await this.client.subscriptions.cancel(subscriptionId);
+    const subscription = await this.client.subscriptions.cancel(subscriptionId);
 
-      if (!subscription.canceled_at) {
-        throw new Error('Cancel subscription failed');
-      }
+    if (!subscription.canceled_at) {
+      throw new Error('Cancel subscription failed');
+    }
 
-      return await this.buildPaymentSessionFromSubscription(subscription);
+    return await this.buildPaymentSessionFromSubscription(subscription);
   }
 
   private mapStripeEventType(eventType: string): PaymentEventType {
@@ -383,7 +379,6 @@ export class StripeProvider implements PaymentProvider {
   ): Promise<PaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
-    const billingUrl = '';
 
     if (session.subscription) {
       subscription = await this.client.subscriptions.retrieve(
@@ -432,7 +427,6 @@ export class StripeProvider implements PaymentProvider {
   ): Promise<PaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
-    const billingUrl = '';
 
     if (invoice.lines.data.length > 0) {
       const data = invoice.lines.data[0];

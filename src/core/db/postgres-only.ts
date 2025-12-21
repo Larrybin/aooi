@@ -8,4 +8,3 @@ export function assertPostgresOnlyDatabaseProvider(
     `Unsupported DATABASE_PROVIDER: ${provider}. This project currently supports postgresql only.`
   );
 }
-

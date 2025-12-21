@@ -5,12 +5,11 @@ import { RiGithubFill, RiGoogleFill } from 'react-icons/ri';
 import { toast } from 'sonner';
 
 import { signIn } from '@/core/auth/client';
-import type { AuthErrorContext } from '@/shared/types/auth-callback';
-import { useRouter } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
 import { cn } from '@/shared/lib/utils';
+import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import { Button as ButtonType } from '@/shared/types/blocks/common';
 
 export function SocialProviders({
@@ -25,7 +24,6 @@ export function SocialProviders({
   setLoading: (loading: boolean) => void;
 }) {
   const t = useTranslations('common.sign');
-  const router = useRouter();
   const locale = useLocale();
 
   const { setIsShowSignModal } = useAppContext();
@@ -45,14 +43,14 @@ export function SocialProviders({
         callbackURL: localizedCallbackUrl,
       },
       {
-        onRequest: (ctx) => {
+        onRequest: () => {
           setLoading(true);
         },
-        onResponse: (ctx) => {
+        onResponse: () => {
           setLoading(false);
           setIsShowSignModal(false);
         },
-        onSuccess: (ctx) => {},
+        onSuccess: () => {},
         onError: (ctx: AuthErrorContext) => {
           toast.error(ctx.error?.message || 'sign in failed');
           setLoading(false);

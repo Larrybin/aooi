@@ -1,9 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findUserById } from '@/shared/models/user';
 import { Form } from '@/shared/types/blocks/form';

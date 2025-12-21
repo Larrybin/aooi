@@ -3,14 +3,17 @@
 import { z } from 'zod';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
-import { requireActionPermissions, requireActionUser } from '@/shared/lib/action/guard';
+import {
+  requireActionPermissions,
+  requireActionUser,
+} from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
 import { findUserById, updateUser, UpdateUser } from '@/shared/models/user';
-import { assignRolesToUser } from '@/shared/services/rbac';
 import { AdminUserUpdateFormSchema } from '@/shared/schemas/actions/admin-user';
+import { assignRolesToUser } from '@/shared/services/rbac';
 
 /**
  * Update user profile (name, image)

@@ -69,7 +69,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
           method: 'POST',
         },
         {
-          validate: (value): value is Record<string, string> => isPlainObject(value),
+          validate: (value): value is Record<string, string> =>
+            isPlainObject(value),
           invalidDataMessage: 'invalid configs response',
         }
       );

@@ -1,13 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findUserById } from '@/shared/models/user';
 import { getRoles, getUserRoles } from '@/shared/services/rbac';
+import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import { Form } from '@/shared/types/blocks/form';
 
 import { updateUserRolesAction } from '../../actions';
@@ -53,10 +53,7 @@ export default async function UserEditRolesPage({
   const userRoles = await getUserRoles(user.id as string);
   const userRoleIds = userRoles.map((role) => role.id);
 
-  const form: Form<
-    typeof user & { roles: string[] },
-    { user: typeof user }
-  > = {
+  const form: Form<typeof user & { roles: string[] }, { user: typeof user }> = {
     fields: [
       {
         name: 'email',

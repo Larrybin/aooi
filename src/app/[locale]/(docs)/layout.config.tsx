@@ -4,7 +4,7 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { i18n } from '@/core/docs/source';
 import { envConfigs } from '@/config';
 
-export function baseOptions(locale: string): BaseLayoutProps {
+export function baseOptions(_locale: string): BaseLayoutProps {
   return {
     links: [],
     nav: {

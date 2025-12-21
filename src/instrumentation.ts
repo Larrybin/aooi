@@ -13,7 +13,8 @@ function formatConfigError(parts: string[]): Error {
 
 async function assertRoleDeletedAtColumnExists(databaseUrl: string) {
   const postgres = (await import('postgres')).default;
-  const { assertRoleDeletedAtColumnExists } = await import('./core/db/schema-check');
+  const { assertRoleDeletedAtColumnExists } =
+    await import('./core/db/schema-check');
   const { logger } = await import('./shared/lib/logger.server');
 
   const sql = postgres(databaseUrl, {

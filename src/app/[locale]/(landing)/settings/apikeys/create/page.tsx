@@ -41,9 +41,13 @@ export default async function CreateApiKeyPage() {
 
         return withAction(async () => {
           const user = await requireActionUser();
-          const { title } = parseFormData(data, SettingsApiKeyUpsertFormSchema, {
-            message: 'title is required',
-          });
+          const { title } = parseFormData(
+            data,
+            SettingsApiKeyUpsertFormSchema,
+            {
+              message: 'title is required',
+            }
+          );
 
           const key = `sk-${getNonceStr(32)}`;
 

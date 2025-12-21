@@ -1,5 +1,9 @@
-import type { ComponentPropsWithoutRef, ComponentType } from 'react';
-import { lazy, Suspense } from 'react';
+import {
+  lazy,
+  Suspense,
+  type ComponentPropsWithoutRef,
+  type ComponentType,
+} from 'react';
 
 type IconProps = ComponentPropsWithoutRef<'svg'> & { size?: number | string };
 
@@ -63,12 +67,16 @@ export function SmartIcon({
             console.warn(
               `Icon "${name}" not found in lucide-react, using fallback`
             );
-            return { default: iconsModule.HelpCircle as ComponentType<IconProps> };
+            return {
+              default: iconsModule.HelpCircle as ComponentType<IconProps>,
+            };
           }
         } catch (error) {
           console.error(`Failed to load lucide-react:`, error);
           const fallbackModule = await import('lucide-react');
-          return { default: fallbackModule.HelpCircle as ComponentType<IconProps> };
+          return {
+            default: fallbackModule.HelpCircle as ComponentType<IconProps>,
+          };
         }
       });
     }

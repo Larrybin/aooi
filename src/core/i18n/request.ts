@@ -4,13 +4,15 @@ import {
   defaultLocale,
   localeMessagesPaths,
   localeMessagesRootPath,
-  locales,
   type Locale,
 } from '@/config/locale';
 
 import { routing } from './config';
 
-export async function loadMessages(path: string, locale: Locale = defaultLocale) {
+export async function loadMessages(
+  path: string,
+  locale: Locale = defaultLocale
+) {
   try {
     // try to load locale messages
     const messages = await import(

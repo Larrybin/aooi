@@ -1,10 +1,14 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
-import { getApikeys, getApikeysCount, type Apikey } from '@/shared/models/apikey';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import {
+  getApikeys,
+  getApikeysCount,
+  type Apikey,
+} from '@/shared/models/apikey';
+import { requirePermission } from '@/shared/services/rbac_guard';
 import { Button, Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

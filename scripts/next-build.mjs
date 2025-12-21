@@ -15,13 +15,17 @@ const nodeOptions = hasDnsOption
   ? existingNodeOptions
   : [dnsOption, existingNodeOptions].filter(Boolean).join(' ');
 
-const child = spawn(process.execPath, [...process.argv.slice(2), nextBin, 'build'], {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_OPTIONS: nodeOptions,
-  },
-});
+const child = spawn(
+  process.execPath,
+  [...process.argv.slice(2), nextBin, 'build'],
+  {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_OPTIONS: nodeOptions,
+    },
+  }
+);
 
 child.on('exit', (code, signal) => {
   if (typeof code === 'number') process.exit(code);
@@ -30,4 +34,3 @@ child.on('exit', (code, signal) => {
   }
   process.exit(1);
 });
-

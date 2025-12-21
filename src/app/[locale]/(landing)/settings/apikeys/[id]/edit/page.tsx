@@ -69,9 +69,13 @@ export default async function EditApiKeyPage({
             throw new Error('no permission');
           }
 
-          const { title } = parseFormData(data, SettingsApiKeyUpsertFormSchema, {
-            message: 'title is required',
-          });
+          const { title } = parseFormData(
+            data,
+            SettingsApiKeyUpsertFormSchema,
+            {
+              message: 'title is required',
+            }
+          );
 
           const updatedApikey: UpdateApikey = { title };
           await updateApikey(apikey.id, updatedApikey);

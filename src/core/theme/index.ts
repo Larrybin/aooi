@@ -104,9 +104,7 @@ export async function getThemeBlock(blockName: string, theme?: string) {
     const themeModule = await import(
       `@/themes/${loadTheme}/blocks/${blockName}`
     );
-    return (
-      themeModule.default || themeModule[blockName] || themeModule
-    );
+    return themeModule.default || themeModule[blockName] || themeModule;
   } catch (error) {
     logger.error('theme: failed to load block', {
       blockName,

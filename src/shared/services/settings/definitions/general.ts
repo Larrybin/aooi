@@ -42,4 +42,3 @@ export const generalSettings: Setting[] = [
     tab: 'general',
   },
 ];
-
