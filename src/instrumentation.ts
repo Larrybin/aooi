@@ -21,7 +21,7 @@ async function assertRoleDeletedAtColumnExists(databaseUrl: string) {
     prepare: false,
     max: 1,
     idle_timeout: 1,
-    connect_timeout: 15,
+    connect_timeout: 3,
   });
 
   try {
@@ -60,12 +60,23 @@ export async function register() {
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!isNonEmptyString(databaseUrl)) {
-    throw formatConfigError([
+    const { logger } = await import('./shared/lib/logger.server');
+    const error = formatConfigError([
       'Database config check failed in production: missing DATABASE_URL.',
       'Set DATABASE_URL and apply migrations before starting the server.',
       'Run: pnpm db:migrate',
     ]);
+
+    logger.error('instrumentation: db startup check skipped', {
+      hint: error.message,
+    });
+    return;
   }
 
-  await assertRoleDeletedAtColumnExists(databaseUrl.trim());
+  try {
+    await assertRoleDeletedAtColumnExists(databaseUrl.trim());
+  } catch (error: unknown) {
+    const { logger } = await import('./shared/lib/logger.server');
+    logger.error('instrumentation: db startup check failed', { error });
+  }
 }

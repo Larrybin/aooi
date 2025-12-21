@@ -44,7 +44,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-data*
+# Root-level scratch data (keep this scoped to repo root; avoid ignoring docs like docs/guides/database.md)
+/data*
 *debug*
 
 *.db

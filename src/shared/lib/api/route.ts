@@ -47,10 +47,9 @@ type ApiRouteHandlerArgs =
   | readonly []
   | readonly [request: Request, ...rest: readonly unknown[]];
 
-export function withApi<
-  Args extends ApiRouteHandlerArgs,
-  R
->(handler: (...args: Args) => R): (...args: Args) => Promise<Awaited<R>> {
+export function withApi<Args extends ApiRouteHandlerArgs, R>(
+  handler: (...args: Args) => R
+): (...args: Args) => Promise<Awaited<R>> {
   return (async (...args: Args) => {
     const reqLogger = toRequestLogger(args);
     try {
