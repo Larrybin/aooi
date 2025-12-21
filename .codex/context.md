@@ -1,7 +1,14 @@
 # 项目画像
-- 生成时间：2025-12-21 10:29:20
+- 生成时间：2025-12-21 14:49:49
 - 根目录：D:/Cursor project/shipany-template-two
-- Git：feat/ui-tabs-particles-refine @ 2418e80（dirty=是）
+- Git：feat/ui-tabs-particles-refine @ 419faf2（dirty=是）
+
+## Codex 工作流配置（可选）
+- 配置文件：codex-workflow.config.json
+- schemaVersion：1
+- riskGate.mode：hard
+- riskGate.useBuiltins：是
+- riskGate.validationScripts：format:check, lint, build
 
 ## 工具链
 - 包管理器：pnpm

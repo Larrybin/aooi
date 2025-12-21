@@ -21,7 +21,7 @@ async function assertRoleDeletedAtColumnExists(databaseUrl: string) {
     prepare: false,
     max: 1,
     idle_timeout: 1,
-    connect_timeout: 5,
+    connect_timeout: 15,
   });
 
   try {

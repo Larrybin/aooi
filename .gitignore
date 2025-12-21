@@ -73,3 +73,5 @@ src/shared/types/cloudflare.d.ts
 
 # local IDE history (do not commit)
 .specstory/history/
+
+.codex
