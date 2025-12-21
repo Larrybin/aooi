@@ -1,4 +1,5 @@
 import { Button } from '@/types/blocks/base/button';
+
 import { PaymentInterval } from '@/extensions/payment';
 
 export interface PricingGroup {

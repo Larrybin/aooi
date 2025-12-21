@@ -67,7 +67,9 @@ export async function register() {
       'Run: pnpm db:migrate',
     ]);
 
-    logger.error('instrumentation: db startup check skipped', { hint: error.message });
+    logger.error('instrumentation: db startup check skipped', {
+      hint: error.message,
+    });
     return;
   }
 

@@ -15,6 +15,13 @@
       "when": 1766068964035,
       "tag": "0001_nasty_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766306638561,
+      "tag": "0002_enable_rls_public_tables",
+      "breakpoints": true
     }
   ]
 }
