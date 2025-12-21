@@ -31,7 +31,7 @@ import {
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import { getPaymentService } from '@/shared/services/payment';
 import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
-import { PricingCurrency } from '@/shared/types/blocks/pricing';
+import { Pricing, PricingCurrency } from '@/shared/types/blocks/pricing';
 
 export const POST = withApi(async (req: Request) => {
   const { log } = getRequestLogger(req);
@@ -42,9 +42,10 @@ export const POST = withApi(async (req: Request) => {
     locale: locale || 'en',
     namespace: 'pricing',
   });
-  const pricing = t.raw('pricing');
+  const pricing = t.raw('pricing') as Pricing;
+  const pricingItems = pricing.items ?? [];
 
-  const pricingItem = pricing.items.find(
+  const pricingItem = pricingItems.find(
     (item) => item.product_id === product_id
   );
 
@@ -242,9 +243,14 @@ export const POST = withApi(async (req: Request) => {
   checkoutOrder.price = checkoutPrice;
   if (paymentType === PaymentType.SUBSCRIPTION) {
     // subscription mode
+    const planName =
+      pricingItem.plan_name ||
+      pricingItem.product_name ||
+      pricingItem.title ||
+      'subscription';
     checkoutOrder.plan = {
       interval: paymentInterval,
-      name: pricingItem.product_name,
+      name: planName,
     };
   } else {
     // one-time mode

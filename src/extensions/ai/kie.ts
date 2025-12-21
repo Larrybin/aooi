@@ -237,7 +237,7 @@ export class KieProvider implements AIProvider {
         status: data.status,
         errorCode: data.errorCode,
         errorMessage: data.errorMessage,
-        createTime: new Date(data.createTime),
+        createTime: data.createTime ? new Date(data.createTime) : undefined,
       },
       taskResult: data,
     };

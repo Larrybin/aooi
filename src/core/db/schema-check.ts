@@ -1,11 +1,4 @@
-export type SqlTag = (
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<unknown>;
-
-export type PostgresSqlClient = SqlTag & {
-  end?: (...args: unknown[]) => Promise<unknown>;
-};
+export type PostgresSqlClient = ReturnType<typeof import('postgres')>;
 
 export type SchemaCheckLogger = {
   error: (message: string, meta?: Record<string, unknown>) => void;

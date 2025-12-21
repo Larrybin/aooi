@@ -13,7 +13,7 @@ import { ApiError } from './errors';
 import { jsonErr } from './response';
 
 function toRequestLogger(
-  args: unknown[]
+  args: readonly unknown[]
 ): ReturnType<typeof getRequestLogger> | undefined {
   const maybeReq = args[0];
   return typeof maybeReq === 'object' &&
@@ -43,10 +43,15 @@ function attachRequestIdHeader(
   }
 }
 
-export function withApi<T extends (...args: any[]) => unknown>(
-  handler: T
-): T {
-  return (async (...args: Parameters<T>) => {
+type ApiRouteHandlerArgs =
+  | readonly []
+  | readonly [request: Request, ...rest: readonly unknown[]];
+
+export function withApi<
+  Args extends ApiRouteHandlerArgs,
+  R
+>(handler: (...args: Args) => R): (...args: Args) => Promise<Awaited<R>> {
+  return (async (...args: Args) => {
     const reqLogger = toRequestLogger(args);
     try {
       const result = await handler(...args);
@@ -72,5 +77,5 @@ export function withApi<T extends (...args: any[]) => unknown>(
         ? attachRequestIdHeader(response, reqLogger.ctx.requestId)
         : response;
     }
-  }) as T;
+  }) as (...args: Args) => Promise<Awaited<R>>;
 }
