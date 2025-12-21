@@ -69,7 +69,8 @@ src/shared/types/cloudflare.d.ts
 .vercel
 
 # local agent notes / scratch
-/.codex/*
-!/.codex/plan/
-!/.codex/plan/**
+/.codex/
 /temp/
+
+# local IDE history (do not commit)
+.specstory/history/
