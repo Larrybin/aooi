@@ -1,7 +1,7 @@
 # 项目画像
-- 生成时间：2025-12-21 14:49:49
+- 生成时间：2025-12-21 16:39:00
 - 根目录：D:/Cursor project/shipany-template-two
-- Git：feat/ui-tabs-particles-refine @ 419faf2（dirty=是）
+- Git：main @ 70a6d4d（dirty=是）
 
 ## Codex 工作流配置（可选）
 - 配置文件：codex-workflow.config.json
