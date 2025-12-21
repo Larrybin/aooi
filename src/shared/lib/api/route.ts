@@ -43,7 +43,7 @@ function attachRequestIdHeader(
   }
 }
 
-export function withApi<T extends (...args: unknown[]) => unknown>(
+export function withApi<T extends (...args: any[]) => unknown>(
   handler: T
 ): T {
   return (async (...args: Parameters<T>) => {
