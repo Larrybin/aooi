@@ -65,6 +65,13 @@ export class TooManyRequestsError extends ApiError {
   }
 }
 
+export class ServiceUnavailableError extends ApiError {
+  constructor(message = 'service unavailable', data?: unknown) {
+    super(503, message, data);
+    this.name = 'ServiceUnavailableError';
+  }
+}
+
 export class UpstreamError extends ApiError {
   constructor(status: 502 | 503, message = 'bad gateway', data?: unknown) {
     super(status, message, data);

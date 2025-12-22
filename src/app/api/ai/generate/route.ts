@@ -4,18 +4,24 @@ import {
   AITaskStatus,
   type AIGenerateParams,
 } from '@/extensions/ai';
-import { BadRequestError, ForbiddenError } from '@/shared/lib/api/errors';
+import {
+  BadRequestError,
+  ForbiddenError,
+  UpstreamError,
+} from '@/shared/lib/api/errors';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { createAITask, NewAITask } from '@/shared/models/ai_task';
 import { getRemainingCredits } from '@/shared/models/credit';
 import { AiGenerateBodySchema } from '@/shared/schemas/api/ai/generate';
 import { getAIService } from '@/shared/services/ai';
 
 export const POST = withApi(async (request: Request) => {
+  const { log } = getRequestLogger(request);
   const { provider, mediaType, model, prompt, options, scene } =
     await parseJson(request, AiGenerateBodySchema);
 
@@ -62,9 +68,13 @@ export const POST = withApi(async (request: Request) => {
 
   const result = await aiProvider.generate({ params });
   if (!result?.taskId) {
-    throw new Error(
-      `ai generate failed, mediaType: ${mediaType}, provider: ${provider}, model: ${model}`
-    );
+    log.error('ai: generate failed', {
+      provider,
+      mediaType,
+      model,
+      hasTaskId: Boolean(result?.taskId),
+    });
+    throw new UpstreamError(502, 'ai generate failed');
   }
 
   const newAITask: NewAITask = {

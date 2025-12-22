@@ -2,6 +2,8 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+export const runtime = 'nodejs';
+
 function getAuthSecret(): string | null {
   const secret = process.env.BETTER_AUTH_SECRET ?? process.env.AUTH_SECRET;
   return isNonEmptyString(secret) ? secret.trim() : null;

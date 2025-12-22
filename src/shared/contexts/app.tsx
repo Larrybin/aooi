@@ -45,6 +45,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const didToastConfigsError = useRef(false);
   const didToastUserInfoError = useRef(false);
   const didToastUserCreditsError = useRef(false);
+  const didShowOneTap = useRef(false);
 
   // sign user
   const [user, setUser] = useState<User | null>(null);
@@ -166,12 +167,25 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (
+      typeof window !== 'undefined' &&
+      window.location?.pathname &&
+      !window.location.pathname.replace(/\/$/, '').endsWith('/sign-in')
+    ) {
+      return;
+    }
+
+    if (didShowOneTap.current) {
+      return;
+    }
+
+    if (
       configs &&
       configs.google_client_id &&
       configs.google_one_tap_enabled === 'true' &&
       !session &&
       !isPending
     ) {
+      didShowOneTap.current = true;
       showOneTap(configs);
     }
   }, [configs, session, isPending]);
