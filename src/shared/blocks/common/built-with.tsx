@@ -6,8 +6,13 @@ import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
 
-export function BuiltWith() {
-  const { configs } = useAppContext();
+export function BuiltWith({
+  configs: configsProp,
+}: {
+  configs?: Record<string, string>;
+}) {
+  const { configs: contextConfigs } = useAppContext();
+  const configs = configsProp ?? contextConfigs;
   if (!isConfigTrue(configs, 'general_built_with_enabled')) {
     return null;
   }

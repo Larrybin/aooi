@@ -7,10 +7,17 @@ import {
   LocaleSelector,
   ThemeToggler,
 } from '@/shared/blocks/common';
+import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import { Footer as FooterType } from '@/shared/types/blocks/landing';
 
-export function Footer({ footer }: { footer: FooterType }) {
+export function Footer({
+  footer,
+  publicConfigs,
+}: {
+  footer: FooterType;
+  publicConfigs?: Configs;
+}) {
   return (
     <footer
       id={footer.id}
@@ -55,9 +62,9 @@ export function Footer({ footer }: { footer: FooterType }) {
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
-          <BuiltWith />
+          <BuiltWith configs={publicConfigs} />
           <div className="min-w-0 flex-1" />
-          <ThemeToggler type="toggle" />
+          <ThemeToggler type="toggle" configs={publicConfigs} />
           {footer.show_locale !== false ? (
             <LocaleSelector type="button" />
           ) : null}
@@ -94,7 +101,7 @@ export function Footer({ footer }: { footer: FooterType }) {
             </div>
           ) : null}
 
-          <GeneralSocialLinks />
+          <GeneralSocialLinks configs={publicConfigs} />
         </div>
       </div>
     </footer>
