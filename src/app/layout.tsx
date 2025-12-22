@@ -1,31 +1,11 @@
 import '@/config/style/global.css';
 
-import { JetBrains_Mono, Merriweather, Noto_Sans_Mono } from 'next/font/google';
 import { getLocale, setRequestLocale } from 'next-intl/server';
-import NextTopLoader from 'nextjs-toploader';
 
-import { envConfigs } from '@/config';
-import { locales } from '@/config/locale';
 import { getAdsService } from '@/shared/services/ads';
 import { getAffiliateService } from '@/shared/services/affiliate';
 import { getAnalyticsService } from '@/shared/services/analytics';
 import { getCustomerService } from '@/shared/services/customer_service';
-
-const notoSansMono = Noto_Sans_Mono({
-  subsets: ['latin'],
-  variable: '--font-sans',
-});
-
-const merriweather = Merriweather({
-  subsets: ['latin'],
-  weight: ['300', '400', '700', '900'],
-  variable: '--font-serif',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-});
 
 export default async function RootLayout({
   children,
@@ -37,9 +17,6 @@ export default async function RootLayout({
 
   const isProduction = process.env.NODE_ENV === 'production';
   const isDebug = process.env.NEXT_PUBLIC_DEBUG === 'true';
-
-  // app url
-  const appUrl = envConfigs.app_url || '';
 
   // ads components
   let adsMetaTags = null;
@@ -88,27 +65,9 @@ export default async function RootLayout({
   }
 
   return (
-    <html
-      lang={locale}
-      className={`${notoSansMono.variable} ${merriweather.variable} ${jetbrainsMono.variable}`}
-      suppressHydrationWarning
-    >
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-        {/* inject locales */}
-        {locales ? (
-          <>
-            {locales.map((loc) => (
-              <link
-                key={loc}
-                rel="alternate"
-                hrefLang={loc}
-                href={`${appUrl}${loc === 'en' ? '' : `/${loc}`}`}
-              />
-            ))}
-          </>
-        ) : null}
 
         {/* inject ads meta tags */}
         {adsMetaTags}
@@ -131,17 +90,6 @@ export default async function RootLayout({
         {customerServiceHeadScripts}
       </head>
       <body suppressHydrationWarning className="overflow-x-hidden">
-        <NextTopLoader
-          color="#6466F1"
-          initialPosition={0.08}
-          crawlSpeed={200}
-          height={3}
-          crawl={true}
-          showSpinner={true}
-          easing="ease"
-          speed={200}
-        />
-
         {children}
 
         {/* inject ads body scripts */}
