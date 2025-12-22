@@ -1,7 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemeLayout, getThemePage } from '@/core/theme';
-import { AppContextProvider } from '@/shared/contexts/app';
 import {
   Landing,
   type Footer as FooterType,
@@ -43,10 +42,8 @@ export default async function LandingPage({
   const footer: FooterType = t.raw('footer');
 
   return (
-    <AppContextProvider>
-      <Layout header={header} footer={footer} locale={locale}>
-        <Page locale={locale} page={page} />
-      </Layout>
-    </AppContextProvider>
+    <Layout header={header} footer={footer} locale={locale}>
+      <Page locale={locale} page={page} />
+    </Layout>
   );
 }
