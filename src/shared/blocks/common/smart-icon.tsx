@@ -1,22 +1,98 @@
+import type { ComponentPropsWithoutRef, ComponentType } from 'react';
 import {
-  lazy,
-  Suspense,
-  type ComponentPropsWithoutRef,
-  type ComponentType,
-} from 'react';
+  Activity,
+  BookOpenText,
+  Box,
+  Brain,
+  Coins,
+  CreditCard,
+  DollarSign,
+  FileText,
+  Folder,
+  Github,
+  HelpCircle,
+  History,
+  Home,
+  Key,
+  Mail,
+  MessageCircle,
+  Newspaper,
+  Plus,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  User,
+  Users,
+  Zap,
+} from 'lucide-react';
+import {
+  RiBarChart2Line,
+  RiChat2Line,
+  RiClapperboardAiLine,
+  RiCloudy2Fill,
+  RiCloudyFill,
+  RiCodeFill,
+  RiDatabase2Line,
+  RiDiscordFill,
+  RiFlashlightFill,
+  RiImage2Line,
+  RiKey2Fill,
+  RiKeyLine,
+  RiMessage2Line,
+  RiMusic2Line,
+  RiNextjsFill,
+  RiQuestionLine,
+  RiRobot2Line,
+  RiTaskLine,
+  RiTwitterXFill,
+} from 'react-icons/ri';
 
 type IconProps = ComponentPropsWithoutRef<'svg'> & { size?: number | string };
 
-const iconCache: Record<string, ComponentType<IconProps>> = {};
+const ICONS: Record<string, ComponentType<IconProps>> = {
+  Activity,
+  BookOpenText,
+  Box,
+  Brain,
+  Coins,
+  CreditCard,
+  DollarSign,
+  FileText,
+  Folder,
+  Github,
+  History,
+  Home,
+  Key,
+  Mail,
+  MessageCircle,
+  Newspaper,
+  Plus,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  User,
+  Users,
+  Zap,
 
-// Function to automatically detect icon library
-function detectIconLibrary(name: string): 'ri' | 'lucide' {
-  if (name && name.startsWith('Ri')) {
-    return 'ri';
-  }
-
-  return 'lucide';
-}
+  RiBarChart2Line,
+  RiChat2Line,
+  RiClapperboardAiLine,
+  RiCloudy2Fill,
+  RiCloudyFill,
+  RiCodeFill,
+  RiDatabase2Line,
+  RiDiscordFill,
+  RiFlashlightFill,
+  RiImage2Line,
+  RiKey2Fill,
+  RiKeyLine,
+  RiMessage2Line,
+  RiMusic2Line,
+  RiNextjsFill,
+  RiRobot2Line,
+  RiTaskLine,
+  RiTwitterXFill,
+};
 
 export function SmartIcon({
   name,
@@ -27,66 +103,8 @@ export function SmartIcon({
   IconProps,
   'size' | 'className'
 >) {
-  const library = detectIconLibrary(name);
-  const cacheKey = `${library}-${name}`;
+  const IconComponent =
+    ICONS[name] ?? (name.startsWith('Ri') ? RiQuestionLine : HelpCircle);
 
-  if (!iconCache[cacheKey]) {
-    if (library === 'ri') {
-      // React Icons (Remix Icons)
-      iconCache[cacheKey] = lazy(async () => {
-        try {
-          const iconsModule = await import('react-icons/ri');
-          const IconComponent = iconsModule[name as keyof typeof iconsModule];
-          if (IconComponent) {
-            return { default: IconComponent as ComponentType<IconProps> };
-          } else {
-            console.warn(
-              `Icon "${name}" not found in react-icons/ri, using fallback`
-            );
-            return {
-              default: iconsModule.RiQuestionLine as ComponentType<IconProps>,
-            };
-          }
-        } catch (error) {
-          console.error(`Failed to load react-icons/ri:`, error);
-          const fallbackModule = await import('react-icons/ri');
-          return {
-            default: fallbackModule.RiQuestionLine as ComponentType<IconProps>,
-          };
-        }
-      });
-    } else {
-      // Lucide React (default)
-      iconCache[cacheKey] = lazy(async () => {
-        try {
-          const iconsModule = await import('lucide-react');
-          const IconComponent = iconsModule[name as keyof typeof iconsModule];
-          if (IconComponent) {
-            return { default: IconComponent as ComponentType<IconProps> };
-          } else {
-            console.warn(
-              `Icon "${name}" not found in lucide-react, using fallback`
-            );
-            return {
-              default: iconsModule.HelpCircle as ComponentType<IconProps>,
-            };
-          }
-        } catch (error) {
-          console.error(`Failed to load lucide-react:`, error);
-          const fallbackModule = await import('lucide-react');
-          return {
-            default: fallbackModule.HelpCircle as ComponentType<IconProps>,
-          };
-        }
-      });
-    }
-  }
-
-  const IconComponent = iconCache[cacheKey];
-
-  return (
-    <Suspense fallback={<div style={{ width: size, height: size }} />}>
-      <IconComponent size={size} className={className} {...props} />
-    </Suspense>
-  );
+  return <IconComponent size={size} className={className} {...props} />;
 }

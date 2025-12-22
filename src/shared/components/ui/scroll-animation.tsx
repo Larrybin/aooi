@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface ScrollAnimationProps {
   children: React.ReactNode;
@@ -19,16 +18,78 @@ export function ScrollAnimation({
   direction = "up",
   stagger = false,
 }: ScrollAnimationProps) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, {
-    once: true,
-    margin: "-50px", // Optimization: trigger animation earlier for better perceived performance
-  });
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [isInView, setIsInView] = useState(false);
+  const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
 
-  // Respect user's reduced motion preference (accessibility)
-  const shouldReduceMotion = useReducedMotion();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  // If user prefers reduced motion or JavaScript is disabled, show content directly
+    const sync = () => setShouldReduceMotion(mediaQuery.matches);
+    sync();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", sync);
+      return () => mediaQuery.removeEventListener("change", sync);
+    }
+
+    mediaQuery.addListener(sync);
+    return () => mediaQuery.removeListener(sync);
+  }, []);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    if (shouldReduceMotion) return;
+    if (isInView) return;
+
+    const node = ref.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        setIsInView(true);
+        observer.disconnect();
+      },
+      {
+        root: null,
+        rootMargin: "-50px 0px",
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [isInView, shouldReduceMotion]);
+
+  const initialTransform = useMemo(() => {
+    switch (direction) {
+      case "up":
+        return "translate3d(0, 30px, 0)";
+      case "down":
+        return "translate3d(0, -30px, 0)";
+      case "left":
+        return "translate3d(30px, 0, 0)";
+      case "right":
+        return "translate3d(-30px, 0, 0)";
+      default:
+        return "translate3d(0, 30px, 0)";
+    }
+  }, [direction]);
+
+  const baseStyle: React.CSSProperties = useMemo(
+    () => ({
+      opacity: isInView ? 1 : 0,
+      transform: isInView ? "translate3d(0, 0, 0)" : initialTransform,
+      filter: isInView ? "blur(0px)" : "blur(4px)",
+      transitionProperty: "opacity, transform, filter",
+      transitionDuration: "600ms",
+      transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+      willChange: "opacity, transform, filter",
+    }),
+    [initialTransform, isInView]
+  );
+
   if (shouldReduceMotion) {
     return (
       <div ref={ref} className={className}>
@@ -37,96 +98,37 @@ export function ScrollAnimation({
     );
   }
 
-  const getInitialPosition = () => {
-    switch (direction) {
-      case "up":
-        return { y: 30, x: 0 };
-      case "down":
-        return { y: -30, x: 0 };
-      case "left":
-        return { x: 30, y: 0 };
-      case "right":
-        return { x: -30, y: 0 };
-      default:
-        return { y: 30, x: 0 };
-    }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: delay,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: {
-      opacity: 0,
-      ...getInitialPosition(),
-      filter: "blur(4px)",
-    },
-    visible: {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      filter: "blur(0px)",
-      transition: {
-        duration: 0.6,
-        ease: [0.22, 1, 0.36, 1] as const,
-      },
-    },
-  };
-
   if (stagger) {
+    const childrenArray = React.Children.toArray(children);
+    const step = 0.1;
+
     return (
-      <motion.div
-        ref={ref}
-        variants={containerVariants}
-        initial="hidden"
-        animate={isInView ? "visible" : "hidden"}
-        className={className}
-      >
-        {React.Children.map(children, (child) => (
-          <motion.div variants={itemVariants}>{child}</motion.div>
+      <div ref={ref} className={className}>
+        {childrenArray.map((child, index) => (
+          <div
+            key={index}
+            style={{
+              ...baseStyle,
+              transitionDelay: `${Math.max(0, delay) + index * step}s`,
+            }}
+          >
+            {child}
+          </div>
         ))}
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{
-        opacity: 0,
-        ...getInitialPosition(),
-        filter: "blur(4px)",
-      }}
-      animate={
-        isInView
-          ? {
-              opacity: 1,
-              x: 0,
-              y: 0,
-              filter: "blur(0px)",
-            }
-          : {
-              opacity: 0,
-              ...getInitialPosition(),
-              filter: "blur(4px)",
-            }
-      }
-      transition={{
-        duration: 0.6,
-        delay,
-        ease: [0.22, 1, 0.36, 1] as const,
-      }}
       className={className}
+      style={{
+        ...baseStyle,
+        transitionDelay: `${Math.max(0, delay)}s`,
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
