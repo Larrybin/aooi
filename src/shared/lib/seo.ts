@@ -1,12 +1,51 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
+import { defaultLocale, locales } from '@/config/locale';
 
 type MetadataFields = {
   title: string;
   description: string;
   keywords: string;
 };
+
+function stripTrailingSlash(value: string) {
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+}
+
+function normalizeRelativePath(value: string) {
+  if (!value) return '/';
+  if (value.startsWith('/')) return value;
+  return `/${value}`;
+}
+
+export function buildCanonicalUrl(pathOrUrl: string, locale: string) {
+  if (!pathOrUrl) pathOrUrl = '/';
+
+  if (pathOrUrl.startsWith('http')) {
+    return pathOrUrl;
+  }
+
+  const appUrl = stripTrailingSlash(envConfigs.app_url);
+  const relativePath = normalizeRelativePath(pathOrUrl);
+  const localePrefix = !locale || locale === defaultLocale ? '' : `/${locale}`;
+
+  if (relativePath === '/') {
+    return localePrefix ? `${appUrl}${localePrefix}` : `${appUrl}/`;
+  }
+
+  return `${appUrl}${localePrefix}${relativePath}`;
+}
+
+export function buildLanguageAlternates(relativePath: string) {
+  if (relativePath.startsWith('http')) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    locales.map((locale) => [locale, buildCanonicalUrl(relativePath, locale)])
+  );
+}
 
 // get metadata for page component
 export function getMetadata(
@@ -52,10 +91,14 @@ export function getMetadata(
     }
 
     // canonical url
-    const canonicalUrl = await getCanonicalUrl(
-      options.canonicalUrl || '',
-      locale || ''
-    );
+    const canonicalUrl = buildCanonicalUrl(options.canonicalUrl || '/', locale);
+    const canonicalPathForAlternates =
+      options.canonicalUrl && options.canonicalUrl.startsWith('http')
+        ? undefined
+        : normalizeRelativePath(options.canonicalUrl || '/');
+    const languageAlternates = canonicalPathForAlternates
+      ? buildLanguageAlternates(canonicalPathForAlternates)
+      : undefined;
 
     const title =
       passedMetadata.title || translatedMetadata.title || defaultMetadata.title;
@@ -79,6 +122,7 @@ export function getMetadata(
     }
 
     return {
+      metadataBase: new URL(stripTrailingSlash(envConfigs.app_url)),
       title:
         passedMetadata.title ||
         translatedMetadata.title ||
@@ -93,6 +137,7 @@ export function getMetadata(
         defaultMetadata.keywords,
       alternates: {
         canonical: canonicalUrl,
+        ...(languageAlternates ? { languages: languageAlternates } : {}),
       },
 
       openGraph: {
@@ -132,30 +177,4 @@ async function getTranslatedMetadata(metadataKey: string, locale: string) {
     description: t.has('description') ? t('description') : '',
     keywords: t.has('keywords') ? t('keywords') : '',
   };
-}
-
-async function getCanonicalUrl(canonicalUrl: string, locale: string) {
-  if (!canonicalUrl) {
-    canonicalUrl = '/';
-  }
-
-  if (canonicalUrl.startsWith('http')) {
-    // full url
-    canonicalUrl = canonicalUrl;
-  } else {
-    // relative path
-    if (!canonicalUrl.startsWith('/')) {
-      canonicalUrl = `/${canonicalUrl}`;
-    }
-
-    canonicalUrl = `${envConfigs.app_url}${
-      !locale || locale === 'en' ? '' : `/${locale}`
-    }${canonicalUrl}`;
-
-    if (locale !== 'en' && canonicalUrl.endsWith('/')) {
-      canonicalUrl = canonicalUrl.slice(0, -1);
-    }
-  }
-
-  return canonicalUrl;
 }
