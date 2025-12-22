@@ -16,16 +16,20 @@ export function GeneralSocialLinks({
   itemClassName = 'text-muted-foreground hover:text-primary bg-background block cursor-pointer rounded-full p-2 duration-150',
   iconClassName,
   iconSize = 20,
+  configs: configsProp,
 }: {
   className?: string;
   itemClassName?: string;
   iconClassName?: string;
   iconSize?: number;
+  configs?: Record<string, string>;
 }) {
-  const { configs } = useAppContext();
+  const { configs: contextConfigs } = useAppContext();
+  const configs = configsProp ?? contextConfigs;
+  const generalSocialLinks = configs['general_social_links'] ?? '';
   const items = useMemo(
-    () => parseGeneralSocialLinks(configs.general_social_links),
-    [configs.general_social_links]
+    () => parseGeneralSocialLinks(generalSocialLinks),
+    [generalSocialLinks]
   );
 
   if (!isConfigTrue(configs, 'general_social_links_enabled')) {

@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { defaultLocale } from '@/config/locale';
 import { LazyImage } from '@/shared/blocks/common';
+import type { Configs } from '@/shared/models/config';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
 
 import { Header as FullHeader } from './header';
@@ -17,16 +18,18 @@ function withLocale(href: string, locale: string) {
 export function MarketingHeader({
   header,
   locale,
+  publicConfigs,
 }: {
   header: HeaderType;
   locale: string;
+  publicConfigs?: Configs;
 }) {
   const hasNestedNavItems = header.nav?.items?.some(
     (item) => (item.children?.length ?? 0) > 0
   );
 
   if (hasNestedNavItems) {
-    return <FullHeader header={header} />;
+    return <FullHeader header={header} publicConfigs={publicConfigs} />;
   }
 
   return (

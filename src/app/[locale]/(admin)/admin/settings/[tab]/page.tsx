@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
+import { revalidateTag } from 'next/cache';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
@@ -12,6 +13,7 @@ import {
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
+import { PUBLIC_CONFIGS_CACHE_TAG } from '@/shared/lib/public-configs-cache';
 import { getConfigsSafe, saveConfigs } from '@/shared/models/config';
 import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import {
@@ -165,6 +167,7 @@ export default async function SettingsPage({
       }
 
       await saveConfigs(configs);
+      revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max');
 
       return actionOk('Settings updated');
     });

@@ -26,6 +26,7 @@ import {
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
 import { cn } from '@/shared/lib/utils';
+import type { Configs } from '@/shared/models/config';
 import { NavItem } from '@/shared/types/blocks/common';
 import { Header as HeaderType } from '@/shared/types/blocks/landing';
 
@@ -35,7 +36,13 @@ function NavigationMenuTrigger(
   return <RawNavigationMenuTrigger {...props} />;
 }
 
-export function Header({ header }: { header: HeaderType }) {
+export function Header({
+  header,
+  publicConfigs,
+}: {
+  header: HeaderType;
+  publicConfigs?: Configs;
+}) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
@@ -286,7 +293,9 @@ export function Header({ header }: { header: HeaderType }) {
               {/* Header right section: theme toggler, locale selector, sign, buttons */}
               <div className="mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 in-data-[state=active]:flex max-lg:in-data-[state=active]:mt-6 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
                 <div className="flex w-full flex-row items-center gap-4 sm:flex-row sm:gap-6 sm:space-y-0 md:w-fit">
-                  {header.show_theme ? <ThemeToggler /> : null}
+                  {header.show_theme ? (
+                    <ThemeToggler configs={publicConfigs} />
+                  ) : null}
                   {header.show_locale ? <LocaleSelector /> : null}
                   <div className="flex-1 md:hidden"></div>
                   {header.show_sign ? (

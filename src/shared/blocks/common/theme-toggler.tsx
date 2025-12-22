@@ -16,11 +16,14 @@ import { isConfigTrue } from '@/shared/lib/general-ui.client';
 export function ThemeToggler({
   type = 'icon',
   className,
+  configs: configsProp,
 }: {
   type?: 'icon' | 'button' | 'toggle';
   className?: string;
+  configs?: Record<string, string>;
 }) {
-  const { configs } = useAppContext();
+  const { configs: contextConfigs } = useAppContext();
+  const configs = configsProp ?? contextConfigs;
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

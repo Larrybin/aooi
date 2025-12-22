@@ -36,7 +36,22 @@ export interface ContextValue {
   fetchUserInfo: () => Promise<void>;
 }
 
-const AppContext = createContext({} as ContextValue);
+const noop = () => {};
+const noopAsync = async () => {};
+
+const defaultContextValue: ContextValue = {
+  user: null,
+  isCheckSign: false,
+  isShowSignModal: false,
+  setIsShowSignModal: noop,
+  isShowPaymentModal: false,
+  setIsShowPaymentModal: noop,
+  configs: {},
+  fetchUserCredits: noopAsync,
+  fetchUserInfo: noopAsync,
+};
+
+const AppContext = createContext<ContextValue>(defaultContextValue);
 
 export const useAppContext = () => useContext(AppContext);
 
