@@ -1,11 +1,11 @@
 import Link from 'next/link';
+import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
 import { LazyImage } from '@/shared/blocks/common';
 import type { Configs } from '@/shared/models/config';
+import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
-
-import { Header as FullHeader } from './header';
 
 function withLocale(href: string, locale: string) {
   if (!href) return href;
@@ -15,23 +15,74 @@ function withLocale(href: string, locale: string) {
   return href === '/' ? `/${locale}` : `/${locale}${href}`;
 }
 
+function getNavItemHref(item: NavItem, locale: string) {
+  const url = item.url || item.children?.[0]?.url || '';
+  return withLocale(url, locale);
+}
+
+function hasNavChildren(item: NavItem) {
+  return (item.children?.length ?? 0) > 0;
+}
+
+function MarketingNavItem({ item, locale }: { item: NavItem; locale: string }) {
+  const href = getNavItemHref(item, locale);
+  const title = item.title || item.name || '';
+
+  if (!hasNavChildren(item)) {
+    if (!href) return null;
+    return (
+      <Link
+        href={href}
+        target={item.target || '_self'}
+        className="text-muted-foreground hover:text-foreground text-sm font-medium"
+      >
+        {title}
+      </Link>
+    );
+  }
+
+  return (
+    <details className="group relative">
+      <summary className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer list-none items-center gap-1 text-sm font-medium select-none">
+        <span>{title}</span>
+        <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="bg-background absolute left-0 mt-3 w-max min-w-56 rounded-md border p-2 shadow-sm">
+        {item.children?.map((child, idx) => {
+          const childHref = child.url ? withLocale(child.url, locale) : '';
+          if (!childHref) return null;
+          return (
+            <Link
+              key={idx}
+              href={childHref}
+              target={child.target || '_self'}
+              className="hover:bg-muted block rounded px-3 py-2 text-sm"
+            >
+              <div className="font-medium">
+                {child.title || child.name || ''}
+              </div>
+              {child.description ? (
+                <div className="text-muted-foreground mt-0.5 text-xs">
+                  {child.description}
+                </div>
+              ) : null}
+            </Link>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
+
 export function MarketingHeader({
   header,
   locale,
-  publicConfigs,
+  publicConfigs: _publicConfigs,
 }: {
   header: HeaderType;
   locale: string;
   publicConfigs?: Configs;
 }) {
-  const hasNestedNavItems = header.nav?.items?.some(
-    (item) => (item.children?.length ?? 0) > 0
-  );
-
-  if (hasNestedNavItems) {
-    return <FullHeader header={header} publicConfigs={publicConfigs} />;
-  }
-
   return (
     <header
       id={header.id}
@@ -65,23 +116,70 @@ export function MarketingHeader({
         ) : null}
 
         <nav className="hidden items-center gap-6 md:flex">
-          {header.nav?.items?.map((item, idx) => {
-            const url = item.url || item.children?.[0]?.url || '';
-            if (!url) return null;
-            return (
-              <Link
-                key={idx}
-                href={withLocale(url, locale)}
-                target={item.target || '_self'}
-                className="text-muted-foreground hover:text-foreground text-sm font-medium"
-              >
-                {item.title || item.name || ''}
-              </Link>
-            );
-          })}
+          {header.nav?.items?.map((item, idx) => (
+            <MarketingNavItem key={idx} item={item} locale={locale} />
+          ))}
         </nav>
 
         <div className="flex items-center gap-3">
+          {header.nav?.items?.length ? (
+            <details className="relative md:hidden">
+              <summary className="hover:bg-muted inline-flex cursor-pointer list-none items-center justify-center rounded-md p-2">
+                <Menu className="size-5" />
+                <span className="sr-only">Menu</span>
+              </summary>
+              <div className="bg-background absolute right-0 mt-3 w-72 rounded-md border p-2 shadow-sm">
+                <nav className="space-y-1">
+                  {header.nav.items.map((item, idx) => {
+                    const href = getNavItemHref(item, locale);
+                    const title = item.title || item.name || '';
+
+                    if (!hasNavChildren(item)) {
+                      if (!href) return null;
+                      return (
+                        <Link
+                          key={idx}
+                          href={href}
+                          target={item.target || '_self'}
+                          className="hover:bg-muted block rounded px-3 py-2 text-sm font-medium"
+                        >
+                          {title}
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <details key={idx} className="group rounded">
+                        <summary className="hover:bg-muted flex cursor-pointer list-none items-center justify-between rounded px-3 py-2 text-sm font-medium">
+                          <span>{title}</span>
+                          <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                        </summary>
+                        <div className="mt-1 space-y-1 pl-2">
+                          {item.children?.map((child, cidx) => {
+                            const childHref = child.url
+                              ? withLocale(child.url, locale)
+                              : '';
+                            if (!childHref) return null;
+                            return (
+                              <Link
+                                key={cidx}
+                                href={childHref}
+                                target={child.target || '_self'}
+                                className="text-muted-foreground hover:text-foreground hover:bg-muted block rounded px-3 py-2 text-sm"
+                              >
+                                {child.title || child.name || ''}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    );
+                  })}
+                </nav>
+              </div>
+            </details>
+          ) : null}
+
           {header.buttons?.map((button, idx) => (
             <Link
               key={idx}
