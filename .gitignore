@@ -76,3 +76,4 @@ src/shared/types/cloudflare.d.ts
 .specstory/history/
 
 .codex
+.codex/context.md
