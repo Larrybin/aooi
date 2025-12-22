@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
   Footer as FooterType,
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 import { MarketingFooter } from '../blocks/marketing-footer';
 import { MarketingHeader } from '../blocks/marketing-header';
