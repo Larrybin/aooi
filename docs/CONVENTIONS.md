@@ -90,3 +90,9 @@
 - 调整依赖边界、Server/Client 划分、或新增 lint 护栏。
 - 引入新的关键域（auth/billing/db/payment 等）或替换集成方案。
 - 新增/更改关键脚本与工作流入口（`scripts/`、`package.json scripts`）。
+
+# 构建与网络（字体）
+
+为保证 `pnpm build` 可在受限网络环境下可重复执行，本仓库不使用 `next/font/google`（其会在构建期拉取 Google Fonts）。字体回退由 `src/config/style/theme.css` 的 `--font-*` 变量与系统字体栈提供。
+
+如确实需要固定字体且避免构建期外网依赖，建议引入可 vendoring 的字体方案（例如 `@fontsource/*` 或自托管字体文件）并在 CSS 中引用。

@@ -116,6 +116,17 @@ icon: ListChecks
 - [ ] 不把 secret 写入 `NEXT_PUBLIC_*`，不在 Client 组件中访问私密环境变量。
 - [ ] 日志/错误上报不包含令牌、支付信息、隐私数据；对外错误信息不暴露内部实现细节。
 
+### 5.4 数据库安全（RLS，如适用）
+
+- [ ] 若使用 Supabase/PostgREST 暴露 `public` schema：相关业务表启用 RLS（deny-by-default），并仅对需要暴露的表/操作添加最小 policy。
+- [ ] 新增 `public` 表（或将表迁入 `public`）时：同一批迁移包含 `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`（避免 Supabase linter 0013 回归）。
+- [ ] PR 描述说明：是否存在客户端直连/外部暴露；如有，必须附 policy 设计与最小验证口径（SQL/用例）。
+
+**Reject 标准（直接拒绝）**
+
+- [ ] 计划通过 PostgREST/客户端直连访问 `public` 表，但未启用 RLS 或未提供对应 policy 与验证方式。
+- [ ] 将具备高权限（如 `service_role`/bypass RLS）的凭据暴露到客户端或写入 `NEXT_PUBLIC_*`。
+
 ## 6. Client Component（质量项）
 
 ### 6.1 状态最小化
