@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 
-import { envConfigs } from '@/config';
 import { defaultTheme } from '@/config/theme';
 import { logger } from '@/shared/lib/logger.server';
 
-type ThemeName = 'default';
+import { getActiveTheme, type ThemeName } from './active-theme';
+export { getActiveTheme } from './active-theme';
+
 type ThemePageName =
   | 'landing'
   | 'pricing'
@@ -142,19 +143,6 @@ const themeBlocks: Record<ThemeName, Record<ThemeBlockName, Loader>> = {
       })),
   },
 };
-
-/**
- * get active theme
- */
-export function getActiveTheme(): string {
-  const theme = envConfigs.theme as string;
-
-  if (theme) {
-    return theme;
-  }
-
-  return defaultTheme;
-}
 
 /**
  * load theme page
