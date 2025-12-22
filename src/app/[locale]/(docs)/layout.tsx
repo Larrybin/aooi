@@ -57,7 +57,7 @@ export default async function DocsRootLayout({
         }}
         tabMode="sidebar"
       >
-        {children}
+        <main role="main">{children}</main>
       </DocsLayout>
     </RootProvider>
   );
