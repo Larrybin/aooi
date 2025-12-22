@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-import { getThemeLayout } from '@/core/theme';
-import { LocaleDetectorLazy } from '@/shared/blocks/common';
+import { getThemeLayout } from '@/core/theme/landing';
+import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
 import { AppContextProvider } from '@/shared/contexts/app';
 import type {
   Footer as FooterType,

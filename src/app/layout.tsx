@@ -2,10 +2,11 @@ import '@/config/style/global.css';
 
 import { getLocale, setRequestLocale } from 'next-intl/server';
 
-import { getAdsService } from '@/shared/services/ads';
-import { getAffiliateService } from '@/shared/services/affiliate';
-import { getAnalyticsService } from '@/shared/services/analytics';
-import { getCustomerService } from '@/shared/services/customer_service';
+import { getAllConfigs } from '@/shared/models/config';
+import { getAdsManagerWithConfigs } from '@/shared/services/ads';
+import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
+import { getAnalyticsManagerWithConfigs } from '@/shared/services/analytics';
+import { getCustomerServiceWithConfigs } from '@/shared/services/customer_service';
 
 export default async function RootLayout({
   children,
@@ -39,26 +40,28 @@ export default async function RootLayout({
   let customerServiceBodyScripts = null;
 
   if (isProduction || isDebug) {
+    const configs = await getAllConfigs();
+
     // get ads components
-    const adsService = await getAdsService();
+    const adsService = getAdsManagerWithConfigs(configs);
     adsMetaTags = adsService.getMetaTags();
     adsHeadScripts = adsService.getHeadScripts();
     adsBodyScripts = adsService.getBodyScripts();
 
     // get analytics components
-    const analyticsService = await getAnalyticsService();
+    const analyticsService = getAnalyticsManagerWithConfigs(configs);
     analyticsMetaTags = analyticsService.getMetaTags();
     analyticsHeadScripts = analyticsService.getHeadScripts();
     analyticsBodyScripts = analyticsService.getBodyScripts();
 
     // get affiliate components
-    const affiliateService = await getAffiliateService();
+    const affiliateService = getAffiliateManagerWithConfigs(configs);
     affiliateMetaTags = affiliateService.getMetaTags();
     affiliateHeadScripts = affiliateService.getHeadScripts();
     affiliateBodyScripts = affiliateService.getBodyScripts();
 
     // get customer service components
-    const customerService = await getCustomerService();
+    const customerService = getCustomerServiceWithConfigs(configs);
     customerServiceMetaTags = customerService.getMetaTags();
     customerServiceHeadScripts = customerService.getHeadScripts();
     customerServiceBodyScripts = customerService.getBodyScripts();

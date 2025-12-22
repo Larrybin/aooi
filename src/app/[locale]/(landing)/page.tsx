@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getThemeLayout, getThemePage } from '@/core/theme';
+import { getThemeLayout, getThemePage } from '@/core/theme/landing';
 import {
   Landing,
   type Footer as FooterType,
