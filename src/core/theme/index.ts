@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { envConfigs } from '@/config';
 import { defaultTheme } from '@/config/theme';
 import { logger } from '@/shared/lib/logger.server';
@@ -33,8 +35,9 @@ type ThemeBlockName =
   | 'marketing-header'
   | 'marketing-footer';
 
-type AnyComponent = (...args: any[]) => any;
-type Loader<T = AnyComponent> = () => Promise<{ default: T }>;
+type AnyComponent<Props extends Record<string, unknown> = Record<string, unknown>> =
+  (props: Props) => ReactNode | Promise<ReactNode>;
+type Loader = () => Promise<unknown>;
 
 const themePages: Record<ThemeName, Record<ThemePageName, Loader>> = {
   default: {
@@ -182,14 +185,20 @@ export async function getThemePage(pageName: string, theme?: string) {
     throw new Error(`Unknown theme page: ${pageName}`);
   }
 
-  const themeModule = await loader();
-  return themeModule.default;
+  const themeModule = (await loader()) as { default?: unknown };
+  if (typeof themeModule.default !== 'function') {
+    throw new Error(`Invalid theme page module: ${pageName}`);
+  }
+  return themeModule.default as AnyComponent;
 }
 
 /**
  * load theme layout
  */
-export async function getThemeLayout(layoutName: string, theme?: string) {
+export async function getThemeLayout(
+  layoutName: string,
+  theme?: string
+): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
   const loadTheme: ThemeName =
     activeTheme in themeLayouts ? (activeTheme as ThemeName) : defaultTheme;
@@ -215,14 +224,20 @@ export async function getThemeLayout(layoutName: string, theme?: string) {
     throw new Error(`Unknown theme layout: ${layoutName}`);
   }
 
-  const themeModule = await loader();
-  return themeModule.default;
+  const themeModule = (await loader()) as { default?: unknown };
+  if (typeof themeModule.default !== 'function') {
+    throw new Error(`Invalid theme layout module: ${layoutName}`);
+  }
+  return themeModule.default as AnyComponent;
 }
 
 /**
  * load theme block
  */
-export async function getThemeBlock(blockName: string, theme?: string) {
+export async function getThemeBlock(
+  blockName: string,
+  theme?: string
+): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
   const loadTheme: ThemeName =
     activeTheme in themeBlocks ? (activeTheme as ThemeName) : defaultTheme;
@@ -248,6 +263,9 @@ export async function getThemeBlock(blockName: string, theme?: string) {
     throw new Error(`Unknown theme block: ${blockName}`);
   }
 
-  const themeModule = await loader();
-  return themeModule.default;
+  const themeModule = (await loader()) as { default?: unknown };
+  if (typeof themeModule.default !== 'function') {
+    throw new Error(`Invalid theme block module: ${blockName}`);
+  }
+  return themeModule.default as AnyComponent;
 }
