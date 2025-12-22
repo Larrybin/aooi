@@ -29,7 +29,7 @@ export function Logos({
                 key={idx}
                 className="h-8 w-fit dark:invert"
                 src={item.image?.src ?? ''}
-                alt={item.image?.alt ?? ''}
+                alt={item.image?.alt || item.title || item.name || 'Logo'}
                 height={20}
                 width={120}
               />

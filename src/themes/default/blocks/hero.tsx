@@ -1,35 +1,9 @@
-'use client';
-
-import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
-import { LazyImage, SmartIcon } from '@/shared/blocks/common';
-import { AnimatedGridPattern } from '@/shared/components/ui/animated-grid-pattern';
+import { LazyImage } from '@/shared/blocks/common';
 import { Button } from '@/shared/components/ui/button';
-import { Highlighter } from '@/shared/components/ui/highlighter';
-import { cn } from '@/shared/lib/utils';
 import { Hero as HeroType } from '@/shared/types/blocks/landing';
-
-import { SocialAvatars } from './social-avatars';
-
-const createFadeInVariant = (delay: number) => ({
-  initial: {
-    opacity: 0,
-    y: 20,
-    filter: 'blur(6px)',
-  },
-  animate: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-  },
-  transition: {
-    duration: 0.6,
-    delay,
-    ease: [0.22, 1, 0.36, 1] as const,
-  },
-});
 
 export function Hero({
   hero,
@@ -44,7 +18,22 @@ export function Hero({
     texts = hero.title?.split(highlightText, 2);
   }
 
+  const userImgUrls = [
+    '/imgs/avatars/1.png',
+    '/imgs/avatars/2.png',
+    '/imgs/avatars/3.png',
+    '/imgs/avatars/4.png',
+    '/imgs/avatars/5.png',
+    '/imgs/avatars/6.png',
+  ];
+
   const fallbackHeroImageRatio = { width: 2434, height: 1642 };
+  const heroImageAlt =
+    hero.image?.alt || hero.image_invert?.alt || hero.title || 'Hero image';
+  const heroImageSources = [hero.image?.src, hero.image_invert?.src].filter(
+    Boolean
+  );
+  const shouldPrioritizeHeroImage = heroImageSources.length === 1;
 
   const getImageWrapperStyle = (image?: {
     width?: number;
@@ -65,7 +54,7 @@ export function Hero({
         className={`pt-24 pb-8 md:pt-36 md:pb-8 ${hero.className} ${className}`}
       >
         {hero.announcement && (
-          <motion.div {...createFadeInVariant(0)}>
+          <div>
             <Link
               href={hero.announcement.url || ''}
               target={hero.announcement.target || '_self'}
@@ -87,37 +76,31 @@ export function Hero({
                 </div>
               </div>
             </Link>
-          </motion.div>
+          </div>
         )}
 
         <div className="relative mx-auto max-w-5xl px-4 text-center">
-          <motion.div {...createFadeInVariant(0.15)}>
-            {texts && texts.length > 0 ? (
-              <h1 className="text-foreground text-5xl font-semibold text-balance sm:mt-12 sm:text-7xl">
-                {texts[0]}
-                <Highlighter action="underline" color="#FF9800">
-                  {highlightText}
-                </Highlighter>
-                {texts[1]}
-              </h1>
-            ) : (
-              <h1 className="text-foreground text-5xl font-semibold text-balance sm:mt-12 sm:text-7xl">
-                {hero.title}
-              </h1>
-            )}
-          </motion.div>
+          {texts && texts.length > 0 ? (
+            <h1 className="text-foreground text-5xl font-semibold text-balance sm:mt-12 sm:text-7xl">
+              {texts[0]}
+              <span className="decoration-primary underline underline-offset-4">
+                {highlightText}
+              </span>
+              {texts[1]}
+            </h1>
+          ) : (
+            <h1 className="text-foreground text-5xl font-semibold text-balance sm:mt-12 sm:text-7xl">
+              {hero.title}
+            </h1>
+          )}
 
-          <motion.p
-            {...createFadeInVariant(0.3)}
+          <p
             className="text-muted-foreground mt-8 mb-8 text-lg text-balance"
             dangerouslySetInnerHTML={{ __html: hero.description ?? '' }}
           />
 
           {hero.buttons && (
-            <motion.div
-              {...createFadeInVariant(0.45)}
-              className="flex items-center justify-center gap-4"
-            >
+            <div className="flex items-center justify-center gap-4">
               {hero.buttons.map((button, idx) => (
                 <Button
                   asChild
@@ -130,40 +113,58 @@ export function Hero({
                     href={button.url ?? ''}
                     target={button.target ?? '_self'}
                   >
-                    {button.icon && <SmartIcon name={button.icon as string} />}
                     <span>{button.title}</span>
                   </Link>
                 </Button>
               ))}
-            </motion.div>
+            </div>
           )}
 
           {hero.tip && (
-            <motion.p
-              {...createFadeInVariant(0.6)}
+            <p
               className="text-muted-foreground mt-6 block text-center text-sm"
               dangerouslySetInnerHTML={{ __html: hero.tip ?? '' }}
             />
           )}
 
           {hero.show_avatars && (
-            <motion.div {...createFadeInVariant(0.75)}>
-              <SocialAvatars tip={hero.avatars_tip || ''} />
-            </motion.div>
+            <div className="mx-auto mt-8 flex w-fit flex-col items-center gap-2 sm:flex-row">
+              <span className="mx-4 inline-flex items-center -space-x-2">
+                {userImgUrls.map((url, index) => (
+                  <span
+                    key={index}
+                    className="bg-muted ring-background block size-10 overflow-hidden rounded-full ring-2"
+                  >
+                    <LazyImage
+                      src={url}
+                      alt={`User avatar ${index + 1}`}
+                      width={40}
+                      height={40}
+                      sizes="40px"
+                      className="size-full object-cover"
+                      loading="lazy"
+                    />
+                  </span>
+                ))}
+              </span>
+              <div className="flex flex-col items-center gap-1 md:items-start">
+                <div className="flex items-center gap-1" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <span key={index} className="text-yellow-400">
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <p className="text-muted-foreground text-left text-sm font-normal">
+                  {hero.avatars_tip || ''}
+                </p>
+              </div>
+            </div>
           )}
         </div>
       </section>
       {hero.image && (
-        <motion.section
-          className="border-foreground/10 relative mt-8 border-y sm:mt-16"
-          initial={{ opacity: 0, y: 20, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{
-            delay: 0.9,
-            duration: 0.7,
-            ease: [0.22, 1, 0.36, 1] as const,
-          }}
-        >
+        <section className="border-foreground/10 relative mt-8 border-y sm:mt-16">
           <div className="relative z-10 mx-auto max-w-6xl border-x px-3">
             <div className="border-x">
               <div
@@ -177,9 +178,10 @@ export function Hero({
                 >
                   <LazyImage
                     src={hero.image_invert?.src || hero.image?.src || ''}
-                    alt={hero.image_invert?.alt || hero.image?.alt || ''}
+                    alt={heroImageAlt}
                     fill
                     sizes="(max-width: 640px) 100vw, 1152px"
+                    priority={shouldPrioritizeHeroImage}
                     fetchPriority="high"
                     className="object-contain"
                   />
@@ -192,9 +194,10 @@ export function Hero({
                 >
                   <LazyImage
                     src={hero.image?.src || hero.image_invert?.src || ''}
-                    alt={hero.image?.alt || hero.image_invert?.alt || ''}
+                    alt={heroImageAlt}
                     fill
                     sizes="(max-width: 640px) 100vw, 1152px"
+                    priority={shouldPrioritizeHeroImage}
                     fetchPriority="high"
                     className="object-contain"
                   />
@@ -202,18 +205,8 @@ export function Hero({
               </div>
             </div>
           </div>
-        </motion.section>
+        </section>
       )}
-
-      <AnimatedGridPattern
-        numSquares={30}
-        maxOpacity={0.1}
-        duration={3}
-        className={cn(
-          '[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]',
-          'inset-x-0 inset-y-[-30%] h-[200%] skew-y-12'
-        )}
-      />
     </>
   );
 }
