@@ -40,11 +40,22 @@ export function LocaleSelector({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {type === 'icon' ? (
-          <Button variant="ghost" size="icon" className="h-auto w-auto p-0">
+          <Button
+            aria-label="Change language"
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-auto w-auto p-0"
+          >
             <Languages size={18} />
           </Button>
         ) : (
-          <Button variant="outline" size="sm" className="hover:bg-primary/10">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="hover:bg-primary/10"
+          >
             <Globe size={16} />
             {localeNames[currentLocale as Locale]}
           </Button>

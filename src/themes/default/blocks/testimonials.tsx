@@ -33,7 +33,7 @@ export function Testimonials({
           <div className="ring-foreground/10 aspect-square size-9 overflow-hidden rounded-lg border border-transparent shadow-md ring-1 shadow-black/15">
             <Image
               src={image?.src ?? ''}
-              alt={image?.alt ?? ''}
+              alt={image?.alt || name || 'Avatar'}
               className="h-full w-full object-cover"
               width={36}
               height={36}

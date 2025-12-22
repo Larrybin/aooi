@@ -11,11 +11,13 @@ import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
+  ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { findChatById } from '@/shared/models/chat';
 import {
   ChatMessageStatus,
@@ -27,6 +29,7 @@ import { getAllConfigs } from '@/shared/models/config';
 import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
 
 export const POST = withApi(async (req: Request) => {
+  const { log } = getRequestLogger(req);
   const {
     chatId,
     message: rawMessage,
@@ -54,7 +57,8 @@ export const POST = withApi(async (req: Request) => {
   const configs = await getAllConfigs();
   const openrouterApiKey = configs.openrouter_api_key;
   if (!openrouterApiKey) {
-    throw new Error('openrouter_api_key is not set');
+    log.error('chat: openrouter_api_key is missing');
+    throw new ServiceUnavailableError('chat service unavailable');
   }
 
   const currentTime = new Date();

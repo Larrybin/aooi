@@ -104,11 +104,17 @@ Migrations are stored as SQL files:
 
 ```
 src/config/db/migrations/
-├── 0000_initial.sql
+├── 0000_flashy_galactus.sql
 ├── 0001_nasty_vindicator.sql
+├── 0002_enable_rls_public_tables.sql
 └── meta/
-    └── _journal.json
+    ├── _journal.json
+    ├── 0000_snapshot.json
+    ├── 0001_snapshot.json
+    └── 0002_snapshot.json
 ```
+
+**Note**: `meta/*_snapshot.json` is drizzle-kit metadata used for migration bookkeeping and schema diffing. Features expressed only in hand-written SQL (like `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`) may not be reflected in snapshots (e.g. `isRLSEnabled` can stay `false`). Treat migration SQL and PostgreSQL system catalogs (`pg_class`, `pg_policies`) as the source of truth.
 
 ### Drizzle Studio
 
@@ -259,7 +265,30 @@ Set `DB_SINGLETON_ENABLED=true` for connection pooling.
 4. **Apply migrations in CI/CD** - Run `pnpm db:migrate` before deployment
 5. **Use transactions** - For multi-table operations
 6. **Index appropriately** - Add indexes in schema for common queries
-7. **If using Supabase (PostgREST)** - Enable RLS on `public` tables and add explicit policies only where needed (see migration `src/config/db/migrations/0002_enable_rls_public_tables.sql`)
+7. **If using Supabase (PostgREST)**:
+   - Enable RLS on `public` tables (see migration `src/config/db/migrations/0002_enable_rls_public_tables.sql`)
+   - With RLS enabled and no policies, access is deny-by-default for roles that do not bypass RLS (add policies explicitly when you need exposure)
+   - Table owners can bypass RLS unless you `FORCE ROW LEVEL SECURITY`; decide intentionally based on your exposure model
+   - Verify the state after applying migrations:
+
+```sql
+-- RLS status for all public tables
+SELECT
+  c.relname AS table,
+  c.relrowsecurity AS rls_enabled,
+  c.relforcerowsecurity AS rls_forced
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relkind = 'r'
+ORDER BY 1;
+
+-- Policies (if any)
+SELECT schemaname, tablename, policyname, roles, cmd
+FROM pg_policies
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
+```
 
 ## Troubleshooting
 

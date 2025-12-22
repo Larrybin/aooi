@@ -37,7 +37,9 @@ export function Showcases({
                 <div className="relative aspect-16/10 w-full overflow-hidden">
                   <Image
                     src={item.image?.src ?? ''}
-                    alt={item.image?.alt ?? ''}
+                    alt={
+                      item.image?.alt || item.title || item.name || 'Showcase'
+                    }
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     fill
                     className="rounded-t-lg object-cover transition-transform duration-300 hover:scale-110"

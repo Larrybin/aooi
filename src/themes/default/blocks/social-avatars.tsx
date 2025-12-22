@@ -20,7 +20,7 @@ export function SocialAvatars({ tip }: { tip: string }) {
           <Avatar className="size-10 border" key={index}>
             <LazyImage
               src={url}
-              alt=""
+              alt={`User avatar ${index + 1}`}
               width={40}
               height={40}
               sizes="40px"

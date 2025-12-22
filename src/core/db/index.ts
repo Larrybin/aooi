@@ -128,7 +128,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function tryGetCloudflareWorkersEnv(): CloudflareWorkersEnv | null {
   try {
     const require = createRequire(import.meta.url);
-    const workers = require('cloudflare:workers');
+    // Prevent webpack from trying to resolve the `cloudflare:` scheme at build time.
+    // This module only exists in Cloudflare Workers runtime (nodejs_compat).
+    const workers = require(['cloudflare', 'workers'].join(':'));
 
     if (!isRecord(workers) || !('env' in workers)) {
       return null;

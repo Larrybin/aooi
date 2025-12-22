@@ -37,7 +37,7 @@ export function FeaturesList({
             <div className="mx-auto w-full max-w-[500px] flex-shrink-0 md:mx-0">
               <Image
                 src={features.image?.src ?? ''}
-                alt={features.image?.alt ?? ''}
+                alt={features.image?.alt || features.title || 'Feature image'}
                 width={featureImageWidth}
                 height={featureImageHeight}
                 sizes="(max-width: 768px) 100vw, 500px"

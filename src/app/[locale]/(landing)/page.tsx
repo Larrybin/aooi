@@ -1,7 +1,12 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getThemePage } from '@/core/theme';
-import { Landing } from '@/shared/types/blocks/landing';
+import { getThemeLayout, getThemePage } from '@/core/theme';
+import { AppContextProvider } from '@/shared/contexts/app';
+import {
+  Landing,
+  type Footer as FooterType,
+  type Header as HeaderType,
+} from '@/shared/types/blocks/landing';
 
 export default async function LandingPage({
   params,
@@ -13,6 +18,8 @@ export default async function LandingPage({
 
   // load page data
   const t = await getTranslations('landing');
+
+  const Layout = await getThemeLayout('landing-marketing');
 
   // build page params
   const page: Landing = {
@@ -32,5 +39,14 @@ export default async function LandingPage({
   // load page component
   const Page = await getThemePage('landing');
 
-  return <Page locale={locale} page={page} />;
+  const header: HeaderType = t.raw('header');
+  const footer: FooterType = t.raw('footer');
+
+  return (
+    <AppContextProvider>
+      <Layout header={header} footer={footer} locale={locale}>
+        <Page locale={locale} page={page} />
+      </Layout>
+    </AppContextProvider>
+  );
 }

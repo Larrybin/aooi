@@ -1,9 +1,9 @@
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
-import { envConfigs } from '@/config';
-import { Empty } from '@/shared/blocks/common';
 import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
+import { buildCanonicalUrl, buildLanguageAlternates } from '@/shared/lib/seo';
 import { getPost } from '@/shared/models/post';
 
 export async function generateMetadata({
@@ -12,12 +12,11 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }) {
   const { locale, slug } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations('blog.metadata');
-
-  const canonicalUrl =
-    locale !== envConfigs.locale
-      ? `${envConfigs.app_url}/${locale}/blog/${slug}`
-      : `${envConfigs.app_url}/blog/${slug}`;
+  const canonicalPath = `/blog/${slug}`;
+  const canonicalUrl = buildCanonicalUrl(canonicalPath, locale);
+  const languageAlternates = buildLanguageAlternates(canonicalPath);
 
   const post = await getPost({ slug, locale });
   if (!post) {
@@ -26,7 +25,9 @@ export async function generateMetadata({
       description: t('description'),
       alternates: {
         canonical: canonicalUrl,
+        ...(languageAlternates ? { languages: languageAlternates } : {}),
       },
+      robots: { index: false, follow: false },
     };
   }
 
@@ -35,6 +36,7 @@ export async function generateMetadata({
     description: post.description,
     alternates: {
       canonical: canonicalUrl,
+      ...(languageAlternates ? { languages: languageAlternates } : {}),
     },
   };
 }
@@ -51,7 +53,7 @@ export default async function BlogDetailPage({
   const post = await getPost({ slug, locale });
 
   if (!post) {
-    return <Empty message={`Post not found`} />;
+    notFound();
   }
 
   const postWithBody =

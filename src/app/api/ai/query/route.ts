@@ -3,12 +3,15 @@ import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
+  ServiceUnavailableError,
+  UpstreamError,
 } from '@/shared/lib/api/errors';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import {
   findAITaskById,
   UpdateAITask,
@@ -19,6 +22,28 @@ import { getAIService } from '@/shared/services/ai';
 
 const MIN_PROVIDER_QUERY_INTERVAL_MS = 4000;
 const lastProviderQueryAtByTaskId = new Map<string, number>();
+const PROVIDER_QUERY_THROTTLE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const PROVIDER_QUERY_THROTTLE_MAX_ENTRIES = 10_000;
+let providerQueryThrottleCleanupTick = 0;
+
+function cleanupProviderQueryThrottle(now: number): void {
+  for (const [taskId, lastAt] of lastProviderQueryAtByTaskId.entries()) {
+    if (now - lastAt > PROVIDER_QUERY_THROTTLE_TTL_MS) {
+      lastProviderQueryAtByTaskId.delete(taskId);
+    }
+  }
+
+  const overflow =
+    lastProviderQueryAtByTaskId.size - PROVIDER_QUERY_THROTTLE_MAX_ENTRIES;
+  if (overflow <= 0) return;
+
+  let removed = 0;
+  for (const taskId of lastProviderQueryAtByTaskId.keys()) {
+    lastProviderQueryAtByTaskId.delete(taskId);
+    removed += 1;
+    if (removed >= overflow) break;
+  }
+}
 
 function isFinalTaskStatus(status: string | null | undefined) {
   return (
@@ -30,15 +55,25 @@ function isFinalTaskStatus(status: string | null | undefined) {
 
 function shouldQueryProvider(taskId: string) {
   const now = Date.now();
+  if ((providerQueryThrottleCleanupTick++ & 0xff) === 0) {
+    cleanupProviderQueryThrottle(now);
+  }
+
   const last = lastProviderQueryAtByTaskId.get(taskId);
   if (last && now - last < MIN_PROVIDER_QUERY_INTERVAL_MS) {
     return false;
   }
   lastProviderQueryAtByTaskId.set(taskId, now);
+
+  if (lastProviderQueryAtByTaskId.size > PROVIDER_QUERY_THROTTLE_MAX_ENTRIES) {
+    cleanupProviderQueryThrottle(now);
+  }
+
   return true;
 }
 
 export const POST = withApi(async (req: Request) => {
+  const { log } = getRequestLogger(req);
   const { taskId } = await parseJson(req, AiQueryBodySchema);
   if (!taskId) {
     throw new BadRequestError('invalid params');
@@ -56,6 +91,7 @@ export const POST = withApi(async (req: Request) => {
   }
 
   if (isFinalTaskStatus(task.status)) {
+    lastProviderQueryAtByTaskId.delete(task.id);
     return jsonOk({
       id: task.id,
       status: task.status,
@@ -83,12 +119,26 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid ai provider');
   }
 
-  const result = await aiProvider?.query?.({
+  if (typeof aiProvider.query !== 'function') {
+    log.error('ai: provider does not support query', {
+      provider: task.provider,
+      dbTaskId: task.id,
+      providerTaskId: task.taskId,
+    });
+    throw new ServiceUnavailableError('ai provider does not support query');
+  }
+
+  const result = await aiProvider.query({
     taskId: task.taskId,
   });
 
   if (!result?.taskStatus) {
-    throw new Error('query ai task failed');
+    log.error('ai: provider query returned invalid payload', {
+      provider: task.provider,
+      dbTaskId: task.id,
+      providerTaskId: task.taskId,
+    });
+    throw new UpstreamError(502, 'ai task query failed');
   }
 
   const nextTaskInfo = result.taskInfo ? JSON.stringify(result.taskInfo) : null;

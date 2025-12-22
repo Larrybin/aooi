@@ -9,8 +9,10 @@ import {
 import {
   BadRequestError,
   NotFoundError,
+  ServiceUnavailableError,
   UnauthorizedError,
   UnprocessableEntityError,
+  UpstreamError,
 } from '@/shared/lib/api/errors';
 import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
@@ -71,7 +73,10 @@ export const POST = withApi(async (req: Request) => {
     paymentProviderName = configs.default_payment_provider;
   }
   if (!paymentProviderName) {
-    throw new Error('no payment provider configured');
+    log.error('payment: no payment provider configured', {
+      defaultPaymentProvider: configs.default_payment_provider,
+    });
+    throw new ServiceUnavailableError('payment provider not configured');
   }
 
   // Validate payment provider against allowed providers
@@ -108,7 +113,10 @@ export const POST = withApi(async (req: Request) => {
 
   const paymentProvider = paymentService.getProvider(paymentProviderName);
   if (!paymentProvider || !paymentProvider.name) {
-    throw new Error('no payment provider configured');
+    log.error('payment: payment provider unavailable', {
+      paymentProviderName,
+    });
+    throw new ServiceUnavailableError('payment provider not configured');
   }
 
   // checkout currency and amount - calculate from server-side data only (never trust client input)
@@ -318,7 +326,7 @@ export const POST = withApi(async (req: Request) => {
       error: e,
     });
 
-    throw new Error('checkout failed');
+    throw new UpstreamError(502, 'checkout failed');
   }
 });
 
