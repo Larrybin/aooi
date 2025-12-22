@@ -22,7 +22,7 @@ export function BrandLogo({ brand }: { brand: BrandType }) {
       {brand.logo && (
         <LazyImage
           src={brand.logo.src}
-          alt={brand.logo.alt || ''}
+          alt={brand.logo.alt || brand.title || 'Brand logo'}
           width={displayWidth}
           height={displayHeight}
           sizes={`${displayWidth}px`}

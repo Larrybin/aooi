@@ -27,7 +27,11 @@ export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
                   {header.brand.logo && (
                     <Image
                       src={header.brand.logo.src}
-                      alt={header.brand.logo.alt || ''}
+                      alt={
+                        header.brand.logo.alt ||
+                        header.brand.title ||
+                        'Brand logo'
+                      }
                       width={32}
                       height={32}
                       sizes="32px"
