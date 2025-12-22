@@ -14,4 +14,3 @@ export const getPublicConfigsCached = unstable_cache(
     revalidate: 60 * 60,
   }
 );
-

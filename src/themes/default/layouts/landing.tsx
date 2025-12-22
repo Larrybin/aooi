@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
 
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   Footer as FooterType,
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
 import { Footer, Header } from '@/themes/default/blocks';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export default async function LandingLayout({
   children,

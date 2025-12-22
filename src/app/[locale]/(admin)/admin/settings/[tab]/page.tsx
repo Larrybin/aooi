@@ -1,6 +1,6 @@
+import { revalidateTag } from 'next/cache';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
-import { revalidateTag } from 'next/cache';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
