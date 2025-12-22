@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
 import { getThemeLayout } from '@/core/theme';
-import { LocaleDetector } from '@/shared/blocks/common';
+import { LocaleDetectorLazy } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
 import type {
   Footer as FooterType,
@@ -23,7 +23,7 @@ export default async function PricingLayout({
   return (
     <AppContextProvider>
       <Layout header={header} footer={footer}>
-        <LocaleDetector />
+        <LocaleDetectorLazy />
         {children}
       </Layout>
     </AppContextProvider>
