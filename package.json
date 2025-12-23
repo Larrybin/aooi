@@ -26,6 +26,7 @@
     "conventions:check": "node scripts/conventions-index.mjs --check",
     "db:generate": "npx drizzle-kit generate --config=src/core/db/config.ts",
     "db:migrate": "npx drizzle-kit migrate --config=src/core/db/config.ts",
+    "db:check": "npx tsx scripts/check-db-schema.ts",
     "db:push": "npx drizzle-kit push --config=src/core/db/config.ts",
     "db:studio": "npx drizzle-kit studio --config=src/core/db/config.ts",
     "auth:generate": "npx @better-auth/cli generate --config=src/core/auth/index.ts",
