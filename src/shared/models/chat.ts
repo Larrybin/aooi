@@ -5,8 +5,7 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '@/core/db';
 import { chat } from '@/config/db/schema';
 
-import type { User } from './user';
-import { appendUserToResult } from './user';
+import { appendUserToResult, type User } from './user';
 
 export type Chat = typeof chat.$inferSelect & {
   user?: User;

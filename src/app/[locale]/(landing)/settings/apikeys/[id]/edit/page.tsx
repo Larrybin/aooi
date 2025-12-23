@@ -6,11 +6,10 @@ import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import type {
-  UpdateApikey} from '@/shared/models/apikey';
 import {
   findApikeyById,
-  updateApikey
+  updateApikey,
+  type UpdateApikey,
 } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';

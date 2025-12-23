@@ -1,13 +1,12 @@
 import Replicate from 'replicate';
 
-import type {
-  AIConfigs,
-  AIGenerateParams,
-  AIImage,
-  AIProvider,
-  AITaskResult} from '.';
 import {
   AITaskStatus,
+  type AIConfigs,
+  type AIGenerateParams,
+  type AIImage,
+  type AIProvider,
+  type AITaskResult,
 } from '.';
 
 /**

@@ -5,4 +5,3 @@ export {
   createResendProvider,
   type ResendConfigs,
 } from './resend';
-

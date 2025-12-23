@@ -1,11 +1,5 @@
 import Stripe from 'stripe';
 
-import type {
-  CheckoutSession,
-  PaymentBilling,
-  PaymentInterval,
-  PaymentInvoice,
-  SubscriptionInfo} from '.';
 import {
   PaymentEventType,
   PaymentStatus,
@@ -15,11 +9,16 @@ import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
+  type CheckoutSession,
+  type PaymentBilling,
   type PaymentConfigs,
   type PaymentEvent,
+  type PaymentInterval,
+  type PaymentInvoice,
   type PaymentOrder,
   type PaymentProvider,
   type PaymentSession,
+  type SubscriptionInfo,
 } from '.';
 
 /**

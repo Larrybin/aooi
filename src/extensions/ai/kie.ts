@@ -1,14 +1,13 @@
 import { safeFetchJson } from '@/shared/lib/fetch/server';
 
-import type {
-  AIConfigs,
-  AIGenerateParams,
-  AIProvider,
-  AISong,
-  AITaskResult} from '.';
 import {
   AIMediaType,
   AITaskStatus,
+  type AIConfigs,
+  type AIGenerateParams,
+  type AIProvider,
+  type AISong,
+  type AITaskResult,
 } from '.';
 
 type KieGenerateData = { taskId: string } & Record<string, unknown>;

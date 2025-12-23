@@ -1,10 +1,9 @@
 import 'server-only';
 
-import type {
-  PaymentSession} from '@/extensions/payment';
 import {
   PaymentStatus,
   PaymentType,
+  type PaymentSession,
 } from '@/extensions/payment';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import type { NewCredit } from '@/shared/models/credit';

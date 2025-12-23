@@ -14,11 +14,10 @@ import { toast } from 'sonner';
 
 import { Link } from '@/core/i18n/navigation';
 import { AIMediaType, AITaskStatus } from '@/extensions/ai';
-import type {
-  ImageUploaderValue} from '@/shared/blocks/common';
 import {
   ImageUploader,
   LazyImage,
+  type ImageUploaderValue,
 } from '@/shared/blocks/common';
 import { Button } from '@/shared/components/ui/button';
 import {

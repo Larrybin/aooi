@@ -3,19 +3,18 @@ import { z } from 'zod';
 import { safeFetch } from '@/shared/lib/fetch/server';
 import { logger } from '@/shared/lib/logger.server';
 
-import type {
-  CheckoutSession,
-  PaymentConfigs,
-  PaymentEvent,
-  PaymentOrder,
-  PaymentProvider,
-  PaymentSession} from '.';
 import {
   PaymentEventType,
   PaymentStatus,
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
+  type CheckoutSession,
+  type PaymentConfigs,
+  type PaymentEvent,
+  type PaymentOrder,
+  type PaymentProvider,
+  type PaymentSession,
 } from '.';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

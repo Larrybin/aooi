@@ -7,8 +7,11 @@ import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getNonceStr, getUuid } from '@/shared/lib/hash';
-import type { NewApikey } from '@/shared/models/apikey';
-import { ApikeyStatus, createApikey } from '@/shared/models/apikey';
+import {
+  ApikeyStatus,
+  createApikey,
+  type NewApikey,
+} from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import type { Crumb } from '@/shared/types/blocks/common';

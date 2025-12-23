@@ -5,8 +5,7 @@ import type { ControllerRenderProps } from 'react-hook-form';
 
 import type { FormField } from '@/shared/types/blocks/form';
 
-import type { ImageUploaderValue } from '../common';
-import { ImageUploader } from '../common';
+import { ImageUploader, type ImageUploaderValue } from '../common';
 
 interface UploadImageProps {
   field: FormField;

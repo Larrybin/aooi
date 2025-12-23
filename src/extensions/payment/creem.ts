@@ -2,16 +2,6 @@ import { z } from 'zod';
 
 import { safeFetchJson } from '@/shared/lib/fetch/server';
 
-import type {
-  CheckoutSession,
-  PaymentBilling,
-  PaymentConfigs,
-  PaymentCustomField,
-  PaymentEvent,
-  PaymentOrder,
-  PaymentProvider,
-  PaymentSession,
-  SubscriptionInfo} from '.';
 import {
   PaymentEventType,
   PaymentInterval,
@@ -21,6 +11,15 @@ import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
+  type CheckoutSession,
+  type PaymentBilling,
+  type PaymentConfigs,
+  type PaymentCustomField,
+  type PaymentEvent,
+  type PaymentOrder,
+  type PaymentProvider,
+  type PaymentSession,
+  type SubscriptionInfo,
 } from '.';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

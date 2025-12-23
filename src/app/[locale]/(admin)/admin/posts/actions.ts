@@ -5,14 +5,13 @@ import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
 import { getUuid } from '@/shared/lib/hash';
-import type {
-  NewPost} from '@/shared/models/post';
 import {
   addPost,
   findPost,
   PostStatus,
   PostType,
   updatePost,
+  type NewPost,
 } from '@/shared/models/post';
 import { AdminPostFormSchema } from '@/shared/schemas/actions/admin-post';
 

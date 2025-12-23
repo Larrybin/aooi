@@ -6,8 +6,7 @@ import { db } from '@/core/db';
 import { chatMessage } from '@/config/db/schema';
 
 import type { Chat } from './chat';
-import type { User } from './user';
-import { appendUserToResult } from './user';
+import { appendUserToResult, type User } from './user';
 
 export enum ChatMessageStatus {
   CREATED = 'created',

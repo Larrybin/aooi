@@ -1,11 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 
-import type {
-  PaymentOrder,
-  PaymentPrice} from '@/extensions/payment';
 import {
   PaymentInterval,
   PaymentType,
+  type PaymentOrder,
+  type PaymentPrice,
 } from '@/extensions/payment';
 import {
   BadRequestError,
@@ -25,12 +24,11 @@ import {
   type RequestLogger,
 } from '@/shared/lib/request-logger.server';
 import { getAllConfigs } from '@/shared/models/config';
-import type {
-  NewOrder} from '@/shared/models/order';
 import {
   createOrder,
   OrderStatus,
   updateOrderByOrderNo,
+  type NewOrder,
 } from '@/shared/models/order';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import { getPaymentService } from '@/shared/services/payment';

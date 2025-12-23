@@ -7,8 +7,7 @@ import { aiTask, credit } from '@/config/db/schema';
 import { AITaskStatus } from '@/extensions/ai';
 import { safeJsonParse } from '@/shared/lib/json';
 import { logger } from '@/shared/lib/logger.server';
-import type { User } from '@/shared/models/user';
-import { appendUserToResult } from '@/shared/models/user';
+import { appendUserToResult, type User } from '@/shared/models/user';
 
 import { consumeCredits, CreditStatus } from './credit';
 

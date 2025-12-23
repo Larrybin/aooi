@@ -5,8 +5,7 @@ import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 import { db } from '@/core/db';
 import { subscription } from '@/config/db/schema';
 
-import type { User } from './user';
-import { appendUserToResult } from './user';
+import { appendUserToResult, type User } from './user';
 
 export type Subscription = typeof subscription.$inferSelect & {
   user?: User;

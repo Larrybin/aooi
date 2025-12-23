@@ -2,12 +2,11 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
-import type {
-  Apikey} from '@/shared/models/apikey';
 import {
   ApikeyStatus,
   getApikeys,
   getApikeysCount,
+  type Apikey,
 } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
 import type { Button } from '@/shared/types/blocks/common';

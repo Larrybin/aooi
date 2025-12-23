@@ -4,11 +4,10 @@ import { getThemeLayout, getThemePage } from '@/core/theme/landing';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import { filterLandingButtons } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
-import type {
-  Landing} from '@/shared/types/blocks/landing';
 import {
   type Footer as FooterType,
   type Header as HeaderType,
+  type Landing,
 } from '@/shared/types/blocks/landing';
 
 export default async function LandingPage({

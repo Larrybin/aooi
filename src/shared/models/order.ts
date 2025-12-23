@@ -7,14 +7,12 @@ import { credit, order, subscription } from '@/config/db/schema';
 import type { PaymentType } from '@/extensions/payment';
 
 import type { NewCredit } from './credit';
-import type {
-  NewSubscription,
-  UpdateSubscription} from './subscription';
 import {
   updateSubscriptionBySubscriptionNo,
+  type NewSubscription,
+  type UpdateSubscription,
 } from './subscription';
-import type { User} from './user';
-import { appendUserToResult, type WithUserId } from './user';
+import { appendUserToResult, type User, type WithUserId } from './user';
 
 export type Order = typeof order.$inferSelect & {
   user?: User;

@@ -4,8 +4,7 @@ import { requireUser } from '@/shared/lib/api/guard';
 import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import type { NewChat } from '@/shared/models/chat';
-import { ChatStatus, createChat } from '@/shared/models/chat';
+import { ChatStatus, createChat, type NewChat } from '@/shared/models/chat';
 import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
 
 export const POST = withApi(async (req: Request) => {

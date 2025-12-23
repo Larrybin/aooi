@@ -1,13 +1,12 @@
 'use client';
 
-import type {
-  ReactNode} from 'react';
 import {
   createContext,
   useContext,
   useEffect,
   useRef,
   useState,
+  type ReactNode,
 } from 'react';
 
 import { getAuthClient, useSession } from '@/core/auth/client';

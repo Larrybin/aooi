@@ -3,14 +3,13 @@ import { getTranslations } from 'next-intl/server';
 import { Empty } from '@/shared/blocks/common';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
-import type {
-  CreditTransactionType} from '@/shared/models/credit';
 import {
   CreditStatus,
   getCredits,
   getCreditsCount,
   getRemainingCredits,
   type Credit,
+  type CreditTransactionType,
 } from '@/shared/models/credit';
 import { getUserInfo } from '@/shared/models/user';
 import type { Tab } from '@/shared/types/blocks/common';
