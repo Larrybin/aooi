@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import moment from 'moment';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
 import { LocaleSelector, Pagination } from '@/shared/blocks/common';
@@ -15,6 +14,7 @@ import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useAppContext } from '@/shared/contexts/app';
 import { fetchApiData } from '@/shared/lib/api/client';
+import { formatRelativeTime } from '@/shared/lib/date/format';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
@@ -38,6 +38,8 @@ type ChatListResponse = {
 
 export function ChatHistory() {
   const t = useTranslations('ai.chat.history');
+  const intlLocale = useLocale();
+  const locale = intlLocale === 'zh' ? 'zh-cn' : intlLocale;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -191,7 +193,11 @@ export function ChatHistory() {
                       {chat.title?.trim() || t('untitled')}
                     </Link>
                     <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                      <span>{moment(chat.createdAt).fromNow()}</span>
+                      <span>
+                        {chat.createdAt
+                          ? formatRelativeTime(chat.createdAt, { locale })
+                          : ''}
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col items-start gap-2 text-left sm:items-end sm:text-right">

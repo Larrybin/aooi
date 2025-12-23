@@ -1,5 +1,9 @@
-import moment from 'moment';
 import { useLocale } from 'next-intl';
+
+import {
+  formatDatePattern,
+  formatRelativeTime,
+} from '@/shared/lib/date/format';
 
 export function Time({
   value,
@@ -25,11 +29,9 @@ export function Time({
     return null;
   }
 
-  return (
-    <div className={className}>
-      {metadata?.format
-        ? moment(value).locale(locale).format(metadata?.format)
-        : moment(value).locale(locale).fromNow()}
-    </div>
-  );
+  const formatted = metadata?.format
+    ? formatDatePattern(value, metadata.format)
+    : formatRelativeTime(value, { locale });
+
+  return <div className={className}>{formatted || placeholder || null}</div>;
 }
