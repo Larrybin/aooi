@@ -103,6 +103,21 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     setIsMounted(true);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      audio.pause();
+      audio.onended = null;
+      audio.onerror = null;
+      audio.src = '';
+      audio.load();
+
+      audioRef.current = null;
+    };
+  }, []);
+
   // Task polling
   const pollTaskStatus = useCallback(
     async (taskId: string) => {
@@ -390,9 +405,14 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     setIsLoadingAudio(true);
 
     try {
-      // Stop current audio if playing
-      if (audioRef.current && !audioRef.current.paused) {
-        audioRef.current.pause();
+      const previousAudio = audioRef.current;
+      if (previousAudio) {
+        previousAudio.pause();
+        previousAudio.onended = null;
+        previousAudio.onerror = null;
+        previousAudio.src = '';
+        previousAudio.load();
+        audioRef.current = null;
       }
 
       // If clicking on currently playing song, just pause
@@ -404,20 +424,21 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       }
 
       // Create new audio for the selected song
-      audioRef.current = new Audio(song.audioUrl);
-      audioRef.current.addEventListener('ended', () => {
+      const audio = new Audio(song.audioUrl);
+      audio.onended = () => {
         setIsPlaying(false);
         setCurrentPlayingSong(null);
-      });
-      audioRef.current.addEventListener('error', (e) => {
-        console.error('Audio playback error:', e);
+      };
+      audio.onerror = (event) => {
+        console.error('Audio playback error:', event);
         setIsLoadingAudio(false);
         setIsPlaying(false);
         setCurrentPlayingSong(null);
-      });
+      };
+      audioRef.current = audio;
 
       // Play the selected song
-      await audioRef.current.play();
+      await audio.play();
       setIsPlaying(true);
       setCurrentPlayingSong(song);
       setIsLoadingAudio(false);
