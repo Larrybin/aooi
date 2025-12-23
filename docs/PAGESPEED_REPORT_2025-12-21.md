@@ -1,26 +1,27 @@
-# PageSpeed Insights 报告（shipany-template-two）
+# PageSpeed Insights 报告（roller-rabbit）
 
-- 测试站点：`https://shipany-template-two-sigma.vercel.app/`
+- 测试站点：`https://your-domain.com/`
 - 测试工具：`https://pagespeed.web.dev/`（使用 Chrome MCP 自动化触发报告与采集结果）
 - 测试语言：`zh-CN`
 - 测试时间窗：`2025-12-21`（报告内 “Captured at … GMT+8 …” 为 Lighthouse 采集时间）
 - 评分阈值：**任一分类评分 ≤ 95** 视为“需要记录问题点”（Performance / Accessibility / Best Practices / SEO）
 - 说明：PageSpeed Insights / Lighthouse 结果存在波动；本报告记录本次采集的快照与问题点。
+- 备注：`/showcases` 页面已从营销站点移除；本报告中与其相关的条目仅作为历史快照保留。
 
 ## 关键页面（本次测试清单）
 
-- `https://shipany-template-two-sigma.vercel.app/en`
-- `https://shipany-template-two-sigma.vercel.app/en/pricing`
-- `https://shipany-template-two-sigma.vercel.app/en/ai-chatbot`
-- `https://shipany-template-two-sigma.vercel.app/en/showcases`
-- `https://shipany-template-two-sigma.vercel.app/en/docs`
-- `https://shipany-template-two-sigma.vercel.app/en/docs/code-review-checklist`
-- `https://shipany-template-two-sigma.vercel.app/en/blog`
-- `https://shipany-template-two-sigma.vercel.app/en/blog/what-is-xxx`
-- `https://shipany-template-two-sigma.vercel.app/en/sign-in`
-- `https://shipany-template-two-sigma.vercel.app/en/sign-up`
-- `https://shipany-template-two-sigma.vercel.app/en/privacy-policy`
-- `https://shipany-template-two-sigma.vercel.app/en/terms-of-service`
+- `https://your-domain.com/en`
+- `https://your-domain.com/en/pricing`
+- `https://your-domain.com/en/ai-chatbot`
+- `https://your-domain.com/en/showcases`
+- `https://your-domain.com/en/docs`
+- `https://your-domain.com/en/docs/code-review-checklist`
+- `https://your-domain.com/en/blog`
+- `https://your-domain.com/en/blog/what-is-xxx`
+- `https://your-domain.com/en/sign-in`
+- `https://your-domain.com/en/sign-up`
+- `https://your-domain.com/en/privacy-policy`
+- `https://your-domain.com/en/terms-of-service`
 
 ## 总览（评分）
 
@@ -45,7 +46,7 @@
 
 ### 1) `/en`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en/7ked6lm7nw?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en/7ked6lm7nw?form_factor=mobile`
 
 **Mobile**
 
@@ -91,7 +92,7 @@
 
 ### 2) `/en/pricing`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-pricing/r04kuclfht?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-pricing/r04kuclfht?form_factor=mobile`
 
 **Mobile**
 
@@ -137,7 +138,7 @@
 
 ### 3) `/en/ai-chatbot`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-ai-chatbot/dj31z9g0vi?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-ai-chatbot/dj31z9g0vi?form_factor=mobile`
 
 **Mobile**
 
@@ -177,7 +178,7 @@
 
 ### 4) `/en/showcases`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-showcases/pciltl1t2l?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-showcases/pciltl1t2l?form_factor=mobile`
 
 **Mobile**
 
@@ -218,7 +219,7 @@
 
 ### 5) `/en/docs`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-docs/m21wl60p3b?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-docs/m21wl60p3b?form_factor=mobile`
 
 **Mobile**
 
@@ -248,7 +249,7 @@
 
 ### 6) `/en/docs/code-review-checklist`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-docs-code-review-checklist/9boq91mx40?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-docs-code-review-checklist/9boq91mx40?form_factor=mobile`
 
 **Mobile**
 
@@ -274,7 +275,7 @@
 
 ### 7) `/en/blog`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-blog/nz3kbfof7f?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-blog/nz3kbfof7f?form_factor=mobile`
 
 **Mobile**
 
@@ -320,7 +321,7 @@
 
 ### 8) `/en/blog/what-is-xxx`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-blog-what-is-xxx/djiuxi8hrf?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-blog-what-is-xxx/djiuxi8hrf?form_factor=mobile`
 
 **Mobile**
 
@@ -362,7 +363,7 @@
 
 ### 9) `/en/sign-in`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-sign-in/ygd4tar3b0?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-sign-in/ygd4tar3b0?form_factor=mobile`
 
 **Mobile**
 
@@ -391,7 +392,7 @@
 
 ### 10) `/en/sign-up`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-sign-up/2zpdnry4oi?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-sign-up/2zpdnry4oi?form_factor=mobile`
 
 **Mobile**
 
@@ -429,7 +430,7 @@
 
 ### 11) `/en/privacy-policy`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-privacy-policy/o4ly1r4ina?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-privacy-policy/o4ly1r4ina?form_factor=mobile`
 
 **Mobile**
 
@@ -469,7 +470,7 @@
 
 ### 12) `/en/terms-of-service`
 
-- 报告链接：`https://pagespeed.web.dev/analysis/https-shipany-template-two-sigma-vercel-app-en-terms-of-service/k4h2z4ohgh?form_factor=mobile`
+- 报告链接：`https://pagespeed.web.dev/analysis/https-your-domain-com-en-terms-of-service/k4h2z4ohgh?form_factor=mobile`
 
 **Mobile**
 

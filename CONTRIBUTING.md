@@ -16,7 +16,7 @@ Thank you for your interest in contributing to this project. This guide covers t
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd shipany-template-two
+cd roller-rabbit
 
 # Install dependencies
 pnpm install
