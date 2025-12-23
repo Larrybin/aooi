@@ -13,7 +13,7 @@ import {
   type Subscription,
 } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
-import { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
+import type { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function BillingPage({

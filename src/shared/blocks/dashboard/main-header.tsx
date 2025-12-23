@@ -2,7 +2,7 @@ import { Link } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Tabs } from '@/shared/blocks/common/tabs';
 import { Button } from '@/shared/components/ui/button';
-import {
+import type {
   Button as ButtonType,
   Filter as FilterType,
   Search as SearchType,

@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { post } from '@/config/db/schema';
+import type { post } from '@/config/db/schema';
 import {
   generatePostTocFromMarkdown,
   getLocalPage as getLocalPageFromContent,
@@ -9,7 +9,7 @@ import {
 } from '@/shared/content/post_content';
 import { logger } from '@/shared/lib/logger.server';
 import { formatPostDate } from '@/shared/lib/post-date';
-import {
+import type {
   Category as BlogCategoryType,
   Post as BlogPostType,
 } from '@/shared/types/blocks/blog';

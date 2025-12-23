@@ -1,10 +1,11 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type {
+  UIMessage} from 'ai';
 import {
   convertToModelMessages,
   createIdGenerator,
   generateId,
-  streamText,
-  UIMessage,
+  streamText
 } from 'ai';
 
 import {
@@ -19,11 +20,12 @@ import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { findChatById } from '@/shared/models/chat';
+import type {
+  NewChatMessage} from '@/shared/models/chat_message';
 import {
   ChatMessageStatus,
   createChatMessage,
-  getChatMessages,
-  NewChatMessage,
+  getChatMessages
 } from '@/shared/models/chat_message';
 import { getAllConfigs } from '@/shared/models/config';
 import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';

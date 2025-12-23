@@ -1,4 +1,4 @@
-import { Stats as StatsType } from '@/shared/types/blocks/landing';
+import type { Stats as StatsType } from '@/shared/types/blocks/landing';
 
 export function Stats({
   stats,

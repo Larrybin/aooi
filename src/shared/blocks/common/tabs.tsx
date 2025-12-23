@@ -8,7 +8,7 @@ import {
   TabsTrigger,
 } from '@/shared/components/ui/tabs';
 import { cn } from '@/shared/lib/utils';
-import { Tab } from '@/shared/types/blocks/common';
+import type { Tab } from '@/shared/types/blocks/common';
 
 export function Tabs({
   tabs,

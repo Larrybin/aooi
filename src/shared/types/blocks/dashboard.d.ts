@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-import { Brand, Button, Nav } from './common';
+import type { Brand, Button, Nav } from './common';
 
 export interface Dashboard {
   sidebar?: Sidebar;

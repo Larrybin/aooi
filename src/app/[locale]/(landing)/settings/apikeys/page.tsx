@@ -2,14 +2,15 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
+import type {
+  Apikey} from '@/shared/models/apikey';
 import {
-  Apikey,
   ApikeyStatus,
   getApikeys,
   getApikeysCount,
 } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
-import { Button } from '@/shared/types/blocks/common';
+import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function ApiKeysPage({

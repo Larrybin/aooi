@@ -12,7 +12,7 @@ import {
   AccordionTrigger,
 } from '@/shared/components/ui/accordion';
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
-import { Features as FeaturesType } from '@/shared/types/blocks/landing';
+import type { Features as FeaturesType } from '@/shared/types/blocks/landing';
 
 const EMPTY_ITEMS: NonNullable<FeaturesType['items']> = [];
 

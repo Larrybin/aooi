@@ -10,7 +10,7 @@ import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
 import { cn } from '@/shared/lib/utils';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
-import { Button as ButtonType } from '@/shared/types/blocks/common';
+import type { Button as ButtonType } from '@/shared/types/blocks/common';
 
 export function SocialProviders({
   configs,

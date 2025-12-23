@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
-import { Filter as FilterType } from '@/shared/types/blocks/common';
+import type { Filter as FilterType } from '@/shared/types/blocks/common';
 
 export function Filter({ filter }: { filter: FilterType }) {
   const router = useRouter();

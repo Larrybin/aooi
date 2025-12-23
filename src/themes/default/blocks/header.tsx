@@ -28,8 +28,8 @@ import {
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
-import { NavItem } from '@/shared/types/blocks/common';
-import { Header as HeaderType } from '@/shared/types/blocks/landing';
+import type { NavItem } from '@/shared/types/blocks/common';
+import type { Header as HeaderType } from '@/shared/types/blocks/landing';
 
 function NavigationMenuTrigger(
   props: React.ComponentProps<typeof RawNavigationMenuTrigger>

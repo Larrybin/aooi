@@ -21,7 +21,7 @@ import {
 } from '@/shared/components/ui/drawer';
 import { useAppContext } from '@/shared/contexts/app';
 import { useMediaQuery } from '@/shared/hooks/use-media-query';
-import { PricingItem } from '@/shared/types/blocks/pricing';
+import type { PricingItem } from '@/shared/types/blocks/pricing';
 
 import { PaymentProviders } from './payment-providers';
 

@@ -1,12 +1,13 @@
 import { safeFetchJson } from '@/shared/lib/fetch/server';
 
-import {
+import type {
   AIConfigs,
   AIGenerateParams,
-  AIMediaType,
   AIProvider,
   AISong,
-  AITaskResult,
+  AITaskResult} from '.';
+import {
+  AIMediaType,
   AITaskStatus,
 } from '.';
 

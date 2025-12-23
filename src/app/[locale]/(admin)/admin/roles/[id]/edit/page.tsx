@@ -6,7 +6,7 @@ import { FormCard } from '@/shared/blocks/form';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { getRoleById } from '@/shared/services/rbac';
-import { Form } from '@/shared/types/blocks/form';
+import type { Form } from '@/shared/types/blocks/form';
 
 import { updateRoleAction } from '../../actions';
 

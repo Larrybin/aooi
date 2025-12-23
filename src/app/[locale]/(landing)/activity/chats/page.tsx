@@ -4,7 +4,7 @@ import { Empty } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
 import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
 import { getUserInfo } from '@/shared/models/user';
-import { Button } from '@/shared/types/blocks/common';
+import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function ChatsPage({

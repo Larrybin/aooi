@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Input } from '@/shared/components/ui/input';
-import { Search as SearchType } from '@/shared/types/blocks/common';
+import type { Search as SearchType } from '@/shared/types/blocks/common';
 
 export function Search({ search }: { search: SearchType }) {
   const [value, setValue] = useState(search.value || '');

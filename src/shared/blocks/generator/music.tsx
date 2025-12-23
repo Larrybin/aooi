@@ -17,7 +17,8 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Link } from '@/core/i18n/navigation';
-import { AISong, AITaskStatus } from '@/extensions/ai';
+import type { AISong} from '@/extensions/ai';
+import { AITaskStatus } from '@/extensions/ai';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {

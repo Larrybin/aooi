@@ -1,7 +1,8 @@
 import 'server-only';
 
+import type {
+  PaymentSession} from '@/extensions/payment';
 import {
-  PaymentSession,
   PaymentStatus,
   PaymentType,
 } from '@/extensions/payment';

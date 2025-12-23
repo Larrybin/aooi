@@ -3,15 +3,16 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import type {
+  CreditTransactionType} from '@/shared/models/credit';
 import {
   CreditStatus,
-  CreditTransactionType,
   getCredits,
   getCreditsCount,
   type Credit,
 } from '@/shared/models/credit';
 import { requirePermission } from '@/shared/services/rbac_guard';
-import { Crumb, Tab } from '@/shared/types/blocks/common';
+import type { Crumb, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function CreditsPage({

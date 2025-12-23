@@ -4,9 +4,10 @@ import { AITaskStatus } from '@/extensions/ai';
 import { AudioPlayer, Empty, LazyImage } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
 import { safeJsonParse } from '@/shared/lib/json';
-import { AITask, getAITasks, getAITasksCount } from '@/shared/models/ai_task';
+import type { AITask} from '@/shared/models/ai_task';
+import { getAITasks, getAITasksCount } from '@/shared/models/ai_task';
 import { getUserInfo } from '@/shared/models/user';
-import { Button, Tab } from '@/shared/types/blocks/common';
+import type { Button, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function AiTasksPage({

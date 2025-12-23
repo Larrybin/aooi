@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { UseChatHelpers } from '@ai-sdk/react';
-import { UIMessage } from 'ai';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import type { UIMessage } from 'ai';
 import { nanoid } from 'nanoid';
 
-import { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
+import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { useChatContext } from '@/shared/contexts/chat';
 
 import { ChatInput } from './input';

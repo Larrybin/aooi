@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import { AnalyticsConfigs, AnalyticsProvider } from '.';
+import type { AnalyticsConfigs, AnalyticsProvider } from '.';
 
 /**
  * OpenPanel analytics configs

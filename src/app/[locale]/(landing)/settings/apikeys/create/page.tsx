@@ -7,11 +7,12 @@ import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getNonceStr, getUuid } from '@/shared/lib/hash';
-import { ApikeyStatus, createApikey, NewApikey } from '@/shared/models/apikey';
+import type { NewApikey } from '@/shared/models/apikey';
+import { ApikeyStatus, createApikey } from '@/shared/models/apikey';
 import { getUserInfo } from '@/shared/models/user';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
-import { Crumb } from '@/shared/types/blocks/common';
-import { Form as FormType } from '@/shared/types/blocks/form';
+import type { Crumb } from '@/shared/types/blocks/common';
+import type { Form as FormType } from '@/shared/types/blocks/form';
 
 export default async function CreateApiKeyPage() {
   const user = await getUserInfo();

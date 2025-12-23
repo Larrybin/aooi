@@ -13,11 +13,11 @@ import {
   CardTitle,
 } from '@/shared/components/ui/card';
 import { cn } from '@/shared/lib/utils';
-import {
+import type {
   Button as ButtonType,
   Tab as TabType,
 } from '@/shared/types/blocks/common';
-import { Table as TableType } from '@/shared/types/blocks/table';
+import type { Table as TableType } from '@/shared/types/blocks/table';
 
 export function TableCard<T extends object = object>({
   title,

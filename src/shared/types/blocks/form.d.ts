@@ -1,4 +1,4 @@
-import { Button } from './common';
+import type { Button } from './common';
 
 type ValidationRule = {
   required?: boolean;

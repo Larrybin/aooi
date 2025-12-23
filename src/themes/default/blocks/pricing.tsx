@@ -30,7 +30,7 @@ import { getCookie } from '@/shared/lib/cookie';
 import { RequestIdError } from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
 import type { Subscription } from '@/shared/models/subscription';
-import {
+import type {
   PricingCurrency,
   PricingItem,
   Pricing as PricingType,

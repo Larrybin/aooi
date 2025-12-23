@@ -15,7 +15,7 @@ import {
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import {
+import type {
   Blog as BlogType,
   Category as CategoryType,
   Post as PostType,

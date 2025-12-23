@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { PaymentType } from '@/extensions/payment';
+import type { PaymentType } from '@/extensions/payment';
 import { Empty } from '@/shared/blocks/common';
 import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
@@ -11,7 +11,7 @@ import {
   type Order,
 } from '@/shared/models/order';
 import { getUserInfo } from '@/shared/models/user';
-import { Tab } from '@/shared/types/blocks/common';
+import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function PaymentsPage({

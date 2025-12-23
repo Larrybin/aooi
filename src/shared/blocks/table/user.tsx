@@ -5,7 +5,7 @@ import {
   AvatarImage,
 } from '@/shared/components/ui/avatar';
 import { cn } from '@/shared/lib/utils';
-import { User as UserType } from '@/shared/models/user';
+import type { User as UserType } from '@/shared/models/user';
 
 export function User({
   value,

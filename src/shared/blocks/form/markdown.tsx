@@ -1,6 +1,6 @@
-import { ControllerRenderProps } from 'react-hook-form';
+import type { ControllerRenderProps } from 'react-hook-form';
 
-import { FormField } from '@/shared/types/blocks/form';
+import type { FormField } from '@/shared/types/blocks/form';
 
 import { MarkdownEditor } from '../common/markdown-editor';
 

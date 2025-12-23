@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { LocaleDetector } from '@/shared/blocks/common';
@@ -7,7 +7,7 @@ import { AppContextProvider } from '@/shared/contexts/app';
 import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
 import { requireAdminAccess } from '@/shared/services/rbac_guard';
-import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
+import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 /**
  * Admin layout to manage datas

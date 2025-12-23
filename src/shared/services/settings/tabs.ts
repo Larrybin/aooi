@@ -2,7 +2,7 @@ import 'server-only';
 
 import { getTranslations } from 'next-intl/server';
 
-import { Tab } from '@/shared/types/blocks/common';
+import type { Tab } from '@/shared/types/blocks/common';
 
 export async function getSettingTabs(tab: string) {
   const t = await getTranslations('admin.settings');

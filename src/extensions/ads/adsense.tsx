@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import { AdsConfigs, AdsProvider } from '@/extensions/ads';
+import type { AdsConfigs, AdsProvider } from '@/extensions/ads';
 
 /**
  * Google adsense configs

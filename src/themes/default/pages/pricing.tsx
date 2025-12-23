@@ -1,9 +1,9 @@
-import { Subscription } from '@/shared/models/subscription';
-import {
+import type { Subscription } from '@/shared/models/subscription';
+import type {
   FAQ as FAQType,
   Testimonials as TestimonialsType,
 } from '@/shared/types/blocks/landing';
-import { Pricing as PricingType } from '@/shared/types/blocks/pricing';
+import type { Pricing as PricingType } from '@/shared/types/blocks/pricing';
 import { FAQ, Pricing, Testimonials } from '@/themes/default/blocks';
 
 export default async function PricingPage({

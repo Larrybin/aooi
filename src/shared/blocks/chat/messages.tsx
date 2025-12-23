@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useRef } from 'react';
-import { UIMessage, UseChatHelpers } from '@ai-sdk/react';
+import type { UIMessage, UseChatHelpers } from '@ai-sdk/react';
 import { CopyIcon, RefreshCcwIcon } from 'lucide-react';
 
 import { Action, Actions } from '@/shared/components/ai-elements/actions';

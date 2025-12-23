@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { PaymentType } from '@/extensions/payment';
+import type { PaymentType } from '@/extensions/payment';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
@@ -11,7 +11,7 @@ import {
   type Order,
 } from '@/shared/models/order';
 import { requirePermission } from '@/shared/services/rbac_guard';
-import { Crumb, Filter, Search, Tab } from '@/shared/types/blocks/common';
+import type { Crumb, Filter, Search, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function PaymentsPage({

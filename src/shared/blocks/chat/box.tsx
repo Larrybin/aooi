@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
+import { DefaultChatTransport } from 'ai';
 
 import { useChatContext } from '@/shared/contexts/chat';
-import { Chat } from '@/shared/types/chat';
+import type { Chat } from '@/shared/types/chat';
 
 import { FollowUp } from './follow-up';
 import { ChatHeader } from './header';

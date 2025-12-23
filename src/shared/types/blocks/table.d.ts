@@ -1,4 +1,4 @@
-import { Button, Pagination } from './common';
+import type { Button, Pagination } from './common';
 
 export interface TableColumn<T> {
   name?: string;

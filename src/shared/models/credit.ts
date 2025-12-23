@@ -17,7 +17,8 @@ import { db } from '@/core/db';
 import { credit } from '@/config/db/schema';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 
-import { appendUserToResult, User } from './user';
+import type { User } from './user';
+import { appendUserToResult } from './user';
 
 export type Credit = typeof credit.$inferSelect & {
   user?: User;

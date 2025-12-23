@@ -5,10 +5,11 @@ import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
 import { getUuid } from '@/shared/lib/hash';
+import type {
+  NewTaxonomy} from '@/shared/models/taxonomy';
 import {
   addTaxonomy,
   findTaxonomy,
-  NewTaxonomy,
   TaxonomyStatus,
   TaxonomyType,
   updateTaxonomy,

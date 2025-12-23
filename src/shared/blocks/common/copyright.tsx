@@ -1,7 +1,7 @@
 'use client';
 
 import { envConfigs } from '@/config';
-import { Brand as BrandType } from '@/shared/types/blocks/common';
+import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
 export function Copyright({ brand }: { brand: BrandType }) {
   const currentYear = new Date().getFullYear();

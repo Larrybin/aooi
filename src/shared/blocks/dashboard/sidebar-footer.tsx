@@ -6,8 +6,8 @@ import { Separator } from '@/shared/components/ui/separator';
 import { useSidebar } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
-import { NavItem } from '@/shared/types/blocks/common';
-import { SidebarFooter as SidebarFooterType } from '@/shared/types/blocks/dashboard';
+import type { NavItem } from '@/shared/types/blocks/common';
+import type { SidebarFooter as SidebarFooterType } from '@/shared/types/blocks/dashboard';
 
 import { GeneralSocialLinks, LocaleSelector, ThemeToggler } from '../common';
 

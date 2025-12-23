@@ -10,7 +10,7 @@ import {
   getRoleById,
   getRolePermissions,
 } from '@/shared/services/rbac';
-import { Form } from '@/shared/types/blocks/form';
+import type { Form } from '@/shared/types/blocks/form';
 
 import { updateRolePermissionsAction } from '../../actions';
 

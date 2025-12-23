@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ControllerRenderProps } from 'react-hook-form';
+import type { ControllerRenderProps } from 'react-hook-form';
 
 import {
   Select as SelectComponent,
@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
-import { FormField } from '@/shared/types/blocks/form';
+import type { FormField } from '@/shared/types/blocks/form';
 
 export function Select({
   field,

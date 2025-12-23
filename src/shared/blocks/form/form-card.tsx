@@ -17,8 +17,8 @@ import {
   CardTitle,
 } from '@/shared/components/ui/card';
 import { cn } from '@/shared/lib/utils';
-import { Crumb } from '@/shared/types/blocks/common';
-import { Form as FormType } from '@/shared/types/blocks/form';
+import type { Crumb } from '@/shared/types/blocks/common';
+import type { Form as FormType } from '@/shared/types/blocks/form';
 
 export function FormCard<
   TData extends Record<string, unknown> = Record<string, unknown>,

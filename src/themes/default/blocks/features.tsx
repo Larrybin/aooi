@@ -1,6 +1,6 @@
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { cn } from '@/shared/lib/utils';
-import { Features as FeaturesType } from '@/shared/types/blocks/landing';
+import type { Features as FeaturesType } from '@/shared/types/blocks/landing';
 
 export function Features({
   features,

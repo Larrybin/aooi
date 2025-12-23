@@ -1,8 +1,8 @@
-import { ControllerRenderProps } from 'react-hook-form';
+import type { ControllerRenderProps } from 'react-hook-form';
 
 import { Checkbox as CheckboxComponent } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
-import { FormField } from '@/shared/types/blocks/form';
+import type { FormField } from '@/shared/types/blocks/form';
 
 export function Checkbox({
   field,

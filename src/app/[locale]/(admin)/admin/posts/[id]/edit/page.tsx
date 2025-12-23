@@ -11,7 +11,7 @@ import {
   TaxonomyStatus,
   TaxonomyType,
 } from '@/shared/models/taxonomy';
-import { Form } from '@/shared/types/blocks/form';
+import type { Form } from '@/shared/types/blocks/form';
 
 import { updatePostAction } from '../../actions';
 

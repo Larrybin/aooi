@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { ControllerRenderProps } from 'react-hook-form';
+import type { ControllerRenderProps } from 'react-hook-form';
 
 import { Switch as SwitchComponent } from '@/shared/components/ui/switch';
-import { FormField } from '@/shared/types/blocks/form';
+import type { FormField } from '@/shared/types/blocks/form';
 
 export function Switch({
   field: _field,

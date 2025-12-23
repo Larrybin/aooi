@@ -4,7 +4,7 @@ import { getThemePage } from '@/core/theme';
 import { logger } from '@/shared/lib/logger.server';
 import { getMetadata } from '@/shared/lib/seo';
 import { getPostsAndCategories } from '@/shared/models/post';
-import {
+import type {
   Blog as BlogType,
   Category as CategoryType,
   Post as PostType,

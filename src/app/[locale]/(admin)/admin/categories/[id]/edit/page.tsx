@@ -6,7 +6,7 @@ import { FormCard } from '@/shared/blocks/form';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findTaxonomy } from '@/shared/models/taxonomy';
-import { Form } from '@/shared/types/blocks/form';
+import type { Form } from '@/shared/types/blocks/form';
 
 import { updateCategoryAction } from '../../actions';
 

@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Crumb } from '@/shared/blocks/common/crumb';
 import { MarkdownPreview } from '@/shared/blocks/common/markdown-preview';
 import { type Post as PostType } from '@/shared/types/blocks/blog';
-import { NavItem } from '@/shared/types/blocks/common';
+import type { NavItem } from '@/shared/types/blocks/common';
 
 import '@/config/style/docs.css';
 

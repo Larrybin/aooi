@@ -1,7 +1,8 @@
 "use client";
 
+import type {
+  ComponentPropsWithoutRef} from "react";
 import {
-  ComponentPropsWithoutRef,
   useEffect,
   useId,
   useRef,

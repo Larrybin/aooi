@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { UIMessage, UseChatHelpers } from '@ai-sdk/react';
+import type { UIMessage, UseChatHelpers } from '@ai-sdk/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { useRouter } from '@/core/i18n/navigation';
 import { LocaleSelector } from '@/shared/blocks/common';
-import { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
+import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import { useChatContext } from '@/shared/contexts/chat';

@@ -5,8 +5,9 @@ import { and, asc, count, eq } from 'drizzle-orm';
 import { db } from '@/core/db';
 import { chatMessage } from '@/config/db/schema';
 
-import { Chat } from './chat';
-import { appendUserToResult, User } from './user';
+import type { Chat } from './chat';
+import type { User } from './user';
+import { appendUserToResult } from './user';
 
 export enum ChatMessageStatus {
   CREATED = 'created',

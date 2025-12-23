@@ -5,7 +5,7 @@ import { SmartIcon } from '@/shared/blocks/common';
 import { Button } from '@/shared/components/ui/button';
 import { useSidebar } from '@/shared/components/ui/sidebar';
 import { cn } from '@/shared/lib/utils';
-import { Button as ButtonType } from '@/shared/types/blocks/common';
+import type { Button as ButtonType } from '@/shared/types/blocks/common';
 
 export function SidebarButtons({ buttons }: { buttons: ButtonType[] }) {
   const { state } = useSidebar();

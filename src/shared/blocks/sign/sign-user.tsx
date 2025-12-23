@@ -21,7 +21,7 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { useAppContext } from '@/shared/contexts/app';
 import { cn } from '@/shared/lib/utils';
-import { NavItem, UserNav } from '@/shared/types/blocks/common';
+import type { NavItem, UserNav } from '@/shared/types/blocks/common';
 
 import { SmartIcon } from '../common/smart-icon';
 import { SignModal } from './sign-modal';

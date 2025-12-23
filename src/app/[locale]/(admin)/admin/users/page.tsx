@@ -8,7 +8,7 @@ import { getRemainingCredits } from '@/shared/models/credit';
 import { getUsers, getUsersCount, type User } from '@/shared/models/user';
 import { getUserRoles } from '@/shared/services/rbac';
 import { requirePermission } from '@/shared/services/rbac_guard';
-import { Crumb, Search } from '@/shared/types/blocks/common';
+import type { Crumb, Search } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function AdminUsersPage({

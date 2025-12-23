@@ -9,7 +9,7 @@ import {
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
-import { Footer as FooterType } from '@/shared/types/blocks/landing';
+import type { Footer as FooterType } from '@/shared/types/blocks/landing';
 
 export function Footer({
   footer,

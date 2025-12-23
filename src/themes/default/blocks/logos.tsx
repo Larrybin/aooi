@@ -1,7 +1,7 @@
 import Image from 'next/image';
 
 import { cn } from '@/shared/lib/utils';
-import { Logos as LogosType } from '@/shared/types/blocks/landing';
+import type { Logos as LogosType } from '@/shared/types/blocks/landing';
 
 export function Logos({
   logos,

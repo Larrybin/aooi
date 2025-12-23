@@ -9,7 +9,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/shared/components/ui/sidebar';
-import { SidebarHeader as SidebarHeaderType } from '@/shared/types/blocks/dashboard';
+import type { SidebarHeader as SidebarHeaderType } from '@/shared/types/blocks/dashboard';
 
 export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
   const { open } = useSidebar();

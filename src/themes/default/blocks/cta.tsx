@@ -1,7 +1,7 @@
 import { Link } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
-import { CTA as CTAType } from '@/shared/types/blocks/landing';
+import type { CTA as CTAType } from '@/shared/types/blocks/landing';
 
 export function CTA({ cta, className }: { cta: CTAType; className?: string }) {
   return (

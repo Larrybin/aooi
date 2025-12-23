@@ -11,7 +11,8 @@ import {
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
-import { findUserById, updateUser, UpdateUser } from '@/shared/models/user';
+import type { UpdateUser } from '@/shared/models/user';
+import { findUserById, updateUser } from '@/shared/models/user';
 import { AdminUserUpdateFormSchema } from '@/shared/schemas/actions/admin-user';
 import { assignRolesToUser } from '@/shared/services/rbac';
 

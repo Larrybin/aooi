@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, ReactNode, useContext, useState } from 'react';
+import type { ReactNode} from 'react';
+import { createContext, useContext, useState } from 'react';
 
-import { Chat } from '@/shared/types/chat';
+import type { Chat } from '@/shared/types/chat';
 
 export interface ContextValue {
   chat: Chat | null;

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { Link } from '@/core/i18n/navigation';
 import { Badge } from '@/shared/components/ui/badge';
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/shared/components/ui/card';
 import { cn } from '@/shared/lib/utils';
-import { Button as ButtonType } from '@/shared/types/blocks/common';
+import type { Button as ButtonType } from '@/shared/types/blocks/common';
 
 import { SmartIcon } from '../common/smart-icon';
 

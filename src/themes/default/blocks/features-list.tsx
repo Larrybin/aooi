@@ -4,7 +4,7 @@ import { Link } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
-import { Features as FeaturesType } from '@/shared/types/blocks/landing';
+import type { Features as FeaturesType } from '@/shared/types/blocks/landing';
 
 export function FeaturesList({
   features,

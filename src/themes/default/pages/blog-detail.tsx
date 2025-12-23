@@ -1,4 +1,4 @@
-import { Post as PostType } from '@/shared/types/blocks/blog';
+import type { Post as PostType } from '@/shared/types/blocks/blog';
 import { BlogDetail } from '@/themes/default/blocks/blog-detail';
 
 export default async function BlogDetailPage({

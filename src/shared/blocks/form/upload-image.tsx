@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { ControllerRenderProps } from 'react-hook-form';
+import type { ControllerRenderProps } from 'react-hook-form';
 
-import { FormField } from '@/shared/types/blocks/form';
+import type { FormField } from '@/shared/types/blocks/form';
 
-import { ImageUploader, ImageUploaderValue } from '../common';
+import type { ImageUploaderValue } from '../common';
+import { ImageUploader } from '../common';
 
 interface UploadImageProps {
   field: FormField;

@@ -7,9 +7,10 @@ import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { logger } from '@/shared/lib/logger.server';
-import { getUserInfo, UpdateUser, updateUser } from '@/shared/models/user';
+import type { UpdateUser} from '@/shared/models/user';
+import { getUserInfo, updateUser } from '@/shared/models/user';
 import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-profile';
-import { Form as FormType } from '@/shared/types/blocks/form';
+import type { Form as FormType } from '@/shared/types/blocks/form';
 
 export default async function ProfilePage() {
   const user = await getUserInfo();

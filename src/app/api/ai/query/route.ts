@@ -12,9 +12,10 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import type {
+  UpdateAITask} from '@/shared/models/ai_task';
 import {
   findAITaskById,
-  UpdateAITask,
   updateAITaskById,
 } from '@/shared/models/ai_task';
 import { AiQueryBodySchema } from '@/shared/schemas/api/ai/query';

@@ -20,7 +20,7 @@ import {
   FormMessage,
 } from '@/shared/components/ui/form';
 import { Textarea } from '@/shared/components/ui/textarea';
-import {
+import type {
   FormField as FormFieldType,
   FormSubmit,
 } from '@/shared/types/blocks/form';

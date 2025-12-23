@@ -1,6 +1,7 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import type { ReactNode} from 'react';
+import { useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 

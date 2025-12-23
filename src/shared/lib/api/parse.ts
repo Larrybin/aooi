@@ -5,7 +5,7 @@
  * - `parseParams(paramsPromise, Schema)` for Next.js Route Handler params (Promise).
  */
 
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { BadRequestError } from './errors';
 

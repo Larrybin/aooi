@@ -1,8 +1,9 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
+import type {
+  ComponentPropsWithoutRef} from "react";
 import React, {
-  ComponentPropsWithoutRef,
   useEffect,
   useRef,
   useState,

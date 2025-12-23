@@ -2,20 +2,21 @@ import { z } from 'zod';
 
 import { safeFetchJson } from '@/shared/lib/fetch/server';
 
-import {
+import type {
   CheckoutSession,
   PaymentBilling,
   PaymentConfigs,
   PaymentCustomField,
   PaymentEvent,
-  PaymentEventType,
-  PaymentInterval,
   PaymentOrder,
   PaymentProvider,
   PaymentSession,
+  SubscriptionInfo} from '.';
+import {
+  PaymentEventType,
+  PaymentInterval,
   PaymentStatus,
   SubscriptionCycleType,
-  SubscriptionInfo,
   SubscriptionStatus,
   WebhookConfigError,
   WebhookPayloadError,

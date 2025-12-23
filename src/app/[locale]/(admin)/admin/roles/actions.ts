@@ -14,12 +14,13 @@ import {
   validatePermission,
 } from '@/shared/lib/admin/action-utils';
 import { AdminRoleUpdateFormSchema } from '@/shared/schemas/actions/admin-role';
+import type {
+  UpdateRole} from '@/shared/services/rbac';
 import {
   assignPermissionsToRole,
   deleteRole,
   getRoleById,
-  updateRole,
-  UpdateRole,
+  updateRole
 } from '@/shared/services/rbac';
 
 /**

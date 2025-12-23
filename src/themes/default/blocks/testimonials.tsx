@@ -1,7 +1,7 @@
 import Image from 'next/image';
 
-import { Image as ImageType } from '@/shared/types/blocks/common';
-import { Testimonials as TestimonialsType } from '@/shared/types/blocks/landing';
+import type { Image as ImageType } from '@/shared/types/blocks/common';
+import type { Testimonials as TestimonialsType } from '@/shared/types/blocks/landing';
 
 export function Testimonials({
   testimonials,

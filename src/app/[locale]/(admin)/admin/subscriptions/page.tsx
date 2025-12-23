@@ -9,7 +9,7 @@ import {
   type Subscription,
 } from '@/shared/models/subscription';
 import { requirePermission } from '@/shared/services/rbac_guard';
-import { Crumb, Tab } from '@/shared/types/blocks/common';
+import type { Crumb, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function SubscriptionsPage({

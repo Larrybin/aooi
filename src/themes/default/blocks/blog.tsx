@@ -6,11 +6,11 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/core/i18n/navigation';
 import { Tabs } from '@/shared/blocks/common/tabs';
 import { cn } from '@/shared/lib/utils';
-import {
+import type {
   Blog as BlogType,
   Category as CategoryType,
 } from '@/shared/types/blocks/blog';
-import { Tab } from '@/shared/types/blocks/common';
+import type { Tab } from '@/shared/types/blocks/common';
 
 export function Blog({
   blog,

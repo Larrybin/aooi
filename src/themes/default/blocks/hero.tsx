@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from '@/core/i18n/navigation';
 import { LazyImage } from '@/shared/blocks/common';
 import { Button } from '@/shared/components/ui/button';
-import { Hero as HeroType } from '@/shared/types/blocks/landing';
+import type { Hero as HeroType } from '@/shared/types/blocks/landing';
 
 export function Hero({
   hero,

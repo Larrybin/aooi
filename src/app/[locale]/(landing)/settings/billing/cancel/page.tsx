@@ -15,8 +15,8 @@ import {
 } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
 import { getPaymentService } from '@/shared/services/payment';
-import { Crumb } from '@/shared/types/blocks/common';
-import { Form } from '@/shared/types/blocks/form';
+import type { Crumb } from '@/shared/types/blocks/common';
+import type { Form } from '@/shared/types/blocks/form';
 
 export default async function CancelBillingPage({
   params,

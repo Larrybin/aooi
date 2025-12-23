@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { UIMessage, UseChatHelpers } from '@ai-sdk/react';
+import type { UIMessage, UseChatHelpers } from '@ai-sdk/react';
 import { BrainCircuitIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -26,7 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/shared/components/ui/tooltip';
-import { ChatModel } from '@/shared/types/chat';
+import type { ChatModel } from '@/shared/types/chat';
 
 export function ChatInput({
   handleSubmit,

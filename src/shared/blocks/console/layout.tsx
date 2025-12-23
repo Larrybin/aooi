@@ -1,10 +1,10 @@
 'use client';
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { Link, usePathname } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
-import { Nav } from '@/shared/types/blocks/common';
+import type { Nav } from '@/shared/types/blocks/common';
 
 export function ConsoleLayout({
   title,

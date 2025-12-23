@@ -1,4 +1,4 @@
-import {
+import type {
   AgreementNav,
   Brand,
   Button,
@@ -7,7 +7,7 @@ import {
   SocialNav,
   UserNav,
 } from './common';
-import { FormSubmit } from './form';
+import type { FormSubmit } from './form';
 
 export interface SectionItem extends NavItem {}
 

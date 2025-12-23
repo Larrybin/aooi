@@ -1,7 +1,7 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import { AffiliateConfigs, AffiliateProvider } from '.';
+import type { AffiliateConfigs, AffiliateProvider } from '.';
 
 /**
  * Affonso affiliate configs

@@ -1,5 +1,5 @@
 import { Link } from '@/core/i18n/navigation';
-import { Brand as BrandType } from '@/shared/types/blocks/common';
+import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
 import { LazyImage } from './lazy-image';
 

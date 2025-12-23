@@ -1,4 +1,4 @@
-import { Landing } from '@/shared/types/blocks/landing';
+import type { Landing } from '@/shared/types/blocks/landing';
 import {
   CTA,
   FAQ,

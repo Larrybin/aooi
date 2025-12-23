@@ -1,5 +1,5 @@
 import { cn } from "@/shared/lib/utils";
-import { CSSProperties, FC, ReactNode } from "react";
+import type { CSSProperties, FC, ReactNode } from "react";
 
 interface TextShimmerProps {
   children: ReactNode;

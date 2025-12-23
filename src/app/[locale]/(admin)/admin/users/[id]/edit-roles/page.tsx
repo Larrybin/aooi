@@ -8,7 +8,7 @@ import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findUserById } from '@/shared/models/user';
 import { getRoles, getUserRoles } from '@/shared/services/rbac';
 import { requireAllPermissions } from '@/shared/services/rbac_guard';
-import { Form } from '@/shared/types/blocks/form';
+import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserRolesAction } from '../../actions';
 

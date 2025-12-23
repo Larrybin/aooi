@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
-import { Button as ButtonType } from '@/shared/types/blocks/common';
-import { PricingItem } from '@/shared/types/blocks/pricing';
+import type { Button as ButtonType } from '@/shared/types/blocks/common';
+import type { PricingItem } from '@/shared/types/blocks/pricing';
 
 export function PaymentProviders({
   configs,

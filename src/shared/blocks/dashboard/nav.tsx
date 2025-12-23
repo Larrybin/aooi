@@ -20,7 +20,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/shared/components/ui/sidebar';
-import { NavItem, type Nav as NavType } from '@/shared/types/blocks/common';
+import type { NavItem} from '@/shared/types/blocks/common';
+import { type Nav as NavType } from '@/shared/types/blocks/common';
 
 export function Nav({ nav, className }: { nav: NavType; className?: string }) {
   const pathname = usePathname();

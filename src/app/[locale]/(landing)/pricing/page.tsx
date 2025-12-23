@@ -5,11 +5,11 @@ import { logger } from '@/shared/lib/logger.server';
 import { getMetadata } from '@/shared/lib/seo';
 import { getCurrentSubscription } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
-import {
+import type {
   FAQ as FAQType,
   Testimonials as TestimonialsType,
 } from '@/shared/types/blocks/landing';
-import { Pricing as PricingType } from '@/shared/types/blocks/pricing';
+import type { Pricing as PricingType } from '@/shared/types/blocks/pricing';
 
 export const generateMetadata = getMetadata({
   metadataKey: 'pricing.metadata',

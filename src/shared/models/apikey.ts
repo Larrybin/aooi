@@ -5,7 +5,8 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '@/core/db';
 import { apikey } from '@/config/db/schema';
 
-import { appendUserToResult, User } from './user';
+import type { User } from './user';
+import { appendUserToResult } from './user';
 
 export type Apikey = typeof apikey.$inferSelect & {
   user?: User;

@@ -31,8 +31,8 @@ import {
 } from '@/shared/components/ui/sidebar';
 import { useAppContext } from '@/shared/contexts/app';
 import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
-import { NavItem } from '@/shared/types/blocks/common';
-import { SidebarUser as SidebarUserType } from '@/shared/types/blocks/dashboard';
+import type { NavItem } from '@/shared/types/blocks/common';
+import type { SidebarUser as SidebarUserType } from '@/shared/types/blocks/dashboard';
 
 type SidebarUserProps = {
   user: SidebarUserType;

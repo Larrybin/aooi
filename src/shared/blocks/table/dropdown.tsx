@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
-import { NavItem } from '@/shared/types/blocks/common';
+import type { NavItem } from '@/shared/types/blocks/common';
 
 export function Dropdown({
   value,

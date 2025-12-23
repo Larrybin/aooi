@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
 } from '@/shared/components/ui/accordion';
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
-import { FAQ as FAQType } from '@/shared/types/blocks/landing';
+import type { FAQ as FAQType } from '@/shared/types/blocks/landing';
 
 export function FAQ({ faq, className }: { faq: FAQType; className?: string }) {
   return (

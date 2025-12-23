@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ChatLibrary } from '@/shared/blocks/chat/library';
@@ -8,7 +8,7 @@ import { AppContextProvider } from '@/shared/contexts/app';
 import { ChatContextProvider } from '@/shared/contexts/chat';
 import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
-import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
+import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 export default async function ChatLayout({
   children,

@@ -9,7 +9,7 @@ import {
   type Apikey,
 } from '@/shared/models/apikey';
 import { requirePermission } from '@/shared/services/rbac_guard';
-import { Button, Crumb } from '@/shared/types/blocks/common';
+import type { Button, Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function ApiKeysPage({

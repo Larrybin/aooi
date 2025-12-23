@@ -16,7 +16,7 @@ import {
 import { Button } from '@/shared/components/ui/button';
 import { Separator } from '@/shared/components/ui/separator';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
-import { Button as ButtonType, Crumb } from '@/shared/types/blocks/common';
+import type { Button as ButtonType, Crumb } from '@/shared/types/blocks/common';
 
 export function Header({
   title,

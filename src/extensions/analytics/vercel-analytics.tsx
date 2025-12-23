@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-import { AnalyticsConfigs, AnalyticsProvider } from '.';
+import type { AnalyticsConfigs, AnalyticsProvider } from '.';
 import { VercelAnalyticsClient } from './vercel-analytics-client';
 
 type Mode = 'auto' | 'development' | 'production';

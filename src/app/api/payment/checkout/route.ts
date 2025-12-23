@@ -1,9 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 
+import type {
+  PaymentOrder,
+  PaymentPrice} from '@/extensions/payment';
 import {
   PaymentInterval,
-  PaymentOrder,
-  PaymentPrice,
   PaymentType,
 } from '@/extensions/payment';
 import {
@@ -24,16 +25,17 @@ import {
   type RequestLogger,
 } from '@/shared/lib/request-logger.server';
 import { getAllConfigs } from '@/shared/models/config';
+import type {
+  NewOrder} from '@/shared/models/order';
 import {
   createOrder,
-  NewOrder,
   OrderStatus,
   updateOrderByOrderNo,
 } from '@/shared/models/order';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import { getPaymentService } from '@/shared/services/payment';
 import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
-import { Pricing, PricingCurrency } from '@/shared/types/blocks/pricing';
+import type { Pricing, PricingCurrency } from '@/shared/types/blocks/pricing';
 
 export const POST = withApi(async (req: Request) => {
   const { log } = getRequestLogger(req);
