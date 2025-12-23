@@ -1,11 +1,25 @@
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
+import aooi from './eslint/aooi-eslint-plugin.mjs';
+
 const noDoubleUnknownTypeAssertion = {
   selector:
     "TSAsExpression[expression.type='TSAsExpression'][expression.typeAnnotation.type='TSUnknownKeyword']",
   message:
     '禁止使用 `as unknown as` 双重断言；请改为类型守卫/parse/DTO 映射，或将断言收敛到边界适配层。',
+};
+
+const noThrowVanillaError = {
+  selector: "ThrowStatement > NewExpression[callee.name='Error']",
+  message:
+    '禁止直接 `throw new Error(...)` 进入对外契约边界；请改为抛出 `ApiError/BusinessError/ExternalError/ActionError`（仅暴露安全的 publicMessage）。',
+};
+
+const noThrowVanillaErrorCall = {
+  selector: "ThrowStatement > CallExpression[callee.name='Error']",
+  message:
+    '禁止直接 `throw Error(...)` 进入对外契约边界；请改为抛出 `ApiError/BusinessError/ExternalError/ActionError`（仅暴露安全的 publicMessage）。',
 };
 
 const noRuntimeDbConfigImportPattern = {
@@ -148,6 +162,9 @@ const eslintConfig = [
   ...nextCoreWebVitals,
   ...nextTypescript,
   {
+    plugins: { aooi },
+  },
+  {
     files: [
       'src/app/api/**/*.{ts,tsx}',
       'src/core/**/*.{ts,tsx}',
@@ -182,6 +199,39 @@ const eslintConfig = [
           prefer: 'type-imports',
           fixStyle: 'separate-type-imports',
         },
+      ],
+    },
+  },
+  {
+    files: ['src/app/api/**/route.ts'],
+    rules: {
+      'aooi/require-withapi-route-handlers': 'error',
+      'no-restricted-syntax': [
+        'error',
+        noDoubleUnknownTypeAssertion,
+        noThrowVanillaError,
+        noThrowVanillaErrorCall,
+      ],
+    },
+  },
+  {
+    files: [
+      'src/app/api/auth/**/route.ts',
+      'src/app/api/payment/callback/route.ts',
+    ],
+    rules: {
+      'aooi/require-withapi-route-handlers': 'off',
+    },
+  },
+  {
+    files: ['src/app/**/actions.ts', 'src/app/**/actions.tsx'],
+    rules: {
+      'aooi/require-withaction-server-actions': 'error',
+      'no-restricted-syntax': [
+        'error',
+        noDoubleUnknownTypeAssertion,
+        noThrowVanillaError,
+        noThrowVanillaErrorCall,
       ],
     },
   },

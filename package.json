@@ -19,7 +19,7 @@
     "build": "node scripts/next-build.mjs",
     "build:fast": "node scripts/next-build.mjs --max-old-space-size=4096",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --report-unused-disable-directives",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "conventions:draft": "node scripts/conventions-index.mjs --out .codex/drafts/CONVENTIONS.generated.md",
