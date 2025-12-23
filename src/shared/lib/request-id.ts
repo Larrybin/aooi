@@ -1,4 +1,6 @@
-function getHeaderValue(headers: Headers, name: string): string | null {
+type HeaderLike = Pick<Headers, 'get'>;
+
+function getHeaderValue(headers: HeaderLike, name: string): string | null {
   const value = headers.get(name);
   return value && value.trim() ? value.trim() : null;
 }
@@ -9,7 +11,7 @@ export function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
-export function getOrCreateRequestId(headers: Headers): string {
+export function getOrCreateRequestId(headers: HeaderLike): string {
   return (
     getHeaderValue(headers, 'x-request-id') ||
     getHeaderValue(headers, 'x-vercel-id') ||

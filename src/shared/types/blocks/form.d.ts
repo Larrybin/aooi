@@ -52,6 +52,7 @@ export interface FormSubmit<TPassby = unknown> {
         status: 'success' | 'error';
         message: string;
         redirect_url?: string;
+        requestId?: string;
       }
     | undefined
     | void

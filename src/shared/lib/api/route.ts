@@ -6,6 +6,7 @@
 
 import 'server-only';
 
+import { BusinessError, ExternalError } from '@/shared/lib/errors';
 import { logger } from '@/shared/lib/logger.server';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
 
@@ -60,7 +61,21 @@ export function withApi<Args extends ApiRouteHandlerArgs, R>(
       return result;
     } catch (error: unknown) {
       if (error instanceof ApiError) {
-        const response = jsonErr(error.status, error.message, error.data);
+        const response = jsonErr(error.status, error.publicMessage, error.data);
+        return reqLogger
+          ? attachRequestIdHeader(response, reqLogger.ctx.requestId)
+          : response;
+      }
+
+      if (error instanceof BusinessError) {
+        const response = jsonErr(400, error.publicMessage, error.data);
+        return reqLogger
+          ? attachRequestIdHeader(response, reqLogger.ctx.requestId)
+          : response;
+      }
+
+      if (error instanceof ExternalError) {
+        const response = jsonErr(error.status, error.publicMessage, error.data);
         return reqLogger
           ? attachRequestIdHeader(response, reqLogger.ctx.requestId)
           : response;

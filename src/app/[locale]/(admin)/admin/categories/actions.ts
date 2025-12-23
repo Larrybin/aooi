@@ -1,6 +1,7 @@
 'use server';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { ActionError } from '@/shared/lib/action/errors';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
@@ -42,7 +43,7 @@ export async function createCategoryAction(formData: FormData) {
 
     const result = await addTaxonomy(newCategory);
     if (!result) {
-      throw new Error('add category failed');
+      throw new ActionError('add category failed');
     }
 
     return actionOk('category added', '/admin/categories');
@@ -63,7 +64,7 @@ export async function updateCategoryAction(id: string, formData: FormData) {
 
     const category = await findTaxonomy({ id });
     if (!category || category.userId !== user.id) {
-      throw new Error('access denied');
+      throw new ActionError('access denied');
     }
 
     const result = await updateTaxonomy(id, {
@@ -77,7 +78,7 @@ export async function updateCategoryAction(id: string, formData: FormData) {
     });
 
     if (!result) {
-      throw new Error('update category failed');
+      throw new ActionError('update category failed');
     }
 
     return actionOk('category updated', '/admin/categories');

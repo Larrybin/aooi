@@ -4,15 +4,20 @@
  * - Wrap handlers with `withApi()` to convert errors into `{code,message,data}` with HTTP status.
  */
 
-export class ApiError extends Error {
-  readonly status: number;
-  readonly data?: unknown;
+import { PublicError } from '@/shared/lib/errors';
 
-  constructor(status: number, message: string, data?: unknown) {
-    super(message);
+export class ApiError extends PublicError {
+  readonly status: number;
+
+  constructor(
+    status: number,
+    message: string,
+    data?: unknown,
+    options?: { publicMessage?: string }
+  ) {
+    super(message, { data, publicMessage: options?.publicMessage });
     this.name = 'ApiError';
     this.status = status;
-    this.data = data;
   }
 }
 

@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from '@/shared/components/ui/form';
 import { Textarea } from '@/shared/components/ui/textarea';
+import { formatMessageWithRequestId } from '@/shared/lib/request-id';
 import type {
   FormField as FormFieldType,
   FormSubmit,
@@ -295,10 +296,11 @@ export function Form<
       }
 
       if (res.message) {
+        const message = formatMessageWithRequestId(res.message, res.requestId);
         if (res.status === 'success') {
-          toast.success(res.message);
+          toast.success(message);
         } else {
-          toast.error(res.message);
+          toast.error(message);
         }
       }
 

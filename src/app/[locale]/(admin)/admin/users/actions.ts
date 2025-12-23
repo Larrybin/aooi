@@ -3,6 +3,7 @@
 import { z } from 'zod';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
 import {
   requireActionPermissions,
@@ -33,7 +34,7 @@ export async function updateUserAction(id: string, formData: FormData) {
 
     const user = await findUserById(id);
     if (!user) {
-      throw new Error('User not found');
+      throw new ActionError('User not found');
     }
 
     const newUser: UpdateUser = {
@@ -43,7 +44,7 @@ export async function updateUserAction(id: string, formData: FormData) {
 
     const result = await updateUser(user.id as string, newUser);
     if (!result) {
-      throw new Error('update user failed');
+      throw new ActionError('update user failed');
     }
 
     return actionOk('user updated', '/admin/users');
@@ -64,14 +65,14 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
 
     const user = await findUserById(id);
     if (!user) {
-      throw new Error('User not found');
+      throw new ActionError('User not found');
     }
 
     const schema = z.object({ roles: jsonStringArraySchema });
     const raw = Object.fromEntries(formData.entries());
     const parsed = schema.safeParse(raw);
     if (!parsed.success) {
-      throw new Error('invalid roles');
+      throw new ActionError('invalid roles');
     }
 
     await assignRolesToUser(user.id as string, parsed.data.roles, {

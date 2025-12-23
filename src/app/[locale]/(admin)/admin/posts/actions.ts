@@ -1,6 +1,7 @@
 'use server';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { ActionError } from '@/shared/lib/action/errors';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
@@ -46,7 +47,7 @@ export async function createPostAction(formData: FormData) {
 
     const result = await addPost(newPost);
     if (!result) {
-      throw new Error('add post failed');
+      throw new ActionError('add post failed');
     }
 
     return actionOk('post added', '/admin/posts');
@@ -67,7 +68,7 @@ export async function updatePostAction(id: string, formData: FormData) {
 
     const post = await findPost({ id });
     if (!post) {
-      throw new Error('Post not found');
+      throw new ActionError('Post not found');
     }
 
     const result = await updatePost(id, {
@@ -86,7 +87,7 @@ export async function updatePostAction(id: string, formData: FormData) {
     });
 
     if (!result) {
-      throw new Error('update post failed');
+      throw new ActionError('update post failed');
     }
 
     return actionOk('post updated', '/admin/posts');
