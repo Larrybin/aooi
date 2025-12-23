@@ -1,6 +1,20 @@
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
+const noRuntimeDbConfigImportPattern = {
+  regex:
+    '(^@/core/db/config(\\.[cm]?[jt]s)?$)|(^\\.{1,2}/.*?/core/db/config(\\.[cm]?[jt]s)?$)',
+  message:
+    "禁止在运行时代码中导入 '@/core/db/config'（仅用于 drizzle-kit CLI 配置）。",
+};
+
+const noRuntimeLoadDotenvImportPattern = {
+  regex:
+    '(^@/config/load-dotenv(\\.[cm]?[jt]s)?$)|(^\\.{1,2}/.*?/config/load-dotenv(\\.[cm]?[jt]s)?$)',
+  message:
+    "禁止在运行时代码中导入 '@/config/load-dotenv'（仅用于 scripts/CLI 加载本地 .env*）。",
+};
+
 const baseNoRestrictedImports = {
   paths: [
     {
@@ -20,6 +34,7 @@ const baseNoRestrictedImports = {
         "禁止在运行时代码中导入 '@/config/load-dotenv'（仅用于 scripts/CLI 加载本地 .env*）。",
     },
   ],
+  patterns: [noRuntimeDbConfigImportPattern, noRuntimeLoadDotenvImportPattern],
 };
 
 const clientSurfaceNoRestrictedImports = {
@@ -37,6 +52,7 @@ const clientSurfaceNoRestrictedImports = {
     },
   ],
   patterns: [
+    ...(baseNoRestrictedImports.patterns || []),
     {
       group: ['@/core/db', '@/core/db/**'],
       allowTypeImports: true,
@@ -80,6 +96,7 @@ const serverEntryNoRestrictedClientOnlyImports = {
     },
   ],
   patterns: [
+    ...(baseNoRestrictedImports.patterns || []),
     {
       regex: '\\.client(\\.|$)',
       allowTypeImports: true,
@@ -134,6 +151,13 @@ const eslintConfig = [
           varsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'separate-type-imports',
+        },
+      ],
     },
   },
   {
@@ -146,6 +170,89 @@ const eslintConfig = [
           paths: baseNoRestrictedImports.paths.filter(
             (rule) => rule.name !== '@/config/load-dotenv'
           ),
+          patterns: (baseNoRestrictedImports.patterns || []).filter(
+            (rule) => rule !== noRuntimeLoadDotenvImportPattern
+          ),
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/core/**/*.{ts,tsx}'],
+    ignores: ['src/core/theme/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          ...baseNoRestrictedImports,
+          patterns: [
+            ...(baseNoRestrictedImports.patterns || []),
+            {
+              group: ['@/themes/**'],
+              message:
+                "请避免在 core 中依赖 '@/themes/**'（UI/主题层仅允许由 core/theme 负责编排）。",
+            },
+            {
+              group: [
+                '@/shared/blocks/**',
+                '@/shared/components/**',
+                '@/shared/contexts/**',
+                '@/shared/hooks/**',
+              ],
+              message:
+                '请避免在 core 中依赖 shared UI 层（blocks/components/contexts/hooks）；请返回 DTO/数据并由 app/themes 渲染。',
+            },
+            {
+              group: ['@/app/**'],
+              message:
+                "请避免在 core 中依赖 '@/app/**'（入口层不应被 core 反向依赖）。",
+            },
+            {
+              regex: '^\\.{1,2}/.*(/|^)app/',
+              message:
+                '请避免在 core 中通过相对路径依赖 src/app/**（入口层不应被 core 反向依赖）。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/core/theme/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "ImportExpression[source.type='TemplateLiteral']",
+          message:
+            '禁止使用模板字符串动态 import()；请改为显式映射/静态路径，避免隐式 context bundle 与无关 chunk 进入构建产物。',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/**/*.client.{ts,tsx}',
+      'src/**/client/**/*.{ts,tsx}',
+      'src/shared/blocks/**/*.{ts,tsx}',
+      'src/shared/components/**/*.{ts,tsx}',
+      'src/shared/contexts/**/*.{ts,tsx}',
+      'src/shared/hooks/**/*.{ts,tsx}',
+      'src/themes/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'ImportDeclaration[source.value=/^moment/]',
+          message:
+            "Client surface 建议避免使用 'moment'（体积大且易造成 unused JS）。优先在 Server 侧格式化后传入，或改用更轻量库（如 date-fns/dayjs）。",
+        },
+        {
+          selector:
+            "CallExpression[callee.name='require'][arguments.0.value=/^moment/]",
+          message:
+            "Client surface 建议避免使用 'moment'（体积大且易造成 unused JS）。优先在 Server 侧格式化后传入，或改用更轻量库（如 date-fns/dayjs）。",
         },
       ],
     },
