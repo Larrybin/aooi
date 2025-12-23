@@ -100,6 +100,11 @@ throw new NotFoundError('Resource not found');
 throw new UnprocessableEntityError('Validation failed');
 ```
 
+For shared service code used by both Route Handlers and Server Actions, you can also throw:
+
+- `BusinessError` (`src/shared/lib/errors.ts`) → mapped to HTTP 400 with its `publicMessage`
+- `ExternalError` (`src/shared/lib/errors.ts`) → mapped to its HTTP status with its `publicMessage`
+
 ## Authentication Guards
 
 ```typescript

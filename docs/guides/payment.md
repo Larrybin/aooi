@@ -7,6 +7,7 @@ This guide covers the multi-provider payment system supporting one-time payments
 ```
 src/extensions/payment/
 ├── index.ts        # Core interfaces, PaymentManager, types
+├── adapter.ts      # Provider adapter (validation + mapping)
 ├── providers.ts    # Provider exports (server-only)
 ├── stripe.ts       # Stripe provider implementation
 ├── paypal.ts       # PayPal provider implementation
@@ -23,27 +24,25 @@ src/app/api/payment/
 
 ### PaymentManager
 
-Central manager for all payment providers:
+`PaymentManager` is the in-memory registry for all payment providers.
+In application code, prefer the service-assembled instance (built from the latest configs):
 
 ```typescript
-import { paymentManager, PaymentManager } from '@/extensions/payment';
+import { getPaymentService } from '@/shared/services/payment';
 
-// Get a specific provider
-const stripe = paymentManager.getProvider('stripe');
+const paymentService = await getPaymentService();
 
-// Get default provider
-const defaultProvider = paymentManager.getDefaultProvider();
+// Get a specific provider (or fallback to default)
+const provider =
+  paymentService.getProvider('stripe') ?? paymentService.getDefaultProvider();
 
-// Create payment with specific provider
-const session = await paymentManager.createPayment({
-  order: checkoutOrder,
-  provider: 'stripe',
-});
+if (!provider) throw new Error('payment provider not configured');
+const session = await provider.createPayment({ order: checkoutOrder });
 ```
 
 ### PaymentProvider Interface
 
-All providers implement this interface:
+Application code only relies on this stable interface:
 
 ```typescript
 interface PaymentProvider {
@@ -77,6 +76,11 @@ interface PaymentProvider {
   cancelSubscription?({ subscriptionId }): Promise<PaymentSession>;
 }
 ```
+
+Provider implementations are treated as _drivers_ and are wrapped by `PaymentProviderAdapter` during service assembly (`src/shared/services/payment/manager.ts`). The adapter is responsible for:
+
+- Runtime validation (schema checks) at the provider boundary
+- Converting provider-specific raw payloads into JSON-serializable values before they are persisted/logged
 
 ## Supported Providers
 
@@ -124,35 +128,40 @@ See [API Reference - Checkout Request](../api/reference.md#checkout-request) for
 ```typescript
 // src/app/api/payment/checkout/route.ts
 export const POST = withApi(async (req: Request) => {
-  // 1. Parse & validate request
-  const { product_id, currency, payment_provider } = await parseJson(
-    req,
-    PaymentCheckoutBodySchema
-  );
+  const { log } = getRequestLogger(req);
 
-  // 2. Get pricing from server-side data (never trust client amount)
-  const pricingItem = pricing.items.find(
-    (item) => item.product_id === product_id
-  );
+  // Parse & validate request
+  const { product_id, currency, locale, payment_provider, metadata } =
+    await parseJson(req, PaymentCheckoutBodySchema);
 
-  // 3. Validate payment provider
-  const paymentService = await getPaymentService();
-  const provider = paymentService.getProvider(paymentProviderName);
+  // Resolve pricing from server-side data (never trust client amount)
+  const t = await getTranslations({
+    locale: locale || 'en',
+    namespace: 'pricing',
+  });
+  const pricing = t.raw('pricing') as Pricing;
 
-  // 4. Create order record
-  const order = await createOrder({
-    orderNo: getSnowId(),
-    userId: user.id,
-    amount: checkoutAmount, // Server-calculated
-    currency: checkoutCurrency,
-    // ...
+  const pricingItem = findPricingItemByProductId(pricing, product_id);
+  if (!pricingItem) {
+    throw new NotFoundError('pricing item not found');
+  }
+
+  const user = await requireUser(req);
+
+  // Load latest configs + create checkout session (order creation, provider selection, callbacks)
+  const configs = await getAllConfigs();
+  const checkoutInfo = await createPaymentCheckoutSession({
+    pricingItem,
+    user,
+    configs,
+    currency,
+    locale,
+    paymentProvider: payment_provider,
+    metadata,
+    log,
   });
 
-  // 5. Create checkout session
-  const result = await provider.createPayment({ order: checkoutOrder });
-
-  // 6. Return checkout URL
-  return jsonOk(result.checkoutInfo);
+  return jsonOk(checkoutInfo);
 });
 ```
 
@@ -265,15 +274,25 @@ interface SubscriptionInfo {
 
 ### Database Configs
 
-| Config Key                 | Description                   |
-| -------------------------- | ----------------------------- |
-| `default_payment_provider` | Default provider name         |
-| `stripe_secret_key`        | Stripe API secret key         |
-| `stripe_webhook_secret`    | Stripe webhook signing secret |
-| `paypal_client_id`         | PayPal client ID              |
-| `paypal_client_secret`     | PayPal client secret          |
-| `creem_api_key`            | Creem API key                 |
-| `creem_product_ids`        | JSON mapping of product IDs   |
+| Config Key                 | Description                                                                 |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `select_payment_enabled`   | Allow users to select provider; if disabled, use `default_payment_provider` |
+| `default_payment_provider` | Default provider name (`stripe`/`paypal`/`creem`)                           |
+| `stripe_enabled`           | Enable Stripe provider                                                      |
+| `stripe_publishable_key`   | Stripe publishable key (client-side)                                        |
+| `stripe_secret_key`        | Stripe API secret key                                                       |
+| `stripe_signing_secret`    | Stripe webhook signing secret (required in production when Stripe enabled)  |
+| `stripe_payment_methods`   | Allowed payment methods (array or JSON array string; default `["card"]`)    |
+| `paypal_enabled`           | Enable PayPal provider                                                      |
+| `paypal_environment`       | `sandbox` or `production`                                                   |
+| `paypal_client_id`         | PayPal client ID                                                            |
+| `paypal_client_secret`     | PayPal client secret                                                        |
+| `paypal_webhook_id`        | PayPal webhook id (for signature verification)                              |
+| `creem_enabled`            | Enable Creem provider                                                       |
+| `creem_environment`        | `sandbox` or `production`                                                   |
+| `creem_api_key`            | Creem API key                                                               |
+| `creem_signing_secret`     | Creem signing secret (webhook verification)                                 |
+| `creem_product_ids`        | JSON object mapping product IDs / product+currency to provider product IDs  |
 
 ### Pricing Configuration
 
@@ -317,30 +336,39 @@ Pricing is defined in locale files (e.g., `src/config/locale/messages/en/pricing
 ### Stripe
 
 1. Get API keys from [Stripe Dashboard](https://dashboard.stripe.com)
-2. Set `stripe_secret_key` in database configs
-3. Configure webhook endpoint: `https://your-domain.com/api/payment/notify/stripe`
-4. Set `stripe_webhook_secret` from webhook settings
+2. Enable Stripe: set `stripe_enabled=true`
+3. Set `stripe_secret_key` and (optional) `stripe_publishable_key`
+4. Configure webhook endpoint: `https://your-domain.com/api/payment/notify/stripe`
+5. Set `stripe_signing_secret` from webhook settings (required in production)
 
 ### PayPal
 
 1. Get credentials from [PayPal Developer](https://developer.paypal.com)
-2. Set `paypal_client_id` and `paypal_client_secret`
-3. Configure webhook: `https://your-domain.com/api/payment/notify/paypal`
+2. Enable PayPal: set `paypal_enabled=true` and `paypal_environment` (`sandbox`/`production`)
+3. Set `paypal_client_id` and `paypal_client_secret`
+4. Create a webhook and set `paypal_webhook_id`
+5. Configure webhook: `https://your-domain.com/api/payment/notify/paypal`
 
 ### Creem
 
 1. Get API key from Creem dashboard
-2. Set `creem_api_key`
-3. Optionally configure `creem_product_ids` for product mapping
+2. Enable Creem: set `creem_enabled=true` and `creem_environment` (`sandbox`/`production`)
+3. Set `creem_api_key` and `creem_signing_secret`
+4. Optionally configure `creem_product_ids` for product mapping
 
 ## Related Files
 
 - `src/extensions/payment/index.ts` - Core interfaces and PaymentManager
+- `src/extensions/payment/adapter.ts` - Provider adapter (validation + mapping)
 - `src/extensions/payment/stripe.ts` - Stripe implementation
 - `src/extensions/payment/paypal.ts` - PayPal implementation
 - `src/extensions/payment/creem.ts` - Creem implementation
 - `src/app/api/payment/checkout/route.ts` - Checkout API
+- `src/app/api/payment/callback/route.ts` - Checkout callback/finalize
 - `src/app/api/payment/notify/[provider]/route.ts` - Webhook handler
 - `src/shared/services/payment.ts` - Payment service layer
+- `src/shared/services/payment/manager.ts` - Payment service assembly (configs → providers)
+- `src/shared/services/payment/checkout.ts` - Checkout orchestration
+- `src/shared/services/settings/definitions/payment.ts` - Payment config keys/settings schema
 - `src/shared/models/order.ts` - Order model
 - `src/shared/models/subscription.ts` - Subscription model

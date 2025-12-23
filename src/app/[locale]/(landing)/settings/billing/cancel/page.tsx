@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { Empty } from '@/shared/blocks/common';
 import { FormCard } from '@/shared/blocks/form';
+import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
@@ -81,24 +82,24 @@ export default async function CancelBillingPage({
       const user = await requireActionUser();
       parseFormData(data, z.record(z.string(), z.string()));
       if (!subscription_no) {
-        throw new Error('invalid subscription no');
+        throw new ActionError('invalid subscription no');
       }
 
       const subscription =
         await findSubscriptionBySubscriptionNo(subscription_no);
       if (!subscription || !subscription.subscriptionId) {
-        throw new Error('invalid subscription');
+        throw new ActionError('invalid subscription');
       }
 
       if (subscription.userId !== user.id) {
-        throw new Error('no permission');
+        throw new ActionError('no permission');
       }
 
       if (
         subscription.status !== SubscriptionStatus.ACTIVE &&
         subscription.status !== SubscriptionStatus.TRIALING
       ) {
-        throw new Error('subscription is not active or trialing');
+        throw new ActionError('subscription is not active or trialing');
       }
 
       const paymentService = await getPaymentService();
@@ -110,7 +111,7 @@ export default async function CancelBillingPage({
         subscriptionId: subscription.subscriptionId,
       });
       if (!result) {
-        throw new Error('cancel subscription failed');
+        throw new ActionError('cancel subscription failed');
       }
 
       await updateSubscriptionBySubscriptionNo(subscription.subscriptionNo, {

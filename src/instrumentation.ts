@@ -1,3 +1,5 @@
+import type { SchemaCheckLogger } from './core/db/schema-check';
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -13,11 +15,13 @@ function formatConfigError(parts: string[]): Error {
   return new Error(parts.filter(Boolean).join(' '));
 }
 
-async function assertRoleDeletedAtColumnExists(databaseUrl: string) {
+async function assertRoleDeletedAtColumnExists(
+  databaseUrl: string,
+  logger: SchemaCheckLogger
+) {
   const postgres = (await import('postgres')).default;
   const { assertRoleDeletedAtColumnExists } =
     await import('./core/db/schema-check');
-  const { logger } = await import('./shared/lib/logger.server');
 
   const sql = postgres(databaseUrl, {
     prepare: false,
@@ -52,6 +56,8 @@ export async function register() {
     return;
   }
 
+  const { logger } = await import('./shared/lib/logger.server');
+
   const secret = getAuthSecret();
   if (!secret) {
     throw formatConfigError([
@@ -62,7 +68,6 @@ export async function register() {
 
   const databaseUrl = process.env.DATABASE_URL;
   if (!isNonEmptyString(databaseUrl)) {
-    const { logger } = await import('./shared/lib/logger.server');
     const error = formatConfigError([
       'Database config check failed in production: missing DATABASE_URL.',
       'Set DATABASE_URL and apply migrations before starting the server.',
@@ -72,14 +77,12 @@ export async function register() {
     logger.error('instrumentation: db startup check failed', {
       hint: error.message,
     });
-    throw error;
+    return;
   }
 
-  try {
-    await assertRoleDeletedAtColumnExists(databaseUrl.trim());
-  } catch (error: unknown) {
-    const { logger } = await import('./shared/lib/logger.server');
-    logger.error('instrumentation: db startup check failed', { error });
-    throw error;
-  }
+  void assertRoleDeletedAtColumnExists(databaseUrl.trim(), logger).catch(
+    (error: unknown) => {
+      logger.error('instrumentation: db startup check failed', { error });
+    }
+  );
 }

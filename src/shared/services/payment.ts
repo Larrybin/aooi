@@ -12,3 +12,5 @@ export {
   handleSubscriptionRenewal,
   handleSubscriptionUpdated,
 } from './payment/flows';
+
+export { createPaymentCheckoutSession } from './payment/checkout';

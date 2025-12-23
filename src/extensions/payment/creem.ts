@@ -16,14 +16,14 @@ import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
-  type CheckoutSession,
   type PaymentBilling,
   type PaymentConfigs,
   type PaymentCustomField,
-  type PaymentEvent,
   type PaymentOrder,
-  type PaymentProvider,
-  type PaymentSession,
+  type PaymentProviderDriver,
+  type RawCheckoutSession,
+  type RawPaymentEvent,
+  type RawPaymentSession,
   type SubscriptionInfo,
 } from '.';
 
@@ -48,6 +48,19 @@ const parseOrThrow = <Schema extends z.ZodTypeAny>(
     throw error;
   }
   return parsed.data;
+};
+
+const creemSignaturePattern = /^[0-9a-f]{64}$/;
+
+const constantTimeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+
+  return mismatch === 0;
 };
 
 const creemWebhookEventSchema = z
@@ -163,7 +176,7 @@ export interface CreemConfigs extends PaymentConfigs {
  * Creem payment provider implementation
  * @website https://creem.io/
  */
-export class CreemProvider implements PaymentProvider {
+export class CreemProvider implements PaymentProviderDriver {
   readonly name = 'creem';
   configs: CreemConfigs;
 
@@ -182,7 +195,7 @@ export class CreemProvider implements PaymentProvider {
     order,
   }: {
     order: PaymentOrder;
-  }): Promise<CheckoutSession> {
+  }): Promise<RawCheckoutSession> {
     if (!order.productId) {
       throw new BadRequestError('productId is required');
     }
@@ -249,7 +262,7 @@ export class CreemProvider implements PaymentProvider {
     sessionId,
   }: {
     sessionId: string;
-  }): Promise<PaymentSession> {
+  }): Promise<RawPaymentSession> {
     const session = await this.makeRequest(
       `/v1/checkouts?checkout_id=${sessionId}`,
       'GET',
@@ -264,12 +277,17 @@ export class CreemProvider implements PaymentProvider {
     return await this.buildPaymentSessionFromCheckoutSession(session);
   }
 
-  async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
+  async getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent> {
     const rawBody = await req.text();
-    const signature = req.headers.get('creem-signature') as string;
+    const signatureHeader = req.headers.get('creem-signature');
 
-    if (!rawBody || !signature) {
+    if (!rawBody || !signatureHeader) {
       throw new WebhookVerificationError('invalid webhook request');
+    }
+
+    const signature = signatureHeader.trim().toLowerCase();
+    if (!signature || !creemSignaturePattern.test(signature)) {
+      throw new WebhookVerificationError('invalid webhook signature');
     }
 
     if (!this.configs.signingSecret) {
@@ -281,7 +299,7 @@ export class CreemProvider implements PaymentProvider {
       this.configs.signingSecret
     );
 
-    if (computedSignature !== signature) {
+    if (!constantTimeEqual(computedSignature, signature)) {
       throw new WebhookVerificationError('invalid webhook signature');
     }
 
@@ -300,7 +318,7 @@ export class CreemProvider implements PaymentProvider {
 
     const eventType = this.mapCreemEventType(webhookEvent.eventType);
 
-    let paymentSession: PaymentSession | undefined = undefined;
+    let paymentSession: RawPaymentSession | undefined = undefined;
     if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
       paymentSession = await this.buildPaymentSessionFromCheckoutSession(
         webhookEvent.object
@@ -358,7 +376,7 @@ export class CreemProvider implements PaymentProvider {
     subscriptionId,
   }: {
     subscriptionId: string;
-  }): Promise<PaymentSession> {
+  }): Promise<RawPaymentSession> {
     const subscription = await this.makeRequest(
       `/v1/subscriptions/${subscriptionId}/cancel`,
       'POST',
@@ -490,7 +508,7 @@ export class CreemProvider implements PaymentProvider {
   // build payment session from checkout session
   private async buildPaymentSessionFromCheckoutSession(
     session: unknown
-  ): Promise<PaymentSession> {
+  ): Promise<RawPaymentSession> {
     const checkedSession = parseOrThrow(
       creemCheckoutSessionSchema,
       session,
@@ -511,7 +529,7 @@ export class CreemProvider implements PaymentProvider {
     const order = creemOrderLikeSchema.safeParse(orderCandidate);
     const checkedOrder = order.success ? order.data : undefined;
 
-    const result: PaymentSession = {
+    const result: RawPaymentSession = {
       provider: this.name,
       paymentStatus: this.mapCreemStatusFromCheckoutSession(checkedSession),
       paymentInfo: {
@@ -551,7 +569,7 @@ export class CreemProvider implements PaymentProvider {
   // build payment session from subscription session
   private async buildPaymentSessionFromInvoice(
     invoice: unknown
-  ): Promise<PaymentSession> {
+  ): Promise<RawPaymentSession> {
     const checkedInvoice = parseOrThrow(
       creemInvoiceSchema,
       invoice,
@@ -584,7 +602,7 @@ export class CreemProvider implements PaymentProvider {
         ? SubscriptionCycleType.CREATE
         : SubscriptionCycleType.RENEWAL;
 
-    const result: PaymentSession = {
+    const result: RawPaymentSession = {
       provider: this.name,
       paymentStatus: this.mapCreemStatus(checkedInvoice),
       paymentInfo: {
@@ -626,14 +644,14 @@ export class CreemProvider implements PaymentProvider {
   // build payment session from subscription
   private async buildPaymentSessionFromSubscription(
     subscription: unknown
-  ): Promise<PaymentSession> {
+  ): Promise<RawPaymentSession> {
     const checkedSubscription = parseOrThrow(
       creemSubscriptionSchema,
       subscription,
       new WebhookPayloadError('invalid creem subscription payload')
     );
 
-    const result: PaymentSession = {
+    const result: RawPaymentSession = {
       provider: this.name,
     };
 

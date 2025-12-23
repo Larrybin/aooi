@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { db } from '@/core/db';
 import { role } from '@/config/db/schema';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
@@ -37,7 +38,7 @@ export async function updateRoleAction(id: string, formData: FormData) {
 
     const roleRow = await getRoleById(id);
     if (!roleRow) {
-      throw new Error('Role not found');
+      throw new ActionError('Role not found');
     }
 
     const newRole: UpdateRole = {
@@ -50,7 +51,7 @@ export async function updateRoleAction(id: string, formData: FormData) {
       source: 'admin.roles.updateRoleAction',
     });
     if (!result) {
-      throw new Error('update role failed');
+      throw new ActionError('update role failed');
     }
 
     return actionOk('role updated', '/admin/roles');
@@ -69,14 +70,14 @@ export async function updateRolePermissionsAction(
 
     const roleRow = await getRoleById(id);
     if (!roleRow) {
-      throw new Error('Role not found');
+      throw new ActionError('Role not found');
     }
 
     const schema = z.object({ permissions: jsonStringArraySchema });
     const raw = Object.fromEntries(formData.entries());
     const parsed = schema.safeParse(raw);
     if (!parsed.success) {
-      throw new Error('invalid permissions');
+      throw new ActionError('invalid permissions');
     }
 
     await assignPermissionsToRole(
@@ -105,7 +106,7 @@ export async function deleteRoleAction(id: string) {
       .where(and(eq(role.id, id), isNull(role.deletedAt)));
 
     if (!roleRow) {
-      throw new Error('Role not found');
+      throw new ActionError('Role not found');
     }
 
     await deleteRole(id, {
@@ -126,10 +127,10 @@ export async function restoreRoleAction(id: string) {
 
     const [roleRow] = await db().select().from(role).where(eq(role.id, id));
     if (!roleRow) {
-      throw new Error('Role not found');
+      throw new ActionError('Role not found');
     }
     if (!roleRow.deletedAt) {
-      throw new Error('Role is not deleted');
+      throw new ActionError('Role is not deleted');
     }
 
     try {
@@ -138,7 +139,7 @@ export async function restoreRoleAction(id: string) {
         source: 'admin.roles.restoreRoleAction',
       });
     } catch {
-      throw new Error(
+      throw new ActionError(
         'restore role failed: another active role with the same name may already exist'
       );
     }

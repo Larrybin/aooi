@@ -7,8 +7,11 @@ This guide covers the Role-Based Access Control system for managing user permiss
 ```
 src/shared/
 ├── services/
-│   ├── rbac.ts           # Core RBAC service (server-only)
-│   └── rbac_guard.ts     # Route handler guards
+│   ├── rbac.ts                # Core RBAC service (server-only)
+│   ├── rbac_request_cache.ts  # Request-scope permission checker cache
+│   └── rbac_guard.ts          # RSC/page guards (redirect/throw)
+├── lib/api/
+│   └── guard.ts               # Route Handler auth + CSRF + permission guard
 ├── lib/action/
 │   └── guard.ts          # Server Action guards
 └── constants/
@@ -16,7 +19,8 @@ src/shared/
 
 scripts/
 ├── init-rbac.ts          # Initialize roles & permissions
-└── assign-role.ts        # Assign roles to users
+├── assign-role.ts        # Assign roles to users
+└── self-check-rbac.ts    # Smoke-check RBAC schema/config
 ```
 
 ## Database Schema
@@ -96,27 +100,28 @@ hasPermission(userId, 'anything.here'); // ✓ true
 
 ### Permission Checker (Recommended)
 
-Use `createPermissionChecker()` for efficient batch permission checks:
+Use `getPermissionCheckerForRequest()` to reuse permission lookups across the same request (built on React `cache()`):
 
 ```typescript
-import { createPermissionChecker } from '@/shared/services/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { getPermissionCheckerForRequest } from '@/shared/services/rbac_request_cache';
 
-// Creates a cached checker for a user
-const checker = createPermissionChecker(userId);
+// Creates a request-scoped cached checker for a user
+const checker = getPermissionCheckerForRequest(userId);
 
 // Single permission check
-const canRead = await checker.has('admin.posts.read');
+const canRead = await checker.has(PERMISSIONS.POSTS_READ);
 
 // Check any of multiple permissions
 const canManage = await checker.hasAny([
-  'admin.posts.write',
-  'admin.posts.delete',
+  PERMISSIONS.POSTS_WRITE,
+  PERMISSIONS.POSTS_DELETE,
 ]);
 
 // Check all permissions
 const hasFullAccess = await checker.hasAll([
-  'admin.posts.read',
-  'admin.posts.write',
+  PERMISSIONS.POSTS_READ,
+  PERMISSIONS.POSTS_WRITE,
 ]);
 ```
 
@@ -186,16 +191,13 @@ await requireActionAnyPermissions(
 ### Route Handlers
 
 ```typescript
-import { requireUser } from '@/shared/lib/api/guard';
-import { hasPermission } from '@/shared/services/rbac';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { requirePermission, requireUser } from '@/shared/lib/api/guard';
 
 export const GET = withApi(async (req: Request) => {
   const user = await requireUser(req);
 
-  const allowed = await hasPermission(user.id, 'admin.users.read');
-  if (!allowed) {
-    throw new UnauthorizedError('no permission');
-  }
+  await requirePermission(user.id, PERMISSIONS.USERS_READ);
 
   // ... handler logic
 });

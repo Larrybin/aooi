@@ -1,18 +1,12 @@
 import 'server-only';
 
-import { cache } from 'react';
-
 import type { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getUserInfo } from '@/shared/models/user';
-import { createPermissionChecker } from '@/shared/services/rbac';
+import { getPermissionCheckerForRequest } from '@/shared/services/rbac_request_cache';
 
 import { ActionError } from './errors';
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
-
-const getPermissionCheckerForRequest = cache((userId: string) =>
-  createPermissionChecker(userId)
-);
 
 export async function requireActionUser() {
   const user = await getUserInfo();

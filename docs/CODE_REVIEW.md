@@ -73,6 +73,9 @@
 - 输入验证：
   - 所有外部输入（`body` / `query` / `header`）必须有 schema 校验（zod 或同等级），禁止直接信任 `req.json()` / `request.formData()` 等原始数据。
   - 对高风险接口（认证、权限、计费、工作流执行等）优先采用更严格的 schema 和白名单策略。
+- SSRF / 出站请求（Server-side fetch）：
+  - 禁止将用户可控 URL 直接传入 `fetch()` / `safeFetch*()`；必须在服务端调用前做出站策略校验（协议、host/IP、重定向），并优先使用仓库封装：`checkOutboundUrl()`（`src/shared/lib/fetch/outbound-url.ts`） / `safeFetchFollowingRedirects()`（`src/shared/lib/fetch/server.ts`）。
+  - 禁止在 `next.config.mjs` 的 `images.remotePatterns` 使用任意 hostname 通配（否则 `/_next/image` 可能被滥用为出站代理）；若无法维护稳定 allowlist，优先对动态远程图片使用 `unoptimized`（或全局禁用 Image Optimization）。
 
 ### 2.2 认证与权限
 
@@ -89,6 +92,8 @@
   - 明确区分业务错误（4xx）与系统错误（5xx），保证响应结构统一（如 `code` + `message` + 可选 `details`）。
   - Route Handler 返回应使用语义正确的 HTTP status（400/401/403/404/500 等），响应体仍保持 `{code,message,data}`（降低前端联动成本）。
   - Route Handler 优先使用 `withApi()`（`src/shared/lib/api/route.ts`）统一做错误归一化与响应封装，避免散落的 `try/catch + NextResponse.json()` 导致错误契约不一致。
+  - Server Action 优先使用 `withAction()`（`src/shared/lib/action/with-action.ts`）统一错误归一化：仅对外暴露公共错误（`ActionError/BusinessError/ExternalError/ApiError`）的 `publicMessage`，并在返回体携带 `requestId` 便于排查。
+  - 禁止在 Server Action 中通过 `throw new Error('<用户可见消息>')` 传递对外信息；用户可见提示必须用 `ActionError`（或 `BusinessError`）表达。
   - 禁止将数据库错误、支付网关返回原文等内部信息直接透传给前端，防止泄露实现细节或敏感信息。
 
 ### 2.3 数据库迁移（Drizzle Migrations）
@@ -102,7 +107,7 @@
   - drizzle-kit 配置为 `src/core/db/config.ts`，迁移输出目录为 `src/config/db/migrations`。
   - `DATABASE_PROVIDER` 在运行时/CLI 中被限制为 `postgresql`（错误配置需 fail-fast）。
 - 迁移交付策略（必须明确）：
-  - 当前 `.gitignore` 忽略了 `src/config/db/migrations` 与 `*.sql`；任何涉及 schema 变更的 PR 必须说明迁移文件如何交付（纳入版本控制 / CI 生成并随部署分发 / 明确改用 `push` 且解释其环境约束）。
+  - 迁移 SQL 属于交付物：当前 `.gitignore` 全局忽略 `*.sql`，但对 `src/config/db/migrations/**/*.sql` 显式放行；因此迁移文件应纳入版本控制，避免 schema 漂移。
 - 连接与安全：
   - 迁移建议使用单连接执行（官方推荐），避免多连接导致不一致。
   - 避免在迁移中引入“环境专属/不可回滚”的变更（例如依赖人工顺序执行、或对历史数据做不可逆破坏性改写）。

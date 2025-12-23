@@ -35,8 +35,31 @@ export function buildDatabaseConnectivityHint(cause: string): string {
   ]);
 }
 
-export function buildPublicDatabaseMisconfigurationError(): Error {
-  return new Error('database check failed due to server misconfiguration');
+export type PublicDatabaseMisconfigurationKind = 'connectivity' | 'schema';
+
+function buildPublicDatabaseMisconfigurationMessage(
+  kind: PublicDatabaseMisconfigurationKind
+): string {
+  switch (kind) {
+    case 'connectivity':
+      return formatMessage([
+        'DB_STARTUP_CHECK_FAILED (connectivity): database check failed due to server misconfiguration.',
+        'Verify DATABASE_URL, network access, and database credentials.',
+        'See server logs for "db: connectivity check failed".',
+      ]);
+    case 'schema':
+      return formatMessage([
+        'DB_STARTUP_CHECK_FAILED (schema): database check failed due to server misconfiguration.',
+        'Apply migrations: pnpm db:migrate',
+        'See server logs for "db: schema mismatch detected".',
+      ]);
+  }
+}
+
+export function buildPublicDatabaseMisconfigurationError(
+  kind: PublicDatabaseMisconfigurationKind
+): Error {
+  return new Error(buildPublicDatabaseMisconfigurationMessage(kind));
 }
 
 export function buildPublicPermissionMisconfigurationError(): Error {
@@ -98,7 +121,7 @@ export async function assertRoleDeletedAtColumnExists(params: {
     });
 
     if (isProduction) {
-      throw buildPublicDatabaseMisconfigurationError();
+      throw buildPublicDatabaseMisconfigurationError('connectivity');
     }
     throw detailed;
   }
@@ -118,7 +141,7 @@ export async function assertRoleDeletedAtColumnExists(params: {
   });
 
   if (isProduction) {
-    throw buildPublicDatabaseMisconfigurationError();
+    throw buildPublicDatabaseMisconfigurationError('schema');
   }
 
   throw new Error(hint);

@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { safeFetch } from '@/shared/lib/fetch/server';
+import { safeFetchFollowingRedirects } from '@/shared/lib/fetch/server';
 
 import {
   toUint8Array,
@@ -117,10 +117,10 @@ export class R2Provider implements StorageProvider {
     options: StorageDownloadUploadOptions
   ): Promise<StorageUploadResult> {
     try {
-      const response = await safeFetch(
+      const response = await safeFetchFollowingRedirects(
         options.url,
         { method: 'GET' },
-        { timeoutMs: 30000, cache: 'no-store' }
+        { timeoutMs: 30000, cache: 'no-store', maxRedirects: 5 }
       );
       if (!response.ok) {
         return {

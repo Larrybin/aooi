@@ -173,4 +173,13 @@ export const paymentSettings: Setting[] = [
     group: 'paypal',
     tab: 'payment',
   },
+  {
+    name: 'paypal_webhook_id',
+    title: 'Paypal Webhook ID',
+    type: 'text',
+    placeholder: '',
+    group: 'paypal',
+    tab: 'payment',
+    tip: 'Paypal webhook id is used to verify webhook notification signatures.',
+  },
 ];

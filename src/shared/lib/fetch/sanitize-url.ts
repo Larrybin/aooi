@@ -1,3 +1,5 @@
+import { isNonPublicHostname } from '@/shared/lib/fetch/outbound-url';
+
 export function sanitizeUrlForLog(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return '';
@@ -15,6 +17,9 @@ export function sanitizeUrlForLog(input: string): string {
 
   try {
     const url = new URL(trimmed);
+    if (isNonPublicHostname(url.hostname)) {
+      return `${url.protocol}//(redacted)`;
+    }
     return `${url.origin}${url.pathname}`;
   } catch {
     // Fall back to stripped string with a conservative length cap.

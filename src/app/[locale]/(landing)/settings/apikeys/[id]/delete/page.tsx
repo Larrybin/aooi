@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { FormCard } from '@/shared/blocks/form';
+import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
@@ -76,11 +77,11 @@ export default async function DeleteApiKeyPage({
           const user = await requireActionUser();
           const apikey = await findApikeyById(id);
           if (!apikey) {
-            throw new Error('apikey not found');
+            throw new ActionError('apikey not found');
           }
 
           if (apikey.userId !== user.id) {
-            throw new Error('no permission');
+            throw new ActionError('no permission');
           }
 
           parseFormData(data, SettingsApiKeyUpsertFormSchema, {
