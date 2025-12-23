@@ -80,8 +80,9 @@ export const POST = withApi(
     // console.log('notify payment session', session);
 
     if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-      const orderNo = (session.metadata as Record<string, unknown> | undefined)
-        ?.order_no as string | undefined;
+      const orderNoValue = session.metadata?.order_no;
+      const orderNo =
+        typeof orderNoValue === 'string' ? orderNoValue.trim() : '';
 
       if (!orderNo) {
         throw new BadRequestError('order no not found');
