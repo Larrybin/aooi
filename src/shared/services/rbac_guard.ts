@@ -1,21 +1,12 @@
 import 'server-only';
 
-import { cache } from 'react';
-
 import { redirect } from '@/core/i18n/navigation';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignUser } from '@/shared/models/user';
-import {
-  createPermissionChecker,
-  hasAnyRole,
-  hasRole,
-} from '@/shared/services/rbac';
+import { hasAnyRole, hasRole } from '@/shared/services/rbac';
+import { getPermissionCheckerForRequest } from '@/shared/services/rbac_request_cache';
 
 export { PERMISSIONS };
-
-const getPermissionCheckerForRequest = cache((userId: string) =>
-  createPermissionChecker(userId)
-);
 
 /**
  * Permission guard error
