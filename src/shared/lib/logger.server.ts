@@ -44,7 +44,7 @@ function serializeError(error: Error): Record<string, unknown> {
     base.stack = error.stack;
   }
 
-  const cause = (error as unknown as { cause?: unknown }).cause;
+  const cause = (error as Error & { cause?: unknown }).cause;
   if (cause instanceof Error) {
     base.cause = serializeError(cause);
   } else if (cause !== undefined) {

@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/shared/lib/api/errors';
+
 /**
  * Email attachment interface
  */
@@ -88,7 +93,7 @@ export class EmailManager {
     }
 
     if (!this.defaultProvider) {
-      throw new Error('No email provider configured');
+      throw new ServiceUnavailableError('No email provider configured');
     }
 
     return this.defaultProvider.sendEmail(email);
@@ -101,7 +106,7 @@ export class EmailManager {
   ): Promise<EmailSendResult> {
     const provider = this.getProvider(providerName);
     if (!provider) {
-      throw new Error(`Email provider '${providerName}' not found`);
+      throw new BadRequestError(`Email provider '${providerName}' not found`);
     }
     return provider.sendEmail(email);
   }

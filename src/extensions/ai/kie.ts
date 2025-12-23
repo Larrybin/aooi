@@ -1,3 +1,4 @@
+import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
 import { safeFetchJson } from '@/shared/lib/fetch/server';
 
 import {
@@ -155,11 +156,11 @@ export class KieProvider implements AIProvider {
     );
 
     if (code !== 200) {
-      throw new Error(`generate music failed: ${msg}`);
+      throw new UpstreamError(502, `generate music failed: ${msg}`);
     }
 
     if (!data || !data.taskId) {
-      throw new Error(`generate music failed: no taskId`);
+      throw new UpstreamError(502, 'generate music failed: no taskId');
     }
 
     return {
@@ -177,7 +178,7 @@ export class KieProvider implements AIProvider {
     params: AIGenerateParams;
   }): Promise<AITaskResult> {
     if (params.mediaType !== AIMediaType.MUSIC) {
-      throw new Error(`mediaType not supported: ${params.mediaType}`);
+      throw new BadRequestError(`mediaType not supported: ${params.mediaType}`);
     }
 
     return this.generateMusic({ params });
@@ -205,11 +206,11 @@ export class KieProvider implements AIProvider {
     );
 
     if (code !== 200) {
-      throw new Error(msg);
+      throw new UpstreamError(502, msg);
     }
 
     if (!data || !data.status) {
-      throw new Error(`query failed`);
+      throw new UpstreamError(502, 'query failed');
     }
 
     const songs = data.response?.sunoData?.map(
@@ -260,7 +261,7 @@ export class KieProvider implements AIProvider {
       case 'SENSITIVE_WORD_ERROR':
         return AITaskStatus.FAILED;
       default:
-        throw new Error(`unknown status: ${status}`);
+        throw new UpstreamError(502, `unknown status: ${status}`);
     }
   }
 }

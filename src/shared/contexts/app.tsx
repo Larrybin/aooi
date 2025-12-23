@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -23,6 +24,13 @@ type OneTapParams = {
 type OneTapCapable = {
   oneTap: (params: OneTapParams) => Promise<unknown>;
 };
+
+function isOneTapCapable(value: unknown): value is OneTapCapable {
+  return (
+    isPlainObject(value) &&
+    typeof (value as { oneTap?: unknown }).oneTap === 'function'
+  );
+}
 
 export interface ContextValue {
   user: User | null;
@@ -55,11 +63,53 @@ const AppContext = createContext<ContextValue>(defaultContextValue);
 
 export const useAppContext = () => useContext(AppContext);
 
+function isIgnorableOneTapError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return (
+      error.name === 'AbortError' ||
+      error.name === 'NotAllowedError' ||
+      error.name === 'NetworkError'
+    );
+  }
+
+  if (error instanceof Error) {
+    const name = error.name.toLowerCase();
+    const message = error.message.toLowerCase();
+
+    return (
+      name.includes('abort') ||
+      name.includes('notallowed') ||
+      name.includes('networkerror') ||
+      message.includes('abort') ||
+      message.includes('cancel') ||
+      message.includes('dismiss') ||
+      message.includes('declin') ||
+      message.includes('not allowed') ||
+      message.includes('fedcm') ||
+      message.includes('networkerror')
+    );
+  }
+
+  if (typeof error === 'string') {
+    const message = error.toLowerCase();
+    return (
+      message.includes('abort') ||
+      message.includes('cancel') ||
+      message.includes('dismiss') ||
+      message.includes('not allowed') ||
+      message.includes('fedcm')
+    );
+  }
+
+  return false;
+}
+
 export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [configs, setConfigs] = useState<Record<string, string>>({});
   const didToastConfigsError = useRef(false);
   const didToastUserInfoError = useRef(false);
   const didToastUserCreditsError = useRef(false);
+  const didToastOneTapError = useRef(false);
   const didShowOneTap = useRef(false);
 
   // sign user
@@ -97,7 +147,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         didToastConfigsError.current = true;
         toastFetchError(e, 'Failed to load configs');
       }
-      console.log('fetch configs failed:', e);
     }
   };
 
@@ -124,7 +173,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         didToastUserCreditsError.current = true;
         toastFetchError(e, 'Failed to load user credits');
       }
-      console.log('fetch user credits failed:', e);
     }
   };
 
@@ -140,19 +188,22 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         didToastUserInfoError.current = true;
         toastFetchError(e, 'Failed to load user info');
       }
-      console.log('fetch user info failed:', e);
     }
   };
 
-  const showOneTap = async function (configs: Record<string, string>) {
+  const showOneTap = useCallback(async function (
+    configs: Record<string, string>
+  ) {
     try {
-      const client = getAuthClient(configs) as unknown as OneTapCapable;
+      const client = getAuthClient(configs);
+      if (!isOneTapCapable(client)) {
+        return;
+      }
       await client.oneTap({
         callbackURL: '/',
-        onPromptNotification: (notification: unknown) => {
+        onPromptNotification: (_notification: unknown) => {
           // Handle prompt dismissal silently
           // This callback is triggered when the prompt is dismissed or skipped
-          console.log('One Tap prompt notification:', notification);
         },
         // fetchOptions: {
         //   onSuccess: () => {
@@ -160,12 +211,19 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         //   },
         // },
       });
-    } catch {
-      // Silently handle One Tap cancellation errors
-      // These errors occur when users close the prompt or decline to sign in
-      // Common errors: FedCM NetworkError, AbortError, etc.
+    } catch (e: unknown) {
+      if (isIgnorableOneTapError(e)) {
+        return;
+      }
+
+      if (didToastOneTapError.current) {
+        return;
+      }
+
+      didToastOneTapError.current = true;
+      toastFetchError(e, 'One Tap sign-in failed');
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchConfigs();
@@ -203,7 +261,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       didShowOneTap.current = true;
       showOneTap(configs);
     }
-  }, [configs, session, isPending]);
+  }, [configs, session, isPending, showOneTap]);
 
   useEffect(() => {
     if (user && !user.credits) {
