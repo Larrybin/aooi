@@ -56,11 +56,11 @@ export async function GET(req: Request) {
     // get order
     const order = await findOrderByOrderNo(orderNo);
     if (!order) {
-      throw new Error('order not found');
+      throw new NotFoundError('order not found');
     }
 
     if (order.userId !== user.id) {
-      throw new Error('order and user not match');
+      throw new ForbiddenError('order and user not match');
     }
 
     const base = order.callbackUrl || toPaymentFallbackUrl(order.paymentType);

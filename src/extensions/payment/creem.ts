@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { safeFetchJson } from '@/shared/lib/fetch/server';
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+  UpstreamError,
+} from '@/shared/lib/api/errors';
+import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
 
 import {
   PaymentEventType,
@@ -179,7 +184,7 @@ export class CreemProvider implements PaymentProvider {
     order: PaymentOrder;
   }): Promise<CheckoutSession> {
     if (!order.productId) {
-      throw new Error('productId is required');
+      throw new BadRequestError('productId is required');
     }
 
     const payload: Record<string, unknown> = {
@@ -210,20 +215,20 @@ export class CreemProvider implements PaymentProvider {
       metadata: order.metadata,
     };
 
-    const rawResult = await this.makeRequest('/v1/checkouts', 'POST', payload);
-    const result = parseOrThrow(
+    const result = await this.makeRequest(
+      '/v1/checkouts',
+      'POST',
       creemCreateCheckoutResponseSchema,
-      rawResult,
-      new Error('create payment failed')
+      payload
     );
 
     const errorMessage = getErrorMessage(result.error);
     if (errorMessage) {
-      throw new Error(errorMessage);
+      throw new UpstreamError(502, errorMessage);
     }
 
     if (!result.id || !result.checkout_url) {
-      throw new Error('create payment failed');
+      throw new UpstreamError(502, 'create payment failed');
     }
 
     return {
@@ -233,7 +238,7 @@ export class CreemProvider implements PaymentProvider {
         sessionId: result.id,
         checkoutUrl: result.checkout_url,
       },
-      checkoutResult: rawResult,
+      checkoutResult: result,
       metadata: order.metadata || {},
     };
   }
@@ -245,26 +250,18 @@ export class CreemProvider implements PaymentProvider {
   }: {
     sessionId: string;
   }): Promise<PaymentSession> {
-    const rawSession = await this.makeRequest(
+    const session = await this.makeRequest(
       `/v1/checkouts?checkout_id=${sessionId}`,
-      'GET'
+      'GET',
+      creemCheckoutSessionSchema
     );
 
-    const parsedSession = creemCheckoutSessionSchema.safeParse(rawSession);
-    if (
-      !parsedSession.success ||
-      !parsedSession.data.id ||
-      !parsedSession.data.order
-    ) {
-      const errorMessage = isRecord(rawSession)
-        ? getErrorMessage(rawSession.error)
-        : undefined;
-      throw new Error(errorMessage || 'get payment failed');
+    if (!session.id || !session.order) {
+      const errorMessage = getErrorMessage(session.error);
+      throw new UpstreamError(502, errorMessage || 'get payment failed');
     }
 
-    return await this.buildPaymentSessionFromCheckoutSession(
-      parsedSession.data
-    );
+    return await this.buildPaymentSessionFromCheckoutSession(session);
   }
 
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
@@ -295,11 +292,11 @@ export class CreemProvider implements PaymentProvider {
       throw new WebhookPayloadError('invalid webhook payload');
     }
 
-    const webhookEvent = parseOrThrow(
-      creemWebhookEventSchema,
-      event,
-      new WebhookPayloadError('invalid webhook payload')
-    );
+    const parsedWebhookEvent = creemWebhookEventSchema.safeParse(event);
+    if (!parsedWebhookEvent.success) {
+      throw new WebhookPayloadError('invalid webhook payload');
+    }
+    const webhookEvent = parsedWebhookEvent.data;
 
     const eventType = this.mapCreemEventType(webhookEvent.eventType);
 
@@ -339,18 +336,17 @@ export class CreemProvider implements PaymentProvider {
     customerId: string;
     returnUrl?: string;
   }): Promise<PaymentBilling> {
-    const rawBilling = await this.makeRequest('/v1/customers/billing', 'POST', {
-      customer_id: customerId,
-    });
-
-    const billing = parseOrThrow(
+    const billing = await this.makeRequest(
+      '/v1/customers/billing',
+      'POST',
       creemBillingResponseSchema,
-      rawBilling,
-      new Error('get billing url failed')
+      {
+        customer_id: customerId,
+      }
     );
 
     if (!billing.customer_portal_link) {
-      throw new Error('get billing url failed');
+      throw new UpstreamError(502, 'get billing url failed');
     }
 
     return {
@@ -363,18 +359,13 @@ export class CreemProvider implements PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession> {
-    const rawResult = await this.makeRequest(
+    const subscription = await this.makeRequest(
       `/v1/subscriptions/${subscriptionId}/cancel`,
-      'POST'
-    );
-
-    const subscription = parseOrThrow(
-      creemSubscriptionSchema,
-      rawResult,
-      new Error('cancel subscription failed')
+      'POST',
+      creemSubscriptionSchema
     );
     if (!subscription.canceled_at) {
-      throw new Error('cancel subscription failed');
+      throw new UpstreamError(502, 'cancel subscription failed');
     }
 
     return await this.buildPaymentSessionFromSubscription(subscription);
@@ -403,18 +394,17 @@ export class CreemProvider implements PaymentProvider {
       return Array.from(signatureArray)
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown signature error';
-      throw new Error(`Failed to generate signature: ${message}`);
+    } catch (_error: unknown) {
+      throw new ServiceUnavailableError('failed to generate signature');
     }
   }
 
-  private async makeRequest(
+  private async makeRequest<TSchema extends z.ZodTypeAny>(
     endpoint: string,
     method: string,
+    schema: TSchema,
     data?: Record<string, unknown>
-  ) {
+  ): Promise<z.infer<TSchema>> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'x-api-key': this.configs.apiKey,
@@ -430,11 +420,19 @@ export class CreemProvider implements PaymentProvider {
       config.body = JSON.stringify(data);
     }
 
-    return await safeFetchJson<unknown>(url, config, {
-      timeoutMs: 15000,
-      cache: 'no-store',
-      errorMessage: 'request creem api failed',
-    });
+    try {
+      return await safeFetchJsonWithSchema(url, config, schema, {
+        timeoutMs: 15000,
+        cache: 'no-store',
+        errorMessage: 'request creem api failed',
+        invalidDataMessage: 'invalid creem json response',
+      });
+    } catch (error: unknown) {
+      throw new UpstreamError(
+        502,
+        error instanceof Error ? error.message : 'request creem api failed'
+      );
+    }
   }
 
   private mapCreemEventType(eventType: string): PaymentEventType {
@@ -457,7 +455,9 @@ export class CreemProvider implements PaymentProvider {
         // subscription.trialing
         // refund.created
         // dispute.created
-        throw new Error(`Not handle creem event type: ${eventType}`);
+        throw new WebhookPayloadError(
+          `Not handle creem event type: ${eventType}`
+        );
     }
   }
 
@@ -472,7 +472,9 @@ export class CreemProvider implements PaymentProvider {
       return PaymentStatus.SUCCESS;
     } else {
       // todo: handle other status
-      throw new Error(`Unknown Creem session status: ${session.status}`);
+      throw new WebhookPayloadError(
+        `Unknown Creem session status: ${session.status}`
+      );
     }
   }
 
@@ -693,7 +695,8 @@ export class CreemProvider implements PaymentProvider {
     } else if (subscription.status === 'paused') {
       subscriptionInfo.status = SubscriptionStatus.PAUSED;
     } else {
-      throw new Error(
+      throw new UpstreamError(
+        502,
         `Unknown Creem subscription status: ${subscription.status}`
       );
     }
@@ -706,7 +709,7 @@ export class CreemProvider implements PaymentProvider {
     count: number;
   } {
     if (!product || !product.billing_period) {
-      throw new Error('Invalid product');
+      throw new UpstreamError(502, 'Invalid product');
     }
 
     switch (product.billing_period) {
@@ -736,7 +739,8 @@ export class CreemProvider implements PaymentProvider {
           count: 1,
         };
       default:
-        throw new Error(
+        throw new UpstreamError(
+          502,
           `Unknown Creem product billing period: ${product.billing_period}`
         );
     }

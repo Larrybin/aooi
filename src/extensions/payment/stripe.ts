@@ -1,6 +1,12 @@
 import Stripe from 'stripe';
 
 import {
+  BadRequestError,
+  NotFoundError,
+  UpstreamError,
+} from '@/shared/lib/api/errors';
+
+import {
   PaymentEventType,
   PaymentStatus,
   PaymentType,
@@ -57,7 +63,7 @@ export class StripeProvider implements PaymentProvider {
   }): Promise<CheckoutSession> {
     // check payment price
     if (!order.price) {
-      throw new Error('price is required');
+      throw new BadRequestError('price is required');
     }
 
     // create payment with dynamic product
@@ -76,7 +82,7 @@ export class StripeProvider implements PaymentProvider {
 
       // check payment plan
       if (!order.plan) {
-        throw new Error('plan is required');
+        throw new BadRequestError('plan is required');
       }
 
       // build recurring data
@@ -177,7 +183,7 @@ export class StripeProvider implements PaymentProvider {
 
     const session = await this.client.checkout.sessions.create(sessionParams);
     if (!session.id || !session.url) {
-      throw new Error('create payment failed');
+      throw new UpstreamError(502, 'create payment failed');
     }
 
     return {
@@ -201,7 +207,7 @@ export class StripeProvider implements PaymentProvider {
     sessionId: string;
   }): Promise<PaymentSession> {
     if (!sessionId) {
-      throw new Error('sessionId is required');
+      throw new BadRequestError('sessionId is required');
     }
 
     const session = await this.client.checkout.sessions.retrieve(sessionId);
@@ -275,7 +281,7 @@ export class StripeProvider implements PaymentProvider {
   }): Promise<PaymentInvoice> {
     const invoice = await this.client.invoices.retrieve(invoiceId);
     if (!invoice.id) {
-      throw new Error('Invoice not found');
+      throw new NotFoundError('invoice not found');
     }
 
     return {
@@ -299,7 +305,7 @@ export class StripeProvider implements PaymentProvider {
     });
 
     if (!billing.url) {
-      throw new Error('get billing url failed');
+      throw new UpstreamError(502, 'get billing url failed');
     }
 
     return {
@@ -313,13 +319,13 @@ export class StripeProvider implements PaymentProvider {
     subscriptionId: string;
   }): Promise<PaymentSession> {
     if (!subscriptionId) {
-      throw new Error('subscriptionId is required');
+      throw new BadRequestError('subscriptionId is required');
     }
 
     const subscription = await this.client.subscriptions.cancel(subscriptionId);
 
     if (!subscription.canceled_at) {
-      throw new Error('Cancel subscription failed');
+      throw new UpstreamError(502, 'cancel subscription failed');
     }
 
     return await this.buildPaymentSessionFromSubscription(subscription);
@@ -338,7 +344,9 @@ export class StripeProvider implements PaymentProvider {
       case 'customer.subscription.deleted':
         return PaymentEventType.SUBSCRIBE_CANCELED;
       default:
-        throw new Error(`Unknown Stripe event type: ${eventType}`);
+        throw new WebhookPayloadError(
+          `Unknown Stripe event type: ${eventType}`
+        );
     }
   }
 
@@ -359,7 +367,8 @@ export class StripeProvider implements PaymentProvider {
             // means payment not required, should be success
             return PaymentStatus.SUCCESS;
           default:
-            throw new Error(
+            throw new UpstreamError(
+              502,
               `Unknown Stripe payment status: ${session.payment_status}`
             );
         }
@@ -369,7 +378,10 @@ export class StripeProvider implements PaymentProvider {
       case 'open':
         return PaymentStatus.PROCESSING;
       default:
-        throw new Error(`Unknown Stripe status: ${session.status}`);
+        throw new UpstreamError(
+          502,
+          `Unknown Stripe status: ${session.status}`
+        );
     }
   }
 
@@ -557,7 +569,8 @@ export class StripeProvider implements PaymentProvider {
       subscriptionInfo.canceledReasonType =
         subscription.cancellation_details?.feedback || '';
     } else {
-      throw new Error(
+      throw new UpstreamError(
+        502,
         `Unknown Stripe subscription status: ${subscription.status}`
       );
     }

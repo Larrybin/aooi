@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-import { safeFetch } from '@/shared/lib/fetch/server';
+import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
+import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
+import { safeJsonParse } from '@/shared/lib/json';
 import { logger } from '@/shared/lib/logger.server';
 
 import {
@@ -26,6 +28,17 @@ function readString(value: unknown): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function readNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const asNumber = Number(trimmed);
+    return Number.isFinite(asNumber) ? asNumber : undefined;
+  }
+  return undefined;
+}
+
 function readPath(root: unknown, path: string[]): unknown {
   let current: unknown = root;
   for (const segment of path) {
@@ -44,6 +57,108 @@ function readPath(root: unknown, path: string[]): unknown {
 
 function readStringPath(root: unknown, path: string[]): string | undefined {
   return readString(readPath(root, path));
+}
+
+function readNumberPath(root: unknown, path: string[]): number | undefined {
+  return readNumber(readPath(root, path));
+}
+
+const payPalAccessTokenResponseSchema = z
+  .object({
+    access_token: z.string().min(1),
+    expires_in: z.number().positive(),
+  })
+  .passthrough();
+
+const payPalApiResponseSchema = z
+  .object({
+    id: z.string().optional(),
+    status: z.string().optional(),
+    links: z
+      .array(
+        z
+          .object({
+            rel: z.string().min(1),
+            href: z.string().optional(),
+          })
+          .passthrough()
+      )
+      .optional(),
+    error: z
+      .object({
+        name: z.string().optional(),
+        message: z.string().optional(),
+        details: z.array(z.unknown()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    name: z.string().optional(),
+    message: z.string().optional(),
+    details: z.array(z.unknown()).optional(),
+    verification_status: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+function extractApprovalUrl(payload: unknown): string | undefined {
+  if (!isRecord(payload)) return undefined;
+  const links = payload.links;
+  if (!Array.isArray(links)) return undefined;
+
+  for (const link of links) {
+    if (!isRecord(link)) continue;
+    if (readString(link.rel) === 'approve') {
+      return readString(link.href);
+    }
+  }
+
+  return undefined;
+}
+
+function extractPayPalStatus(payload: unknown): string | undefined {
+  if (!isRecord(payload)) return undefined;
+  return readString(payload.status);
+}
+
+function extractPayPalAmount(payload: unknown): number | undefined {
+  return (
+    readNumberPath(payload, ['amount']) ??
+    readNumberPath(payload, ['purchase_units', '0', 'amount', 'value']) ??
+    readNumberPath(payload, ['billing_info', 'last_payment', 'amount', 'value'])
+  );
+}
+
+function extractPayPalCurrency(payload: unknown): string | undefined {
+  return (
+    readStringPath(payload, ['currency']) ??
+    readStringPath(payload, [
+      'purchase_units',
+      '0',
+      'amount',
+      'currency_code',
+    ]) ??
+    readStringPath(payload, [
+      'billing_info',
+      'last_payment',
+      'amount',
+      'currency_code',
+    ])
+  );
+}
+
+function extractPayPalCustomerEmail(payload: unknown): string | undefined {
+  return (
+    readStringPath(payload, ['customer_email']) ??
+    readStringPath(payload, ['payer', 'email_address']) ??
+    readStringPath(payload, ['subscriber', 'email_address'])
+  );
+}
+
+function extractPayPalMetadata(
+  payload: unknown
+): Record<string, unknown> | undefined {
+  const value = readPath(payload, ['metadata']);
+  return isRecord(value) ? value : undefined;
 }
 
 function extractPayPalTransactionId(result: unknown): string | undefined {
@@ -142,7 +257,7 @@ export class PayPalProvider implements PaymentProvider {
     await this.ensureAccessToken();
 
     if (!order.price) {
-      throw new Error('price is required');
+      throw new BadRequestError('price is required');
     }
 
     const items = [
@@ -191,19 +306,28 @@ export class PayPalProvider implements PaymentProvider {
       payload
     );
 
-    if (result.error) {
-      throw new Error(result.error.message || 'PayPal payment creation failed');
+    const maybeErrorMessage = readStringPath(result, ['error', 'message']);
+    if (maybeErrorMessage) {
+      throw new UpstreamError(502, maybeErrorMessage);
     }
 
-    const approvalUrl = result.links?.find(
-      (link: { rel: string }) => link.rel === 'approve'
-    )?.href;
+    const approvalUrl = extractApprovalUrl(result);
+    if (!approvalUrl) {
+      throw new UpstreamError(
+        502,
+        'PayPal order creation failed: missing approve url'
+      );
+    }
+    const sessionId = readStringPath(result, ['id']);
+    if (!sessionId) {
+      throw new UpstreamError(502, 'PayPal order creation failed: missing id');
+    }
 
     return {
       provider: this.name,
       checkoutParams: payload,
       checkoutInfo: {
-        sessionId: result.id,
+        sessionId,
         checkoutUrl: approvalUrl,
       },
       checkoutResult: result,
@@ -217,7 +341,7 @@ export class PayPalProvider implements PaymentProvider {
     await this.ensureAccessToken();
 
     if (!order.plan) {
-      throw new Error('plan is required');
+      throw new BadRequestError('plan is required');
     }
 
     // First create a product
@@ -234,15 +358,24 @@ export class PayPalProvider implements PaymentProvider {
       productPayload
     );
 
-    if (productResponse.error) {
-      throw new Error(
-        productResponse.error.message || 'PayPal product creation failed'
+    const productErrorMessage = readStringPath(productResponse, [
+      'error',
+      'message',
+    ]);
+    if (productErrorMessage) {
+      throw new UpstreamError(502, productErrorMessage);
+    }
+    const productId = readStringPath(productResponse, ['id']);
+    if (!productId) {
+      throw new UpstreamError(
+        502,
+        'PayPal product creation failed: missing id'
       );
     }
 
     // Create a billing plan
     const planPayload = {
-      product_id: productResponse.id,
+      product_id: productId,
       name: order.plan.name,
       description: order.plan.description,
       billing_cycles: [
@@ -294,15 +427,18 @@ export class PayPalProvider implements PaymentProvider {
       planPayload
     );
 
-    if (planResponse.error) {
-      throw new Error(
-        planResponse.error.message || 'PayPal plan creation failed'
-      );
+    const planErrorMessage = readStringPath(planResponse, ['error', 'message']);
+    if (planErrorMessage) {
+      throw new UpstreamError(502, planErrorMessage);
+    }
+    const planId = readStringPath(planResponse, ['id']);
+    if (!planId) {
+      throw new UpstreamError(502, 'PayPal plan creation failed: missing id');
     }
 
     // Create subscription
     const subscriptionPayload = {
-      plan_id: planResponse.id,
+      plan_id: planId,
       subscriber: {
         email_address: order.customer?.email,
         name: order.customer?.name
@@ -332,22 +468,34 @@ export class PayPalProvider implements PaymentProvider {
       subscriptionPayload
     );
 
-    if (subscriptionResponse.error) {
-      throw new Error(
-        subscriptionResponse.error.message ||
-          'PayPal subscription creation failed'
-      );
+    const subscriptionErrorMessage = readStringPath(subscriptionResponse, [
+      'error',
+      'message',
+    ]);
+    if (subscriptionErrorMessage) {
+      throw new UpstreamError(502, subscriptionErrorMessage);
     }
 
-    const approvalUrl = subscriptionResponse.links?.find(
-      (link: { rel: string }) => link.rel === 'approve'
-    )?.href;
+    const approvalUrl = extractApprovalUrl(subscriptionResponse);
+    if (!approvalUrl) {
+      throw new UpstreamError(
+        502,
+        'PayPal subscription creation failed: missing approve url'
+      );
+    }
+    const sessionId = readStringPath(subscriptionResponse, ['id']);
+    if (!sessionId) {
+      throw new UpstreamError(
+        502,
+        'PayPal subscription creation failed: missing id'
+      );
+    }
 
     return {
       provider: this.name,
       checkoutParams: subscriptionPayload,
       checkoutInfo: {
-        sessionId: subscriptionResponse.id,
+        sessionId,
         checkoutUrl: approvalUrl,
       },
       checkoutResult: subscriptionResponse,
@@ -361,7 +509,7 @@ export class PayPalProvider implements PaymentProvider {
     sessionId?: string;
   }): Promise<PaymentSession> {
     if (!sessionId) {
-      throw new Error('sessionId is required');
+      throw new BadRequestError('sessionId is required');
     }
 
     await this.ensureAccessToken();
@@ -372,7 +520,7 @@ export class PayPalProvider implements PaymentProvider {
       'GET'
     );
 
-    if (result.error && result.error.name === 'RESOURCE_NOT_FOUND') {
+    if (readStringPath(result, ['name']) === 'RESOURCE_NOT_FOUND') {
       // Try as subscription
       result = await this.makeRequest(
         `/v1/billing/subscriptions/${sessionId}`,
@@ -380,8 +528,9 @@ export class PayPalProvider implements PaymentProvider {
       );
     }
 
-    if (result.error) {
-      throw new Error(result.error.message || 'get payment failed');
+    const errorMessage = readStringPath(result, ['error', 'message']);
+    if (errorMessage) {
+      throw new UpstreamError(502, errorMessage);
     }
 
     const transactionId = extractPayPalTransactionId(result);
@@ -389,20 +538,22 @@ export class PayPalProvider implements PaymentProvider {
 
     return {
       provider: this.name,
-      paymentStatus: this.mapPayPalStatus(result.status),
+      paymentStatus: this.mapPayPalStatus(
+        extractPayPalStatus(result) || 'CREATED'
+      ),
       paymentInfo: {
         discountCode: '',
         discountAmount: undefined,
         discountCurrency: undefined,
         transactionId,
-        paymentAmount: result.amount,
-        paymentCurrency: result.currency,
-        paymentEmail: result.customer_email,
+        paymentAmount: extractPayPalAmount(result) || 0,
+        paymentCurrency: extractPayPalCurrency(result) || '',
+        paymentEmail: extractPayPalCustomerEmail(result),
         invoiceId,
         paidAt: new Date(),
       },
       paymentResult: result,
-      metadata: result.metadata,
+      metadata: extractPayPalMetadata(result),
     };
   }
 
@@ -414,10 +565,8 @@ export class PayPalProvider implements PaymentProvider {
       throw new WebhookConfigError('webhookSecret not configured');
     }
 
-    let event: unknown;
-    try {
-      event = JSON.parse(rawBody);
-    } catch {
+    const event = safeJsonParse<unknown>(rawBody);
+    if (event === null) {
       throw new WebhookPayloadError('invalid webhook payload');
     }
 
@@ -446,7 +595,7 @@ export class PayPalProvider implements PaymentProvider {
       verifyPayload
     );
 
-    if (verifyResponse.verification_status !== 'SUCCESS') {
+    if (readStringPath(verifyResponse, ['verification_status']) !== 'SUCCESS') {
       throw new WebhookVerificationError('invalid webhook signature');
     }
 
@@ -491,47 +640,41 @@ export class PayPalProvider implements PaymentProvider {
       `${this.configs.clientId}:${this.configs.clientSecret}`
     ).toString('base64');
 
-    const response = await safeFetch(
-      `${this.baseUrl}/v1/oauth2/token`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
+    try {
+      const data = await safeFetchJsonWithSchema(
+        `${this.baseUrl}/v1/oauth2/token`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'grant_type=client_credentials',
         },
-        body: 'grant_type=client_credentials',
-      },
-      { timeoutMs: 15000, cache: 'no-store' }
-    );
+        payPalAccessTokenResponseSchema,
+        {
+          timeoutMs: 15000,
+          cache: 'no-store',
+          errorMessage: 'PayPal authentication failed',
+          invalidDataMessage: 'invalid PayPal authentication response',
+        }
+      );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      const detail =
-        typeof data?.error_description === 'string' &&
-        data.error_description.trim()
-          ? data.error_description.trim()
-          : typeof data?.error === 'string' && data.error.trim()
-            ? data.error.trim()
-            : `status ${response.status}`;
-      throw new Error(`PayPal authentication failed: ${detail}`);
-    }
-
-    if (data.error) {
-      throw new Error(
-        `PayPal authentication failed: ${data.error_description}`
+      this.accessToken = data.access_token;
+      this.tokenExpiry = Date.now() + data.expires_in * 1000;
+    } catch (error: unknown) {
+      throw new UpstreamError(
+        502,
+        error instanceof Error ? error.message : 'PayPal authentication failed'
       );
     }
-
-    this.accessToken = data.access_token;
-    this.tokenExpiry = Date.now() + data.expires_in * 1000;
   }
 
   private async makeRequest(
     endpoint: string,
     method: string,
     data?: Record<string, unknown>
-  ) {
+  ): Promise<z.infer<typeof payPalApiResponseSchema>> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.accessToken}`,
@@ -547,22 +690,24 @@ export class PayPalProvider implements PaymentProvider {
       config.body = JSON.stringify(data);
     }
 
-    const response = await safeFetch(url, config, {
-      timeoutMs: 15000,
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      const result = await response.json();
-      let errorMessage = result.name;
-      if (result.details) {
-        errorMessage += `: ${result.details
-          .map((detail: { issue: string }) => detail.issue)
-          .join(', ')}`;
-      }
-      throw new Error(`PayPal request failed: ${errorMessage}`);
+    try {
+      return await safeFetchJsonWithSchema(
+        url,
+        config,
+        payPalApiResponseSchema,
+        {
+          timeoutMs: 15000,
+          cache: 'no-store',
+          errorMessage: 'PayPal request failed',
+          invalidDataMessage: 'invalid PayPal json response',
+        }
+      );
+    } catch (error: unknown) {
+      throw new UpstreamError(
+        502,
+        error instanceof Error ? error.message : 'PayPal request failed'
+      );
     }
-
-    return await response.json();
   }
 
   private mapPayPalStatus(status: string): PaymentStatus {
