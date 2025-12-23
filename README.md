@@ -1,4 +1,4 @@
-# ShipAny Template Two
+# Roller Rabbit
 
 A production-ready AI SaaS template built with Next.js App Router, TypeScript, and modern tooling.
 
@@ -59,7 +59,7 @@ npx tsx scripts/init-rbac.ts --admin-email=your@email.com
 
 ## Getting Started
 
-Read [ShipAny Document](https://shipany.ai/docs/quick-start) to start your AI SaaS project.
+Read `content/docs` to start your AI SaaS project.
 
 ## Documentation
 
@@ -107,7 +107,6 @@ Read [ShipAny Document](https://shipany.ai/docs/quick-start) to start your AI Sa
 
 ### Keys
 
-- `general_built_with_enabled`: controls "Built with ❤️ ShipAny"
 - `general_theme_toggle_enabled`: controls all `ThemeToggler` usages (global)
 - `general_social_links_enabled`: controls social icons rendering
 - `general_social_links`: JSON array of social links
@@ -133,16 +132,10 @@ Example `general_social_links`:
 ]
 ```
 
-## Buy Templates
-
-check [ShipAny Templates](https://shipany.ai/templates) to buy Business Templates.
-
 ## Feedback
 
-submit your feedbacks on [Github Issues](https://github.com/shipanyai/shipany-template-two/issues)
+submit your feedbacks on GitHub Issues
 
 ## LICENSE
 
-!!! Please do not publicly release ShipAny's Code. Illegal use will be prosecuted
-
-[ShipAny LICENSE](./LICENSE)
+No license file is included in this repository. Add one if you plan to distribute the code.

@@ -1,12 +1,12 @@
 {
-  "name": "shipany-template-two",
+  "name": "roller-rabbit",
   "version": "1.2.0",
   "private": true,
-  "author": "ShipAny.ai",
-  "homepage": "https://shipany.ai",
+  "author": "Larrybin",
+  "homepage": "https://github.com/Larrybin/aooi",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shipanyai/shipany-template-two"
+    "url": "https://github.com/Larrybin/aooi.git"
   },
   "keywords": [
     "ai-saas-boilerplate",

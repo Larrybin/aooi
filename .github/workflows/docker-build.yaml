@@ -10,7 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  SVR_NAME: shipany-template-two
+  SVR_NAME: roller-rabbit
 
 jobs:
   build-and-push:
