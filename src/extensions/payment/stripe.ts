@@ -15,15 +15,15 @@ import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
-  type CheckoutSession,
   type PaymentBilling,
   type PaymentConfigs,
-  type PaymentEvent,
   type PaymentInterval,
   type PaymentInvoice,
   type PaymentOrder,
-  type PaymentProvider,
-  type PaymentSession,
+  type PaymentProviderDriver,
+  type RawCheckoutSession,
+  type RawPaymentEvent,
+  type RawPaymentSession,
   type SubscriptionInfo,
 } from '.';
 
@@ -43,7 +43,7 @@ export interface StripeConfigs extends PaymentConfigs {
  * Stripe payment provider implementation
  * @website https://stripe.com/
  */
-export class StripeProvider implements PaymentProvider {
+export class StripeProvider implements PaymentProviderDriver {
   readonly name = 'stripe';
   configs: StripeConfigs;
 
@@ -60,7 +60,7 @@ export class StripeProvider implements PaymentProvider {
     order,
   }: {
     order: PaymentOrder;
-  }): Promise<CheckoutSession> {
+  }): Promise<RawCheckoutSession> {
     // check payment price
     if (!order.price) {
       throw new BadRequestError('price is required');
@@ -205,7 +205,7 @@ export class StripeProvider implements PaymentProvider {
     sessionId,
   }: {
     sessionId: string;
-  }): Promise<PaymentSession> {
+  }): Promise<RawPaymentSession> {
     if (!sessionId) {
       throw new BadRequestError('sessionId is required');
     }
@@ -218,7 +218,7 @@ export class StripeProvider implements PaymentProvider {
   /**
    * Get payment event from webhook notification
    */
-  async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
+  async getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent> {
     const rawBody = await req.text();
     const signature = req.headers.get('stripe-signature') as string;
 
@@ -241,7 +241,7 @@ export class StripeProvider implements PaymentProvider {
       throw new WebhookVerificationError('invalid webhook signature');
     }
 
-    let paymentSession: PaymentSession | undefined = undefined;
+    let paymentSession: RawPaymentSession | undefined = undefined;
 
     const eventType = this.mapStripeEventType(event.type);
 
@@ -317,7 +317,7 @@ export class StripeProvider implements PaymentProvider {
     subscriptionId,
   }: {
     subscriptionId: string;
-  }): Promise<PaymentSession> {
+  }): Promise<RawPaymentSession> {
     if (!subscriptionId) {
       throw new BadRequestError('subscriptionId is required');
     }
@@ -388,7 +388,7 @@ export class StripeProvider implements PaymentProvider {
   // build payment session from checkout session
   private async buildPaymentSessionFromCheckoutSession(
     session: Stripe.Response<Stripe.Checkout.Session>
-  ): Promise<PaymentSession> {
+  ): Promise<RawPaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
 
@@ -398,7 +398,7 @@ export class StripeProvider implements PaymentProvider {
       );
     }
 
-    const result: PaymentSession = {
+    const result: RawPaymentSession = {
       provider: this.name,
       paymentStatus: this.mapStripeStatus(session),
       paymentInfo: {
@@ -436,7 +436,7 @@ export class StripeProvider implements PaymentProvider {
   // build payment session from invoice
   private async buildPaymentSessionFromInvoice(
     invoice: Stripe.Response<Stripe.Invoice>
-  ): Promise<PaymentSession> {
+  ): Promise<RawPaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
 
@@ -461,7 +461,7 @@ export class StripeProvider implements PaymentProvider {
       }
     }
 
-    const result: PaymentSession = {
+    const result: RawPaymentSession = {
       provider: this.name,
 
       paymentStatus: PaymentStatus.SUCCESS,
@@ -503,8 +503,8 @@ export class StripeProvider implements PaymentProvider {
   // build payment session from invoice
   private async buildPaymentSessionFromSubscription(
     subscription: Stripe.Response<Stripe.Subscription>
-  ): Promise<PaymentSession> {
-    const result: PaymentSession = {
+  ): Promise<RawPaymentSession> {
+    const result: RawPaymentSession = {
       provider: this.name,
     };
 

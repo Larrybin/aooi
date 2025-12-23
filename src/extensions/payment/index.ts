@@ -2,6 +2,7 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
+import type { JsonObject, JsonValue } from '@/shared/lib/json';
 
 /**
  * Payment price interface
@@ -173,11 +174,11 @@ export interface SubscriptionInfo {
 export interface CheckoutSession {
   provider: string;
 
-  checkoutParams: unknown; // checkout request params
+  checkoutParams: JsonValue; // checkout request params (json-serializable)
   checkoutInfo: CheckoutInfo; // checkout info after checkout success
-  checkoutResult: unknown; // provider checkout result
+  checkoutResult: JsonValue; // provider checkout result (json-serializable)
 
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
 }
 
 /**
@@ -189,14 +190,14 @@ export interface PaymentSession {
   // payment info
   paymentStatus?: PaymentStatus; // payment status
   paymentInfo?: PaymentInfo; // payment info after payment success
-  paymentResult?: unknown; // provider payment result
+  paymentResult?: JsonValue; // provider payment result (json-serializable)
 
   // subscription info
   subscriptionId?: string;
   subscriptionInfo?: SubscriptionInfo; // subscription info after subscription success
-  subscriptionResult?: unknown; // provider subscription result
+  subscriptionResult?: JsonValue; // provider subscription result (json-serializable)
 
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 }
 
 export enum PaymentEventType {
@@ -239,9 +240,40 @@ export class WebhookConfigError extends Error {
  */
 export interface PaymentEvent {
   eventType: PaymentEventType;
-  eventResult: unknown; // provider event result
+  eventResult: JsonValue; // provider event result (json-serializable)
 
-  paymentSession?: PaymentSession;
+  paymentSession: PaymentSession;
+}
+
+/**
+ * Raw provider output types (driver-level)
+ *
+ * - Used by provider implementations (Stripe/Creem/PayPal)
+ * - Converted and validated by adapter into stable contracts above
+ */
+export interface RawCheckoutSession {
+  provider: string;
+  checkoutParams: unknown;
+  checkoutInfo: CheckoutInfo;
+  checkoutResult: unknown;
+  metadata: Record<string, unknown>;
+}
+
+export interface RawPaymentSession {
+  provider: string;
+  paymentStatus?: PaymentStatus;
+  paymentInfo?: PaymentInfo;
+  paymentResult?: unknown;
+  subscriptionId?: string;
+  subscriptionInfo?: SubscriptionInfo;
+  subscriptionResult?: unknown;
+  metadata?: Record<string, unknown>;
+}
+
+export interface RawPaymentEvent {
+  eventType: PaymentEventType;
+  eventResult: unknown;
+  paymentSession: RawPaymentSession;
 }
 
 export interface PaymentInvoice {
@@ -310,6 +342,48 @@ export interface PaymentProvider {
 }
 
 /**
+ * Payment provider driver interface (provider-specific, before adapter)
+ */
+export interface PaymentProviderDriver {
+  readonly name: string;
+  configs: PaymentConfigs;
+
+  createPayment({
+    order,
+  }: {
+    order: PaymentOrder;
+  }): Promise<RawCheckoutSession>;
+
+  getPaymentSession({
+    sessionId,
+  }: {
+    sessionId: string;
+  }): Promise<RawPaymentSession>;
+
+  getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent>;
+
+  getPaymentInvoice?({
+    invoiceId,
+  }: {
+    invoiceId: string;
+  }): Promise<PaymentInvoice>;
+
+  getPaymentBilling?({
+    customerId,
+    returnUrl,
+  }: {
+    customerId: string;
+    returnUrl?: string;
+  }): Promise<PaymentBilling>;
+
+  cancelSubscription?({
+    subscriptionId,
+  }: {
+    subscriptionId: string;
+  }): Promise<RawPaymentSession>;
+}
+
+/**
  * Payment manager to manage all payment providers
  */
 export class PaymentManager {
@@ -317,37 +391,81 @@ export class PaymentManager {
   private providers: PaymentProvider[] = [];
   private defaultProvider?: PaymentProvider;
 
+  private normalizeProviderName(name: unknown): string {
+    return typeof name === 'string' ? name.trim() : '';
+  }
+
+  hasProvider(name: string): boolean {
+    const normalized = this.normalizeProviderName(name);
+    return this.providers.some(
+      (p) => this.normalizeProviderName(p.name) === normalized
+    );
+  }
+
   // add payment provider
   addProvider(provider: PaymentProvider, isDefault = false) {
+    const name = this.normalizeProviderName(provider?.name);
+    if (!name) {
+      throw new ServiceUnavailableError('Payment provider name is required');
+    }
+    if (this.hasProvider(name)) {
+      throw new ServiceUnavailableError(
+        `Payment provider '${name}' is already registered`
+      );
+    }
     this.providers.push(provider);
     if (isDefault) {
       this.defaultProvider = provider;
     }
   }
 
-  // get provider by name
-  getProvider(name: string): PaymentProvider | undefined {
-    const provider = this.providers.find((p) => p.name === name);
+  removeProvider(name: string): boolean {
+    const normalized = this.normalizeProviderName(name);
+    const index = this.providers.findIndex(
+      (p) => this.normalizeProviderName(p.name) === normalized
+    );
+    if (index < 0) return false;
 
-    if (!provider && this.defaultProvider) {
-      return this.defaultProvider;
+    const [removed] = this.providers.splice(index, 1);
+
+    if (
+      this.normalizeProviderName(this.defaultProvider?.name) ===
+      this.normalizeProviderName(removed.name)
+    ) {
+      this.defaultProvider = undefined;
     }
 
-    return provider;
+    return true;
+  }
+
+  clearProviders(): void {
+    this.providers = [];
+    this.defaultProvider = undefined;
+  }
+
+  setDefaultProvider(name: string): void {
+    const provider = this.getProvider(name);
+    if (!provider) {
+      throw new ServiceUnavailableError(`Payment provider '${name}' not found`);
+    }
+    this.defaultProvider = provider;
+  }
+
+  // get provider by name
+  getProvider(name: string): PaymentProvider | undefined {
+    const normalized = this.normalizeProviderName(name);
+    return this.providers.find(
+      (p) => this.normalizeProviderName(p.name) === normalized
+    );
   }
 
   // get all provider names
   getProviderNames(): string[] {
-    return this.providers.map((p) => p.name);
+    return this.providers.map((p) => this.normalizeProviderName(p.name));
   }
 
   getDefaultProvider(): PaymentProvider | undefined {
-    // set default provider if not set
-    if (!this.defaultProvider && this.providers.length > 0) {
-      this.defaultProvider = this.providers[0];
-    }
-
-    return this.defaultProvider;
+    return this.defaultProvider ?? this.providers[0];
   }
 
   // create payment using default provider

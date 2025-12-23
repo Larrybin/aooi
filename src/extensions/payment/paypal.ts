@@ -11,12 +11,12 @@ import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
-  type CheckoutSession,
   type PaymentConfigs,
-  type PaymentEvent,
   type PaymentOrder,
-  type PaymentProvider,
-  type PaymentSession,
+  type PaymentProviderDriver,
+  type RawCheckoutSession,
+  type RawPaymentEvent,
+  type RawPaymentSession,
 } from '.';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -154,11 +154,27 @@ function extractPayPalCustomerEmail(payload: unknown): string | undefined {
   );
 }
 
+function extractPayPalOrderNo(payload: unknown): string | undefined {
+  return (
+    readStringPath(payload, ['custom_id']) ??
+    readStringPath(payload, ['purchase_units', '0', 'custom_id']) ??
+    readStringPath(payload, ['purchase_units', '0', 'invoice_id'])
+  );
+}
+
 function extractPayPalMetadata(
   payload: unknown
 ): Record<string, unknown> | undefined {
   const value = readPath(payload, ['metadata']);
-  return isRecord(value) ? value : undefined;
+  const metadata = isRecord(value) ? value : undefined;
+
+  const orderNo = extractPayPalOrderNo(payload);
+  if (!metadata && !orderNo) return undefined;
+
+  return {
+    ...(metadata || {}),
+    ...(orderNo ? { order_no: orderNo } : {}),
+  };
 }
 
 function extractPayPalTransactionId(result: unknown): string | undefined {
@@ -224,7 +240,7 @@ const payPalWebhookResourceSummarySchema = z
 export interface PayPalConfigs extends PaymentConfigs {
   clientId: string;
   clientSecret: string;
-  webhookSecret?: string;
+  webhookId?: string;
   environment?: 'sandbox' | 'production';
 }
 
@@ -232,7 +248,7 @@ export interface PayPalConfigs extends PaymentConfigs {
  * PayPal payment provider implementation
  * @website https://www.paypal.com/
  */
-export class PayPalProvider implements PaymentProvider {
+export class PayPalProvider implements PaymentProviderDriver {
   readonly name = 'paypal';
   configs: PayPalConfigs;
 
@@ -253,12 +269,17 @@ export class PayPalProvider implements PaymentProvider {
     order,
   }: {
     order: PaymentOrder;
-  }): Promise<CheckoutSession> {
+  }): Promise<RawCheckoutSession> {
     await this.ensureAccessToken();
 
     if (!order.price) {
       throw new BadRequestError('price is required');
     }
+
+    const orderNo =
+      order.metadata && typeof order.metadata.order_no === 'string'
+        ? order.metadata.order_no
+        : undefined;
 
     const items = [
       {
@@ -281,6 +302,7 @@ export class PayPalProvider implements PaymentProvider {
       purchase_units: [
         {
           items,
+          custom_id: orderNo,
           amount: {
             currency_code: order.price.currency.toUpperCase(),
             value: totalAmount.toFixed(2),
@@ -337,7 +359,7 @@ export class PayPalProvider implements PaymentProvider {
 
   async createSubscriptionPayment(
     order: PaymentOrder
-  ): Promise<CheckoutSession> {
+  ): Promise<RawCheckoutSession> {
     await this.ensureAccessToken();
 
     if (!order.plan) {
@@ -437,8 +459,14 @@ export class PayPalProvider implements PaymentProvider {
     }
 
     // Create subscription
+    const orderNo =
+      order.metadata && typeof order.metadata.order_no === 'string'
+        ? order.metadata.order_no
+        : undefined;
+
     const subscriptionPayload = {
       plan_id: planId,
+      custom_id: orderNo,
       subscriber: {
         email_address: order.customer?.email,
         name: order.customer?.name
@@ -506,8 +534,8 @@ export class PayPalProvider implements PaymentProvider {
   async getPaymentSession({
     sessionId,
   }: {
-    sessionId?: string;
-  }): Promise<PaymentSession> {
+    sessionId: string;
+  }): Promise<RawPaymentSession> {
     if (!sessionId) {
       throw new BadRequestError('sessionId is required');
     }
@@ -557,12 +585,12 @@ export class PayPalProvider implements PaymentProvider {
     };
   }
 
-  async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
+  async getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent> {
     const rawBody = await req.text();
     const headers = Object.fromEntries(req.headers.entries());
 
-    if (!this.configs.webhookSecret) {
-      throw new WebhookConfigError('webhookSecret not configured');
+    if (!this.configs.webhookId) {
+      throw new WebhookConfigError('paypal webhook id not configured');
     }
 
     const event = safeJsonParse<unknown>(rawBody);
@@ -585,7 +613,7 @@ export class PayPalProvider implements PaymentProvider {
       transmission_id: headers?.['paypal-transmission-id'],
       transmission_sig: headers?.['paypal-transmission-sig'],
       transmission_time: headers?.['paypal-transmission-time'],
-      webhook_id: this.configs.webhookSecret,
+      webhook_id: this.configs.webhookId,
       webhook_event: webhookEvent,
     };
 
@@ -617,17 +645,33 @@ export class PayPalProvider implements PaymentProvider {
       hasResource: Boolean(webhookEvent.resource),
     });
 
-    const mappedEventType = this.mapPayPalEventType(webhookEvent.event_type);
-    if (!mappedEventType) {
-      throw new WebhookPayloadError(
-        `unsupported paypal webhook event type: ${webhookEvent.event_type}`
-      );
+    const mappedEventType =
+      this.mapPayPalEventType(webhookEvent.event_type) ??
+      PaymentEventType.PAYMENT_FAILED;
+
+    let paymentSession: RawPaymentSession | undefined = undefined;
+    const resourceId = readStringPath(webhookEvent.resource, ['id']);
+
+    if (mappedEventType === PaymentEventType.CHECKOUT_SUCCESS) {
+      if (!resourceId) {
+        throw new WebhookPayloadError('missing paypal resource id');
+      }
+      paymentSession = await this.getPaymentSession({ sessionId: resourceId });
+    } else {
+      paymentSession = {
+        provider: this.name,
+        paymentStatus: PaymentStatus.PROCESSING,
+        paymentResult: webhookEvent.resource ?? webhookEvent,
+      };
+    }
+    if (!paymentSession) {
+      throw new WebhookPayloadError('payment session not found');
     }
 
     return {
       eventType: mappedEventType,
       eventResult: webhookEvent,
-      paymentSession: undefined,
+      paymentSession,
     };
   }
 
@@ -742,9 +786,10 @@ export class PayPalProvider implements PaymentProvider {
       case 'PAYMENT.SALE.DENIED':
         return PaymentEventType.PAYMENT_FAILED;
       case 'BILLING.SUBSCRIPTION.UPDATED':
-        return PaymentEventType.SUBSCRIBE_UPDATED;
       case 'BILLING.SUBSCRIPTION.CANCELLED':
-        return PaymentEventType.SUBSCRIBE_CANCELED;
+        // NOTE: Subscription lifecycle webhooks are not supported yet.
+        // We return a safe "ignored" event type to avoid PayPal retries.
+        return PaymentEventType.PAYMENT_FAILED;
       default:
         return undefined;
     }

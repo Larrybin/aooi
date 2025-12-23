@@ -1,3 +1,5 @@
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+
 /**
  * AI Configs to use AI functions
  */
@@ -110,22 +112,77 @@ export class AIManager {
   // default ai provider
   private defaultProvider?: AIProvider;
 
+  private normalizeProviderName(name: unknown): string {
+    return typeof name === 'string' ? name.trim() : '';
+  }
+
+  hasProvider(name: string): boolean {
+    const normalized = this.normalizeProviderName(name);
+    return this.providers.some(
+      (p) => this.normalizeProviderName(p.name) === normalized
+    );
+  }
+
   // add ai provider
   addProvider(provider: AIProvider, isDefault = false) {
+    const name = this.normalizeProviderName(provider?.name);
+    if (!name) {
+      throw new ServiceUnavailableError('AI provider name is required');
+    }
+    if (this.hasProvider(name)) {
+      throw new ServiceUnavailableError(
+        `AI provider '${name}' is already registered`
+      );
+    }
     this.providers.push(provider);
     if (isDefault) {
       this.defaultProvider = provider;
     }
   }
 
+  removeProvider(name: string): boolean {
+    const normalized = this.normalizeProviderName(name);
+    const index = this.providers.findIndex(
+      (p) => this.normalizeProviderName(p.name) === normalized
+    );
+    if (index < 0) return false;
+
+    const [removed] = this.providers.splice(index, 1);
+
+    if (
+      this.normalizeProviderName(this.defaultProvider?.name) ===
+      this.normalizeProviderName(removed.name)
+    ) {
+      this.defaultProvider = undefined;
+    }
+
+    return true;
+  }
+
+  clearProviders(): void {
+    this.providers = [];
+    this.defaultProvider = undefined;
+  }
+
+  setDefaultProvider(name: string): void {
+    const provider = this.getProvider(name);
+    if (!provider) {
+      throw new ServiceUnavailableError(`AI provider '${name}' not found`);
+    }
+    this.defaultProvider = provider;
+  }
+
   // get provider by name
   getProvider(name: string): AIProvider | undefined {
-    return this.providers.find((p) => p.name === name);
+    const normalized = this.normalizeProviderName(name);
+    return this.providers.find(
+      (p) => this.normalizeProviderName(p.name) === normalized
+    );
   }
 
   // get all provider names
   getProviderNames(): string[] {
-    return this.providers.map((p) => p.name);
+    return this.providers.map((p) => this.normalizeProviderName(p.name));
   }
 
   // get all media types
@@ -134,12 +191,7 @@ export class AIManager {
   }
 
   getDefaultProvider(): AIProvider | undefined {
-    // set default provider if not set
-    if (!this.defaultProvider && this.providers.length > 0) {
-      this.defaultProvider = this.providers[0];
-    }
-
-    return this.defaultProvider;
+    return this.defaultProvider ?? this.providers[0];
   }
 }
 
