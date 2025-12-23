@@ -65,6 +65,12 @@
 
 - Provider 适配：`src/extensions/payment/creem.ts`、`src/extensions/payment/paypal.ts`
 - 统一接口与类型：`src/extensions/payment/index.ts`
+- Providers server-only 入口：`src/extensions/payment/providers.ts`（避免 provider 实现被 Client 侧误导入）
+
+### Email / Storage 集成（extensions）
+
+- Email：统一接口与类型 `src/extensions/email/index.ts`；Providers server-only 入口 `src/extensions/email/providers.ts`
+- Storage：统一接口与类型 `src/extensions/storage/index.ts`；Providers server-only 入口 `src/extensions/storage/providers.ts`
 
 ### 数据库与迁移（Drizzle）
 
