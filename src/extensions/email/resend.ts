@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { Resend, type CreateEmailOptions } from 'resend';
 
 import { logger } from '@/shared/lib/logger.server';

@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { EmailManager, ResendProvider } from '@/extensions/email';
+import { EmailManager } from '@/extensions/email';
+import { ResendProvider } from '@/extensions/email/providers';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';

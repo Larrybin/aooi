@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { R2Provider, S3Provider, StorageManager } from '@/extensions/storage';
+import { StorageManager } from '@/extensions/storage';
+import { R2Provider, S3Provider } from '@/extensions/storage/providers';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';

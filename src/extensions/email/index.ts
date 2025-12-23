@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * Email attachment interface
@@ -115,5 +115,4 @@ export class EmailManager {
 // Global email manager instance
 export const emailManager = new EmailManager();
 
-// Export all providers
-export * from './resend';
+// Providers are exported via `./providers` (server-only)

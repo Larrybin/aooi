@@ -151,6 +151,4 @@ export class StorageManager {
 // Global storage manager instance
 export const storageManager = new StorageManager();
 
-// Export all providers
-export * from './s3';
-export * from './r2';
+// Providers are exported via `./providers` (server-only)

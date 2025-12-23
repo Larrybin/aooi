@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { safeFetch } from '@/shared/lib/fetch/server';
 
 import {
