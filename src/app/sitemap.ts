@@ -2,6 +2,11 @@ import type { MetadataRoute } from 'next';
 
 import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
+import {
+  isLandingBlogEnabled,
+  isLandingDocsEnabled,
+} from '@/shared/lib/landing-visibility';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;
@@ -18,8 +23,14 @@ function buildUrl(pathname: string, locale: string) {
   return `${appUrl}${localePrefix}${pathname}`;
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ['/', '/pricing', '/blog', '/showcases', '/docs'];
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const publicConfigs = await getPublicConfigsCached();
+  const routes = [
+    '/',
+    '/pricing',
+    ...(isLandingBlogEnabled(publicConfigs) ? ['/blog'] : []),
+    ...(isLandingDocsEnabled(publicConfigs) ? ['/docs'] : []),
+  ];
   const lastModified = new Date();
 
   return locales.flatMap((locale) =>

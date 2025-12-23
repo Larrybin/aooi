@@ -5,21 +5,23 @@ import { logger } from '@/shared/lib/logger.server';
 
 import { getActiveTheme, type ThemeName } from './active-theme';
 
-type ThemeLandingPageName = 'landing' | 'pricing' | 'showcases';
+type ThemeLandingPageName = 'landing' | 'pricing';
 type ThemeLandingLayoutName = 'landing' | 'landing-marketing';
 
-type AnyComponent<Props extends Record<string, unknown> = Record<string, unknown>> =
-  (props: Props) => ReactNode | Promise<ReactNode>;
+type AnyComponent<
+  Props extends Record<string, unknown> = Record<string, unknown>,
+> = (props: Props) => ReactNode | Promise<ReactNode>;
 type Loader = () => Promise<unknown>;
 
-const themeLandingPages: Record<ThemeName, Record<ThemeLandingPageName, Loader>> =
-  {
-    default: {
-      landing: () => import('@/themes/default/pages/landing'),
-      pricing: () => import('@/themes/default/pages/pricing'),
-      showcases: () => import('@/themes/default/pages/showcases'),
-    },
-  };
+const themeLandingPages: Record<
+  ThemeName,
+  Record<ThemeLandingPageName, Loader>
+> = {
+  default: {
+    landing: () => import('@/themes/default/pages/landing'),
+    pricing: () => import('@/themes/default/pages/pricing'),
+  },
+};
 
 const themeLandingLayouts: Record<
   ThemeName,
@@ -41,7 +43,9 @@ export async function getThemePage(
 ) {
   const activeTheme = theme || getActiveTheme();
   const loadTheme: ThemeName =
-    activeTheme in themeLandingPages ? (activeTheme as ThemeName) : defaultTheme;
+    activeTheme in themeLandingPages
+      ? (activeTheme as ThemeName)
+      : defaultTheme;
 
   if (loadTheme !== activeTheme) {
     logger.warn('theme: unknown theme, fallback to default', {
@@ -111,4 +115,3 @@ export async function getThemeLayout(
   }
   return themeModule.default as AnyComponent;
 }
-

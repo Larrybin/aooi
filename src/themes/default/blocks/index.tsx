@@ -9,7 +9,6 @@ export * from './features-list';
 export * from './features-accordion';
 export * from './features-step';
 
-export * from './showcases';
 export * from './logos';
 export * from './stats';
 export * from './testimonials';
