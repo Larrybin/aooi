@@ -25,7 +25,17 @@
 - 允许依赖：`shared/models`、`extensions/*`、`config/*`。
 - 禁止依赖：UI/入口层（如 `shared/blocks|components|contexts|hooks`、`themes`、`app`），避免服务层反向依赖导致耦合扩大。
 
-## 4) `src/shared/blocks/**`、`src/shared/components/**`、`src/shared/contexts/**`（UI 共享层）
+## 4) `src/shared/constants/**`（Leaf 常量层）
+
+- 目标：承载跨模块共享的常量/枚举/权限码等，避免“仅取常量却引入 server-only 依赖”。
+- 允许依赖：纯类型/纯常量模块（例如 `src/shared/types/**`、`src/shared/lib/**` 的纯函数工具）。
+- 禁止依赖（P0 固化，见 `eslint.config.mjs`）：
+  - `@/shared/services/**`
+  - `@/shared/models/**`
+  - `@/core/**`
+- 示例：`src/shared/constants/rbac-permissions.ts`
+
+## 5) `src/shared/blocks/**`、`src/shared/components/**`、`src/shared/contexts/**`（UI 共享层）
 
 - 目标：复用 UI 构件，不承诺跨项目复用。
 - 允许的 core 依赖面（P0 固化）：仅
@@ -36,11 +46,11 @@
   - UI/Client 面禁止导入：`next/headers`、`@/core/db/**`、`@/shared/services/**`、`@/shared/content/**`、以及任何 `*.server` 模块。
   - 新增散点 Client 模块请使用 `*.client.ts(x)` 或放入 `**/client/**` 目录，以便被 ESLint 规则自动纳管。
 
-## 5) ESLint 约束（单一事实来源）
+## 6) ESLint 约束（单一事实来源）
 
 上述边界以 `eslint.config.mjs` 为准。新增文件或重构时，优先通过 lint 规则体现边界，而不是靠口头约定。
 
-## 6) `src/app/**/route.ts`（Route Handler 入口约束）
+## 7) `src/app/**/route.ts`（Route Handler 入口约束）
 
 - 目标：保持 handler 仅做编排（鉴权/校验/调用 services/返回响应），避免引入 UI 依赖图。
 - 禁止依赖：`shared/blocks|components|contexts`、`themes` 以及任何 client-only 模块（如 `*.client.*`、`**/client/**`、`client-only`）。

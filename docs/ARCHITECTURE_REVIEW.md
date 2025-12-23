@@ -212,7 +212,7 @@
 
 ### P2：安全与运维建议项
 
-- `next.config.mjs` 的 `images.remotePatterns` 允许任意 hostname：建议按实际域名白名单收敛。
+- （已修复）`next.config.mjs` 不再允许任意 hostname 的 `images.remotePatterns`；当前通过 `images.unoptimized: true` 禁用 `/_next/image` 出站面（如需恢复优化需补齐严格 allowlist）。
 - （已修复）`reactStrictMode: true`：已启用 Strict Mode（开发态），用于提前暴露副作用与不安全用法。
 
 ---

@@ -61,9 +61,17 @@
 - 支付 checkout：`src/app/api/payment/checkout/route.ts`
 - 支付回调/通知：`src/app/api/payment/notify/[provider]/route.ts`
 
+### 错误处理（API / Server Actions）
+
+- 公共错误类型：`src/shared/lib/errors.ts`（`BusinessError` / `ExternalError`）
+- API：`src/shared/lib/api/errors.ts`、`src/shared/lib/api/route.ts`（`ApiError` / `withApi()`）
+- Server Actions：`src/shared/lib/action/errors.ts`、`src/shared/lib/action/with-action.ts`（`ActionError` / `withAction()`）
+- API 约定文档：`docs/api/reference.md`
+
 ### 支付集成（extensions）
 
-- Provider 适配：`src/extensions/payment/creem.ts`、`src/extensions/payment/paypal.ts`
+- Provider 适配：`src/extensions/payment/creem.ts`、`src/extensions/payment/paypal.ts`、`src/extensions/payment/stripe.ts`
+- Provider Adapter（校验/映射）：`src/extensions/payment/adapter.ts`
 - 统一接口与类型：`src/extensions/payment/index.ts`
 - Providers server-only 入口：`src/extensions/payment/providers.ts`（避免 provider 实现被 Client 侧误导入）
 
@@ -82,6 +90,7 @@
 以 `docs/architecture/shared-layering.md` 为准；当不确定放哪层时，优先对照该文件的“允许/禁止依赖”。
 
 - 纯工具/一致性逻辑：`src/shared/lib/**`（示例：`src/shared/lib/seo.ts`）
+- 叶子常量层：`src/shared/constants/**`（示例：`src/shared/constants/rbac-permissions.ts`）
 - DAL/Repo/Facade：`src/shared/models/**`
 - Content pipeline（server-only）：`src/shared/content/**`
 - 服务装配（server-only）：`src/shared/services/**`

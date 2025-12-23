@@ -147,10 +147,11 @@ Enabled by default. Can be toggled via database config:
 
 ### Optional
 
-| Variable              | Description                   |
-| --------------------- | ----------------------------- |
-| `BETTER_AUTH_URL`     | Override auth base URL        |
-| `NEXT_PUBLIC_APP_URL` | Application URL for callbacks |
+| Variable              | Description                                                |
+| --------------------- | ---------------------------------------------------------- |
+| `BETTER_AUTH_URL`     | Override auth base URL                                     |
+| `AUTH_URL`            | Fallback auth base URL (if BETTER_AUTH_URL is not set)     |
+| `NEXT_PUBLIC_APP_URL` | Application URL for callbacks (and auth base URL fallback) |
 
 ## Database Schema
 
@@ -240,4 +241,5 @@ OAuth callback error: redirect_uri_mismatch
 - `src/core/auth/client.ts` - Client utilities
 - `src/app/api/auth/[...all]/route.ts` - API route
 - `src/shared/lib/api/guard.ts` - Auth guards for API routes
-- `src/shared/services/auth.ts` - Auth service utilities
+- `src/shared/lib/auth-session.server.ts` - Session helpers (`getSignedInUser`)
+- `src/config/server.ts` - Server-only env (`authBaseUrl`/`authSecret`)
