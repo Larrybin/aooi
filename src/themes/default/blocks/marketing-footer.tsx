@@ -32,6 +32,7 @@ export function MarketingFooter({
               <Link
                 href={withLocale(footer.brand.url, locale)}
                 target={footer.brand.target || '_self'}
+                prefetch={false}
                 className={`flex items-center gap-2 ${footer.brand.className || ''}`}
               >
                 {footer.brand.logo ? (
@@ -72,6 +73,7 @@ export function MarketingFooter({
                       key={iidx}
                       href={withLocale(subItem.url || '', locale)}
                       target={subItem.target || '_self'}
+                      prefetch={false}
                       className="text-muted-foreground hover:text-primary block break-words duration-150"
                     >
                       {subItem.title || ''}
@@ -103,6 +105,7 @@ export function MarketingFooter({
                   key={idx}
                   href={withLocale(item.url || '', locale)}
                   target={item.target || '_self'}
+                  prefetch={false}
                   className="text-muted-foreground hover:text-primary block text-xs break-words underline duration-150"
                 >
                   {item.title || ''}

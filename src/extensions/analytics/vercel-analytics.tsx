@@ -1,14 +1,16 @@
 import { ReactNode } from 'react';
-import { Analytics } from '@vercel/analytics/next';
 
 import { AnalyticsConfigs, AnalyticsProvider } from '.';
+import { VercelAnalyticsClient } from './vercel-analytics-client';
+
+type Mode = 'auto' | 'development' | 'production';
 
 /**
  * Vercel analytics configs
  * @docs https://vercel.com/docs/analytics/quickstart
  */
 export interface VercelAnalyticsConfigs extends AnalyticsConfigs {
-  mode?: string;
+  mode?: Mode;
   debug?: boolean;
 }
 
@@ -30,7 +32,12 @@ export class VercelAnalyticsProvider implements AnalyticsProvider {
   }
 
   getBodyScripts(): ReactNode {
-    return <Analytics />;
+    return (
+      <VercelAnalyticsClient
+        mode={this.configs.mode}
+        debug={this.configs.debug}
+      />
+    );
   }
 
   getMetaTags(): ReactNode {

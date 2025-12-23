@@ -34,6 +34,7 @@ function MarketingNavItem({ item, locale }: { item: NavItem; locale: string }) {
       <Link
         href={href}
         target={item.target || '_self'}
+        prefetch={false}
         className="text-muted-foreground hover:text-foreground text-sm font-medium"
       >
         {title}
@@ -56,6 +57,7 @@ function MarketingNavItem({ item, locale }: { item: NavItem; locale: string }) {
               key={idx}
               href={childHref}
               target={child.target || '_self'}
+              prefetch={false}
               className="hover:bg-muted block rounded px-3 py-2 text-sm"
             >
               <div className="font-medium">
@@ -93,6 +95,7 @@ export function MarketingHeader({
           <Link
             href={withLocale(header.brand.url, locale)}
             target={header.brand.target || '_self'}
+            prefetch={false}
             className={`flex items-center gap-2 ${header.brand.className || ''}`}
           >
             {header.brand.logo ? (
@@ -141,6 +144,7 @@ export function MarketingHeader({
                           key={idx}
                           href={href}
                           target={item.target || '_self'}
+                          prefetch={false}
                           className="hover:bg-muted block rounded px-3 py-2 text-sm font-medium"
                         >
                           {title}
@@ -165,6 +169,7 @@ export function MarketingHeader({
                                 key={cidx}
                                 href={childHref}
                                 target={child.target || '_self'}
+                                prefetch={false}
                                 className="text-muted-foreground hover:text-foreground hover:bg-muted block rounded px-3 py-2 text-sm"
                               >
                                 {child.title || child.name || ''}
@@ -185,6 +190,7 @@ export function MarketingHeader({
               key={idx}
               href={withLocale(button.url || '', locale)}
               target={button.target || '_self'}
+              prefetch={false}
               className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium"
             >
               {button.title || ''}
@@ -194,6 +200,7 @@ export function MarketingHeader({
           {header.show_sign ? (
             <Link
               href={withLocale('/sign-in', locale)}
+              prefetch={false}
               className="text-muted-foreground hover:text-foreground text-sm font-medium"
             >
               Sign in

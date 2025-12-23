@@ -36,8 +36,9 @@ type ThemeBlockName =
   | 'marketing-header'
   | 'marketing-footer';
 
-type AnyComponent<Props extends Record<string, unknown> = Record<string, unknown>> =
-  (props: Props) => ReactNode | Promise<ReactNode>;
+type AnyComponent<
+  Props extends Record<string, unknown> = Record<string, unknown>,
+> = (props: Props) => ReactNode | Promise<ReactNode>;
 type Loader = () => Promise<unknown>;
 
 const themePages: Record<ThemeName, Record<ThemePageName, Loader>> = {

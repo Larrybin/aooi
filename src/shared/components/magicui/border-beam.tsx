@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/shared/lib/utils";
-import { motion, MotionStyle, Transition } from "motion/react";
 
 interface BorderBeamProps {
   /**
@@ -27,7 +26,7 @@ interface BorderBeamProps {
   /**
    * The motion transition of the border beam.
    */
-  transition?: Transition;
+  transition?: unknown;
   /**
    * The class name of the border beam.
    */
@@ -57,12 +56,18 @@ export const BorderBeam = ({
   duration = 6,
   colorFrom = "#ffaa40",
   colorTo = "#9c40ff",
-  transition,
+  transition: _transition,
   style,
   reverse = false,
   initialOffset = 0,
   borderWidth = 1,
 }: BorderBeamProps) => {
+  const normalizedOffset = Math.max(0, Math.min(100, initialOffset));
+  const progress = reverse
+    ? (100 - normalizedOffset) / 100
+    : normalizedOffset / 100;
+  const animationDelay = -(delay + duration * progress);
+
   return (
     <div
       className="pointer-events-none absolute inset-0 rounded-[inherit] border-transparent [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)] border-(length:--border-beam-width)"
@@ -72,34 +77,23 @@ export const BorderBeam = ({
         } as React.CSSProperties
       }
     >
-      <motion.div
+      <div
         className={cn(
-          "absolute aspect-square",
-          "bg-gradient-to-l from-[var(--color-from)] via-[var(--color-to)] to-transparent",
+          "absolute animate-spin rounded-[inherit] motion-reduce:hidden",
+          "bg-[conic-gradient(from_0deg,transparent,var(--color-from),var(--color-to),transparent)]",
           className
         )}
         style={
           {
-            width: size,
-            offsetPath: `rect(0 auto auto 0 round ${size}px)`,
+            inset: `${-Math.max(0, size)}px`,
             "--color-from": colorFrom,
             "--color-to": colorTo,
+            animationDuration: `${duration}s`,
+            animationDelay: `${animationDelay}s`,
+            animationDirection: reverse ? "reverse" : "normal",
             ...style,
-          } as MotionStyle
+          } as React.CSSProperties
         }
-        initial={{ offsetDistance: `${initialOffset}%` }}
-        animate={{
-          offsetDistance: reverse
-            ? [`${100 - initialOffset}%`, `${-initialOffset}%`]
-            : [`${initialOffset}%`, `${100 + initialOffset}%`],
-        }}
-        transition={{
-          repeat: Infinity,
-          ease: "linear",
-          duration,
-          delay: -delay,
-          ...transition,
-        }}
       />
     </div>
   );
