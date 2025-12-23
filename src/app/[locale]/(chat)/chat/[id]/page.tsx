@@ -2,13 +2,15 @@ import { redirect } from 'next/navigation';
 import type { UIMessage } from 'ai';
 
 import { ChatBox } from '@/shared/blocks/chat/box';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { safeJsonParse } from '@/shared/lib/json';
-import { findChatById } from '@/shared/models/chat';
+import { findChatByIdForViewer } from '@/shared/models/chat';
 import {
   ChatMessageStatus,
   getChatMessages,
 } from '@/shared/models/chat_message';
 import { getUserInfo } from '@/shared/models/user';
+import { buildHasPermissionCondition } from '@/shared/services/rbac';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({
@@ -23,8 +25,15 @@ export default async function ChatPage({
     redirect(`/${locale}/sign-in`);
   }
 
-  const chat = await findChatById(chatId);
-  if (!chat || chat.userId !== user.id) {
+  const chat = await findChatByIdForViewer({
+    chatId,
+    viewerUserId: user.id,
+    allowAccessCondition: buildHasPermissionCondition({
+      userId: user.id,
+      permissionCode: PERMISSIONS.ADMIN_ACCESS,
+    }),
+  });
+  if (!chat) {
     redirect(`/${locale}/no-permission`);
   }
 
@@ -44,10 +53,10 @@ export default async function ChatPage({
         : String(chat.createdAt),
     model: chat.model ?? '',
     provider: chat.provider ?? '',
-    parts: safeJsonParse(chat.parts) ?? [],
-    metadata: safeJsonParse(chat.metadata),
-    content: safeJsonParse(chat.content),
-  } as unknown as Chat;
+    parts: chat.parts ?? '[]',
+    metadata: chat.metadata ?? null,
+    content: chat.content ?? null,
+  } satisfies Chat;
 
   const initialMessages: UIMessage[] = messages.map((message) => ({
     id: message.id,
