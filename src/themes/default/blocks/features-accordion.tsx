@@ -14,6 +14,8 @@ import {
 import { ScrollAnimation } from '@/shared/components/ui/scroll-animation';
 import { Features as FeaturesType } from '@/shared/types/blocks/landing';
 
+const EMPTY_ITEMS: NonNullable<FeaturesType['items']> = [];
+
 export function FeaturesAccordion({
   features,
   className,
@@ -21,7 +23,7 @@ export function FeaturesAccordion({
   features: FeaturesType;
   className?: string;
 }) {
-  const items = features.items ?? [];
+  const items = features.items ?? EMPTY_ITEMS;
   const [activeItem, setActiveItem] = useState<string>(
     items.length > 0 ? 'item-1' : ''
   );
@@ -112,12 +114,8 @@ export function FeaturesAccordion({
                       src={activeImage.src}
                       className="size-full object-cover object-left-top dark:mix-blend-lighten"
                       alt={activeImage.alt}
-                      width={
-                        activeImage.width ?? fallbackImageSize.width
-                      }
-                      height={
-                        activeImage.height ?? fallbackImageSize.height
-                      }
+                      width={activeImage.width ?? fallbackImageSize.width}
+                      height={activeImage.height ?? fallbackImageSize.height}
                       sizes="(max-width: 640px) 100vw, 75vw"
                       // prevent img from exceeding parent
                       style={{ maxWidth: '100%', height: 'auto' }}

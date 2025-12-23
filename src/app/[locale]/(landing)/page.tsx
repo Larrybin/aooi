@@ -1,6 +1,9 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemeLayout, getThemePage } from '@/core/theme/landing';
+import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
+import { filterLandingButtons } from '@/shared/lib/landing-visibility';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   Landing,
   type Footer as FooterType,
@@ -18,11 +21,21 @@ export default async function LandingPage({
   // load page data
   const t = await getTranslations('landing');
 
+  const publicConfigs = await getPublicConfigsCached();
+
   const Layout = await getThemeLayout('landing-marketing');
 
   // build page params
+  const hero = t.raw('hero');
+  const cta = t.raw('cta');
+
   const page: Landing = {
-    hero: t.raw('hero'),
+    hero: hero
+      ? {
+          ...hero,
+          buttons: filterLandingButtons(hero.buttons, publicConfigs),
+        }
+      : undefined,
     logos: t.raw('logos'),
     introduce: t.raw('introduce'),
     benefits: t.raw('benefits'),
@@ -32,14 +45,23 @@ export default async function LandingPage({
     subscribe: t.raw('subscribe'),
     testimonials: t.raw('testimonials'),
     faq: t.raw('faq'),
-    cta: t.raw('cta'),
+    cta: cta
+      ? {
+          ...cta,
+          buttons: filterLandingButtons(cta.buttons, publicConfigs),
+        }
+      : undefined,
   };
 
   // load page component
   const Page = await getThemePage('landing');
 
-  const header: HeaderType = t.raw('header');
-  const footer: FooterType = t.raw('footer');
+  const headerRaw: HeaderType = t.raw('header');
+  const footerRaw: FooterType = t.raw('footer');
+  const { header, footer } = applyBrandToLandingHeaderFooter({
+    header: headerRaw,
+    footer: footerRaw,
+  });
 
   return (
     <Layout header={header} footer={footer} locale={locale}>

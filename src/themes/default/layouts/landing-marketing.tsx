@@ -30,7 +30,11 @@ export default async function LandingMarketingLayout({
         publicConfigs={publicConfigs}
       />
       <main role="main">{children}</main>
-      <MarketingFooter footer={footer} locale={locale} />
+      <MarketingFooter
+        footer={footer}
+        locale={locale}
+        publicConfigs={publicConfigs}
+      />
     </div>
   );
 }

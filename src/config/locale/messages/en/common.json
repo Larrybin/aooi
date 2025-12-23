@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "ShipAny Template Two",
-    "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups. Ship Fast with a variety of templates and components.",
-    "keywords": "shipany, shipany-boilerplate, shipany-template-two-demo"
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit is a Next.js boilerplate for building AI SaaS startups. Launch fast with a variety of templates and components.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
   },
   "sign": {
     "sign_in_title": "Sign In",

@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
+import { notFound } from 'next/navigation';
 import type { Translations } from 'fumadocs-ui/i18n';
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
 import { RootProvider } from 'fumadocs-ui/provider';
 
 import { source } from '@/core/docs/source';
+import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 import { baseOptions } from './layout.config';
 
@@ -32,6 +35,11 @@ export default async function DocsRootLayout({
   children: ReactNode;
   params: Promise<{ locale?: string }>;
 }) {
+  const publicConfigs = await getPublicConfigsCached();
+  if (!isLandingDocsEnabled(publicConfigs)) {
+    notFound();
+  }
+
   const { locale } = await params;
   const lang = locale || 'en';
 

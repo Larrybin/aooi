@@ -4,12 +4,12 @@ import { defaultTheme } from '@/config/theme';
 import { logger } from '@/shared/lib/logger.server';
 
 import { getActiveTheme, type ThemeName } from './active-theme';
+
 export { getActiveTheme } from './active-theme';
 
 type ThemePageName =
   | 'landing'
   | 'pricing'
-  | 'showcases'
   | 'blog'
   | 'blog-detail'
   | 'page-detail';
@@ -22,7 +22,6 @@ type ThemeBlockName =
   | 'features-list'
   | 'features-accordion'
   | 'features-step'
-  | 'showcases'
   | 'logos'
   | 'stats'
   | 'testimonials'
@@ -45,7 +44,6 @@ const themePages: Record<ThemeName, Record<ThemePageName, Loader>> = {
   default: {
     landing: () => import('@/themes/default/pages/landing'),
     pricing: () => import('@/themes/default/pages/pricing'),
-    showcases: () => import('@/themes/default/pages/showcases'),
     blog: () => import('@/themes/default/pages/blog'),
     'blog-detail': () => import('@/themes/default/pages/blog-detail'),
     'page-detail': () => import('@/themes/default/pages/page-detail'),
@@ -89,10 +87,6 @@ const themeBlocks: Record<ThemeName, Record<ThemeBlockName, Loader>> = {
     'features-step': () =>
       import('@/themes/default/blocks/features-step').then((mod) => ({
         default: mod.FeaturesStep,
-      })),
-    showcases: () =>
-      import('@/themes/default/blocks/showcases').then((mod) => ({
-        default: mod.Showcases,
       })),
     logos: () =>
       import('@/themes/default/blocks/logos').then((mod) => ({

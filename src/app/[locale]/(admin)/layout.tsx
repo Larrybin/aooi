@@ -5,6 +5,7 @@ import { LocaleDetector } from '@/shared/blocks/common';
 import { DashboardLayout } from '@/shared/blocks/dashboard/layout';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
+import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
 import { requireAdminAccess } from '@/shared/services/rbac_guard';
 import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
@@ -31,7 +32,8 @@ export default async function AdminLayout({
 
   const t = await getTranslations('admin');
 
-  const sidebar: SidebarType = t.raw('sidebar');
+  const sidebarRaw: SidebarType = t.raw('sidebar');
+  const sidebar = applyBrandToSidebar(sidebarRaw);
 
   return (
     <AppContextProvider>

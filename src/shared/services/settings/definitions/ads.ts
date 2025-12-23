@@ -7,7 +7,7 @@ export const adsSettings: Setting[] = [
     name: 'adsense_code',
     title: 'Adsense Code',
     type: 'text',
-    placeholder: 'ca-pub-xxx',
+    placeholder: 'ca-pub-',
     group: 'adsense',
     tab: 'ads',
   },

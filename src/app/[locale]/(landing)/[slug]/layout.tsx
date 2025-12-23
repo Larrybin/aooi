@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
+import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -19,10 +20,11 @@ export default async function PageDetailLayout({
 
   const header: HeaderType = t.raw('header');
   const footer: FooterType = t.raw('footer');
+  const branded = applyBrandToLandingHeaderFooter({ header, footer });
 
   return (
     <AppContextProvider>
-      <Layout header={header} footer={footer}>
+      <Layout header={branded.header} footer={branded.footer}>
         <LocaleDetector />
         {children}
       </Layout>

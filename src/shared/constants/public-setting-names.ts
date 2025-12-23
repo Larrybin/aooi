@@ -1,6 +1,7 @@
 export const PUBLIC_SETTING_NAMES = [
-  'general_built_with_enabled',
   'general_theme_toggle_enabled',
+  'general_blog_enabled',
+  'general_docs_enabled',
   'general_social_links_enabled',
   'general_social_links',
   'email_auth_enabled',

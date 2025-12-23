@@ -5,9 +5,9 @@
   },
   "pricing": {
     "id": "pricing",
-    "sr_only_title": "ShipAny Pricing",
+    "sr_only_title": "Roller Rabbit Pricing",
     "title": "Pricing",
-    "description": "Get all features of ShipAny, Ship your AI SaaS startups fast.",
+    "description": "Get all features of Roller Rabbit. Launch your AI SaaS faster.",
     "groups": [
       {
         "name": "one-time",
@@ -47,19 +47,19 @@
         "is_featured": false,
         "tip": "Pay once. Build unlimited projects!",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "starter",
-        "product_name": "ShipAny Boilerplate Starter",
+        "product_name": "Roller Rabbit Starter",
         "credits": 100,
         "valid_days": 30,
         "group": "one-time"
       },
       {
         "title": "Standard",
-        "description": "Ship Fast with your SaaS Startups.",
+        "description": "Launch fast with your SaaS startups.",
         "label": "Popular",
         "features_title": "Everything in Starter, plus",
         "features": [
@@ -69,7 +69,7 @@
           "Google Analytics Integration",
           "Google Search Console Integration",
           "Discord community",
-          "Technical support for your first ship",
+          "Technical support for your first launch",
           "Lifetime updates"
         ],
         "interval": "one-time",
@@ -81,19 +81,19 @@
         "is_featured": true,
         "tip": "Pay once. Build unlimited projects!",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "standard",
-        "product_name": "ShipAny Boilerplate Standard",
+        "product_name": "Roller Rabbit Standard",
         "credits": 200,
         "valid_days": 90,
         "group": "one-time"
       },
       {
         "title": "Premium",
-        "description": "Ship Any AI SaaS Startups.",
+        "description": "Launch AI SaaS startups.",
         "features_title": "Everything in Standard, plus",
         "features": [
           "300 credits, valid for 1 year",
@@ -113,12 +113,12 @@
         "is_featured": false,
         "tip": "Pay once. Build unlimited projects!",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "premium",
-        "product_name": "ShipAny Boilerplate Premium",
+        "product_name": "Roller Rabbit Premium",
         "credits": 300,
         "valid_days": 365,
         "group": "one-time"
@@ -145,12 +145,12 @@
         "is_featured": false,
         "tip": "Pay monthly. Build unlimited projects!",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "starter-monthly",
-        "product_name": "ShipAny Boilerplate Starter Monthly",
+        "product_name": "Roller Rabbit Starter Monthly",
         "credits": 100,
         "valid_days": 30,
         "group": "monthly",
@@ -158,7 +158,7 @@
       },
       {
         "title": "Standard",
-        "description": "Ship Fast with your SaaS Startups.",
+        "description": "Launch fast with your SaaS startups.",
         "label": "Popular",
         "features_title": "Everything in Starter, plus",
         "features": [
@@ -168,7 +168,7 @@
           "Google Analytics Integration",
           "Google Search Console Integration",
           "Discord community",
-          "Technical support for your first ship",
+          "Technical support for your first launch",
           "Lifetime updates"
         ],
         "interval": "month",
@@ -178,14 +178,14 @@
         "original_price": "$199",
         "unit": "/ month",
         "is_featured": true,
-        "tip": "Pay monthly. Ship Fast with your SaaS Startups.",
+        "tip": "Pay monthly. Launch fast with your SaaS startups.",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "standard-monthly",
-        "product_name": "ShipAny Boilerplate Standard Monthly",
+        "product_name": "Roller Rabbit Standard Monthly",
         "credits": 200,
         "valid_days": 30,
         "group": "monthly",
@@ -193,7 +193,7 @@
       },
       {
         "title": "Premium",
-        "description": "Ship Any AI SaaS Startups.",
+        "description": "Launch AI SaaS startups.",
         "features_title": "Everything in Standard, plus",
         "features": [
           "300 credits, valid for 1 month",
@@ -211,14 +211,14 @@
         "original_price": "$299",
         "unit": "/ month",
         "is_featured": false,
-        "tip": "Pay monthly. Ship Any AI SaaS Startups.",
+        "tip": "Pay monthly. Launch AI SaaS startups.",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "premium-monthly",
-        "product_name": "ShipAny Boilerplate Premium Monthly",
+        "product_name": "Roller Rabbit Premium Monthly",
         "credits": 300,
         "valid_days": 30,
         "group": "monthly",
@@ -246,12 +246,12 @@
         "is_featured": false,
         "tip": "Pay annually. Build unlimited projects!",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "starter-yearly",
-        "product_name": "ShipAny Boilerplate Starter Annually",
+        "product_name": "Roller Rabbit Starter Annually",
         "credits": 1200,
         "valid_days": 365,
         "group": "yearly",
@@ -259,7 +259,7 @@
       },
       {
         "title": "Standard",
-        "description": "Ship Fast with your SaaS Startups.",
+        "description": "Launch fast with your SaaS startups.",
         "label": "Popular",
         "features_title": "Everything in Starter, plus",
         "features": [
@@ -269,7 +269,7 @@
           "Google Analytics Integration",
           "Google Search Console Integration",
           "Discord community",
-          "Technical support for your first ship",
+          "Technical support for your first launch",
           "Lifetime updates"
         ],
         "interval": "year",
@@ -279,14 +279,14 @@
         "original_price": "$169",
         "unit": "/ month",
         "is_featured": true,
-        "tip": "Pay annually. Ship Fast with your SaaS Startups.",
+        "tip": "Pay annually. Launch fast with your SaaS startups.",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "standard-yearly",
-        "product_name": "ShipAny Boilerplate Standard Annually",
+        "product_name": "Roller Rabbit Standard Annually",
         "credits": 2400,
         "valid_days": 365,
         "group": "yearly",
@@ -294,7 +294,7 @@
       },
       {
         "title": "Premium",
-        "description": "Ship Any AI SaaS Startups.",
+        "description": "Launch AI SaaS startups.",
         "features_title": "Everything in Standard, plus",
         "features": [
           "300 credits, valid for 1 year",
@@ -312,14 +312,14 @@
         "original_price": "$249",
         "unit": "/ month",
         "is_featured": false,
-        "tip": "Pay annually. Ship Any AI SaaS Startups.",
+        "tip": "Pay annually. Launch AI SaaS startups.",
         "button": {
-          "title": "Get ShipAny",
+          "title": "Get Roller Rabbit",
           "url": "/#pricing",
           "icon": "RiFlashlightFill"
         },
         "product_id": "premium-yearly",
-        "product_name": "ShipAny Boilerplate Premium Annually",
+        "product_name": "Roller Rabbit Premium Annually",
         "credits": 3600,
         "valid_days": 365,
         "group": "yearly",

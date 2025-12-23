@@ -1,12 +1,12 @@
 import { Link } from '@/core/i18n/navigation';
 import {
   BrandLogo,
-  BuiltWith,
   Copyright,
   GeneralSocialLinks,
   LocaleSelector,
   ThemeToggler,
 } from '@/shared/blocks/common';
+import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import { Footer as FooterType } from '@/shared/types/blocks/landing';
@@ -18,6 +18,8 @@ export function Footer({
   footer: FooterType;
   publicConfigs?: Configs;
 }) {
+  const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
+
   return (
     <footer
       id={footer.id}
@@ -38,7 +40,7 @@ export function Footer({
           </div>
 
           <div className="col-span-3 grid min-w-0 gap-6 sm:grid-cols-3">
-            {footer.nav?.items.map((item, idx) => (
+            {navItems.map((item, idx) => (
               <div key={idx} className="min-w-0 space-y-4 text-sm break-words">
                 <span className="block font-medium break-words">
                   {item.title}
@@ -62,7 +64,6 @@ export function Footer({
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
-          <BuiltWith configs={publicConfigs} />
           <div className="min-w-0 flex-1" />
           <ThemeToggler type="toggle" configs={publicConfigs} />
           {footer.show_locale !== false ? (

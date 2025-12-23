@@ -15,4 +15,3 @@ export function getActiveTheme(): string {
 
   return defaultTheme;
 }
-

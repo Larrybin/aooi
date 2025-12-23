@@ -3,6 +3,7 @@ import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
 import { LazyImage } from '@/shared/blocks/common';
+import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
@@ -79,12 +80,14 @@ function MarketingNavItem({ item, locale }: { item: NavItem; locale: string }) {
 export function MarketingHeader({
   header,
   locale,
-  publicConfigs: _publicConfigs,
+  publicConfigs,
 }: {
   header: HeaderType;
   locale: string;
   publicConfigs?: Configs;
 }) {
+  const navItems = filterLandingNavItems(header.nav?.items, publicConfigs);
+
   return (
     <header
       id={header.id}
@@ -119,13 +122,13 @@ export function MarketingHeader({
         ) : null}
 
         <nav className="hidden items-center gap-6 md:flex">
-          {header.nav?.items?.map((item, idx) => (
+          {navItems.map((item, idx) => (
             <MarketingNavItem key={idx} item={item} locale={locale} />
           ))}
         </nav>
 
         <div className="flex items-center gap-3">
-          {header.nav?.items?.length ? (
+          {navItems.length ? (
             <details className="relative md:hidden">
               <summary className="hover:bg-muted inline-flex cursor-pointer list-none items-center justify-center rounded-md p-2">
                 <Menu className="size-5" />
@@ -133,7 +136,7 @@ export function MarketingHeader({
               </summary>
               <div className="bg-background absolute right-0 mt-3 w-72 rounded-md border p-2 shadow-sm">
                 <nav className="space-y-1">
-                  {header.nav.items.map((item, idx) => {
+                  {navItems.map((item, idx) => {
                     const href = getNavItemHref(item, locale);
                     const title = item.title || item.name || '';
 

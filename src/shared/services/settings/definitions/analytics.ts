@@ -23,7 +23,7 @@ export const analyticsSettings: Setting[] = [
     name: 'plausible_domain',
     title: 'Plausible Domain',
     type: 'text',
-    placeholder: 'shipany.site',
+    placeholder: '',
     group: 'plausible',
     tab: 'analytics',
   },

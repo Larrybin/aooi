@@ -23,19 +23,21 @@ export function SidebarFooter({ footer }: { footer: SidebarFooterType }) {
     <>
       {open ? (
         <div className="mx-auto flex w-full items-center justify-start gap-x-4 border-t px-4 py-3">
-          {footer.nav?.items?.map((item: NavItem, idx: number) => (
-            <div className="hover:text-primary cursor-pointer" key={idx}>
-              <Link href={item.url || ''} target={item.target || '_self'}>
-                {item.icon && (
-                  <SmartIcon
-                    name={item.icon as string}
-                    className="text-md"
-                    size={20}
-                  />
-                )}
-              </Link>
-            </div>
-          ))}
+          {footer.nav?.items
+            ?.filter((item) => Boolean(item.url))
+            .map((item: NavItem, idx: number) => (
+              <div className="hover:text-primary cursor-pointer" key={idx}>
+                <Link href={item.url || ''} target={item.target || '_self'}>
+                  {item.icon && (
+                    <SmartIcon
+                      name={item.icon as string}
+                      className="text-md"
+                      size={20}
+                    />
+                  )}
+                </Link>
+              </div>
+            ))}
 
           <GeneralSocialLinks
             className="flex items-center gap-x-4"

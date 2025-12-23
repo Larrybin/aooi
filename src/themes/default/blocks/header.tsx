@@ -25,6 +25,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
+import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
 import { NavItem } from '@/shared/types/blocks/common';
@@ -46,6 +47,7 @@ export function Header({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
+  const navItems = filterLandingNavItems(header.nav?.items, publicConfigs);
 
   useEffect(() => {
     // Listen to scroll event to enable header styles on scroll
@@ -91,7 +93,7 @@ export function Header({
         className="[--color-muted:color-mix(in_oklch,var(--color-foreground)_5%,transparent)] [--viewport-outer-px:2rem] **:data-[slot=navigation-menu-viewport]:rounded-none **:data-[slot=navigation-menu-viewport]:border-0 **:data-[slot=navigation-menu-viewport]:bg-transparent **:data-[slot=navigation-menu-viewport]:shadow-none **:data-[slot=navigation-menu-viewport]:ring-0 max-lg:hidden"
       >
         <NavigationMenuList className="gap-3">
-          {header.nav?.items?.map((item, idx) => (
+          {navItems.map((item, idx) => (
             <NavigationMenuItem key={idx} value={item.title || ''}>
               {item.children && item.children.length > 0 ? (
                 <>
@@ -163,7 +165,7 @@ export function Header({
           collapsible
           className="-mx-4 mt-0.5 space-y-0.5 **:hover:no-underline"
         >
-          {header.nav?.items?.map((item, idx) => {
+          {navItems.map((item, idx) => {
             return (
               <AccordionItem
                 key={idx}

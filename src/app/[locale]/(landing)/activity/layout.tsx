@@ -5,6 +5,7 @@ import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
 import { AppContextProvider } from '@/shared/contexts/app';
+import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -27,8 +28,12 @@ export default async function ActivityLayout({
 
   const topNav = t.raw('top_nav');
 
-  const header: HeaderType = tl.raw('header');
-  const footer: FooterType = tl.raw('footer');
+  const headerRaw: HeaderType = tl.raw('header');
+  const footerRaw: FooterType = tl.raw('footer');
+  const { header, footer } = applyBrandToLandingHeaderFooter({
+    header: headerRaw,
+    footer: footerRaw,
+  });
 
   return (
     <AppContextProvider>

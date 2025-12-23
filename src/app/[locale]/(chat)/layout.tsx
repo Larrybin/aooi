@@ -7,6 +7,7 @@ import { DashboardLayout } from '@/shared/blocks/dashboard';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { ChatContextProvider } from '@/shared/contexts/chat';
 import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
+import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
 import { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 export default async function ChatLayout({
@@ -20,7 +21,8 @@ export default async function ChatLayout({
   setRequestLocale(locale);
 
   const t = await getTranslations('ai.chat');
-  const sidebar: SidebarType = t.raw('sidebar');
+  const sidebarRaw: SidebarType = t.raw('sidebar');
+  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw);
 
   sidebar.library = <ChatLibrary />;
   const initialUser = await getSignedInUserSnapshot();

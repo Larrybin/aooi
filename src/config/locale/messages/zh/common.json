@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "ShipAny 模板二",
-    "description": "ShipAny 是用于构建 AI SaaS 创业项目的 NextJS 脚手架。提供丰富模板和组件，助您快速上线产品。",
-    "keywords": "shipany, shipany-boilerplate, shipany-template-two-demo"
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit 是用于构建 AI SaaS 创业项目的 Next.js 脚手架。提供丰富模板和组件，助你快速上线产品。",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
   },
   "sign": {
     "sign_in_title": "登录",

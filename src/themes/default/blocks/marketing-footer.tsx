@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { defaultLocale } from '@/config/locale';
 import { LazyImage } from '@/shared/blocks/common';
+import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
 
@@ -16,10 +18,14 @@ function withLocale(href: string, locale: string) {
 export function MarketingFooter({
   footer,
   locale,
+  publicConfigs,
 }: {
   footer: FooterType;
   locale: string;
+  publicConfigs?: Configs;
 }) {
+  const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
+
   return (
     <footer
       id={footer.id}
@@ -62,7 +68,7 @@ export function MarketingFooter({
           </div>
 
           <div className="col-span-3 grid min-w-0 gap-6 sm:grid-cols-3">
-            {footer.nav?.items?.map((item, idx) => (
+            {navItems.map((item, idx) => (
               <div key={idx} className="min-w-0 space-y-4 text-sm break-words">
                 <span className="block font-medium break-words">
                   {item.title}
