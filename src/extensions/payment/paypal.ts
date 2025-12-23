@@ -8,6 +8,7 @@ import { logger } from '@/shared/lib/logger.server';
 import {
   PaymentEventType,
   PaymentStatus,
+  SubscriptionStatus,
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
@@ -17,6 +18,7 @@ import {
   type RawCheckoutSession,
   type RawPaymentEvent,
   type RawPaymentSession,
+  type SubscriptionInfo,
 } from '.';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -61,6 +63,18 @@ function readStringPath(root: unknown, path: string[]): string | undefined {
 
 function readNumberPath(root: unknown, path: string[]): number | undefined {
   return readNumber(readPath(root, path));
+}
+
+function readDateTime(value: unknown): Date | undefined {
+  const stringValue = readString(value);
+  if (!stringValue) return undefined;
+
+  const parsed = new Date(stringValue);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+function readDateTimePath(root: unknown, path: string[]): Date | undefined {
+  return readDateTime(readPath(root, path));
 }
 
 const payPalAccessTokenResponseSchema = z
@@ -216,6 +230,10 @@ function extractPayPalInvoiceId(result: unknown): string | undefined {
     readStringPath(result, ['purchase_units', '0', 'invoice_id'])
   );
 }
+
+type PayPalSubscriptionEventType =
+  | PaymentEventType.SUBSCRIBE_UPDATED
+  | PaymentEventType.SUBSCRIBE_CANCELED;
 
 const payPalWebhookEventSchema = z
   .object({
@@ -657,6 +675,17 @@ export class PayPalProvider implements PaymentProviderDriver {
         throw new WebhookPayloadError('missing paypal resource id');
       }
       paymentSession = await this.getPaymentSession({ sessionId: resourceId });
+    } else if (
+      mappedEventType === PaymentEventType.SUBSCRIBE_UPDATED ||
+      mappedEventType === PaymentEventType.SUBSCRIBE_CANCELED
+    ) {
+      if (!resourceId) {
+        throw new WebhookPayloadError('missing paypal subscription id');
+      }
+      paymentSession = await this.getSubscriptionSession({
+        subscriptionId: resourceId,
+        eventType: mappedEventType,
+      });
     } else {
       paymentSession = {
         provider: this.name,
@@ -764,6 +793,7 @@ export class PayPalProvider implements PaymentProviderDriver {
       case 'ACTIVE':
         return PaymentStatus.SUCCESS;
       case 'CANCELED':
+      case 'CANCELLED':
       case 'EXPIRED':
         return PaymentStatus.CANCELED;
       case 'SUSPENDED':
@@ -771,6 +801,122 @@ export class PayPalProvider implements PaymentProviderDriver {
       default:
         return PaymentStatus.PROCESSING;
     }
+  }
+
+  private mapPayPalSubscriptionStatus(
+    status: string
+  ): SubscriptionStatus | undefined {
+    switch (status) {
+      case 'ACTIVE':
+        return SubscriptionStatus.ACTIVE;
+      case 'SUSPENDED':
+        return SubscriptionStatus.PAUSED;
+      case 'CANCELLED':
+        return SubscriptionStatus.CANCELED;
+      case 'EXPIRED':
+        return SubscriptionStatus.EXPIRED;
+      case 'APPROVAL_PENDING':
+      case 'APPROVED':
+        return SubscriptionStatus.TRIALING;
+      default:
+        return undefined;
+    }
+  }
+
+  private buildSubscriptionInfoFromPayPalSubscription({
+    subscription,
+    subscriptionId,
+    eventType,
+  }: {
+    subscription: unknown;
+    subscriptionId: string;
+    eventType: PayPalSubscriptionEventType;
+  }): SubscriptionInfo {
+    const statusValue = readStringPath(subscription, ['status']);
+    const mappedStatus = statusValue
+      ? this.mapPayPalSubscriptionStatus(statusValue)
+      : undefined;
+
+    const status =
+      eventType === PaymentEventType.SUBSCRIBE_CANCELED
+        ? SubscriptionStatus.CANCELED
+        : (mappedStatus ?? SubscriptionStatus.ACTIVE);
+
+    const currentPeriodStart =
+      readDateTimePath(subscription, [
+        'billing_info',
+        'last_payment',
+        'time',
+      ]) ??
+      readDateTimePath(subscription, ['start_time']) ??
+      new Date();
+
+    const currentPeriodEnd =
+      readDateTimePath(subscription, ['billing_info', 'next_billing_time']) ??
+      readDateTimePath(subscription, ['billing_info', 'final_payment_time']) ??
+      currentPeriodStart;
+
+    const subscriptionInfo: SubscriptionInfo = {
+      subscriptionId,
+      planId: readStringPath(subscription, ['plan_id']) ?? undefined,
+      currentPeriodStart,
+      currentPeriodEnd,
+      status,
+    };
+
+    if (status === SubscriptionStatus.CANCELED) {
+      const canceledAt =
+        readDateTimePath(subscription, ['status_update_time']) ??
+        readDateTimePath(subscription, ['update_time']) ??
+        new Date();
+
+      subscriptionInfo.canceledAt = canceledAt;
+
+      const canceledEndAt =
+        readDateTimePath(subscription, [
+          'billing_info',
+          'final_payment_time',
+        ]) ??
+        readDateTimePath(subscription, ['billing_info', 'next_billing_time']);
+
+      if (canceledEndAt) {
+        subscriptionInfo.canceledEndAt = canceledEndAt;
+      } else if (currentPeriodEnd.getTime() >= canceledAt.getTime()) {
+        subscriptionInfo.canceledEndAt = currentPeriodEnd;
+      }
+    }
+
+    return subscriptionInfo;
+  }
+
+  private async getSubscriptionSession({
+    subscriptionId,
+    eventType,
+  }: {
+    subscriptionId: string;
+    eventType: PayPalSubscriptionEventType;
+  }): Promise<RawPaymentSession> {
+    const subscription = await this.makeRequest(
+      `/v1/billing/subscriptions/${subscriptionId}`,
+      'GET'
+    );
+
+    const subscriptionInfo = this.buildSubscriptionInfoFromPayPalSubscription({
+      subscription,
+      subscriptionId,
+      eventType,
+    });
+
+    return {
+      provider: this.name,
+      paymentStatus: this.mapPayPalStatus(
+        extractPayPalStatus(subscription) || ''
+      ),
+      subscriptionId,
+      subscriptionInfo,
+      subscriptionResult: subscription,
+      metadata: extractPayPalMetadata(subscription),
+    };
   }
 
   private mapPayPalEventType(eventType: string): PaymentEventType | undefined {
@@ -786,10 +932,9 @@ export class PayPalProvider implements PaymentProviderDriver {
       case 'PAYMENT.SALE.DENIED':
         return PaymentEventType.PAYMENT_FAILED;
       case 'BILLING.SUBSCRIPTION.UPDATED':
+        return PaymentEventType.SUBSCRIBE_UPDATED;
       case 'BILLING.SUBSCRIPTION.CANCELLED':
-        // NOTE: Subscription lifecycle webhooks are not supported yet.
-        // We return a safe "ignored" event type to avoid PayPal retries.
-        return PaymentEventType.PAYMENT_FAILED;
+        return PaymentEventType.SUBSCRIBE_CANCELED;
       default:
         return undefined;
     }
