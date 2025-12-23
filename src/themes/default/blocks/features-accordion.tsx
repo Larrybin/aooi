@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import { AnimatePresence, motion } from 'motion/react';
 
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { BorderBeam } from '@/shared/components/magicui/border-beam';
@@ -22,27 +21,40 @@ export function FeaturesAccordion({
   features: FeaturesType;
   className?: string;
 }) {
-  const [activeItem, setActiveItem] = useState<string>('item-1');
+  const items = features.items ?? [];
+  const [activeItem, setActiveItem] = useState<string>(
+    items.length > 0 ? 'item-1' : ''
+  );
 
-  const images: Record<
-    string,
-    {
-      src: string;
-      alt: string;
-      width?: number;
-      height?: number;
-    }
-  > = {};
-  features.items?.forEach((item, idx) => {
-    images[`item-${idx + 1}`] = {
-      src: item.image?.src ?? '',
-      alt: item.image?.alt || item.title || '',
-      width: item.image?.width,
-      height: item.image?.height,
-    };
-  });
+  const images = useMemo(() => {
+    const byKey: Record<
+      string,
+      {
+        src: string;
+        alt: string;
+        width?: number;
+        height?: number;
+      }
+    > = {};
+
+    items.forEach((item, idx) => {
+      byKey[`item-${idx + 1}`] = {
+        src: item.image?.src ?? '',
+        alt: item.image?.alt || item.title || '',
+        width: item.image?.width,
+        height: item.image?.height,
+      };
+    });
+
+    return byKey;
+  }, [items]);
 
   const fallbackImageSize = { width: 1207, height: 929 };
+  const activeImage = activeItem ? images[activeItem] : undefined;
+
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     // overflow-x-hidden to prevent horizontal scroll
@@ -70,7 +82,7 @@ export function FeaturesAccordion({
               onValueChange={(value) => setActiveItem(value as string)}
               className="w-full"
             >
-              {features.items?.map((item, idx) => (
+              {items.map((item, idx) => (
                 <AccordionItem value={`item-${idx + 1}`} key={idx}>
                   <AccordionTrigger>
                     <div className="flex items-center gap-2 text-base">
@@ -91,31 +103,27 @@ export function FeaturesAccordion({
             <div className="bg-background relative flex min-w-0 flex-shrink overflow-hidden rounded-3xl border p-2">
               <div className="absolute inset-0 right-0 ml-auto w-15 border-l bg-[repeating-linear-gradient(-45deg,var(--color-border),var(--color-border)_1px,transparent_1px,transparent_8px)]"></div>
               <div className="bg-background relative aspect-76/59 w-full min-w-0 rounded-2xl sm:w-[calc(3/4*100%+3rem)]">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={`${activeItem}-id`}
-                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                    transition={{ duration: 0.2 }}
-                    className="size-full overflow-hidden rounded-2xl border bg-zinc-900 shadow-md"
+                {activeImage ? (
+                  <div
+                    key={activeItem}
+                    className="animate-in fade-in slide-in-from-bottom-1 size-full overflow-hidden rounded-2xl border bg-zinc-900 shadow-md duration-200"
                   >
                     <Image
-                      src={images[activeItem].src}
+                      src={activeImage.src}
                       className="size-full object-cover object-left-top dark:mix-blend-lighten"
-                      alt={images[activeItem].alt}
+                      alt={activeImage.alt}
                       width={
-                        images[activeItem].width ?? fallbackImageSize.width
+                        activeImage.width ?? fallbackImageSize.width
                       }
                       height={
-                        images[activeItem].height ?? fallbackImageSize.height
+                        activeImage.height ?? fallbackImageSize.height
                       }
                       sizes="(max-width: 640px) 100vw, 75vw"
                       // prevent img from exceeding parent
                       style={{ maxWidth: '100%', height: 'auto' }}
                     />
-                  </motion.div>
-                </AnimatePresence>
+                  </div>
+                ) : null}
               </div>
               <BorderBeam
                 duration={6}
