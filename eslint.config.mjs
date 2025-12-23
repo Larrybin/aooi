@@ -72,6 +72,22 @@ const clientSurfaceNoRestrictedImports = {
         "Client 模块禁止导入 '@/shared/content/**'（content pipeline 必须保持 server-only）。",
     },
     {
+      group: ['@/extensions/**/providers', '@/extensions/**/providers/**'],
+      allowTypeImports: true,
+      message:
+        "Client 模块禁止导入 '@/extensions/**/providers*'（provider 实现必须保持 server-only）。",
+    },
+    {
+      group: [
+        '@/extensions/email/resend',
+        '@/extensions/storage/s3',
+        '@/extensions/storage/r2',
+      ],
+      allowTypeImports: true,
+      message:
+        'Client 模块禁止直接导入 provider 实现（请仅在 server 侧编排）。',
+    },
+    {
       regex: '\\.server(\\.|$)',
       allowTypeImports: true,
       message:
