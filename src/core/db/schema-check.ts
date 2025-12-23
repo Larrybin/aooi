@@ -1,4 +1,6 @@
-export type PostgresSqlClient = ReturnType<typeof import('postgres')>;
+import type postgres from 'postgres';
+
+export type PostgresSqlClient = postgres.Sql;
 
 export type SchemaCheckLogger = {
   error: (message: string, meta?: Record<string, unknown>) => void;
