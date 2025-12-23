@@ -6,6 +6,7 @@ import postgres from 'postgres';
 
 import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
 import { serverEnv } from '@/config/server';
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { isCloudflareWorker } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 
@@ -69,50 +70,43 @@ function createSchemaCheckedClient(
 
         return value;
       },
-    }) as unknown as T;
+    });
   }
 
   const proxy = new Proxy(sql, {
     apply(target, thisArg, argArray) {
-      const query = Reflect.apply(target, thisArg, argArray as unknown as []);
-      return wrapQuery(query as unknown as object);
+      const query = Reflect.apply(target, thisArg, argArray) as object;
+      return wrapQuery(query);
     },
     get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
+      const value = Reflect.get(target, prop, receiver) as unknown;
 
       if (prop === 'end') {
-        return typeof value === 'function' ? value.bind(target) : value;
+        return typeof value === 'function'
+          ? (...args: unknown[]) =>
+              Reflect.apply(value, target, args) as unknown
+          : value;
       }
 
       if (prop === 'unsafe') {
         return typeof value === 'function'
           ? (...args: unknown[]) => {
-              const query = Reflect.apply(
-                value as (...args: unknown[]) => unknown,
-                target,
-                args
-              );
-              return wrapQuery(query as unknown as object);
+              const query = Reflect.apply(value, target, args) as object;
+              return wrapQuery(query as object);
             }
           : value;
       }
 
       if (typeof value === 'function') {
         return (...args: unknown[]) =>
-          schemaReady.then(() =>
-            Reflect.apply(
-              value as (...args: unknown[]) => unknown,
-              target,
-              args
-            )
-          );
+          schemaReady.then(() => Reflect.apply(value, target, args) as unknown);
       }
 
       return value;
     },
   });
 
-  return proxy as unknown as ReturnType<typeof postgres>;
+  return proxy as ReturnType<typeof postgres>;
 }
 
 type CloudflareWorkersEnv = {
@@ -130,7 +124,7 @@ function tryGetCloudflareWorkersEnv(): CloudflareWorkersEnv | null {
     const require = createRequire(import.meta.url);
     // Prevent webpack from trying to resolve the `cloudflare:` scheme at build time.
     // This module only exists in Cloudflare Workers runtime (nodejs_compat).
-    const workers = require(['cloudflare', 'workers'].join(':'));
+    const workers = require(['cloudflare', 'workers'].join(':')) as unknown;
 
     if (!isRecord(workers) || !('env' in workers)) {
       return null;
@@ -153,7 +147,7 @@ export function db() {
 
   if (runningInCloudflareWorkers) {
     if (!hasCloudflareWorkersEnv) {
-      throw new Error(
+      throw new ServiceUnavailableError(
         'Detected Cloudflare Workers environment but failed to access bindings env via "cloudflare:workers". Ensure your Worker enables `nodejs_compat` and supports the `cloudflare:workers` module.'
       );
     }
@@ -162,7 +156,7 @@ export function db() {
       cloudflareEnv?.HYPERDRIVE?.connectionString;
 
     if (!hyperdriveConnectionString) {
-      throw new Error(
+      throw new ServiceUnavailableError(
         'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml (see wrangler.toml.example) as: [[hyperdrive]] binding = "HYPERDRIVE".'
       );
     }
@@ -172,7 +166,7 @@ export function db() {
   }
 
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL is not set');
+    throw new ServiceUnavailableError('DATABASE_URL is not set');
   }
 
   // In Cloudflare Workers, create new connection each time

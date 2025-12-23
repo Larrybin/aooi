@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, or, type SQL } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { chat } from '@/config/db/schema';
@@ -80,6 +80,25 @@ export async function getChatsCount({
 
 export async function findChatById(id: string): Promise<Chat> {
   const [result] = await db().select().from(chat).where(eq(chat.id, id));
+
+  return result;
+}
+
+export async function findChatByIdForViewer(params: {
+  chatId: string;
+  viewerUserId: string;
+  allowAccessCondition?: SQL;
+}): Promise<Chat | undefined> {
+  const [result] = await db()
+    .select()
+    .from(chat)
+    .where(
+      and(
+        eq(chat.id, params.chatId),
+        or(eq(chat.userId, params.viewerUserId), params.allowAccessCondition)
+      )
+    )
+    .limit(1);
 
   return result;
 }

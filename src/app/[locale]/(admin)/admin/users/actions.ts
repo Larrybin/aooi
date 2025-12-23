@@ -74,7 +74,10 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
       throw new Error('invalid roles');
     }
 
-    await assignRolesToUser(user.id as string, parsed.data.roles);
+    await assignRolesToUser(user.id as string, parsed.data.roles, {
+      actorUserId: admin.id,
+      source: 'admin.users.updateUserRolesAction',
+    });
 
     return actionOk('roles updated', '/admin/users');
   });

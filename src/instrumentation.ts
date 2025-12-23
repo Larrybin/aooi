@@ -69,10 +69,10 @@ export async function register() {
       'Run: pnpm db:migrate',
     ]);
 
-    logger.error('instrumentation: db startup check skipped', {
+    logger.error('instrumentation: db startup check failed', {
       hint: error.message,
     });
-    return;
+    throw error;
   }
 
   try {
@@ -80,5 +80,6 @@ export async function register() {
   } catch (error: unknown) {
     const { logger } = await import('./shared/lib/logger.server');
     logger.error('instrumentation: db startup check failed', { error });
+    throw error;
   }
 }

@@ -13,10 +13,10 @@ export async function parseJson<TSchema extends z.ZodTypeAny>(
   req: Request,
   schema: TSchema
 ): Promise<z.infer<TSchema>> {
+  const rawText = await req.text().catch(() => '');
   let value: unknown;
-
   try {
-    value = await req.json();
+    value = JSON.parse(rawText) as unknown;
   } catch {
     throw new BadRequestError('invalid json body');
   }

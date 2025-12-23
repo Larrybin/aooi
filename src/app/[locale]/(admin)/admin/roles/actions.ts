@@ -18,6 +18,7 @@ import {
   assignPermissionsToRole,
   deleteRole,
   getRoleById,
+  restoreRole,
   updateRole,
   type UpdateRole,
 } from '@/shared/services/rbac';
@@ -27,7 +28,7 @@ import {
  */
 export async function updateRoleAction(id: string, formData: FormData) {
   return withAction(async () => {
-    const { data } = await validateAndParseForm({
+    const { user, data } = await validateAndParseForm({
       formData,
       permission: PERMISSIONS.ROLES_WRITE,
       schema: AdminRoleUpdateFormSchema,
@@ -44,7 +45,10 @@ export async function updateRoleAction(id: string, formData: FormData) {
       description: data.description,
     };
 
-    const result = await updateRole(id, newRole);
+    const result = await updateRole(id, newRole, {
+      actorUserId: user.id,
+      source: 'admin.roles.updateRoleAction',
+    });
     if (!result) {
       throw new Error('update role failed');
     }
@@ -61,7 +65,7 @@ export async function updateRolePermissionsAction(
   formData: FormData
 ) {
   return withAction(async () => {
-    await validatePermission(PERMISSIONS.ROLES_WRITE);
+    const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
 
     const roleRow = await getRoleById(id);
     if (!roleRow) {
@@ -77,7 +81,11 @@ export async function updateRolePermissionsAction(
 
     await assignPermissionsToRole(
       roleRow.id as string,
-      parsed.data.permissions
+      parsed.data.permissions,
+      {
+        actorUserId: user.id,
+        source: 'admin.roles.updateRolePermissionsAction',
+      }
     );
 
     return actionOk('permissions updated', '/admin/roles');
@@ -89,7 +97,7 @@ export async function updateRolePermissionsAction(
  */
 export async function deleteRoleAction(id: string) {
   return withAction(async () => {
-    await validatePermission(PERMISSIONS.ROLES_DELETE);
+    const user = await validatePermission(PERMISSIONS.ROLES_DELETE);
 
     const [roleRow] = await db()
       .select()
@@ -100,7 +108,10 @@ export async function deleteRoleAction(id: string) {
       throw new Error('Role not found');
     }
 
-    await deleteRole(id);
+    await deleteRole(id, {
+      actorUserId: user.id,
+      source: 'admin.roles.deleteRoleAction',
+    });
 
     return actionOk('role deleted', '/admin/roles');
   });
@@ -111,7 +122,7 @@ export async function deleteRoleAction(id: string) {
  */
 export async function restoreRoleAction(id: string) {
   return withAction(async () => {
-    await validatePermission(PERMISSIONS.ROLES_WRITE);
+    const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
 
     const [roleRow] = await db().select().from(role).where(eq(role.id, id));
     if (!roleRow) {
@@ -122,10 +133,10 @@ export async function restoreRoleAction(id: string) {
     }
 
     try {
-      await db()
-        .update(role)
-        .set({ deletedAt: null, updatedAt: new Date() })
-        .where(eq(role.id, id));
+      await restoreRole(id, {
+        actorUserId: user.id,
+        source: 'admin.roles.restoreRoleAction',
+      });
     } catch {
       throw new Error(
         'restore role failed: another active role with the same name may already exist'

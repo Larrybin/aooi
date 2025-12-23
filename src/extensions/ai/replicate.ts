@@ -1,5 +1,7 @@
 import Replicate from 'replicate';
 
+import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
+
 import {
   AITaskStatus,
   type AIConfigs,
@@ -47,11 +49,11 @@ export class ReplicateProvider implements AIProvider {
     const { model, prompt, callbackUrl } = params;
 
     if (!model) {
-      throw new Error('model is required');
+      throw new BadRequestError('model is required');
     }
 
     if (!prompt) {
-      throw new Error('prompt is required');
+      throw new BadRequestError('prompt is required');
     }
 
     // build request params
@@ -133,7 +135,7 @@ export class ReplicateProvider implements AIProvider {
       case 'canceled':
         return AITaskStatus.CANCELED;
       default:
-        throw new Error(`unknown status: ${status}`);
+        throw new UpstreamError(502, `unknown status: ${status}`);
     }
   }
 }

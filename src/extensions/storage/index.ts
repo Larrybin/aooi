@@ -1,3 +1,8 @@
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/shared/lib/api/errors';
+
 /**
  * Storage upload options interface
  */
@@ -42,8 +47,18 @@ export interface StorageConfigs {
   [key: string]: unknown;
 }
 
-export function toUint8Array(body: Buffer | Uint8Array): Uint8Array {
-  return body instanceof Uint8Array ? body : new Uint8Array(body);
+export function toUint8Array(
+  body: Buffer | Uint8Array
+): Uint8Array<ArrayBuffer> {
+  const uint8Array = body instanceof Uint8Array ? body : new Uint8Array(body);
+
+  if (uint8Array.buffer instanceof ArrayBuffer) {
+    return uint8Array as Uint8Array<ArrayBuffer>;
+  }
+
+  const buffer = new ArrayBuffer(uint8Array.byteLength);
+  new Uint8Array(buffer).set(uint8Array);
+  return new Uint8Array(buffer);
 }
 
 /**
@@ -96,7 +111,7 @@ export class StorageManager {
     }
 
     if (!this.defaultProvider) {
-      throw new Error('No storage provider configured');
+      throw new ServiceUnavailableError('No storage provider configured');
     }
 
     return this.defaultProvider.uploadFile(options);
@@ -109,7 +124,7 @@ export class StorageManager {
   ): Promise<StorageUploadResult> {
     const provider = this.getProvider(providerName);
     if (!provider) {
-      throw new Error(`Storage provider '${providerName}' not found`);
+      throw new BadRequestError(`Storage provider '${providerName}' not found`);
     }
     return provider.uploadFile(options);
   }
@@ -124,7 +139,7 @@ export class StorageManager {
     }
 
     if (!this.defaultProvider) {
-      throw new Error('No storage provider configured');
+      throw new ServiceUnavailableError('No storage provider configured');
     }
 
     return this.defaultProvider.downloadAndUpload(options);
@@ -137,7 +152,7 @@ export class StorageManager {
   ): Promise<StorageUploadResult> {
     const provider = this.getProvider(providerName);
     if (!provider) {
-      throw new Error(`Storage provider '${providerName}' not found`);
+      throw new BadRequestError(`Storage provider '${providerName}' not found`);
     }
     return provider.downloadAndUpload(options);
   }

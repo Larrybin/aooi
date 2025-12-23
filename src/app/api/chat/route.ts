@@ -96,7 +96,7 @@ export const POST = withApi(async (req: Request) => {
       role: message.role,
       parts: (() => {
         const parsed = safeJsonParse<unknown>(message.parts);
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed) ? (parsed as unknown[]) : [];
       })(),
     })) as UIMessage[];
   }

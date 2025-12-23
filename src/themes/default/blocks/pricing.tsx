@@ -248,8 +248,6 @@ export function Pricing({
       const checkoutUrl = data.checkoutUrl.trim();
       window.location.assign(checkoutUrl);
     } catch (e: unknown) {
-      console.log('checkout failed: ', e);
-
       if (e instanceof RequestIdError && e.status === 401) {
         setIsLoading(false);
         setProductId(null);
@@ -258,10 +256,7 @@ export function Pricing({
         return;
       }
 
-      toastFetchError(
-        e,
-        `checkout failed: ${e instanceof Error && e.message ? e.message : 'unknown error'}`
-      );
+      toastFetchError(e, 'Checkout failed');
 
       setIsLoading(false);
       setProductId(null);

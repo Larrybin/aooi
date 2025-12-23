@@ -62,14 +62,14 @@ export function isMissingRoleDeletedAtColumnError(error: unknown): boolean {
 async function hasRoleDeletedAtColumn(
   sql: PostgresSqlClient
 ): Promise<boolean> {
-  const rows = (await sql`
-    select 1
+  const rows = await sql<{ ok: number }[]>`
+    select 1 as ok
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'role'
       and column_name = 'deleted_at'
     limit 1
-  `) as unknown as { length: number };
+  `;
 
   return rows.length !== 0;
 }

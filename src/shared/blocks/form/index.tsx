@@ -309,7 +309,6 @@ export function Form<
 
       setLoading(false);
     } catch (err: unknown) {
-      console.log('submit form error', err);
       const message = err instanceof Error ? err.message : 'submit form failed';
       toast.error(message);
       setLoading(false);

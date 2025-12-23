@@ -1,6 +1,16 @@
 import 'server-only';
 
-import { and, eq, gt, isNull, or } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  exists,
+  gt,
+  inArray,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import {
@@ -11,6 +21,19 @@ import {
 import { permission, role, rolePermission, userRole } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
 import { logger } from '@/shared/lib/logger.server';
+
+export type RbacAuditContext = {
+  actorUserId?: string;
+  source?: string;
+  requestId?: string;
+  route?: string;
+};
+
+function getRbacAuditLogger(audit?: RbacAuditContext) {
+  if (!audit) return logger;
+  const { actorUserId, ...ctx } = audit;
+  return logger.with({ ...ctx, actorUserId });
+}
 
 // Types
 export type Role = typeof role.$inferSelect;
@@ -41,6 +64,17 @@ export const ROLES = {
 export enum RoleStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
+}
+
+function buildPermissionMatchCandidates(
+  requiredPermissionCode: string
+): string[] {
+  const out: string[] = ['*', requiredPermissionCode];
+  const parts = requiredPermissionCode.split('.');
+  for (let i = parts.length - 1; i > 0; i--) {
+    out.push(`${parts.slice(0, i).join('.')}.*`);
+  }
+  return Array.from(new Set(out));
 }
 
 function normalizeRbacSchemaError(error: unknown): never {
@@ -131,8 +165,15 @@ export async function getRoleByName(name: string): Promise<Role | undefined> {
 /**
  * Create a new role
  */
-export async function createRole(newRole: NewRole): Promise<Role> {
+export async function createRole(
+  newRole: NewRole,
+  audit?: RbacAuditContext
+): Promise<Role> {
   const [result] = await db().insert(role).values(newRole).returning();
+  getRbacAuditLogger(audit).info('[rbac] role created', {
+    roleId: result.id,
+    roleName: result.name,
+  });
   return result;
 }
 
@@ -141,26 +182,49 @@ export async function createRole(newRole: NewRole): Promise<Role> {
  */
 export async function updateRole(
   roleId: string,
-  updates: UpdateRole
+  updates: UpdateRole,
+  audit?: RbacAuditContext
 ): Promise<Role> {
   const [result] = await db()
     .update(role)
     .set(updates)
     .where(and(eq(role.id, roleId), isNull(role.deletedAt)))
     .returning();
+  getRbacAuditLogger(audit).info('[rbac] role updated', {
+    roleId: result.id,
+    changes: Object.keys(updates),
+  });
   return result;
 }
 
 /**
  * Delete a role
  */
-export async function deleteRole(roleId: string): Promise<void> {
+export async function deleteRole(
+  roleId: string,
+  audit?: RbacAuditContext
+): Promise<void> {
   await db()
     .update(role)
     .set({
       deletedAt: new Date(),
     })
     .where(and(eq(role.id, roleId), isNull(role.deletedAt)));
+  getRbacAuditLogger(audit).info('[rbac] role deleted', { roleId });
+}
+
+/**
+ * Restore a soft-deleted role
+ */
+export async function restoreRole(
+  roleId: string,
+  audit?: RbacAuditContext
+): Promise<void> {
+  await db()
+    .update(role)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(eq(role.id, roleId));
+  getRbacAuditLogger(audit).info('[rbac] role restored', { roleId });
 }
 
 /**
@@ -225,7 +289,8 @@ export async function getRolePermissions(
  */
 export async function assignPermissionToRole(
   roleId: string,
-  permissionId: string
+  permissionId: string,
+  audit?: RbacAuditContext
 ): Promise<RolePermission> {
   const [result] = await db()
     .insert(rolePermission)
@@ -235,6 +300,10 @@ export async function assignPermissionToRole(
       permissionId,
     })
     .returning();
+  getRbacAuditLogger(audit).info('[rbac] role permission assigned', {
+    roleId,
+    permissionId,
+  });
   return result;
 }
 
@@ -243,7 +312,8 @@ export async function assignPermissionToRole(
  */
 export async function removePermissionFromRole(
   roleId: string,
-  permissionId: string
+  permissionId: string,
+  audit?: RbacAuditContext
 ): Promise<void> {
   await db()
     .delete(rolePermission)
@@ -253,6 +323,10 @@ export async function removePermissionFromRole(
         eq(rolePermission.permissionId, permissionId)
       )
     );
+  getRbacAuditLogger(audit).info('[rbac] role permission removed', {
+    roleId,
+    permissionId,
+  });
 }
 
 /**
@@ -260,7 +334,8 @@ export async function removePermissionFromRole(
  */
 export async function assignPermissionsToRole(
   roleId: string,
-  permissionIds: string[]
+  permissionIds: string[],
+  audit?: RbacAuditContext
 ): Promise<void> {
   // First, remove all existing permissions
   await db().delete(rolePermission).where(eq(rolePermission.roleId, roleId));
@@ -277,6 +352,11 @@ export async function assignPermissionsToRole(
         }))
       );
   }
+
+  getRbacAuditLogger(audit).info('[rbac] role permissions replaced', {
+    roleId,
+    permissionCount: permissionIds.length,
+  });
 }
 
 /**
@@ -400,6 +480,76 @@ export async function hasPermission(
 }
 
 /**
+ * Build a SQL condition that enforces a permission check at the database layer.
+ *
+ * This is useful for data filtering (e.g., list endpoints) without loading all records first.
+ */
+export function buildHasPermissionCondition(params: {
+  userId: string;
+  permissionCode: string;
+  now?: Date;
+}): SQL {
+  const now = params.now ?? new Date();
+  const candidates = buildPermissionMatchCandidates(params.permissionCode);
+
+  const subquery = db()
+    .select({ userId: userRole.userId })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
+    .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
+    .innerJoin(permission, eq(rolePermission.permissionId, permission.id))
+    .where(
+      and(
+        buildActiveUserRoleWhere(params.userId, now),
+        inArray(permission.code, candidates)
+      )
+    )
+    .limit(1);
+
+  return exists(subquery);
+}
+
+export function buildHasAnyPermissionCondition(params: {
+  userId: string;
+  permissionCodes: string[];
+  now?: Date;
+}): SQL {
+  if (params.permissionCodes.length === 0) {
+    return sql`false`;
+  }
+  const now = params.now ?? new Date();
+  return or(
+    ...params.permissionCodes.map((code) =>
+      buildHasPermissionCondition({
+        userId: params.userId,
+        permissionCode: code,
+        now,
+      })
+    )
+  ) as SQL;
+}
+
+export function buildHasAllPermissionsCondition(params: {
+  userId: string;
+  permissionCodes: string[];
+  now?: Date;
+}): SQL | undefined {
+  if (params.permissionCodes.length === 0) {
+    return;
+  }
+  const now = params.now ?? new Date();
+  return and(
+    ...params.permissionCodes.map((code) =>
+      buildHasPermissionCondition({
+        userId: params.userId,
+        permissionCode: code,
+        now,
+      })
+    )
+  ) as SQL;
+}
+
+/**
  * Check if user has any of the specified permissions
  */
 export async function hasAnyPermission(
@@ -462,7 +612,8 @@ export async function hasAnyRole(
 export async function assignRoleToUser(
   userId: string,
   roleId: string,
-  updatedAt?: Date
+  updatedAt?: Date,
+  audit?: RbacAuditContext
 ): Promise<UserRole> {
   const [result] = await db()
     .insert(userRole)
@@ -473,6 +624,10 @@ export async function assignRoleToUser(
       updatedAt,
     })
     .returning();
+  getRbacAuditLogger(audit).info('[rbac] user role assigned', {
+    userId,
+    roleId,
+  });
   return result;
 }
 
@@ -481,11 +636,16 @@ export async function assignRoleToUser(
  */
 export async function removeRoleFromUser(
   userId: string,
-  roleId: string
+  roleId: string,
+  audit?: RbacAuditContext
 ): Promise<void> {
   await db()
     .delete(userRole)
     .where(and(eq(userRole.userId, userId), eq(userRole.roleId, roleId)));
+  getRbacAuditLogger(audit).info('[rbac] user role removed', {
+    userId,
+    roleId,
+  });
 }
 
 /**
@@ -493,7 +653,8 @@ export async function removeRoleFromUser(
  */
 export async function assignRolesToUser(
   userId: string,
-  roleIds: string[]
+  roleIds: string[],
+  audit?: RbacAuditContext
 ): Promise<void> {
   await db().transaction(async (tx) => {
     await tx.delete(userRole).where(eq(userRole.userId, userId));
@@ -507,6 +668,10 @@ export async function assignRolesToUser(
         }))
       );
     }
+  });
+  getRbacAuditLogger(audit).info('[rbac] user roles replaced', {
+    userId,
+    roleCount: roleIds.length,
   });
 }
 

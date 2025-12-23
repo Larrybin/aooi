@@ -6,6 +6,7 @@ import {
   PayPalProvider,
   StripeProvider,
 } from '@/extensions/payment/providers';
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { logger } from '@/shared/lib/logger.server';
 import type { Configs } from '@/shared/models/config';
 import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
@@ -24,7 +25,9 @@ export function getPaymentServiceWithConfigs(configs: Configs) {
     const isProduction = process.env.NODE_ENV === 'production';
     const signingSecret = configs.stripe_signing_secret || '';
     if (isProduction && !signingSecret.trim()) {
-      throw new Error('stripe_signing_secret is required in production');
+      throw new ServiceUnavailableError(
+        'stripe_signing_secret is required in production'
+      );
     }
 
     let allowedPaymentMethods: string[] = ['card'];

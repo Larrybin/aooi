@@ -1,6 +1,13 @@
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
+const noDoubleUnknownTypeAssertion = {
+  selector:
+    "TSAsExpression[expression.type='TSAsExpression'][expression.typeAnnotation.type='TSUnknownKeyword']",
+  message:
+    '禁止使用 `as unknown as` 双重断言；请改为类型守卫/parse/DTO 映射，或将断言收敛到边界适配层。',
+};
+
 const noRuntimeDbConfigImportPattern = {
   regex:
     '(^@/core/db/config(\\.[cm]?[jt]s)?$)|(^\\.{1,2}/.*?/core/db/config(\\.[cm]?[jt]s)?$)',
@@ -157,6 +164,8 @@ const eslintConfig = [
     files: ['**/*.{ts,tsx,mts,cts}'],
     rules: {
       'no-restricted-imports': ['error', baseNoRestrictedImports],
+      '@typescript-eslint/no-explicit-any': 'error',
+      'no-restricted-syntax': ['error', noDoubleUnknownTypeAssertion],
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -174,6 +183,74 @@ const eslintConfig = [
           fixStyle: 'separate-type-imports',
         },
       ],
+    },
+  },
+  {
+    files: ['src/shared/services/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+    },
+  },
+  {
+    files: [
+      'src/shared/lib/api/**/*.{ts,tsx}',
+      'src/shared/lib/fetch/**/*.{ts,tsx}',
+      'src/app/api/**/route.ts',
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+    },
+  },
+  {
+    files: ['src/shared/models/**/*.{ts,tsx}', 'src/core/db/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+    },
+  },
+  {
+    files: ['src/extensions/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: process.cwd(),
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
     },
   },
   {
@@ -243,6 +320,7 @@ const eslintConfig = [
           message:
             '禁止使用模板字符串动态 import()；请改为显式映射/静态路径，避免隐式 context bundle 与无关 chunk 进入构建产物。',
         },
+        noDoubleUnknownTypeAssertion,
       ],
     },
   },
@@ -270,6 +348,7 @@ const eslintConfig = [
           message:
             "Client surface 建议避免使用 'moment'（体积大且易造成 unused JS）。优先在 Server 侧格式化后传入，或改用更轻量库（如 date-fns/dayjs）。",
         },
+        noDoubleUnknownTypeAssertion,
       ],
     },
   },

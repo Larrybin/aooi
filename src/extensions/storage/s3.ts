@@ -50,6 +50,7 @@ export class S3Provider implements StorageProvider {
       }
 
       const bodyArray = toUint8Array(options.body);
+      const bodyBytes = new Uint8Array(bodyArray);
 
       const url = `${this.configs.endpoint}/${uploadBucket}/${options.key}`;
 
@@ -64,13 +65,13 @@ export class S3Provider implements StorageProvider {
       const headers: Record<string, string> = {
         'Content-Type': options.contentType || 'application/octet-stream',
         'Content-Disposition': options.disposition || 'inline',
-        'Content-Length': bodyArray.length.toString(),
+        'Content-Length': bodyBytes.length.toString(),
       };
 
       const request = new Request(url, {
         method: 'PUT',
         headers,
-        body: bodyArray as unknown as BodyInit,
+        body: new Blob([bodyBytes]),
       });
 
       const response = await client.fetch(request);

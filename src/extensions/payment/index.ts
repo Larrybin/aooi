@@ -1,3 +1,8 @@
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/shared/lib/api/errors';
+
 /**
  * Payment price interface
  */
@@ -356,14 +361,14 @@ export class PaymentManager {
     if (provider) {
       const providerInstance = this.getProvider(provider);
       if (!providerInstance) {
-        throw new Error(`Payment provider '${provider}' not found`);
+        throw new BadRequestError(`Payment provider '${provider}' not found`);
       }
       return providerInstance.createPayment({ order });
     }
 
     const defaultProvider = this.getDefaultProvider();
     if (!defaultProvider) {
-      throw new Error('No payment provider configured');
+      throw new ServiceUnavailableError('No payment provider configured');
     }
 
     return defaultProvider.createPayment({ order });
@@ -380,14 +385,14 @@ export class PaymentManager {
     if (provider) {
       const providerInstance = this.getProvider(provider);
       if (!providerInstance) {
-        throw new Error(`Payment provider '${provider}' not found`);
+        throw new BadRequestError(`Payment provider '${provider}' not found`);
       }
       return providerInstance.getPaymentSession({ sessionId });
     }
 
     const defaultProvider = this.getDefaultProvider();
     if (!defaultProvider) {
-      throw new Error('No payment provider configured');
+      throw new ServiceUnavailableError('No payment provider configured');
     }
 
     return defaultProvider.getPaymentSession({ sessionId });
@@ -404,14 +409,14 @@ export class PaymentManager {
     if (provider) {
       const providerInstance = this.getProvider(provider);
       if (!providerInstance) {
-        throw new Error(`Payment provider '${provider}' not found`);
+        throw new BadRequestError(`Payment provider '${provider}' not found`);
       }
       return providerInstance.getPaymentEvent({ req });
     }
 
     const defaultProvider = this.getDefaultProvider();
     if (!defaultProvider) {
-      throw new Error('No payment provider configured');
+      throw new ServiceUnavailableError('No payment provider configured');
     }
 
     return defaultProvider.getPaymentEvent({ req });
