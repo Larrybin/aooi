@@ -27,7 +27,7 @@ export default async function PostsPage({
   // Check if user has permission to read posts
   await requirePermission({
     code: PERMISSIONS.POSTS_READ,
-    redirectUrl: '/admin/no-permission',
+    redirectUrl: '/changanpenpen/no-permission',
     locale,
   });
 
@@ -38,7 +38,7 @@ export default async function PostsPage({
   const t = await getTranslations('admin.posts');
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
+    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
     { title: t('list.crumbs.posts'), is_active: true },
   ];
 
@@ -99,7 +99,7 @@ export default async function PostsPage({
               name: 'edit',
               title: t('list.buttons.edit'),
               icon: 'RiEditLine',
-              url: `/admin/posts/${item.id}/edit`,
+              url: `/changanpenpen/posts/${item.id}/edit`,
             },
             {
               name: 'view',
@@ -125,7 +125,7 @@ export default async function PostsPage({
       id: 'add',
       title: t('list.buttons.add'),
       icon: 'RiAddLine',
-      url: '/admin/posts/add',
+      url: '/changanpenpen/posts/add',
     },
   ];
 

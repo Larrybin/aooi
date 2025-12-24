@@ -30,8 +30,8 @@ export default async function RoleEditPage({
   const t = await getTranslations('admin.roles');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit.crumbs.admin', url: '/admin' },
-    { key: 'edit.crumbs.roles', url: '/admin/roles' },
+    { key: 'edit.crumbs.admin', url: '/changanpenpen' },
+    { key: 'edit.crumbs.roles', url: '/changanpenpen/roles' },
     { key: 'edit.crumbs.edit' },
   ]);
 

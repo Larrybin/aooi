@@ -27,7 +27,7 @@ export default async function CreditsPage({
   // Check if user has permission to read credits
   await requirePermission({
     code: PERMISSIONS.CREDITS_READ,
-    redirectUrl: '/admin/no-permission',
+    redirectUrl: '/changanpenpen/no-permission',
     locale,
   });
 
@@ -38,7 +38,7 @@ export default async function CreditsPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
+    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
     { title: t('list.crumbs.credits'), is_active: true },
   ];
 
@@ -46,19 +46,19 @@ export default async function CreditsPage({
     {
       name: 'all',
       title: t('list.tabs.all'),
-      url: '/admin/credits',
+      url: '/changanpenpen/credits',
       is_active: !type || type === 'all',
     },
     {
       name: 'grant',
       title: t('list.tabs.grant'),
-      url: '/admin/credits?type=grant',
+      url: '/changanpenpen/credits?type=grant',
       is_active: type === 'grant',
     },
     {
       name: 'consume',
       title: t('list.tabs.consume'),
-      url: '/admin/credits?type=consume',
+      url: '/changanpenpen/credits?type=consume',
       is_active: type === 'consume',
     },
   ];

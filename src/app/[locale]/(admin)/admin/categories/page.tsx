@@ -26,7 +26,7 @@ export default async function CategoriesPage({
   // Check if user has permission to read categories
   await requirePermission({
     code: PERMISSIONS.CATEGORIES_READ,
-    redirectUrl: '/admin/no-permission',
+    redirectUrl: '/changanpenpen/no-permission',
     locale,
   });
 
@@ -37,7 +37,7 @@ export default async function CategoriesPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
+    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
     { title: t('list.crumbs.categories'), is_active: true },
   ];
 
@@ -77,7 +77,7 @@ export default async function CategoriesPage({
               id: 'edit',
               title: t('list.buttons.edit'),
               icon: 'RiEditLine',
-              url: `/admin/categories/${item.id}/edit`,
+              url: `/changanpenpen/categories/${item.id}/edit`,
             },
           ];
         },
@@ -88,7 +88,7 @@ export default async function CategoriesPage({
         id: 'edit',
         title: t('list.buttons.edit'),
         icon: 'RiEditLine',
-        url: '/admin/categories/[id]/edit',
+        url: '/changanpenpen/categories/[id]/edit',
       },
     ],
     data,
@@ -104,7 +104,7 @@ export default async function CategoriesPage({
       id: 'add',
       title: t('list.buttons.add'),
       icon: 'RiAddLine',
-      url: '/admin/categories/add',
+      url: '/changanpenpen/categories/add',
     },
   ];
 
