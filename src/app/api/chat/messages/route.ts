@@ -1,6 +1,5 @@
+import { createApiContext } from '@/shared/lib/api/context';
 import { ForbiddenError, NotFoundError } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
@@ -12,9 +11,9 @@ import {
 import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
 
 export const POST = withApi(async (req: Request) => {
-  const { chatId, page, limit } = await parseJson(req, ChatMessagesBodySchema);
-
-  const user = await requireUser(req);
+  const api = createApiContext(req);
+  const { chatId, page, limit } = await api.parseJson(ChatMessagesBodySchema);
+  const user = await api.requireUser();
 
   const chat = await findChatById(chatId);
   if (!chat) {

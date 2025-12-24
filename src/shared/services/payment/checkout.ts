@@ -198,6 +198,57 @@ function buildCheckoutOrder({
   return checkoutOrder;
 }
 
+function buildPendingOrder({
+  orderId,
+  orderNo,
+  pricingItem,
+  user,
+  providerName,
+  pricingContext,
+  paymentType,
+  paymentInterval,
+  paymentProductId,
+  callbackUrl,
+  checkoutOrder,
+  currentTime,
+}: {
+  orderId: string;
+  orderNo: string;
+  pricingItem: PricingItem;
+  user: { id: string; email: string };
+  providerName: string;
+  pricingContext: ReturnType<typeof resolveCheckoutPricingContext>;
+  paymentType: PaymentType;
+  paymentInterval: PaymentInterval;
+  paymentProductId: string;
+  callbackUrl: string;
+  checkoutOrder: PaymentOrder;
+  currentTime: Date;
+}): NewOrder {
+  return {
+    id: orderId,
+    orderNo,
+    userId: user.id,
+    userEmail: user.email,
+    status: OrderStatus.PENDING,
+    amount: pricingContext.checkoutAmount,
+    currency: pricingContext.checkoutCurrency,
+    productId: pricingItem.product_id,
+    paymentType,
+    paymentInterval,
+    paymentProvider: providerName,
+    checkoutInfo: JSON.stringify(checkoutOrder),
+    createdAt: currentTime,
+    productName: pricingItem.product_name,
+    description: pricingItem.description,
+    callbackUrl,
+    creditsAmount: pricingItem.credits,
+    creditsValidDays: pricingItem.valid_days,
+    planName: pricingItem.plan_name || '',
+    paymentProductId,
+  };
+}
+
 export async function createPaymentCheckoutSession({
   pricingItem,
   user,
@@ -305,29 +356,22 @@ export async function createPaymentCheckoutSession({
   });
 
   const currentTime = new Date();
+  const orderId = getUuid();
 
-  const order: NewOrder = {
-    id: getUuid(),
+  const order: NewOrder = buildPendingOrder({
+    orderId,
     orderNo,
-    userId: user.id,
-    userEmail: user.email,
-    status: OrderStatus.PENDING,
-    amount: pricingContext.checkoutAmount,
-    currency: pricingContext.checkoutCurrency,
-    productId: pricingItem.product_id,
+    pricingItem,
+    user: { id: user.id, email: user.email },
+    providerName: provider.name,
+    pricingContext,
     paymentType,
     paymentInterval,
-    paymentProvider: provider.name,
-    checkoutInfo: JSON.stringify(checkoutOrder),
-    createdAt: currentTime,
-    productName: pricingItem.product_name,
-    description: pricingItem.description,
-    callbackUrl,
-    creditsAmount: pricingItem.credits,
-    creditsValidDays: pricingItem.valid_days,
-    planName: pricingItem.plan_name || '',
     paymentProductId,
-  };
+    callbackUrl,
+    checkoutOrder,
+    currentTime,
+  });
 
   await createOrder(order);
 

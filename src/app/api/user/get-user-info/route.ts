@@ -1,12 +1,12 @@
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { requireUser } from '@/shared/lib/api/guard';
+import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getRemainingCredits } from '@/shared/models/credit';
 import { hasPermission } from '@/shared/services/rbac';
 
 export const POST = withApi(async (req: Request) => {
-  const user = await requireUser(req);
+  const user = await createApiContext(req).requireUser();
 
   const isAdmin = await hasPermission(user.id, PERMISSIONS.ADMIN_ACCESS);
   const remainingCredits = await getRemainingCredits(user.id);

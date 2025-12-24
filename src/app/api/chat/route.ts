@@ -7,17 +7,15 @@ import {
   type UIMessage,
 } from 'ai';
 
+import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { findChatById } from '@/shared/models/chat';
 import {
   ChatMessageStatus,
@@ -29,21 +27,22 @@ import { getAllConfigs } from '@/shared/models/config';
 import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
 
 export const POST = withApi(async (req: Request) => {
-  const { log } = getRequestLogger(req);
+  const api = createApiContext(req);
+  const { log } = api;
   const {
     chatId,
     message: rawMessage,
     model,
     webSearch,
     reasoning,
-  } = await parseJson(req, ChatStreamBodySchema);
+  } = await api.parseJson(ChatStreamBodySchema);
 
   const message = rawMessage as UIMessage;
   if (!message || !Array.isArray(message.parts) || message.parts.length === 0) {
     throw new BadRequestError('invalid message');
   }
 
-  const user = await requireUser(req);
+  const user = await api.requireUser();
 
   const chat = await findChatById(chatId);
   if (!chat) {

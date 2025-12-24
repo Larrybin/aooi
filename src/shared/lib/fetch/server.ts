@@ -52,6 +52,26 @@ function extractErrorDetail(parsed: unknown): string | undefined {
   return undefined;
 }
 
+async function readTextAndParsed(
+  response: Response
+): Promise<{ rawText: string; parsed: unknown | null }> {
+  const rawText = await safeReadText(response);
+  const parsed = safeJsonParse<unknown>(rawText);
+  return { rawText, parsed };
+}
+
+function buildResponseErrorDetail(parsed: unknown, rawText: string) {
+  return (
+    extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined
+  );
+}
+
+function buildInvalidJsonError(url: string, errorMessage?: string): Error {
+  return new Error(
+    `${errorMessage || 'invalid json response'}: ${sanitizeUrlForLog(url)}`
+  );
+}
+
 function buildFetchError(
   url: string,
   response: Response,
@@ -199,12 +219,10 @@ export async function safeFetchJson<T>(
   options?: FetchServerErrorOptions
 ): Promise<T> {
   const response = await safeFetchFollowingRedirects(url, init, options);
-  const rawText = await safeReadText(response);
-  const parsed = safeJsonParse<unknown>(rawText);
+  const { rawText, parsed } = await readTextAndParsed(response);
 
   if (!response.ok) {
-    const detail =
-      extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
+    const detail = buildResponseErrorDetail(parsed, rawText);
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
 
@@ -212,9 +230,7 @@ export async function safeFetchJson<T>(
     if (!rawText.trim()) {
       return null as T;
     }
-    throw new Error(
-      `${options?.errorMessage || 'invalid json response'}: ${sanitizeUrlForLog(url)}`
-    );
+    throw buildInvalidJsonError(url, options?.errorMessage);
   }
 
   return parsed as T;
@@ -229,12 +245,10 @@ export async function safeFetchJsonWithSchema<TSchema extends z.ZodTypeAny>(
   }
 ): Promise<z.infer<TSchema>> {
   const response = await safeFetchFollowingRedirects(url, init, options);
-  const rawText = await safeReadText(response);
-  const parsed = safeJsonParse<unknown>(rawText);
+  const { rawText, parsed } = await readTextAndParsed(response);
 
   if (!response.ok) {
-    const detail =
-      extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
+    const detail = buildResponseErrorDetail(parsed, rawText);
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
 
@@ -242,9 +256,7 @@ export async function safeFetchJsonWithSchema<TSchema extends z.ZodTypeAny>(
     if (!rawText.trim()) {
       return null as z.infer<TSchema>;
     }
-    throw new Error(
-      `${options?.errorMessage || 'invalid json response'}: ${sanitizeUrlForLog(url)}`
-    );
+    throw buildInvalidJsonError(url, options?.errorMessage);
   }
 
   const result = schema.safeParse(parsed);
@@ -264,10 +276,8 @@ export async function safeFetchArrayBuffer(
 ): Promise<ArrayBuffer> {
   const response = await safeFetchFollowingRedirects(url, init, options);
   if (!response.ok) {
-    const rawText = await safeReadText(response);
-    const parsed = safeJsonParse<unknown>(rawText);
-    const detail =
-      extractErrorDetail(parsed) || rawText.trim().slice(0, 300) || undefined;
+    const { rawText, parsed } = await readTextAndParsed(response);
+    const detail = buildResponseErrorDetail(parsed, rawText);
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
   return await response.arrayBuffer();
@@ -282,8 +292,7 @@ export async function safeFetchText(
   const text = await safeReadText(response);
   if (!response.ok) {
     const parsed = safeJsonParse<unknown>(text);
-    const detail =
-      extractErrorDetail(parsed) || text.trim().slice(0, 300) || undefined;
+    const detail = buildResponseErrorDetail(parsed, text);
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
   return text;

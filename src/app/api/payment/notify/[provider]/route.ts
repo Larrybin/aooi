@@ -5,15 +5,14 @@ import {
   WebhookPayloadError,
   WebhookVerificationError,
 } from '@/extensions/payment';
+import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   NotFoundError,
   UnauthorizedError,
 } from '@/shared/lib/api/errors';
-import { parseParams } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import {
   findOrderByInvoiceId,
   findOrderByOrderNo,
@@ -38,8 +37,12 @@ export const POST = withApi(
     req: Request,
     { params }: { params: Promise<{ provider: string }> }
   ) => {
-    const { log } = getRequestLogger(req);
-    const { provider } = await parseParams(params, PaymentNotifyParamsSchema);
+    const api = createApiContext(req);
+    const { log } = api;
+    const { provider } = await api.parseParams(
+      params,
+      PaymentNotifyParamsSchema
+    );
 
     const paymentService = await getPaymentService();
     const paymentProvider = paymentService.getProvider(provider);

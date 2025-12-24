@@ -1,21 +1,22 @@
+import { randomInt } from 'crypto';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildVerificationCodeEmailPayload } from '@/shared/content/email/verification-code';
+import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
-import { requirePermission, requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
 import { getEmailService } from '@/shared/services/email';
 
 const MAX_EMAIL_RECIPIENTS = 10;
 
 export const POST = withApi(async (req: Request) => {
-  const { log } = getRequestLogger(req);
-  const user = await requireUser(req);
-  await requirePermission(user.id, PERMISSIONS.SETTINGS_WRITE);
-  const { emails, subject } = await parseJson(req, EmailSendBodySchema);
+  const api = createApiContext(req);
+  const { log } = api;
+  const user = await api.requireUser();
+  await api.requirePermission(user.id, PERMISSIONS.SETTINGS_WRITE);
+  const { emails, subject } = await api.parseJson(EmailSendBodySchema);
 
   const to = Array.isArray(emails) ? emails : [emails];
   if (to.length > MAX_EMAIL_RECIPIENTS) {
@@ -34,10 +35,11 @@ export const POST = withApi(async (req: Request) => {
 
   let result;
   try {
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     result = await emailService.sendEmail({
       to,
       subject,
-      ...buildVerificationCodeEmailPayload({ code: '123455' }),
+      ...buildVerificationCodeEmailPayload({ code }),
     });
   } catch (error: unknown) {
     log.error('[API] sendEmail threw', { error });
