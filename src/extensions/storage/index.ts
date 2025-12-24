@@ -2,6 +2,10 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
+import {
+  exactProviderNameKey,
+  ProviderRegistry,
+} from '@/shared/lib/providers/provider-registry';
 
 /**
  * Storage upload options interface
@@ -84,37 +88,31 @@ export interface StorageProvider {
  * Storage manager to manage all storage providers
  */
 export class StorageManager {
-  // storage providers
-  private providers: StorageProvider[] = [];
-  private defaultProvider?: StorageProvider;
+  private readonly registry = new ProviderRegistry<StorageProvider>({
+    toNameKey: exactProviderNameKey,
+    memoizeDefault: true,
+  });
 
   // add storage provider
   addProvider(provider: StorageProvider, isDefault = false) {
-    this.providers.push(provider);
-    if (isDefault) {
-      this.defaultProvider = provider;
-    }
+    this.registry.add(provider, isDefault);
   }
 
   // get provider by name
   getProvider(name: string): StorageProvider | undefined {
-    return this.providers.find((p) => p.name === name);
+    return this.registry.get(name);
   }
 
   // upload file using default provider
   async uploadFile(
     options: StorageUploadOptions
   ): Promise<StorageUploadResult> {
-    // set default provider if not set
-    if (!this.defaultProvider && this.providers.length > 0) {
-      this.defaultProvider = this.providers[0];
-    }
-
-    if (!this.defaultProvider) {
+    const defaultProvider = this.registry.getDefault();
+    if (!defaultProvider) {
       throw new ServiceUnavailableError('No storage provider configured');
     }
 
-    return this.defaultProvider.uploadFile(options);
+    return defaultProvider.uploadFile(options);
   }
 
   // upload file using specific provider
@@ -133,16 +131,12 @@ export class StorageManager {
   async downloadAndUpload(
     options: StorageDownloadUploadOptions
   ): Promise<StorageUploadResult> {
-    // set default provider if not set
-    if (!this.defaultProvider && this.providers.length > 0) {
-      this.defaultProvider = this.providers[0];
-    }
-
-    if (!this.defaultProvider) {
+    const defaultProvider = this.registry.getDefault();
+    if (!defaultProvider) {
       throw new ServiceUnavailableError('No storage provider configured');
     }
 
-    return this.defaultProvider.downloadAndUpload(options);
+    return defaultProvider.downloadAndUpload(options);
   }
 
   // download and upload using specific provider
@@ -159,7 +153,7 @@ export class StorageManager {
 
   // get all provider names
   getProviderNames(): string[] {
-    return this.providers.map((p) => p.name);
+    return this.registry.getProviderNames();
   }
 }
 

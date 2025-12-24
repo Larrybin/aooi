@@ -17,6 +17,24 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  const { pathname } = request.nextUrl;
+  const isAdminPath = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isLocaleAdminPath =
+    pathname === '/en/admin' ||
+    pathname.startsWith('/en/admin/') ||
+    pathname === '/zh/admin' ||
+    pathname.startsWith('/zh/admin/');
+
+  if (isAdminPath || isLocaleAdminPath) {
+    return new NextResponse('Not Found', {
+      status: 404,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'x-request-id': requestId,
+      },
+    });
+  }
+
   // Non-API requests: reuse existing proxy (i18n + auth gating) and add requestId.
   const proxied = await proxy(request);
   proxied.headers.set('x-request-id', requestId);

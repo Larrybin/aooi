@@ -6,7 +6,7 @@
         "src": "/logo.png",
         "alt": "Roller Rabbit"
       },
-      "url": "/admin"
+      "url": "/changanpenpen"
     },
     "show_trigger": false
   },
@@ -21,17 +21,17 @@
           "children": [
             {
               "title": "Users",
-              "url": "/admin/users",
+              "url": "/changanpenpen/users",
               "icon": "User"
             },
             {
               "title": "Roles",
-              "url": "/admin/roles",
+              "url": "/changanpenpen/roles",
               "icon": "Users"
             },
             {
               "title": "Permissions",
-              "url": "/admin/permissions",
+              "url": "/changanpenpen/permissions",
               "icon": "ShieldCheck"
             }
           ]
@@ -43,12 +43,12 @@
             {
               "title": "Categories",
               "icon": "Folder",
-              "url": "/admin/categories"
+              "url": "/changanpenpen/categories"
             },
             {
               "title": "Posts",
               "icon": "FileText",
-              "url": "/admin/posts"
+              "url": "/changanpenpen/posts"
             }
           ]
         },
@@ -58,17 +58,17 @@
           "children": [
             {
               "title": "Payments",
-              "url": "/admin/payments",
+              "url": "/changanpenpen/payments",
               "icon": "DollarSign"
             },
             {
               "title": "Subscriptions",
-              "url": "/admin/subscriptions",
+              "url": "/changanpenpen/subscriptions",
               "icon": "CreditCard"
             },
             {
               "title": "Credits",
-              "url": "/admin/credits",
+              "url": "/changanpenpen/credits",
               "icon": "Coins"
             }
           ]
@@ -80,12 +80,12 @@
       "items": [
         {
           "title": "AI Tasks",
-          "url": "/admin/ai-tasks",
+          "url": "/changanpenpen/ai-tasks",
           "icon": "Brain"
         },
         {
           "title": "AI Chats",
-          "url": "/admin/chats",
+          "url": "/changanpenpen/chats",
           "icon": "MessageCircle"
         }
       ]
@@ -95,12 +95,12 @@
     "items": [
       {
         "title": "Settings",
-        "url": "/admin/settings/auth",
+        "url": "/changanpenpen/settings/auth",
         "icon": "Settings"
       },
       {
         "title": "API Keys",
-        "url": "/admin/apikeys",
+        "url": "/changanpenpen/apikeys",
         "icon": "Key"
       }
     ]

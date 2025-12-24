@@ -46,7 +46,7 @@ export async function createCategoryAction(formData: FormData) {
       throw new ActionError('add category failed');
     }
 
-    return actionOk('category added', '/admin/categories');
+    return actionOk('category added', '/changanpenpen/categories');
   });
 }
 
@@ -81,6 +81,6 @@ export async function updateCategoryAction(id: string, formData: FormData) {
       throw new ActionError('update category failed');
     }
 
-    return actionOk('category updated', '/admin/categories');
+    return actionOk('category updated', '/changanpenpen/categories');
   });
 }

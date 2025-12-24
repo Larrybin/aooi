@@ -36,8 +36,8 @@ export default async function RoleDeletePage({
   }
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit.crumbs.admin', url: '/admin' },
-    { key: 'edit.crumbs.roles', url: '/admin/roles' },
+    { key: 'edit.crumbs.admin', url: '/changanpenpen' },
+    { key: 'edit.crumbs.roles', url: '/changanpenpen/roles' },
     { key: 'delete.crumbs.delete' },
   ]);
 

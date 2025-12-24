@@ -6,12 +6,16 @@ import { config } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { publicSettingNames } from '@/shared/constants/public-setting-names';
 import { logger } from '@/shared/lib/logger.server';
+import { unstable_cache } from '@/shared/lib/next-cache';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
 export type UpdateConfig = Partial<Omit<NewConfig, 'name'>>;
 
 export type Configs = Record<string, string>;
+
+export const CONFIGS_CACHE_TAG = 'db-configs';
+const CONFIGS_CACHE_REVALIDATE_SECONDS = 60;
 
 export async function saveConfigs(configs: Record<string, string>) {
   const result = await db().transaction(async (tx) => {
@@ -43,7 +47,7 @@ export async function addConfig(newConfig: NewConfig) {
   return result;
 }
 
-export async function getConfigs(): Promise<Configs> {
+async function getConfigsFromDb(): Promise<Configs> {
   const configs: Record<string, string> = {};
 
   if (!serverEnv.databaseUrl) {
@@ -57,6 +61,20 @@ export async function getConfigs(): Promise<Configs> {
   }
 
   return configs;
+}
+
+const getConfigsCached = unstable_cache(
+  async (): Promise<Configs> => await getConfigsFromDb(),
+  [CONFIGS_CACHE_TAG],
+  {
+    tags: [CONFIGS_CACHE_TAG],
+    revalidate: CONFIGS_CACHE_REVALIDATE_SECONDS,
+  }
+);
+
+export async function getConfigs(): Promise<Configs> {
+  const configs = await getConfigsCached();
+  return { ...configs };
 }
 
 export async function getConfigsSafe(): Promise<{

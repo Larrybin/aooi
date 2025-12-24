@@ -2,17 +2,15 @@ import { redirect } from 'next/navigation';
 
 import { envConfigs } from '@/config';
 import { PaymentType } from '@/extensions/payment';
+import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
   UnauthorizedError,
 } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson, parseQuery } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { findOrderByOrderNo } from '@/shared/models/order';
 import {
   PaymentCallbackBodySchema,
@@ -40,18 +38,16 @@ function toPaymentFallbackUrl(type: string | null | undefined): string {
 }
 
 export async function GET(req: Request) {
-  const { log } = getRequestLogger(req);
+  const api = createApiContext(req);
+  const { log } = api;
   let redirectUrl = '';
 
   try {
     // get callback params
-    const { order_no: orderNo } = parseQuery(
-      req.url,
-      PaymentCallbackQuerySchema
-    );
+    const { order_no: orderNo } = api.parseQuery(PaymentCallbackQuerySchema);
 
     // require signed-in user (GET is safe: CSRF guard only checks cookie + write requests)
-    const user = await requireUser(req);
+    const user = await api.requireUser();
 
     // get order
     const order = await findOrderByOrderNo(orderNo);
@@ -74,10 +70,11 @@ export async function GET(req: Request) {
 }
 
 export const POST = withApi(async (req: Request) => {
-  const { log } = getRequestLogger(req);
-  const { order_no: orderNo } = await parseJson(req, PaymentCallbackBodySchema);
+  const api = createApiContext(req);
+  const { log } = api;
+  const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
 
-  const user = await requireUser(req);
+  const user = await api.requireUser();
   if (!user.email) {
     throw new UnauthorizedError('no auth, please sign in');
   }

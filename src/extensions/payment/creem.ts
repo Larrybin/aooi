@@ -6,6 +6,7 @@ import {
   UpstreamError,
 } from '@/shared/lib/api/errors';
 import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
+import { tryJsonParse } from '@/shared/lib/json';
 
 import {
   PaymentEventType,
@@ -303,12 +304,11 @@ export class CreemProvider implements PaymentProviderDriver {
       throw new WebhookVerificationError('invalid webhook signature');
     }
 
-    let event: unknown;
-    try {
-      event = JSON.parse(rawBody);
-    } catch {
+    const parsedEvent = tryJsonParse<unknown>(rawBody);
+    if (!parsedEvent.ok) {
       throw new WebhookPayloadError('invalid webhook payload');
     }
+    const event = parsedEvent.value;
 
     const parsedWebhookEvent = creemWebhookEventSchema.safeParse(event);
     if (!parsedWebhookEvent.success) {

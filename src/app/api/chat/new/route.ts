@@ -1,16 +1,15 @@
 import { generateId } from 'ai';
 
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
+import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { ChatStatus, createChat, type NewChat } from '@/shared/models/chat';
 import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
 
 export const POST = withApi(async (req: Request) => {
-  const { message, body } = await parseJson(req, ChatNewBodySchema);
-
-  const user = await requireUser(req);
+  const api = createApiContext(req);
+  const { message, body } = await api.parseJson(ChatNewBodySchema);
+  const user = await api.requireUser();
 
   // todo: check user credits
 

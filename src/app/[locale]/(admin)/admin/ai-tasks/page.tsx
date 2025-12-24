@@ -25,7 +25,7 @@ export default async function AiTasksPage({
   // Check if user has permission to read api keys
   await requirePermission({
     code: PERMISSIONS.AITASKS_READ,
-    redirectUrl: '/admin/no-permission',
+    redirectUrl: '/changanpenpen/no-permission',
     locale,
   });
 
@@ -36,7 +36,7 @@ export default async function AiTasksPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
+    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
     { title: t('list.crumbs.ai-tasks'), is_active: true },
   ];
 
@@ -80,37 +80,37 @@ export default async function AiTasksPage({
     {
       title: t('list.tabs.all'),
       name: 'all',
-      url: '/admin/ai-tasks',
+      url: '/changanpenpen/ai-tasks',
       is_active: true,
     },
     {
       title: t('list.tabs.music'),
       name: 'music',
-      url: '/admin/ai-tasks?type=music',
+      url: '/changanpenpen/ai-tasks?type=music',
       is_active: false,
     },
     {
       title: t('list.tabs.image'),
       name: 'image',
-      url: '/admin/ai-tasks?type=image',
+      url: '/changanpenpen/ai-tasks?type=image',
       is_active: false,
     },
     {
       title: t('list.tabs.video'),
       name: 'video',
-      url: '/admin/ai-tasks?type=video',
+      url: '/changanpenpen/ai-tasks?type=video',
       is_active: false,
     },
     {
       title: t('list.tabs.audio'),
       name: 'audio',
-      url: '/admin/ai-tasks?type=audio',
+      url: '/changanpenpen/ai-tasks?type=audio',
       is_active: false,
     },
     {
       title: t('list.tabs.text'),
       name: 'text',
-      url: '/admin/ai-tasks?type=text',
+      url: '/changanpenpen/ai-tasks?type=text',
       is_active: false,
     },
   ];

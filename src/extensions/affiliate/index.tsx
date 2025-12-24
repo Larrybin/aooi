@@ -1,4 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import { HeadInjectionManager } from '@/extensions/lib/head-injection-manager';
 
 /**
  * Affiliate configs interface
@@ -30,36 +32,7 @@ export interface AffiliateProvider {
 /**
  * Affiliate manager to manage all affiliate providers
  */
-export class AffiliateManager {
-  // affiliate providers
-  private providers: AffiliateProvider[] = [];
-
-  // add affiliate provider
-  addProvider(provider: AffiliateProvider) {
-    this.providers.push(provider);
-  }
-
-  // get meta tags from all affiliate providers
-  getMetaTags(): ReactNode {
-    return this.providers
-      .filter((p) => p.getMetaTags)
-      .map((p) => <Fragment key={p.name}>{p.getMetaTags!()}</Fragment>);
-  }
-
-  // get head scripts from all affiliate providers
-  getHeadScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getHeadScripts)
-      .map((p) => <Fragment key={p.name}>{p.getHeadScripts!()}</Fragment>);
-  }
-
-  // get body scripts from all affiliate providers
-  getBodyScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getBodyScripts)
-      .map((p) => <Fragment key={p.name}>{p.getBodyScripts!()}</Fragment>);
-  }
-}
+export class AffiliateManager extends HeadInjectionManager<AffiliateProvider> {}
 
 export * from './affonso';
 export * from './promotekit';

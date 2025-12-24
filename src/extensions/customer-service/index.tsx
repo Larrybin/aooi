@@ -1,4 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import { HeadInjectionManager } from '@/extensions/lib/head-injection-manager';
 
 /**
  * Customer service configs interface
@@ -30,36 +32,7 @@ export interface CustomerServiceProvider {
 /**
  * Customer service manager to manage all customer service providers
  */
-export class CustomerServiceManager {
-  // customer service providers
-  private providers: CustomerServiceProvider[] = [];
-
-  // add affiliate provider
-  addProvider(provider: CustomerServiceProvider) {
-    this.providers.push(provider);
-  }
-
-  // get meta tags from all customer service providers
-  getMetaTags(): ReactNode {
-    return this.providers
-      .filter((p) => p.getMetaTags)
-      .map((p) => <Fragment key={p.name}>{p.getMetaTags!()}</Fragment>);
-  }
-
-  // get head scripts from all customer service providers
-  getHeadScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getHeadScripts)
-      .map((p) => <Fragment key={p.name}>{p.getHeadScripts!()}</Fragment>);
-  }
-
-  // get body scripts from all customer service providers
-  getBodyScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getBodyScripts)
-      .map((p) => <Fragment key={p.name}>{p.getBodyScripts!()}</Fragment>);
-  }
-}
+export class CustomerServiceManager extends HeadInjectionManager<CustomerServiceProvider> {}
 
 export * from './tawk';
 export * from './crisp';

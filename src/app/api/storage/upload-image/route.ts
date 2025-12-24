@@ -1,10 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 
+import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { getStorageService } from '@/shared/services/storage';
 
 const MAX_FILES = 5;
@@ -93,8 +92,9 @@ function isFileValue(value: FormDataEntryValue): value is File {
 }
 
 export const POST = withApi(async (req: Request) => {
-  const { log } = getRequestLogger(req);
-  await requireUser(req);
+  const api = createApiContext(req);
+  const { log } = api;
+  await api.requireUser();
   const formData = await req.formData();
   const entries = formData.getAll('files');
   const files = entries.filter(isFileValue);

@@ -4,6 +4,7 @@ import createIntlMiddleware from 'next-intl/middleware';
 
 import { routing } from '@/core/i18n/config';
 import { defaultLocale, locales, type Locale } from '@/config/locale';
+import { ADMIN_ENTRY_PATH } from '@/shared/constants/admin-entry';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -23,6 +24,7 @@ export async function proxy(request: NextRequest) {
   // Only check authentication for admin routes
   if (
     pathWithoutLocale.startsWith('/admin') ||
+    pathWithoutLocale.startsWith(ADMIN_ENTRY_PATH) ||
     pathWithoutLocale.startsWith('/settings') ||
     pathWithoutLocale.startsWith('/activity')
   ) {
@@ -46,6 +48,22 @@ export async function proxy(request: NextRequest) {
     // This is a lightweight session check to prevent unauthorized access
     // The detailed permission check (admin.access and specific permissions)
     // will be done in the layout or individual pages using requirePermission()
+  }
+
+  if (
+    pathWithoutLocale === ADMIN_ENTRY_PATH ||
+    pathWithoutLocale.startsWith(`${ADMIN_ENTRY_PATH}/`)
+  ) {
+    const rewriteTo = request.nextUrl.clone();
+    const suffix = pathWithoutLocale.slice(ADMIN_ENTRY_PATH.length);
+    const adminPathname = `/admin${suffix}`;
+    rewriteTo.pathname = isValidLocale
+      ? `/${localeSegment}${adminPathname}`
+      : `/${defaultLocale}${adminPathname}`;
+
+    response = NextResponse.rewrite(rewriteTo, { headers: response.headers });
+    response.headers.set('x-rewrite-to', rewriteTo.pathname);
+    return response;
   }
 
   // When `localeDetection=false`, unprefixed routes (e.g. /pricing) don't carry locale information.

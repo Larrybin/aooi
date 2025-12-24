@@ -4,26 +4,25 @@ import {
   AITaskStatus,
   type AIGenerateParams,
 } from '@/extensions/ai';
+import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   ForbiddenError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { createAITask, type NewAITask } from '@/shared/models/ai_task';
 import { getRemainingCredits } from '@/shared/models/credit';
 import { AiGenerateBodySchema } from '@/shared/schemas/api/ai/generate';
 import { getAIService } from '@/shared/services/ai';
 
 export const POST = withApi(async (request: Request) => {
-  const { log } = getRequestLogger(request);
+  const api = createApiContext(request);
+  const { log } = api;
   const { provider, mediaType, model, prompt, options, scene } =
-    await parseJson(request, AiGenerateBodySchema);
+    await api.parseJson(AiGenerateBodySchema);
 
   const aiService = await getAIService();
 
@@ -32,7 +31,7 @@ export const POST = withApi(async (request: Request) => {
     throw new BadRequestError('invalid provider');
   }
 
-  const user = await requireUser(request);
+  const user = await api.requireUser();
 
   let costCredits = 2;
   let finalScene = scene;

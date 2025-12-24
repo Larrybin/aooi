@@ -54,7 +54,7 @@ export async function updateRoleAction(id: string, formData: FormData) {
       throw new ActionError('update role failed');
     }
 
-    return actionOk('role updated', '/admin/roles');
+    return actionOk('role updated', '/changanpenpen/roles');
   });
 }
 
@@ -89,7 +89,7 @@ export async function updateRolePermissionsAction(
       }
     );
 
-    return actionOk('permissions updated', '/admin/roles');
+    return actionOk('permissions updated', '/changanpenpen/roles');
   });
 }
 
@@ -114,7 +114,7 @@ export async function deleteRoleAction(id: string) {
       source: 'admin.roles.deleteRoleAction',
     });
 
-    return actionOk('role deleted', '/admin/roles');
+    return actionOk('role deleted', '/changanpenpen/roles');
   });
 }
 
@@ -144,6 +144,6 @@ export async function restoreRoleAction(id: string) {
       );
     }
 
-    return actionOk('role restored', '/admin/roles?includeDeleted=1');
+    return actionOk('role restored', '/changanpenpen/roles?includeDeleted=1');
   });
 }

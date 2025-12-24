@@ -1,21 +1,20 @@
 import { getTranslations } from 'next-intl/server';
 
+import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { findPricingItemByProductId } from '@/shared/lib/payment/pricing';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { getAllConfigs } from '@/shared/models/config';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import { createPaymentCheckoutSession } from '@/shared/services/payment';
 import type { Pricing } from '@/shared/types/blocks/pricing';
 
 export const POST = withApi(async (req: Request) => {
-  const { log } = getRequestLogger(req);
+  const api = createApiContext(req);
+  const { log } = api;
   const { product_id, currency, locale, payment_provider, metadata } =
-    await parseJson(req, PaymentCheckoutBodySchema);
+    await api.parseJson(PaymentCheckoutBodySchema);
 
   const t = await getTranslations({
     locale: locale || 'en',
@@ -32,7 +31,7 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid pricing item');
   }
 
-  const user = await requireUser(req);
+  const user = await api.requireUser();
 
   const configs = await getAllConfigs();
 

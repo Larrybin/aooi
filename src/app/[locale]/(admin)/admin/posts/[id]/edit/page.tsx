@@ -35,8 +35,8 @@ export default async function PostEditPage({
   const t = await getTranslations('admin.posts');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit.crumbs.admin', url: '/admin' },
-    { key: 'edit.crumbs.posts', url: '/admin/posts' },
+    { key: 'edit.crumbs.admin', url: '/changanpenpen' },
+    { key: 'edit.crumbs.posts', url: '/changanpenpen/posts' },
     { key: 'edit.crumbs.edit' },
   ]);
 

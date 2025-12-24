@@ -8,6 +8,18 @@ export function safeJsonParse<T>(value: string | null | undefined): T | null {
   }
 }
 
+export type JsonParseResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: unknown };
+
+export function tryJsonParse<T>(value: string): JsonParseResult<T> {
+  try {
+    return { ok: true, value: JSON.parse(value) as T };
+  } catch (error: unknown) {
+    return { ok: false, error };
+  }
+}
+
 export type JsonPrimitive = string | number | boolean | null;
 
 export type JsonValue =

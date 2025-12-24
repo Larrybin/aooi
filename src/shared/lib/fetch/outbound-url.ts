@@ -131,18 +131,15 @@ function parseIpv4Literal(hostname: string): IpLiteral | null {
 }
 
 function parseIpv6Literal(hostname: string): IpLiteral | null {
-  if (
-    !hostname.startsWith('[') ||
-    !hostname.endsWith(']') ||
-    hostname.length < 4
-  ) {
-    return null;
-  }
+  const trimmed = hostname.trim();
+  if (!trimmed) return null;
 
-  const inside = hostname.slice(1, -1).toLowerCase();
-  if (!inside || inside.includes('%')) {
-    return null;
-  }
+  const raw =
+    trimmed.startsWith('[') && trimmed.endsWith(']')
+      ? trimmed.slice(1, -1)
+      : trimmed;
+  const inside = raw.toLowerCase();
+  if (!inside || inside.includes('%') || !inside.includes(':')) return null;
 
   const expanded = expandIpv6(inside);
   if (!expanded) return null;

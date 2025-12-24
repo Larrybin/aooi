@@ -1,3 +1,5 @@
+import { safeJsonParse } from '@/shared/lib/json';
+
 export function JsonPreview({
   value,
   placeholder,
@@ -21,13 +23,7 @@ export function JsonPreview({
     return <div className={className}>{value}</div>;
   }
 
-  let parsed: unknown = null;
-
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    parsed = null;
-  }
+  const parsed = safeJsonParse<unknown>(value);
 
   if (parsed !== null) {
     return <pre className={className}>{JSON.stringify(parsed, null, 2)}</pre>;

@@ -1,4 +1,5 @@
 import { AITaskStatus } from '@/extensions/ai';
+import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   ForbiddenError,
@@ -6,12 +7,9 @@ import {
   ServiceUnavailableError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import {
   findAITaskById,
   updateAITaskById,
@@ -73,13 +71,14 @@ function shouldQueryProvider(taskId: string) {
 }
 
 export const POST = withApi(async (req: Request) => {
-  const { log } = getRequestLogger(req);
-  const { taskId } = await parseJson(req, AiQueryBodySchema);
+  const api = createApiContext(req);
+  const { log } = api;
+  const { taskId } = await api.parseJson(AiQueryBodySchema);
   if (!taskId) {
     throw new BadRequestError('invalid params');
   }
 
-  const user = await requireUser(req);
+  const user = await api.requireUser();
 
   const task = await findAITaskById(taskId);
   if (!task || !task.taskId) {

@@ -2,6 +2,7 @@ import type { ControllerRenderProps } from 'react-hook-form';
 
 import { Checkbox as CheckboxComponent } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/label';
+import { tryJsonParse } from '@/shared/lib/json';
 import type { FormField } from '@/shared/types/blocks/form';
 
 export function Checkbox({
@@ -17,13 +18,13 @@ export function Checkbox({
   let value = (formField.value as string[]) || [];
 
   if (typeof value === 'string') {
-    try {
-      const jsonValue = JSON.parse(value);
-      if (Array.isArray(jsonValue)) {
-        value = jsonValue;
+    const parsed = tryJsonParse<unknown>(value);
+    if (parsed.ok) {
+      if (Array.isArray(parsed.value)) {
+        value = parsed.value;
       }
-    } catch (error) {
-      console.error('checkbox initial value parse error', error);
+    } else {
+      console.error('checkbox initial value parse error', parsed.error);
     }
   }
 

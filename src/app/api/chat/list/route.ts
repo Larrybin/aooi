@@ -1,14 +1,13 @@
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
+import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { ChatStatus, getChats, getChatsCount } from '@/shared/models/chat';
 import { ChatListBodySchema } from '@/shared/schemas/api/chat/list';
 
 export const POST = withApi(async (req: Request) => {
-  const { page, limit } = await parseJson(req, ChatListBodySchema);
-
-  const user = await requireUser(req);
+  const api = createApiContext(req);
+  const { page, limit } = await api.parseJson(ChatListBodySchema);
+  const user = await api.requireUser();
 
   const chats = await getChats({
     userId: user.id,

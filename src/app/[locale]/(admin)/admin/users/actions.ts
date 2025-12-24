@@ -47,7 +47,7 @@ export async function updateUserAction(id: string, formData: FormData) {
       throw new ActionError('update user failed');
     }
 
-    return actionOk('user updated', '/admin/users');
+    return actionOk('user updated', '/changanpenpen/users');
   });
 }
 
@@ -80,6 +80,6 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
       source: 'admin.users.updateUserRolesAction',
     });
 
-    return actionOk('roles updated', '/admin/users');
+    return actionOk('roles updated', '/changanpenpen/users');
   });
 }

@@ -7,6 +7,8 @@
 
 import type { z } from 'zod';
 
+import { tryJsonParse } from '@/shared/lib/json';
+
 import { BadRequestError } from './errors';
 
 export async function parseJson<TSchema extends z.ZodTypeAny>(
@@ -14,12 +16,11 @@ export async function parseJson<TSchema extends z.ZodTypeAny>(
   schema: TSchema
 ): Promise<z.infer<TSchema>> {
   const rawText = await req.text().catch(() => '');
-  let value: unknown;
-  try {
-    value = JSON.parse(rawText) as unknown;
-  } catch {
+  const parsed = tryJsonParse<unknown>(rawText);
+  if (!parsed.ok) {
     throw new BadRequestError('invalid json body');
   }
+  const value: unknown = parsed.value;
 
   const result = schema.safeParse(value);
   if (!result.success) {

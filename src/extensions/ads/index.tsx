@@ -1,4 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import { HeadInjectionManager } from '@/extensions/lib/head-injection-manager';
 
 /**
  * Ads configs interface
@@ -28,35 +30,6 @@ export interface AdsProvider {
 /**
  * Ads manager to manage all ads providers
  */
-export class AdsManager {
-  // ads providers
-  private providers: AdsProvider[] = [];
-
-  // add ads provider
-  addProvider(provider: AdsProvider) {
-    this.providers.push(provider);
-  }
-
-  // get meta tags from all providers
-  getMetaTags(): ReactNode {
-    return this.providers
-      .filter((p) => p.getMetaTags)
-      .map((p) => <Fragment key={p.name}>{p.getMetaTags!()}</Fragment>);
-  }
-
-  // get head scripts from all providers
-  getHeadScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getHeadScripts)
-      .map((p) => <Fragment key={p.name}>{p.getHeadScripts!()}</Fragment>);
-  }
-
-  // get body scripts from all providers
-  getBodyScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getBodyScripts)
-      .map((p) => <Fragment key={p.name}>{p.getBodyScripts!()}</Fragment>);
-  }
-}
+export class AdsManager extends HeadInjectionManager<AdsProvider> {}
 
 export * from './adsense';
