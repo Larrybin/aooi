@@ -13,8 +13,13 @@ import {
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
+import { tryJsonParse } from '@/shared/lib/json';
 import { PUBLIC_CONFIGS_CACHE_TAG } from '@/shared/lib/public-configs-cache';
-import { getConfigsSafe, saveConfigs } from '@/shared/models/config';
+import {
+  CONFIGS_CACHE_TAG,
+  getConfigsSafe,
+  saveConfigs,
+} from '@/shared/models/config';
 import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import {
   getSettingGroups,
@@ -39,7 +44,7 @@ export default async function SettingsPage({
   // Check if user has permission to read settings
   await requireAllPermissions({
     codes: [PERMISSIONS.SETTINGS_READ, PERMISSIONS.SETTINGS_WRITE],
-    redirectUrl: '/admin/no-permission',
+    redirectUrl: '/changanpenpen/no-permission',
     locale,
   });
 
@@ -51,7 +56,7 @@ export default async function SettingsPage({
   const t = await getTranslations('admin.settings');
 
   const crumbs: Crumb[] = [
-    { title: t('edit.crumbs.admin'), url: '/admin' },
+    { title: t('edit.crumbs.admin'), url: '/changanpenpen' },
     { title: t('edit.crumbs.settings'), is_active: true },
   ];
 
@@ -85,27 +90,24 @@ export default async function SettingsPage({
         if (!trimmed) {
           normalizedSocialLinks = '';
         } else {
-          try {
-            const parsed = JSON.parse(trimmed) as unknown;
-            const result = generalSocialLinksSchema.safeParse(parsed);
-            if (!result.success) {
-              const issues = result.error.issues
-                .slice(0, 3)
-                .map((issue) => {
-                  const path = issue.path.length
-                    ? issue.path.join('.')
-                    : 'root';
-                  return `${path}: ${issue.message}`;
-                })
-                .join('; ');
-              return actionErr(
-                `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim()
-              );
-            }
-            normalizedSocialLinks = JSON.stringify(result.data);
-          } catch {
+          const parsedResult = tryJsonParse<unknown>(trimmed);
+          if (!parsedResult.ok) {
             return actionErr('Invalid Social Links JSON. Must be valid JSON.');
           }
+          const result = generalSocialLinksSchema.safeParse(parsedResult.value);
+          if (!result.success) {
+            const issues = result.error.issues
+              .slice(0, 3)
+              .map((issue) => {
+                const path = issue.path.length ? issue.path.join('.') : 'root';
+                return `${path}: ${issue.message}`;
+              })
+              .join('; ');
+            return actionErr(
+              `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim()
+            );
+          }
+          normalizedSocialLinks = JSON.stringify(result.data);
         }
       }
 
@@ -167,6 +169,7 @@ export default async function SettingsPage({
       }
 
       await saveConfigs(configs);
+      revalidateTag(CONFIGS_CACHE_TAG, 'max');
       revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max');
 
       return actionOk('Settings updated');

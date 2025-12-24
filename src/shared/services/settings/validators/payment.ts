@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { tryJsonParse } from '@/shared/lib/json';
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -36,12 +38,10 @@ export function parseStripePaymentMethodsConfig(value: string):
     return { ok: true, methods, normalized: normalizeJson(methods) };
   }
 
-  let parsed: unknown = null;
-  try {
-    parsed = JSON.parse(trimmed) as unknown;
-  } catch {
-    parsed = trimmed.split(',').map((v) => v.trim());
-  }
+  const parsedResult = tryJsonParse<unknown>(trimmed);
+  const parsed = parsedResult.ok
+    ? parsedResult.value
+    : trimmed.split(',').map((v) => v.trim());
 
   if (!Array.isArray(parsed)) {
     return {
@@ -74,12 +74,11 @@ export function parseCreemProductIdsMappingConfig(value: string):
     return { ok: true, mapping: {}, normalized: '' };
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed) as unknown;
-  } catch {
+  const parsedResult = tryJsonParse<unknown>(trimmed);
+  if (!parsedResult.ok) {
     return { ok: false, error: 'creem_product_ids must be valid JSON' };
   }
+  const parsed: unknown = parsedResult.value;
 
   if (!isPlainObject(parsed)) {
     return { ok: false, error: 'creem_product_ids must be a JSON object' };
