@@ -178,6 +178,68 @@ function buildNewSubscription({
   };
 }
 
+async function processSuccessfulPayment({
+  order,
+  session,
+  log,
+  flow,
+}: {
+  order: Order;
+  session: PaymentSession;
+  log?: LogLike;
+  flow: 'checkout success' | 'payment success';
+}) {
+  try {
+    assertPaidPaymentMatchesOrder({ order, session });
+  } catch (error: unknown) {
+    log?.error(`payment: ${flow} payment mismatch`, {
+      ...toOrderFlowLogMeta({ order, session }),
+      error,
+    });
+    throw error;
+  }
+
+  const updateOrder: UpdateOrder = {
+    ...buildPaidUpdateOrder(session),
+    subscriptionNo: '',
+  };
+
+  let newSubscription: NewSubscription | undefined = undefined;
+  const subscriptionInfo = session.subscriptionInfo;
+
+  if (subscriptionInfo) {
+    newSubscription = buildNewSubscription({
+      order,
+      session,
+    });
+
+    updateOrder.subscriptionNo = newSubscription.subscriptionNo;
+    updateOrder.subscriptionId = session.subscriptionId;
+    updateOrder.subscriptionResult = JSON.stringify(session.subscriptionResult);
+  }
+
+  const newCredit = buildGrantCreditForOrder({
+    order: toCreditGrantOrder(order),
+    subscriptionNo: newSubscription?.subscriptionNo,
+    subscriptionInfo,
+  });
+
+  await updateOrderInTransaction({
+    orderNo: order.orderNo,
+    updateOrder,
+    newSubscription,
+    newCredit,
+  });
+
+  log?.info(`payment: ${flow} processed`, {
+    ...toOrderFlowLogMeta({
+      order,
+      session,
+      subscriptionNo: newSubscription?.subscriptionNo,
+    }),
+  });
+}
+
 /**
  * Handle checkout success (one-time payment or subscription first payment)
  */
@@ -219,58 +281,12 @@ export async function handleCheckoutSuccess({
   }
 
   if (session.paymentStatus === PaymentStatus.SUCCESS) {
-    try {
-      assertPaidPaymentMatchesOrder({ order, session });
-    } catch (error: unknown) {
-      log?.error('payment: checkout success payment mismatch', {
-        ...toOrderFlowLogMeta({ order, session }),
-        error,
-      });
-      throw error;
-    }
-
-    const updateOrder: UpdateOrder = {
-      ...buildPaidUpdateOrder(session),
-      subscriptionNo: '',
-    };
-
-    let newSubscription: NewSubscription | undefined = undefined;
-    const subscriptionInfo = session.subscriptionInfo;
-
-    if (subscriptionInfo) {
-      newSubscription = buildNewSubscription({
-        order,
-        session,
-      });
-
-      updateOrder.subscriptionNo = newSubscription.subscriptionNo;
-      updateOrder.subscriptionId = session.subscriptionId;
-      updateOrder.subscriptionResult = JSON.stringify(
-        session.subscriptionResult
-      );
-    }
-
-    const newCredit = buildGrantCreditForOrder({
-      order: toCreditGrantOrder(order),
-      subscriptionNo: newSubscription?.subscriptionNo,
-      subscriptionInfo,
+    await processSuccessfulPayment({
+      order,
+      session,
+      log,
+      flow: 'checkout success',
     });
-
-    await updateOrderInTransaction({
-      orderNo,
-      updateOrder,
-      newSubscription,
-      newCredit,
-    });
-
-    log?.info(
-      'payment: checkout success processed',
-      toOrderFlowLogMeta({
-        order,
-        session,
-        subscriptionNo: newSubscription?.subscriptionNo,
-      })
-    );
   } else if (
     session.paymentStatus === PaymentStatus.FAILED ||
     session.paymentStatus === PaymentStatus.CANCELED
@@ -339,58 +355,12 @@ export async function handlePaymentSuccess({
   }
 
   if (session.paymentStatus === PaymentStatus.SUCCESS) {
-    try {
-      assertPaidPaymentMatchesOrder({ order, session });
-    } catch (error: unknown) {
-      log?.error('payment: payment success payment mismatch', {
-        ...toOrderFlowLogMeta({ order, session }),
-        error,
-      });
-      throw error;
-    }
-
-    const updateOrder: UpdateOrder = {
-      ...buildPaidUpdateOrder(session),
-      subscriptionNo: '',
-    };
-
-    let newSubscription: NewSubscription | undefined = undefined;
-    const subscriptionInfo = session.subscriptionInfo;
-
-    if (subscriptionInfo) {
-      newSubscription = buildNewSubscription({
-        order,
-        session,
-      });
-
-      updateOrder.subscriptionNo = newSubscription.subscriptionNo;
-      updateOrder.subscriptionId = session.subscriptionId;
-      updateOrder.subscriptionResult = JSON.stringify(
-        session.subscriptionResult
-      );
-    }
-
-    const newCredit = buildGrantCreditForOrder({
-      order: toCreditGrantOrder(order),
-      subscriptionNo: newSubscription?.subscriptionNo,
-      subscriptionInfo,
+    await processSuccessfulPayment({
+      order,
+      session,
+      log,
+      flow: 'payment success',
     });
-
-    await updateOrderInTransaction({
-      orderNo,
-      updateOrder,
-      newSubscription,
-      newCredit,
-    });
-
-    log?.info(
-      'payment: payment success processed',
-      toOrderFlowLogMeta({
-        order,
-        session,
-        subscriptionNo: newSubscription?.subscriptionNo,
-      })
-    );
   } else {
     throw new Error('unknown payment status');
   }
