@@ -384,6 +384,11 @@ export class PayPalProvider implements PaymentProviderDriver {
       throw new BadRequestError('plan is required');
     }
 
+    const orderNo =
+      order.metadata && typeof order.metadata.order_no === 'string'
+        ? order.metadata.order_no
+        : undefined;
+
     // First create a product
     const productPayload = {
       name: order.plan.name,
@@ -477,11 +482,6 @@ export class PayPalProvider implements PaymentProviderDriver {
     }
 
     // Create subscription
-    const orderNo =
-      order.metadata && typeof order.metadata.order_no === 'string'
-        ? order.metadata.order_no
-        : undefined;
-
     const subscriptionPayload = {
       plan_id: planId,
       custom_id: orderNo,

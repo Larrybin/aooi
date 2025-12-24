@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
+import { listenEvent } from '@/shared/lib/dom/event-listener';
+
 type Mode = 'auto' | 'development' | 'production';
 
 const DynamicVercelAnalytics = dynamic(
@@ -27,8 +29,7 @@ export function VercelAnalyticsClient({
       return () => window.clearTimeout(timeoutId);
     }
 
-    window.addEventListener('load', enable, { once: true });
-    return () => window.removeEventListener('load', enable);
+    return listenEvent(window, 'load', enable, { once: true });
   }, []);
 
   if (!ready) return null;

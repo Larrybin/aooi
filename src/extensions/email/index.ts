@@ -4,6 +4,10 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
+import {
+  exactProviderNameKey,
+  ProviderRegistry,
+} from '@/shared/lib/providers/provider-registry';
 
 /**
  * Email attachment interface
@@ -68,35 +72,29 @@ export interface EmailProvider {
  * Email manager to manage all email providers
  */
 export class EmailManager {
-  // email providers
-  private providers: EmailProvider[] = [];
-  private defaultProvider?: EmailProvider;
+  private readonly registry = new ProviderRegistry<EmailProvider>({
+    toNameKey: exactProviderNameKey,
+    memoizeDefault: true,
+  });
 
   // add email provider
   addProvider(provider: EmailProvider, isDefault = false) {
-    this.providers.push(provider);
-    if (isDefault) {
-      this.defaultProvider = provider;
-    }
+    this.registry.add(provider, isDefault);
   }
 
   // get provider by name
   getProvider(name: string): EmailProvider | undefined {
-    return this.providers.find((p) => p.name === name);
+    return this.registry.get(name);
   }
 
   // send email using default provider
   async sendEmail(email: EmailMessage): Promise<EmailSendResult> {
-    // set default provider if not set
-    if (!this.defaultProvider && this.providers.length > 0) {
-      this.defaultProvider = this.providers[0];
-    }
-
-    if (!this.defaultProvider) {
+    const defaultProvider = this.registry.getDefault();
+    if (!defaultProvider) {
       throw new ServiceUnavailableError('No email provider configured');
     }
 
-    return this.defaultProvider.sendEmail(email);
+    return defaultProvider.sendEmail(email);
   }
 
   // send email using specific provider
@@ -113,7 +111,7 @@ export class EmailManager {
 
   // get all provider names
   getProviderNames(): string[] {
-    return this.providers.map((p) => p.name);
+    return this.registry.getProviderNames();
   }
 }
 

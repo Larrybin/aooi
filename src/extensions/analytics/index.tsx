@@ -1,4 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import { HeadInjectionManager } from '@/extensions/lib/head-injection-manager';
 
 /**
  * Analytics configs interface
@@ -30,36 +32,7 @@ export interface AnalyticsProvider {
 /**
  * Analytics manager to manage all analytics providers
  */
-export class AnalyticsManager {
-  // analytics providers
-  private providers: AnalyticsProvider[] = [];
-
-  // add analytics provider
-  addProvider(provider: AnalyticsProvider) {
-    this.providers.push(provider);
-  }
-
-  // get meta tags from all providers
-  getMetaTags(): ReactNode {
-    return this.providers
-      .filter((p) => p.getMetaTags)
-      .map((p) => <Fragment key={p.name}>{p.getMetaTags!()}</Fragment>);
-  }
-
-  // get head scripts from all providers
-  getHeadScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getHeadScripts)
-      .map((p) => <Fragment key={p.name}>{p.getHeadScripts!()}</Fragment>);
-  }
-
-  // get body scripts from all providers
-  getBodyScripts(): ReactNode {
-    return this.providers
-      .filter((p) => p.getBodyScripts)
-      .map((p) => <Fragment key={p.name}>{p.getBodyScripts!()}</Fragment>);
-  }
-}
+export class AnalyticsManager extends HeadInjectionManager<AnalyticsProvider> {}
 
 export * from './google-analytics';
 export * from './clarity';

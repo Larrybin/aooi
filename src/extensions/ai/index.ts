@@ -1,4 +1,8 @@
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import {
+  ProviderRegistry,
+  trimmedProviderNameKey,
+} from '@/shared/lib/providers/provider-registry';
 
 /**
  * AI Configs to use AI functions
@@ -107,82 +111,50 @@ export interface AIProvider {
  * AI Manager to manage all AI providers
  */
 export class AIManager {
-  // ai providers
-  private providers: AIProvider[] = [];
-  // default ai provider
-  private defaultProvider?: AIProvider;
-
-  private normalizeProviderName(name: unknown): string {
-    return typeof name === 'string' ? name.trim() : '';
-  }
+  private readonly registry = new ProviderRegistry<AIProvider>({
+    toNameKey: trimmedProviderNameKey,
+  });
 
   hasProvider(name: string): boolean {
-    const normalized = this.normalizeProviderName(name);
-    return this.providers.some(
-      (p) => this.normalizeProviderName(p.name) === normalized
-    );
+    return this.registry.has(name);
   }
 
   // add ai provider
   addProvider(provider: AIProvider, isDefault = false) {
-    const name = this.normalizeProviderName(provider?.name);
+    const name = trimmedProviderNameKey(provider?.name);
     if (!name) {
       throw new ServiceUnavailableError('AI provider name is required');
     }
-    if (this.hasProvider(name)) {
+    if (this.registry.has(name)) {
       throw new ServiceUnavailableError(
         `AI provider '${name}' is already registered`
       );
     }
-    this.providers.push(provider);
-    if (isDefault) {
-      this.defaultProvider = provider;
-    }
+    this.registry.add(provider, isDefault);
   }
 
   removeProvider(name: string): boolean {
-    const normalized = this.normalizeProviderName(name);
-    const index = this.providers.findIndex(
-      (p) => this.normalizeProviderName(p.name) === normalized
-    );
-    if (index < 0) return false;
-
-    const [removed] = this.providers.splice(index, 1);
-
-    if (
-      this.normalizeProviderName(this.defaultProvider?.name) ===
-      this.normalizeProviderName(removed.name)
-    ) {
-      this.defaultProvider = undefined;
-    }
-
-    return true;
+    return this.registry.remove(name);
   }
 
   clearProviders(): void {
-    this.providers = [];
-    this.defaultProvider = undefined;
+    this.registry.clear();
   }
 
   setDefaultProvider(name: string): void {
-    const provider = this.getProvider(name);
-    if (!provider) {
+    if (!this.registry.setDefault(name)) {
       throw new ServiceUnavailableError(`AI provider '${name}' not found`);
     }
-    this.defaultProvider = provider;
   }
 
   // get provider by name
   getProvider(name: string): AIProvider | undefined {
-    const normalized = this.normalizeProviderName(name);
-    return this.providers.find(
-      (p) => this.normalizeProviderName(p.name) === normalized
-    );
+    return this.registry.get(name);
   }
 
   // get all provider names
   getProviderNames(): string[] {
-    return this.providers.map((p) => this.normalizeProviderName(p.name));
+    return this.registry.getProviderNames();
   }
 
   // get all media types
@@ -191,7 +163,7 @@ export class AIManager {
   }
 
   getDefaultProvider(): AIProvider | undefined {
-    return this.defaultProvider ?? this.providers[0];
+    return this.registry.getDefault();
   }
 }
 
