@@ -165,10 +165,11 @@ export type ReasoningContentProps = ComponentProps<
   typeof CollapsibleContent
 > & {
   children: string;
+  remarkRehypeOptions?: ComponentProps<typeof Streamdown>['remarkRehypeOptions'];
 };
 
 export const ReasoningContent = memo(
-  ({ className, children, ...props }: ReasoningContentProps) => (
+  ({ className, children, remarkRehypeOptions, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
       className={cn(
         "mt-4 text-sm",
@@ -177,7 +178,15 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Streamdown {...props}>{children}</Streamdown>
+      <Streamdown
+        {...props}
+        remarkRehypeOptions={{
+          ...(remarkRehypeOptions ?? {}),
+          allowDangerousHtml: false,
+        }}
+      >
+        {children}
+      </Streamdown>
     </CollapsibleContent>
   )
 );

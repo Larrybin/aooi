@@ -7,16 +7,14 @@ import {
   type UIMessage,
 } from 'ai';
 
+import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
-  ForbiddenError,
-  NotFoundError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
-import { findChatById } from '@/shared/models/chat';
 import {
   ChatMessageStatus,
   createChatMessage,
@@ -44,14 +42,7 @@ export const POST = withApi(async (req: Request) => {
 
   const user = await api.requireUser();
 
-  const chat = await findChatById(chatId);
-  if (!chat) {
-    throw new NotFoundError('chat not found');
-  }
-
-  if (chat.userId !== user.id) {
-    throw new ForbiddenError('no permission to access this chat');
-  }
+  await requireOwnedChat(chatId, user.id);
 
   const configs = await getAllConfigs();
   const openrouterApiKey = configs.openrouter_api_key;
