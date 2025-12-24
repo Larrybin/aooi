@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { listenEvent } from '@/shared/lib/dom/event-listener';
+
 const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
@@ -12,9 +14,9 @@ export function useIsMobile() {
     const onChange = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
-    mql.addEventListener('change', onChange);
+    const cleanup = listenEvent(mql, 'change', onChange);
     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    return () => mql.removeEventListener('change', onChange);
+    return cleanup;
   }, []);
 
   // During SSR and initial render, always return false to match server output

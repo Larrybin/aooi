@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from 'react';
 
+import { listenEvent } from '@/shared/lib/dom/event-listener';
+
 export function useMedia(query: string, defaultValue = false): boolean {
   return useSyncExternalStore(
     (onStoreChange) => {
@@ -12,8 +14,7 @@ export function useMedia(query: string, defaultValue = false): boolean {
       const matchMedia = window.matchMedia(query);
       const handleChange = () => onStoreChange();
 
-      matchMedia.addEventListener('change', handleChange);
-      return () => matchMedia.removeEventListener('change', handleChange);
+      return listenEvent(matchMedia, 'change', handleChange);
     },
     () =>
       typeof window === 'undefined'

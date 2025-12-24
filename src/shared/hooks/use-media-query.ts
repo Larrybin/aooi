@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { listenEvent } from '@/shared/lib/dom/event-listener';
+
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
     if (typeof window === 'undefined') {
@@ -16,15 +18,11 @@ export function useMediaQuery(query: string): boolean {
 
     const mediaQuery = window.matchMedia(query);
 
-    const handleChange = (event: MediaQueryListEvent) => {
-      setMatches(event.matches);
+    const handleChange: EventListener = (event) => {
+      setMatches((event as MediaQueryListEvent).matches);
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
+    return listenEvent(mediaQuery, 'change', handleChange);
   }, [query]);
 
   return matches;

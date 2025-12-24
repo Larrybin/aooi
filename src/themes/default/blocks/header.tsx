@@ -25,6 +25,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
+import { listenEvent } from '@/shared/lib/dom/event-listener';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
@@ -54,8 +55,7 @@ export function Header({
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return listenEvent(window, 'scroll', handleScroll);
   }, []);
 
   // Navigation menu for large screens
