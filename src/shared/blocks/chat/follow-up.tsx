@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 
 import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { useChatContext } from '@/shared/contexts/chat';
+import { safeJsonParse } from '@/shared/lib/json';
 
 import { ChatInput } from './input';
 
@@ -131,23 +132,8 @@ export function FollowUp({
       messages.length === 0
     ) {
       // auto send message in new chat
-      const parsedMessage = (() => {
-        try {
-          return JSON.parse(chat.content) as unknown;
-        } catch {
-          return null;
-        }
-      })();
-
-      const parsedBody = chat.metadata
-        ? (() => {
-            try {
-              return JSON.parse(chat.metadata) as unknown;
-            } catch {
-              return null;
-            }
-          })()
-        : null;
+      const parsedMessage = safeJsonParse<unknown>(chat.content);
+      const parsedBody = safeJsonParse<unknown>(chat.metadata);
 
       if (!parsedMessage || !isRecord(parsedMessage)) {
         return;

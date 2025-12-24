@@ -2,6 +2,8 @@ import 'server-only';
 
 import { z } from 'zod';
 
+import { tryJsonParse } from '@/shared/lib/json';
+
 import { ActionError } from './errors';
 
 function formDataToObject(formData: FormData): Record<string, unknown> {
@@ -37,9 +39,6 @@ export function parseFormData<TSchema extends z.ZodTypeAny>(
 export const jsonStringArraySchema = z.preprocess((value) => {
   if (Array.isArray(value)) return value;
   if (typeof value !== 'string') return value;
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return value;
-  }
+  const parsed = tryJsonParse<unknown>(value);
+  return parsed.ok ? parsed.value : value;
 }, z.array(z.string()));
