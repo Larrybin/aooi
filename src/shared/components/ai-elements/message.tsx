@@ -322,13 +322,17 @@ export const MessageBranchPage = ({
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, remarkRehypeOptions, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
       {...props}
+      remarkRehypeOptions={{
+        ...(remarkRehypeOptions ?? {}),
+        allowDangerousHtml: false,
+      }}
     />
   ),
   (prevProps, nextProps) => prevProps.children === nextProps.children

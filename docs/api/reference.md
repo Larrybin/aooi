@@ -196,9 +196,10 @@ const user = await requireUser(req);
 
 ### Email
 
-| Method | Endpoint                | Description              |
-| ------ | ----------------------- | ------------------------ |
-| `POST` | `/api/email/send-email` | Send transactional email |
+| Method | Endpoint                 | Description                    |
+| ------ | ------------------------ | ------------------------------ |
+| `POST` | `/api/email/send-email`  | Send transactional email       |
+| `POST` | `/api/email/verify-code` | Verify email verification code |
 
 ### Documentation
 
