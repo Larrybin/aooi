@@ -7,6 +7,7 @@ import {
   type PaymentOrder,
   type PaymentPrice,
 } from '@/extensions/payment';
+import { locales, defaultLocale, type Locale } from '@/config/locale';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -34,6 +35,40 @@ type LogLike = {
   warn(message: string, meta?: unknown): void;
   error(message: string, meta?: unknown): void;
 };
+
+function normalizeLocaleValue(
+  value: string | null | undefined
+): Locale | undefined {
+  const normalized = (value || '').trim();
+  if (!normalized) return undefined;
+  const candidate = normalized === 'zh-CN' ? 'zh' : normalized;
+  return locales.includes(candidate as Locale)
+    ? (candidate as Locale)
+    : undefined;
+}
+
+function assertAppUrlOrigin(appUrl: string): string {
+  const trimmed = (appUrl || '').trim();
+  if (!trimmed) {
+    throw new ServiceUnavailableError('app_url is not configured');
+  }
+
+  let origin: string;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('app_url must use http or https');
+    }
+    origin = url.origin;
+  } catch (error) {
+    throw new ServiceUnavailableError(
+      'invalid app_url configuration',
+      { error }
+    );
+  }
+
+  return origin;
+}
 
 function resolvePaymentProviderName({
   requestedProvider,
@@ -114,9 +149,15 @@ function buildCallbackUrl({
   locale: string | null | undefined;
   paymentType: PaymentType;
 }): { callbackUrl: string; callbackBaseUrl: string } {
-  let callbackBaseUrl = `${configs.app_url}`;
-  if (locale && locale !== configs.default_locale) {
-    callbackBaseUrl += `/${locale}`;
+  const appUrl = assertAppUrlOrigin(configs.app_url);
+  const activeLocale =
+    normalizeLocaleValue(locale) ??
+    normalizeLocaleValue(configs.locale) ??
+    normalizeLocaleValue(configs.default_locale);
+
+  let callbackBaseUrl = appUrl;
+  if (activeLocale && activeLocale !== defaultLocale) {
+    callbackBaseUrl += `/${activeLocale}`;
   }
 
   const callbackUrl =

@@ -55,9 +55,17 @@ export const POST = withApi(
       event = await paymentProvider.getPaymentEvent({ req });
     } catch (err: unknown) {
       if (err instanceof WebhookVerificationError) {
+        log.warn('payment: webhook verification failed', {
+          provider,
+          eventType: 'unknown',
+        });
         throw new UnauthorizedError(err.message);
       }
       if (err instanceof WebhookPayloadError) {
+        log.warn('payment: webhook payload invalid', {
+          provider,
+          eventType: 'unknown',
+        });
         throw new BadRequestError(err.message);
       }
       if (err instanceof WebhookConfigError) {
