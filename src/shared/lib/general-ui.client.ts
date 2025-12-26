@@ -13,6 +13,15 @@ function normalizeTarget(value: unknown): '_self' | '_blank' {
   return value === '_self' ? '_self' : '_blank';
 }
 
+function isSafeHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function parseGeneralSocialLinks(
   json: string | undefined
 ): Array<NavItem> {
@@ -29,7 +38,7 @@ export function parseGeneralSocialLinks(
 
     const icon = typeof item.icon === 'string' ? item.icon.trim() : '';
     const url = typeof item.url === 'string' ? item.url.trim() : '';
-    if (!icon || !url) continue;
+    if (!icon || !url || !isSafeHttpUrl(url)) continue;
 
     const title = typeof item.title === 'string' ? item.title : '';
     const target = normalizeTarget(item.target);

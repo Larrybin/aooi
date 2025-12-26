@@ -155,6 +155,7 @@ const eslintConfig = [
       '**/.next/**',
       '**/node_modules/**',
       '**/.source/**',
+      '**/.codex/**',
       'temp/**',
       'raphael-starterkit-v1-main/**',
     ],
@@ -371,6 +372,26 @@ const eslintConfig = [
             '禁止使用模板字符串动态 import()；请改为显式映射/静态路径，避免隐式 context bundle 与无关 chunk 进入构建产物。',
         },
         noDoubleUnknownTypeAssertion,
+      ],
+    },
+  },
+  {
+    files: ['src/core/i18n/navigation.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          ...clientSurfaceNoRestrictedImports,
+          patterns: [
+            ...(clientSurfaceNoRestrictedImports.patterns || []),
+            {
+              regex: '^@/core/(?!i18n/).*',
+              allowTypeImports: true,
+              message:
+                "navigation 作为 client surface 仅允许依赖 '@/core/i18n/**' 配置，禁止引入 server-only core 依赖。",
+            },
+          ],
+        },
       ],
     },
   },
