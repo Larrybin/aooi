@@ -123,18 +123,20 @@ Enabled by default. Can be toggled via database config:
 
 #### Google OAuth
 
-| Config Key               | Description                   |
-| ------------------------ | ----------------------------- |
-| `google_client_id`       | Google OAuth Client ID        |
-| `google_client_secret`   | Google OAuth Client Secret    |
-| `google_one_tap_enabled` | Enable Google One Tap sign-in |
+| Config Key               | Description                                                        |
+| ------------------------ | ------------------------------------------------------------------ |
+| `google_auth_enabled`    | `true`/`false` — Explicitly enable Google OAuth (required to activate even if keys exist) |
+| `google_client_id`       | Google OAuth Client ID                                             |
+| `google_client_secret`   | Google OAuth Client Secret                                         |
+| `google_one_tap_enabled` | Enable Google One Tap sign-in                                      |
 
 #### GitHub OAuth
 
-| Config Key             | Description                |
-| ---------------------- | -------------------------- |
-| `github_client_id`     | GitHub OAuth Client ID     |
-| `github_client_secret` | GitHub OAuth Client Secret |
+| Config Key             | Description                                                             |
+| ---------------------- | ----------------------------------------------------------------------- |
+| `github_auth_enabled`  | `true`/`false` — Explicitly enable GitHub OAuth (required to activate even if keys exist) |
+| `github_client_id`     | GitHub OAuth Client ID                                                  |
+| `github_client_secret` | GitHub OAuth Client Secret                                              |
 
 ## Environment Variables
 
@@ -144,6 +146,13 @@ Enabled by default. Can be toggled via database config:
 | ------------------------------------- | ------------------------------------------------------ |
 | `BETTER_AUTH_SECRET` or `AUTH_SECRET` | Secret key for signing tokens (required in production) |
 | `DATABASE_URL`                        | PostgreSQL connection string                           |
+| `BETTER_AUTH_URL` / `AUTH_URL` / `NEXT_PUBLIC_APP_URL` | Auth base URL (must be a valid http/https origin; validated in production) |
+
+Auth base URL 必须是纯 origin（如 `https://app.example.com`），不支持带路径/查询；生产环境缺失或无效会直接 fail-fast。
+
+Notes:
+- 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
+- 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 
 ### Optional
 
@@ -166,23 +175,16 @@ Better Auth uses the following tables (managed by Drizzle adapter):
 
 The auth system automatically trusts:
 
-1. Your application URL (`NEXT_PUBLIC_APP_URL`)
+1. Your application URL (`NEXT_PUBLIC_APP_URL`) — normalized to a valid origin (`http`/`https` only, otherwise fail-fast in production)
 2. Google accounts domain (`https://accounts.google.com`) for One Tap
-
-```typescript
-const trustedOrigins: string[] = [];
-if (envConfigs.app_url) {
-  trustedOrigins.push(envConfigs.app_url);
-}
-trustedOrigins.push('https://accounts.google.com');
-```
 
 ## Security Best Practices
 
 1. **Always set `BETTER_AUTH_SECRET`** in production with a strong random value
-2. **Never expose auth secrets** to client-side code
-3. **Use HTTPS** in production for secure cookie transmission
-4. **Validate sessions server-side** before performing sensitive operations
+2. **Always set auth base URL** (`BETTER_AUTH_URL`/`AUTH_URL`/`NEXT_PUBLIC_APP_URL`) to a valid origin; missing/invalid values fail fast in production
+3. **Never expose auth secrets** to client-side code
+4. **Use HTTPS** in production for secure cookie transmission
+5. **Reset password is rate-limited** (per-email sliding window); excessive requests are throttled to protect outbound providers
 
 ## Troubleshooting
 

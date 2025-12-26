@@ -27,11 +27,11 @@ const users = await db().select().from(user);
 
 ### Connection Modes
 
-| Environment        | Mode        | Description                                      |
-| ------------------ | ----------- | ------------------------------------------------ |
-| Cloudflare Workers | Hyperdrive  | Uses `HYPERDRIVE` binding for connection pooling |
-| Traditional Server | Singleton   | Reuses connection pool across requests           |
-| Serverless         | Per-request | Creates new connection per invocation            |
+| Environment        | Mode                       | Description                                                   |
+| ------------------ | -------------------------- | ------------------------------------------------------------- |
+| Cloudflare Workers | Hyperdrive (cached client) | Uses `HYPERDRIVE` binding; caches a single client per binding |
+| Traditional Server | Singleton                  | Reuses connection pool across requests                        |
+| Serverless         | Instance-cached client     | Caches one client (max=1) per instance/`DATABASE_URL`         |
 
 ### Configuration
 
@@ -235,6 +235,10 @@ This usually means migrations were not applied.
 Run: pnpm db:migrate
 ```
 
+Notes:
+- Schema checks cache successful results; failures are cleared and retried after a short cooldown to avoid“失败锁存”。
+- Hints reference the migrations directory/log table instead of a specific migration filename to avoid漂移。
+
 ## Multi-Environment Support
 
 ### Cloudflare Workers + Hyperdrive
@@ -251,7 +255,7 @@ The `db()` function automatically detects and uses Hyperdrive.
 
 ### Vercel / AWS Lambda (Serverless)
 
-Set `DB_SINGLETON_ENABLED=false` (default) for per-request connections.
+Default `DB_SINGLETON_ENABLED=false` caches a single client (max=1) per instance/`DATABASE_URL` to avoid per-call connection churn. Reuse the same `db()` result within a request when possible.
 
 ### Traditional Server (Docker, VPS)
 
@@ -264,8 +268,9 @@ Set `DB_SINGLETON_ENABLED=true` for connection pooling.
 3. **Type your functions** - Use inferred types from schema
 4. **Apply migrations in CI/CD** - Run `pnpm db:migrate` before deployment
 5. **Use transactions** - For multi-table operations
-6. **Index appropriately** - Add indexes in schema for common queries
-7. **If using Supabase (PostgREST)**:
+6. **Reuse `db()` per request** - Avoid calling `db()` many times in the same request; share the instance
+7. **Index appropriately** - Add indexes in schema for common queries
+8. **If using Supabase (PostgREST)**:
    - Enable RLS on `public` tables (see migration `src/config/db/migrations/0002_enable_rls_public_tables.sql`)
    - With RLS enabled and no policies, access is deny-by-default for roles that do not bypass RLS (add policies explicitly when you need exposure)
    - Table owners can bypass RLS unless you `FORCE ROW LEVEL SECURITY`; decide intentionally based on your exposure model

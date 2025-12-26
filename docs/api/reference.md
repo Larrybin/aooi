@@ -152,7 +152,7 @@ const user = await requireUser(req);
 {
   "product_id": "pro_monthly",    // Required: Product ID from pricing
   "currency": "usd",               // Optional: Override currency
-  "locale": "en",                  // Optional: Locale for callbacks
+  "locale": "en",                  // Optional: Locale for callbacks (as-needed routing; non-default adds prefix; zh-CN -> zh)
   "payment_provider": "stripe",    // Optional: Specific provider
   "metadata": {}                   // Optional: Custom metadata
 }
@@ -196,10 +196,11 @@ const user = await requireUser(req);
 
 ### Email
 
-| Method | Endpoint                 | Description                    |
-| ------ | ------------------------ | ------------------------------ |
-| `POST` | `/api/email/send-email`  | Send transactional email       |
-| `POST` | `/api/email/verify-code` | Verify email verification code |
+| Method | Endpoint                 | Description                                     |
+| ------ | ------------------------ | ----------------------------------------------- |
+| `POST` | `/api/email/send-email`  | Send email verification code                    |
+| `POST` | `/api/email/verify-code` | Verify email verification code                  |
+| `POST` | `/api/email/test`        | Send verification test email (admin-only, RBAC) |
 
 ### Documentation
 
