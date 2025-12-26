@@ -9,7 +9,24 @@ export const localeNames: Record<Locale, string> = {
   zh: '中文',
 };
 
-export const defaultLocale = envConfigs.locale as Locale;
+const fallbackLocale = locales[0];
+const envDefaultLocale = envConfigs.locale;
+
+const resolvedDefaultLocale = locales.includes(envDefaultLocale as Locale)
+  ? (envDefaultLocale as Locale)
+  : fallbackLocale;
+
+if (
+  process.env.NODE_ENV !== 'production' &&
+  envDefaultLocale &&
+  envDefaultLocale !== resolvedDefaultLocale
+) {
+  console.warn(
+    `[i18n] NEXT_PUBLIC_DEFAULT_LOCALE="${envDefaultLocale}" 不在 locales 白名单内，已回退为 "${resolvedDefaultLocale}".`
+  );
+}
+
+export const defaultLocale = resolvedDefaultLocale;
 
 export const localePrefix = 'as-needed';
 

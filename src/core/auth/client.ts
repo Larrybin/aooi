@@ -30,8 +30,11 @@ export const {
 
 // get auth client with configs
 export function getAuthClient(configs: Record<string, string>) {
+  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
   const plugins =
-    configs.google_client_id && configs.google_one_tap_enabled === 'true'
+    isGoogleAuthEnabled &&
+    configs.google_client_id &&
+    configs.google_one_tap_enabled === 'true'
       ? [
           makeOneTapPlugin({
             clientId: configs.google_client_id,

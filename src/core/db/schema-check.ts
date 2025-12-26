@@ -7,7 +7,7 @@ export type SchemaCheckLogger = {
 };
 
 const MISSING_COLUMN = 'public.role.deleted_at';
-const EXPECTED_MIGRATION = 'src/config/db/migrations/0001_nasty_vindicator.sql';
+const EXPECTED_MIGRATION = '0001_nasty_vindicator.sql';
 const MIGRATIONS_DIR = 'src/config/db/migrations';
 const MIGRATION_LOG_TABLE = '__drizzle_migrations';
 
@@ -20,7 +20,6 @@ export function buildRoleDeletedAtMissingHint(): string {
     `Database schema mismatch: missing column ${MISSING_COLUMN}.`,
     'This usually means migrations were not applied.',
     'Run: pnpm db:migrate',
-    `Expected migration: ${EXPECTED_MIGRATION}`,
     `Migrations directory: ${MIGRATIONS_DIR}`,
     `Migration log table (default): ${MIGRATION_LOG_TABLE}`,
   ]);
