@@ -5,17 +5,49 @@
  * - `parseParams(paramsPromise, Schema)` for Next.js Route Handler params (Promise).
  */
 
+import 'server-only';
+
 import type { z } from 'zod';
 
 import { tryJsonParse } from '@/shared/lib/json';
+import { getRequestLogger } from '@/shared/lib/request-logger.server';
 
 import { BadRequestError } from './errors';
+
+function isAbortError(error: unknown): boolean {
+  if (
+    typeof DOMException !== 'undefined' &&
+    error instanceof DOMException &&
+    error.name
+  ) {
+    return error.name === 'AbortError';
+  }
+
+  if (error instanceof Error) {
+    return error.name === 'AbortError';
+  }
+
+  return false;
+}
 
 export async function parseJson<TSchema extends z.ZodTypeAny>(
   req: Request,
   schema: TSchema
 ): Promise<z.infer<TSchema>> {
-  const rawText = await req.text().catch(() => '');
+  let rawText = '';
+  try {
+    rawText = await req.text();
+  } catch (error: unknown) {
+    const { log } = getRequestLogger(req);
+
+    if (isAbortError(error)) {
+      log.debug('api: request body read aborted', { error });
+    } else {
+      log.error('api: failed to read request body', { error });
+    }
+
+    throw new BadRequestError('invalid json body');
+  }
   const parsed = tryJsonParse<unknown>(rawText);
   if (!parsed.ok) {
     throw new BadRequestError('invalid json body');

@@ -1,10 +1,12 @@
 import 'server-only';
 
+import { sql } from 'drizzle-orm';
+
 import { db } from '@/core/db';
 import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
-import { publicSettingNames } from '@/shared/constants/public-setting-names';
+import { PUBLIC_SETTING_NAMES } from '@/shared/constants/public-setting-names';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
 
@@ -14,29 +16,50 @@ export type UpdateConfig = Partial<Omit<NewConfig, 'name'>>;
 
 export type Configs = Record<string, string>;
 
+// Known keys help avoid cross-module typos; keep in sync with env/db usage
+export type KnownConfigKey =
+  | (typeof PUBLIC_SETTING_NAMES)[number]
+  | 'app_url'
+  | 'app_name'
+  | 'theme'
+  | 'appearance'
+  | 'locale'
+  | 'default_locale'
+  | 'creem_product_ids'
+  | 'default_payment_provider';
+
+const PUBLIC_SETTING_NAMES_SET = new Set<string>(PUBLIC_SETTING_NAMES);
+
+export function getString(
+  configs: Configs,
+  key: KnownConfigKey,
+  fallback = ''
+) {
+  const value = configs[key];
+  return value ?? fallback;
+}
+
+export function getBool(configs: Configs, key: KnownConfigKey): boolean {
+  return configs[key] === 'true';
+}
+
 export const CONFIGS_CACHE_TAG = 'db-configs';
 const CONFIGS_CACHE_REVALIDATE_SECONDS = 60;
 
 export async function saveConfigs(configs: Record<string, string>) {
-  const result = await db().transaction(async (tx) => {
-    const configEntries = Object.entries(configs);
-    const results = [];
+  const entries = Object.entries(configs);
+  if (entries.length === 0) return [];
 
-    for (const [name, configValue] of configEntries) {
-      const [upsertResult] = await tx
-        .insert(config)
-        .values({ name, value: configValue })
-        .onConflictDoUpdate({
-          target: config.name,
-          set: { value: configValue },
-        })
-        .returning();
+  const values = entries.map(([name, value]) => ({ name, value }));
 
-      results.push(upsertResult);
-    }
-
-    return results;
-  });
+  const result = await db()
+    .insert(config)
+    .values(values)
+    .onConflictDoUpdate({
+      target: config.name,
+      set: { value: sql`excluded.value` },
+    })
+    .returning();
 
   return result;
 }
@@ -95,6 +118,7 @@ export async function getConfigsSafe(): Promise<{
 export async function getAllConfigs(): Promise<Configs> {
   const dbConfigs = await getConfigs();
 
+  // DB is allowed to override env for compatibility (app_url/app_name/locale...)
   const configs = {
     ...envConfigs,
     ...dbConfigs,
@@ -110,7 +134,7 @@ export async function getPublicConfigs(): Promise<Configs> {
 
   // get public configs from db
   for (const key in dbConfigs) {
-    if (publicSettingNames.includes(key)) {
+    if (PUBLIC_SETTING_NAMES_SET.has(key)) {
       publicConfigs[key] = dbConfigs[key];
     }
   }

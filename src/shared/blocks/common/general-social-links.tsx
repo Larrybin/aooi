@@ -47,6 +47,7 @@ export function GeneralSocialLinks({
           key={`${item.icon}-${item.url}-${index}`}
           href={item.url || ''}
           target={item.target || '_blank'}
+          rel="noopener noreferrer"
           className={itemClassName}
         >
           {item.icon && (

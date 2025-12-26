@@ -77,9 +77,14 @@ export const PERMISSIONS = {
   SETTINGS_READ: 'admin.settings.read',
   SETTINGS_WRITE: 'admin.settings.write',
 
+  // Email
+  EMAIL_TEST: 'admin.email.test',
+
   // ... more permissions
 } as const;
 ```
+
+Email 通道测试权限（`admin.email.test`）默认授予 `admin`/`super_admin`，用于后台验证邮件送达（如验证码模板测试）。
 
 ## Wildcard Matching
 

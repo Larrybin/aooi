@@ -71,8 +71,12 @@ export class TooManyRequestsError extends ApiError {
 }
 
 export class ServiceUnavailableError extends ApiError {
-  constructor(message = 'service unavailable', data?: unknown) {
-    super(503, message, data);
+  constructor(
+    message = 'service unavailable',
+    data?: unknown,
+    options?: { publicMessage?: string }
+  ) {
+    super(503, message, data, options);
     this.name = 'ServiceUnavailableError';
   }
 }

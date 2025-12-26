@@ -17,6 +17,20 @@ export const generalSocialLinkSchema = z
       message: 'When enabled=true, both icon and url are required',
     }
   )
+  .refine(
+    (val) => {
+      if (!val.enabled || !val.url) return true;
+      try {
+        const parsed = new URL(val.url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: 'When enabled=true, url must be http/https',
+    }
+  )
   .passthrough();
 
 export const generalSocialLinksSchema = z.array(generalSocialLinkSchema);

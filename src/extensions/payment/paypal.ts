@@ -8,6 +8,7 @@ import { logger } from '@/shared/lib/logger.server';
 import {
   PaymentEventType,
   PaymentStatus,
+  PaymentType,
   SubscriptionStatus,
   WebhookConfigError,
   WebhookPayloadError,
@@ -288,6 +289,10 @@ export class PayPalProvider implements PaymentProviderDriver {
   }: {
     order: PaymentOrder;
   }): Promise<RawCheckoutSession> {
+    if (order.type === PaymentType.SUBSCRIPTION) {
+      return this.createSubscriptionPayment(order);
+    }
+
     await this.ensureAccessToken();
 
     if (!order.price) {
@@ -380,6 +385,10 @@ export class PayPalProvider implements PaymentProviderDriver {
   ): Promise<RawCheckoutSession> {
     await this.ensureAccessToken();
 
+    if (!order.price) {
+      throw new BadRequestError('price is required');
+    }
+
     if (!order.plan) {
       throw new BadRequestError('plan is required');
     }
@@ -419,6 +428,9 @@ export class PayPalProvider implements PaymentProviderDriver {
     }
 
     // Create a billing plan
+    const currencyCode = order.price.currency.toUpperCase();
+    const planAmount = (order.price.amount / 100).toFixed(2);
+
     const planPayload = {
       product_id: productId,
       name: order.plan.name,
@@ -434,8 +446,8 @@ export class PayPalProvider implements PaymentProviderDriver {
           total_cycles: 0, // Infinite
           pricing_scheme: {
             fixed_price: {
-              value: order.price?.amount.toFixed(2),
-              currency_code: order.price?.currency.toUpperCase(),
+              value: planAmount,
+              currency_code: currencyCode,
             },
           },
         },
@@ -460,7 +472,7 @@ export class PayPalProvider implements PaymentProviderDriver {
         pricing_scheme: {
           fixed_price: {
             value: '0.00',
-            currency_code: order.price?.currency.toUpperCase(),
+            currency_code: currencyCode,
           },
         },
       });

@@ -10,29 +10,74 @@ import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { isCloudflareWorker } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 
+const SCHEMA_CHECK_RETRY_COOLDOWN_MS = 1000;
+
+type SchemaCheckState = {
+  promise: Promise<void> | null;
+  lastFailureAt: number | null;
+  lastError: Error | null;
+};
+
+type CachedDb = {
+  drizzle: ReturnType<typeof drizzle>;
+  client: ReturnType<typeof postgres>;
+};
+
 // Global database connection instance (singleton pattern)
 let dbInstance: ReturnType<typeof drizzle> | null = null;
-let client: ReturnType<typeof postgres> | null = null;
+let singletonClient: ReturnType<typeof postgres> | null = null;
 
-let schemaCheckPromise: Promise<void> | null = null;
-let schemaCheckDatabaseUrl: string | null = null;
+const schemaCheckStateByUrl = new Map<string, SchemaCheckState>();
+const serverlessCache = new Map<string, CachedDb>();
+const workersCache = new Map<string, CachedDb>();
+
+let hasLoggedEnvironment = false;
 
 function getOrCreateSchemaCheckPromise(
   sql: ReturnType<typeof postgres>,
   databaseUrl: string
 ) {
-  if (schemaCheckPromise && schemaCheckDatabaseUrl === databaseUrl) {
-    return schemaCheckPromise;
+  const state =
+    schemaCheckStateByUrl.get(databaseUrl) ??
+    ({ promise: null, lastError: null, lastFailureAt: null } as SchemaCheckState);
+
+  if (state.promise) {
+    return state.promise;
   }
 
-  schemaCheckDatabaseUrl = databaseUrl;
-  schemaCheckPromise = assertRoleDeletedAtColumnExists({
+  const now = Date.now();
+  if (
+    state.lastFailureAt &&
+    now - state.lastFailureAt < SCHEMA_CHECK_RETRY_COOLDOWN_MS
+  ) {
+    const cooldownPromise = Promise.reject(
+      state.lastError ?? new Error('database schema check cooling down')
+    );
+    cooldownPromise.catch(() => undefined);
+    return cooldownPromise;
+  }
+
+  const promise = assertRoleDeletedAtColumnExists({
     sql,
     isProduction: process.env.NODE_ENV === 'production',
     logger,
-  });
-  schemaCheckPromise.catch(() => undefined);
-  return schemaCheckPromise;
+  })
+    .then(() => {
+      state.lastError = null;
+      state.lastFailureAt = null;
+    })
+    .catch((error: unknown) => {
+      state.lastFailureAt = Date.now();
+      state.lastError =
+        error instanceof Error ? error : new Error(String(error));
+      state.promise = null;
+      throw state.lastError;
+    });
+
+  state.promise = promise;
+  schemaCheckStateByUrl.set(databaseUrl, state);
+  state.promise.catch(() => undefined);
+  return state.promise;
 }
 
 function createSchemaCheckedClient(
@@ -109,6 +154,30 @@ function createSchemaCheckedClient(
   return proxy as ReturnType<typeof postgres>;
 }
 
+function logEnvironmentOnce(message: string) {
+  if (hasLoggedEnvironment) return;
+  logger.info(message);
+  hasLoggedEnvironment = true;
+}
+
+function getOrCreateCachedDb(
+  databaseUrl: string,
+  options: Parameters<typeof postgres>[1],
+  cache: Map<string, CachedDb>
+): ReturnType<typeof drizzle> {
+  const cached = cache.get(databaseUrl);
+  if (cached) {
+    return cached.drizzle;
+  }
+
+  const rawClient = postgres(databaseUrl, options);
+  const schemaReady = getOrCreateSchemaCheckPromise(rawClient, databaseUrl);
+  const checkedClient = createSchemaCheckedClient(rawClient, schemaReady);
+  const drizzleClient = drizzle(checkedClient);
+  cache.set(databaseUrl, { drizzle: drizzleClient, client: rawClient });
+  return drizzleClient;
+}
+
 type CloudflareWorkersEnv = {
   HYPERDRIVE?: {
     connectionString?: string;
@@ -144,11 +213,17 @@ export function db() {
   const hasCloudflareWorkersEnv = cloudflareEnv !== null;
   const runningInCloudflareWorkers =
     hasCloudflareWorkersEnv || isCloudflareWorker;
+  const publicUnavailableMessage = 'database temporarily unavailable';
 
   if (runningInCloudflareWorkers) {
     if (!hasCloudflareWorkersEnv) {
+      logger.error('db: detected Cloudflare Workers but bindings env missing', {
+        hint: 'enable nodejs_compat and ensure cloudflare:workers module is available',
+      });
       throw new ServiceUnavailableError(
-        'Detected Cloudflare Workers environment but failed to access bindings env via "cloudflare:workers". Ensure your Worker enables `nodejs_compat` and supports the `cloudflare:workers` module.'
+        'Detected Cloudflare Workers environment but failed to access bindings env via "cloudflare:workers". Ensure your Worker enables `nodejs_compat` and supports the `cloudflare:workers` module.',
+        undefined,
+        { publicMessage: publicUnavailableMessage }
       );
     }
 
@@ -156,33 +231,38 @@ export function db() {
       cloudflareEnv?.HYPERDRIVE?.connectionString;
 
     if (!hyperdriveConnectionString) {
+      logger.error('db: missing Hyperdrive binding "HYPERDRIVE"', {
+        hint: 'configure [[hyperdrive]] binding = "HYPERDRIVE" in wrangler.toml',
+      });
       throw new ServiceUnavailableError(
-        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml (see wrangler.toml.example) as: [[hyperdrive]] binding = "HYPERDRIVE".'
+        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml (see wrangler.toml.example) as: [[hyperdrive]] binding = "HYPERDRIVE".',
+        undefined,
+        { publicMessage: publicUnavailableMessage }
       );
     }
 
     databaseUrl = hyperdriveConnectionString;
-    logger.info('db: using Hyperdrive connection');
+    logEnvironmentOnce('db: using Hyperdrive connection (Cloudflare Workers)');
   }
 
   if (!databaseUrl) {
-    throw new ServiceUnavailableError('DATABASE_URL is not set');
+    throw new ServiceUnavailableError('DATABASE_URL is not set', undefined, {
+      publicMessage: publicUnavailableMessage,
+    });
   }
 
-  // In Cloudflare Workers, create new connection each time
+  // Cloudflare Workers: reuse cached single-connection client per binding
   if (runningInCloudflareWorkers) {
-    logger.info('db: in Cloudflare Workers environment');
-    // Workers environment uses minimal configuration
-    const rawClient = postgres(databaseUrl, {
-      prepare: false,
-      max: 1, // Limit to 1 connection in Workers
-      idle_timeout: 10, // Shorter timeout for Workers
-      connect_timeout: 5,
-    });
-
-    const schemaReady = getOrCreateSchemaCheckPromise(rawClient, databaseUrl);
-    const checkedClient = createSchemaCheckedClient(rawClient, schemaReady);
-    return drizzle(checkedClient);
+    return getOrCreateCachedDb(
+      databaseUrl,
+      {
+        prepare: false,
+        max: 1, // Limit to 1 connection in Workers
+        idle_timeout: 10, // Shorter timeout for Workers
+        connect_timeout: 5,
+      },
+      workersCache
+    );
   }
 
   // Singleton mode: reuse existing connection (good for traditional servers)
@@ -193,7 +273,7 @@ export function db() {
     }
 
     // Create connection pool only once
-    client = postgres(databaseUrl, {
+    const client = postgres(databaseUrl, {
       prepare: false,
       max: 10, // Maximum connections in pool
       idle_timeout: 30, // Idle connection timeout (seconds)
@@ -203,37 +283,43 @@ export function db() {
     const schemaReady = getOrCreateSchemaCheckPromise(client, databaseUrl);
     const checkedClient = createSchemaCheckedClient(client, schemaReady);
     dbInstance = drizzle(checkedClient);
+    singletonClient = client;
+    logEnvironmentOnce('db: using singleton connection pool');
     return dbInstance;
   }
 
-  // Non-singleton mode: create new connection each time (good for serverless)
-  // In serverless, the connection will be cleaned up when the function instance is destroyed
-  const serverlessClient = postgres(databaseUrl, {
-    prepare: false,
-    max: 1, // Use single connection in serverless
-    idle_timeout: 20,
-    connect_timeout: 10,
-  });
+  // Non-singleton mode: cache single-connection client per database URL
+  logEnvironmentOnce('db: using cached single-connection client');
+  return getOrCreateCachedDb(
+    databaseUrl,
+    {
+      prepare: false,
+      max: 1, // Use single connection in serverless
+      idle_timeout: 20,
+      connect_timeout: 10,
+    },
+    serverlessCache
+  );
+}
 
-  const schemaReady = getOrCreateSchemaCheckPromise(
-    serverlessClient,
-    databaseUrl
+async function closeCachedClients(cache: Map<string, CachedDb>) {
+  await Promise.all(
+    [...cache.values()].map(async (entry) => {
+      await entry.client.end();
+    })
   );
-  const checkedClient = createSchemaCheckedClient(
-    serverlessClient,
-    schemaReady
-  );
-  return drizzle(checkedClient);
+  cache.clear();
 }
 
 // Optional: Function to close database connection (useful for testing or graceful shutdown)
-// Note: Only works in singleton mode
 export async function closeDb() {
-  if (serverEnv.dbSingletonEnabled === 'true' && client) {
-    await client.end();
-    client = null;
+  if (singletonClient) {
+    await singletonClient.end();
+    singletonClient = null;
     dbInstance = null;
-    schemaCheckPromise = null;
-    schemaCheckDatabaseUrl = null;
   }
+
+  await closeCachedClients(serverlessCache);
+  await closeCachedClients(workersCache);
+  schemaCheckStateByUrl.clear();
 }

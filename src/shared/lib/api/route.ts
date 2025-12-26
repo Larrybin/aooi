@@ -13,6 +13,19 @@ import { getRequestLogger } from '@/shared/lib/request-logger.server';
 import { ApiError } from './errors';
 import { jsonErr } from './response';
 
+function logHandledServerError(
+  reqLogger: ReturnType<typeof getRequestLogger> | undefined,
+  error: Error,
+  meta: Record<string, unknown>
+) {
+  if (reqLogger) {
+    reqLogger.log.error('[api] handled server error', { ...meta, error });
+    return;
+  }
+
+  logger.error('[api] handled server error', { ...meta, error });
+}
+
 function toRequestLogger(
   args: readonly unknown[]
 ): ReturnType<typeof getRequestLogger> | undefined {
@@ -61,6 +74,12 @@ export function withApi<Args extends ApiRouteHandlerArgs, R>(
       return result;
     } catch (error: unknown) {
       if (error instanceof ApiError) {
+        if (error.status >= 500) {
+          logHandledServerError(reqLogger, error, {
+            status: error.status,
+            kind: 'ApiError',
+          });
+        }
         const response = jsonErr(error.status, error.publicMessage, error.data);
         return reqLogger
           ? attachRequestIdHeader(response, reqLogger.ctx.requestId)
@@ -75,6 +94,12 @@ export function withApi<Args extends ApiRouteHandlerArgs, R>(
       }
 
       if (error instanceof ExternalError) {
+        if (error.status >= 500) {
+          logHandledServerError(reqLogger, error, {
+            status: error.status,
+            kind: 'ExternalError',
+          });
+        }
         const response = jsonErr(error.status, error.publicMessage, error.data);
         return reqLogger
           ? attachRequestIdHeader(response, reqLogger.ctx.requestId)

@@ -3,7 +3,8 @@ import type { z } from 'zod';
 import { checkOutboundUrl } from '@/shared/lib/fetch/outbound-url';
 import { sanitizeUrlForLog } from '@/shared/lib/fetch/sanitize-url';
 import { fetchWithTimeout } from '@/shared/lib/fetch/timeout';
-import { safeJsonParse } from '@/shared/lib/json';
+import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
+import { logger } from '@/shared/lib/logger.server';
 
 type FetchServerOptions = {
   timeoutMs: number;
@@ -20,8 +21,20 @@ type FetchServerErrorOptions = FetchServerOptions & {
 async function safeReadText(response: Response): Promise<string> {
   try {
     return await response.text();
-  } catch {
-    return '';
+  } catch (error: unknown) {
+    const safeUrl = sanitizeUrlForLog(response.url);
+    logger.error('fetch: failed to read response body', {
+      url: safeUrl,
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+
+    const wrapped = new Error(
+      `failed to read response body: ${safeUrl || '(unknown)'}`
+    );
+    (wrapped as Error & { cause?: unknown }).cause = error;
+    throw wrapped;
   }
 }
 
@@ -52,12 +65,30 @@ function extractErrorDetail(parsed: unknown): string | undefined {
   return undefined;
 }
 
-async function readTextAndParsed(
-  response: Response
-): Promise<{ rawText: string; parsed: unknown | null }> {
+type ParsedBody = {
+  rawText: string;
+  parsed: unknown;
+  parsedOk: boolean;
+  parseError?: unknown;
+};
+
+async function readTextAndParsed(response: Response): Promise<ParsedBody> {
   const rawText = await safeReadText(response);
-  const parsed = safeJsonParse<unknown>(rawText);
-  return { rawText, parsed };
+  if (!rawText.trim()) {
+    return { rawText, parsed: null, parsedOk: false };
+  }
+
+  const parsed = tryJsonParse<unknown>(rawText);
+  if (!parsed.ok) {
+    return {
+      rawText,
+      parsed: null,
+      parsedOk: false,
+      parseError: parsed.error,
+    };
+  }
+
+  return { rawText, parsed: parsed.value, parsedOk: true };
 }
 
 function buildResponseErrorDetail(parsed: unknown, rawText: string) {
@@ -245,18 +276,46 @@ export async function safeFetchJsonWithSchema<TSchema extends z.ZodTypeAny>(
   }
 ): Promise<z.infer<TSchema>> {
   const response = await safeFetchFollowingRedirects(url, init, options);
-  const { rawText, parsed } = await readTextAndParsed(response);
+  const { rawText, parsed, parsedOk, parseError } =
+    await readTextAndParsed(response);
 
   if (!response.ok) {
     const detail = buildResponseErrorDetail(parsed, rawText);
     throw buildFetchError(url, response, detail, options?.errorMessage);
   }
 
-  if (parsed === null) {
-    if (!rawText.trim()) {
-      return null as z.infer<TSchema>;
+  if (!parsedOk) {
+    const trimmed = rawText.trim();
+    const safeUrl = sanitizeUrlForLog(response.url || url);
+
+    if (!trimmed) {
+      const maybeNull = schema.safeParse(null);
+      if (maybeNull.success) {
+        return maybeNull.data;
+      }
+
+      const message =
+        options?.invalidDataMessage || options?.errorMessage || 'invalid json';
+      logger.error('fetch: empty json response body', {
+        url: safeUrl,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error(`${message}: ${safeUrl} (empty response body)`);
     }
-    throw buildInvalidJsonError(url, options?.errorMessage);
+
+    const invalid = buildInvalidJsonError(
+      url,
+      options?.invalidDataMessage || options?.errorMessage
+    );
+    (invalid as Error & { cause?: unknown }).cause = parseError;
+    logger.error('fetch: invalid json response', {
+      url: safeUrl,
+      status: response.status,
+      statusText: response.statusText,
+      error: parseError,
+    });
+    throw invalid;
   }
 
   const result = schema.safeParse(parsed);

@@ -177,6 +177,15 @@ const defaultPermissions = [
     description: 'Update system settings',
   },
 
+  // Email
+  {
+    code: 'admin.email.test',
+    resource: 'email',
+    action: 'test',
+    title: 'Test email channel',
+    description: 'Send test verification emails',
+  },
+
   // Roles & Permissions management
   {
     code: 'admin.roles.read',
@@ -282,6 +291,7 @@ const defaultRoles = [
       'admin.credits.*',
       'admin.apikeys.*',
       'admin.settings.read',
+      'admin.email.*',
       'admin.ai-tasks.*',
     ],
   },

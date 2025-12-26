@@ -1,8 +1,8 @@
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getPublicConfigs } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export const POST = withApi(async () => {
-  const configs = await getPublicConfigs();
+  const configs = await getPublicConfigsCached();
   return jsonOk(configs);
 });

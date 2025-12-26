@@ -26,10 +26,17 @@ export function getEmailServiceWithConfigs(configs: Configs) {
   const emailManager = new EmailManager();
 
   if (configs.resend_api_key) {
+    const sender = (configs.resend_sender_email ?? '').trim();
+    if (!sender) {
+      throw new Error(
+        'resend_sender_email is required when resend_api_key is configured'
+      );
+    }
+
     emailManager.addProvider(
       new ResendProvider({
         apiKey: configs.resend_api_key,
-        defaultFrom: configs.resend_sender_email,
+        defaultFrom: sender,
       })
     );
   }
