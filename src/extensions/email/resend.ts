@@ -37,9 +37,22 @@ export class ResendProvider implements EmailProvider {
 
   async sendEmail(email: EmailMessage): Promise<EmailSendResult> {
     try {
+      const from = email.from || this.configs.defaultFrom || '';
+      if (!from.trim()) {
+        logger.error('resend sendEmail failed', {
+          provider: this.name,
+          error: 'sender address not configured',
+        });
+        return {
+          success: false,
+          error: 'sender address not configured',
+          provider: this.name,
+        };
+      }
+
       // Convert our format to Resend format
       const resendEmail: Partial<CreateEmailOptions> = {
-        from: email.from || this.configs.defaultFrom || '',
+        from,
         to: Array.isArray(email.to) ? email.to : [email.to],
         subject: email.subject,
       };
@@ -111,10 +124,15 @@ export class ResendProvider implements EmailProvider {
         provider: this.name,
       };
     } catch (error) {
-      logger.error('resend sendEmail threw', { provider: this.name, error });
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error('resend sendEmail threw', {
+        provider: this.name,
+        error: errorMessage,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage || 'Unknown error',
         provider: this.name,
       };
     }

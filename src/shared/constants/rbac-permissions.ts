@@ -41,6 +41,9 @@ export const PERMISSIONS = {
   ROLES_WRITE: 'admin.roles.write',
   ROLES_DELETE: 'admin.roles.delete',
 
+  // Email
+  EMAIL_TEST: 'admin.email.test',
+
   PERMISSIONS_READ: 'admin.permissions.read',
   PERMISSIONS_WRITE: 'admin.permissions.write',
   PERMISSIONS_DELETE: 'admin.permissions.delete',
