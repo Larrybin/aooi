@@ -12,6 +12,7 @@ import {
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { findOrderByOrderNo } from '@/shared/models/order';
+import { getAllConfigs } from '@/shared/models/config';
 import {
   PaymentCallbackBodySchema,
   PaymentCallbackQuerySchema,
@@ -21,9 +22,9 @@ import {
   handleCheckoutSuccess,
 } from '@/shared/services/payment';
 
-function appendOrderNoToUrl(url: string, orderNo: string): string {
+function appendOrderNoToUrl(url: string, orderNo: string, appUrl: string): string {
   try {
-    const full = new URL(url, envConfigs.app_url);
+    const full = new URL(url, appUrl);
     full.searchParams.set('order_no', orderNo);
     return full.toString();
   } catch {
@@ -31,16 +32,22 @@ function appendOrderNoToUrl(url: string, orderNo: string): string {
   }
 }
 
-function toPaymentFallbackUrl(type: string | null | undefined): string {
+function toPaymentFallbackUrl(
+  type: string | null | undefined,
+  appUrl: string
+): string {
   return type === PaymentType.SUBSCRIPTION
-    ? `${envConfigs.app_url}/settings/billing`
-    : `${envConfigs.app_url}/settings/payments`;
+    ? `${appUrl}/settings/billing`
+    : `${appUrl}/settings/payments`;
 }
 
 export async function GET(req: Request) {
   const api = createApiContext(req);
   const { log } = api;
   let redirectUrl = '';
+
+  const configs = await getAllConfigs();
+  const appUrl = (configs.app_url || envConfigs.app_url).trim();
 
   try {
     // get callback params
@@ -59,11 +66,12 @@ export async function GET(req: Request) {
       throw new ForbiddenError('order and user not match');
     }
 
-    const base = order.callbackUrl || toPaymentFallbackUrl(order.paymentType);
-    redirectUrl = appendOrderNoToUrl(base, orderNo);
+    const base =
+      order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl);
+    redirectUrl = appendOrderNoToUrl(base, orderNo, appUrl);
   } catch (e: unknown) {
     log.error('payment: checkout callback failed', { error: e });
-    redirectUrl = `${envConfigs.app_url}/pricing`;
+    redirectUrl = `${appUrl}/pricing`;
   }
 
   redirect(redirectUrl);
@@ -73,6 +81,9 @@ export const POST = withApi(async (req: Request) => {
   const api = createApiContext(req);
   const { log } = api;
   const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
+
+  const configs = await getAllConfigs();
+  const appUrl = (configs.app_url || envConfigs.app_url).trim();
 
   const user = await api.requireUser();
   if (!user.email) {
@@ -110,6 +121,7 @@ export const POST = withApi(async (req: Request) => {
 
   return jsonOk({
     orderNo,
-    redirectUrl: order.callbackUrl || toPaymentFallbackUrl(order.paymentType),
+    redirectUrl:
+      order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl),
   });
 });
