@@ -200,8 +200,10 @@ export async function getAuthOptions() {
   const configs = await getAllConfigs();
   const isEmailAuthEnabled = configs.email_auth_enabled !== 'false';
   const socialProviders = await getSocialProviders(configs);
+  const appName = (configs.app_name || envConfigs.app_name || '').trim();
   return {
     ...authOptions,
+    appName,
     // Add database connection only when actually needed (runtime)
     database: drizzleAdapter(db(), {
       provider: 'pg',
@@ -230,7 +232,7 @@ export async function getAuthOptions() {
                 const emailService = await getEmailService();
                 const result = await emailService.sendEmail({
                   to: email,
-                  subject: `${envConfigs.app_name} - Reset password`,
+                  subject: `${appName} - Reset password`,
                   ...buildResetPasswordEmailPayload({ url }),
                 });
 

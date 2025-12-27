@@ -14,6 +14,12 @@ export async function getSettingGroups() {
       tab: 'general',
     },
     {
+      name: 'general_brand',
+      title: t('groups.general_brand'),
+      description: 'custom your brand settings',
+      tab: 'general',
+    },
+    {
       name: 'email_auth',
       title: t('groups.email_auth'),
       description: 'custom your email auth settings',

@@ -1,6 +1,7 @@
 {
   "groups": {
     "general_ui": "界面",
+    "general_brand": "品牌",
     "email_auth": "邮箱认证",
     "google_auth": "Google认证",
     "github_auth": "Github认证",
