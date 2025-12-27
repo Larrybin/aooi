@@ -5,6 +5,10 @@ import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import { filterLandingButtons } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/shared/lib/brand-placeholders.server';
+import {
   type Footer as FooterType,
   type Header as HeaderType,
   type Landing,
@@ -22,12 +26,13 @@ export default async function LandingPage({
   const t = await getTranslations('landing');
 
   const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   const Layout = await getThemeLayout('landing-marketing');
 
   // build page params
-  const hero = t.raw('hero');
-  const cta = t.raw('cta');
+  const hero = replaceBrandPlaceholdersDeep(t.raw('hero'), brand);
+  const cta = replaceBrandPlaceholdersDeep(t.raw('cta'), brand);
 
   const page: Landing = {
     hero: hero
@@ -36,15 +41,15 @@ export default async function LandingPage({
           buttons: filterLandingButtons(hero.buttons, publicConfigs),
         }
       : undefined,
-    logos: t.raw('logos'),
-    introduce: t.raw('introduce'),
-    benefits: t.raw('benefits'),
-    usage: t.raw('usage'),
-    features: t.raw('features'),
-    stats: t.raw('stats'),
-    subscribe: t.raw('subscribe'),
-    testimonials: t.raw('testimonials'),
-    faq: t.raw('faq'),
+    logos: replaceBrandPlaceholdersDeep(t.raw('logos'), brand),
+    introduce: replaceBrandPlaceholdersDeep(t.raw('introduce'), brand),
+    benefits: replaceBrandPlaceholdersDeep(t.raw('benefits'), brand),
+    usage: replaceBrandPlaceholdersDeep(t.raw('usage'), brand),
+    features: replaceBrandPlaceholdersDeep(t.raw('features'), brand),
+    stats: replaceBrandPlaceholdersDeep(t.raw('stats'), brand),
+    subscribe: replaceBrandPlaceholdersDeep(t.raw('subscribe'), brand),
+    testimonials: replaceBrandPlaceholdersDeep(t.raw('testimonials'), brand),
+    faq: replaceBrandPlaceholdersDeep(t.raw('faq'), brand),
     cta: cta
       ? {
           ...cta,
@@ -59,8 +64,9 @@ export default async function LandingPage({
   const headerRaw: HeaderType = t.raw('header');
   const footerRaw: FooterType = t.raw('footer');
   const { header, footer } = applyBrandToLandingHeaderFooter({
-    header: headerRaw,
-    footer: footerRaw,
+    header: replaceBrandPlaceholdersDeep(headerRaw, brand),
+    footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
+    configs: publicConfigs,
   });
 
   return (

@@ -2,9 +2,12 @@ import Image from 'next/image';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 import { i18n } from '@/core/docs/source';
-import { envConfigs } from '@/config';
 
-export function baseOptions(_locale: string): BaseLayoutProps {
+export function baseOptions(
+  _locale: string,
+  brand?: { appName?: string }
+): BaseLayoutProps {
+  const appName = brand?.appName || '';
   return {
     links: [],
     nav: {
@@ -12,13 +15,13 @@ export function baseOptions(_locale: string): BaseLayoutProps {
         <>
           <Image
             src="/logo.png"
-            alt={envConfigs.app_name}
+            alt={appName}
             width={28}
             height={28}
             className=""
           />
           <span className="text-primary text-lg font-bold">
-            {envConfigs.app_name}
+            {appName}
           </span>
         </>
       ),

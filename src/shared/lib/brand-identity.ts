@@ -1,24 +1,27 @@
 import { envConfigs } from '@/config';
 import type { Sidebar } from '@/shared/types/blocks/dashboard';
 import type { Footer, Header } from '@/shared/types/blocks/landing';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 
 type BrandIdentity = {
   name: string;
   url: string;
 };
 
-function getBrandIdentity(): BrandIdentity {
+function getBrandIdentity(configs?: Record<string, string>): BrandIdentity {
+  const brand = buildBrandPlaceholderValues(configs);
   return {
-    name: envConfigs.app_name || '',
-    url: envConfigs.app_url || '',
+    name: brand.appName || envConfigs.app_name || '',
+    url: brand.appUrl || envConfigs.app_url || '',
   };
 }
 
 export function applyBrandToLandingHeaderFooter(params: {
   header: Header;
   footer: Footer;
+  configs?: Record<string, string>;
 }): { header: Header; footer: Footer } {
-  const brand = getBrandIdentity();
+  const brand = getBrandIdentity(params.configs);
 
   const header = {
     ...params.header,
@@ -57,8 +60,11 @@ export function applyBrandToLandingHeaderFooter(params: {
   return { header, footer };
 }
 
-export function applyBrandToSidebar(sidebar: Sidebar): Sidebar {
-  const brand = getBrandIdentity();
+export function applyBrandToSidebar(
+  sidebar: Sidebar,
+  configs?: Record<string, string>
+): Sidebar {
+  const brand = getBrandIdentity(configs);
 
   const header = sidebar.header?.brand
     ? {
