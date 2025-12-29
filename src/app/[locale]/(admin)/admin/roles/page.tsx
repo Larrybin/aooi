@@ -27,7 +27,7 @@ export default async function AdminRolesPage({
   // Check if user has permission to read users
   await requirePermission({
     code: PERMISSIONS.ROLES_READ,
-    redirectUrl: `/changanpenpen/no-permission`,
+    redirectUrl: `/admin/no-permission`,
     locale,
   });
 
@@ -38,7 +38,7 @@ export default async function AdminRolesPage({
   const t = await getTranslations('admin.roles');
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.roles'), is_active: true },
   ];
 
@@ -46,12 +46,12 @@ export default async function AdminRolesPage({
     shouldIncludeDeleted
       ? {
           title: t('list.buttons.hide_deleted'),
-          url: '/changanpenpen/roles',
+          url: '/admin/roles',
           variant: 'outline',
         }
       : {
           title: t('list.buttons.show_deleted'),
-          url: '/changanpenpen/roles?includeDeleted=1',
+          url: '/admin/roles?includeDeleted=1',
           variant: 'outline',
         },
   ];
@@ -87,7 +87,7 @@ export default async function AdminRolesPage({
                 name: 'restore',
                 title: t('list.buttons.restore'),
                 icon: 'RiRefreshLine',
-                url: `/changanpenpen/roles/${item.id}/restore`,
+                url: `/admin/roles/${item.id}/restore`,
               },
             ];
           }
@@ -97,19 +97,19 @@ export default async function AdminRolesPage({
               name: 'edit',
               title: t('list.buttons.edit'),
               icon: 'RiEditLine',
-              url: `/changanpenpen/roles/${item.id}/edit`,
+              url: `/admin/roles/${item.id}/edit`,
             },
             {
               name: 'edit_permissions',
               title: t('list.buttons.edit_permissions'),
               icon: 'RiEditLine',
-              url: `/changanpenpen/roles/${item.id}/edit-permissions`,
+              url: `/admin/roles/${item.id}/edit-permissions`,
             },
             {
               name: 'delete',
               title: t('list.buttons.delete'),
               icon: 'RiDeleteBinLine',
-              url: `/changanpenpen/roles/${item.id}/delete`,
+              url: `/admin/roles/${item.id}/delete`,
             },
           ];
         },

@@ -36,8 +36,8 @@ export default async function RoleRestorePage({
   }
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit.crumbs.roles', url: '/changanpenpen/roles?includeDeleted=1' },
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.roles', url: '/admin/roles?includeDeleted=1' },
     { key: 'restore.crumbs.restore' },
   ]);
 

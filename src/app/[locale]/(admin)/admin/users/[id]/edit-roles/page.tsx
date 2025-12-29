@@ -26,7 +26,7 @@ export default async function UserEditRolesPage({
   });
   await requireAllPermissions({
     codes: [PERMISSIONS.USERS_WRITE, PERMISSIONS.ROLES_WRITE],
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -38,8 +38,8 @@ export default async function UserEditRolesPage({
   const t = await getTranslations('admin.users');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit_roles.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit_roles.crumbs.users', url: '/changanpenpen/users' },
+    { key: 'edit_roles.crumbs.admin', url: '/admin' },
+    { key: 'edit_roles.crumbs.users', url: '/admin/users' },
     { key: 'edit_roles.crumbs.edit_roles' },
   ]);
 

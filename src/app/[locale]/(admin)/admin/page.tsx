@@ -7,5 +7,5 @@ export default async function AdminPage({
 }) {
   const { locale } = await params;
 
-  redirect({ href: '/changanpenpen/users', locale });
+  redirect({ href: '/admin/users', locale });
 }

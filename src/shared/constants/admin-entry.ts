@@ -1,1 +1,1 @@
-export const ADMIN_ENTRY_PATH = '/changanpenpen';
+export const ADMIN_PATH = '/admin';

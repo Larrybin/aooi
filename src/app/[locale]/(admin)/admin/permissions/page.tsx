@@ -19,7 +19,7 @@ export default async function AdminPermissionsPage({
   // Check if user has permission to read permissions
   await requirePermission({
     code: PERMISSIONS.PERMISSIONS_READ,
-    redirectUrl: `/changanpenpen/no-permission`,
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -28,7 +28,7 @@ export default async function AdminPermissionsPage({
   const t = await getTranslations('admin.permissions');
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.permissions'), is_active: true },
   ];
 

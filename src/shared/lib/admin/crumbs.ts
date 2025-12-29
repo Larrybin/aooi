@@ -13,8 +13,8 @@ export type CrumbSegment = {
  * @example
  * ```ts
  * const crumbs = buildAdminCrumbs(t, [
- *   { key: 'edit.crumbs.admin', url: '/changanpenpen' },
- *   { key: 'edit.crumbs.categories', url: '/changanpenpen/categories' },
+ *   { key: 'edit.crumbs.admin', url: '/admin' },
+ *   { key: 'edit.crumbs.categories', url: '/admin/categories' },
  *   { key: 'edit.crumbs.edit' },
  * ]);
  * ```

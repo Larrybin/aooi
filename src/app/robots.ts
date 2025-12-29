@@ -13,7 +13,7 @@ function uniqueStrings(values: string[]) {
 
 export default function robots(): MetadataRoute.Robots {
   const appUrl = stripTrailingSlash(envConfigs.app_url);
-  const protectedRoots = ['/admin', '/changanpenpen', '/settings', '/activity'];
+  const protectedRoots = ['/admin', '/settings', '/activity'];
 
   const disallow = uniqueStrings([
     '/*?*q=',

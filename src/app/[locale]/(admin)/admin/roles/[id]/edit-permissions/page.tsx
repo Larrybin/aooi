@@ -34,8 +34,8 @@ export default async function RoleEditPermissionsPage({
   const t = await getTranslations('admin.roles');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit_permissions.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit_permissions.crumbs.roles', url: '/changanpenpen/roles' },
+    { key: 'edit_permissions.crumbs.admin', url: '/admin' },
+    { key: 'edit_permissions.crumbs.roles', url: '/admin/roles' },
     { key: 'edit_permissions.crumbs.edit_permissions' },
   ]);
 

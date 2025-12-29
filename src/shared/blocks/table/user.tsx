@@ -28,7 +28,7 @@ export function User({
 
   return (
     <Link
-      href={`/changanpenpen/users?email=${value.email}`}
+      href={`/admin/users?email=${value.email}`}
       target="_blank"
       className={cn('flex items-center gap-2', className)}
     >

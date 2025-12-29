@@ -29,7 +29,7 @@ export default async function SubscriptionsPage({
   // Check if user has permission to read subscriptions
   await requirePermission({
     code: PERMISSIONS.SUBSCRIPTIONS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -40,7 +40,7 @@ export default async function SubscriptionsPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.subscriptions'), is_active: true },
   ];
 
@@ -48,19 +48,19 @@ export default async function SubscriptionsPage({
     {
       name: 'all',
       title: t('list.tabs.all'),
-      url: '/changanpenpen/subscriptions',
+      url: '/admin/subscriptions',
       is_active: !interval || interval === 'all',
     },
     {
       name: 'month',
       title: t('list.tabs.month'),
-      url: '/changanpenpen/subscriptions?interval=month',
+      url: '/admin/subscriptions?interval=month',
       is_active: interval === 'month',
     },
     {
       name: 'year',
       title: t('list.tabs.year'),
-      url: '/changanpenpen/subscriptions?interval=year',
+      url: '/admin/subscriptions?interval=year',
       is_active: interval === 'year',
     },
   ];

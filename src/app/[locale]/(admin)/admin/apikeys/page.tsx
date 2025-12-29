@@ -25,7 +25,7 @@ export default async function ApiKeysPage({
   // Check if user has permission to read api keys
   await requirePermission({
     code: PERMISSIONS.APIKEYS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -36,7 +36,7 @@ export default async function ApiKeysPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.apikeys'), is_active: true },
   ];
 

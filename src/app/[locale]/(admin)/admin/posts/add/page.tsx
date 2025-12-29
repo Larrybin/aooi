@@ -28,8 +28,8 @@ export default async function PostAddPage({
   const t = await getTranslations('admin.posts');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'add.crumbs.admin', url: '/changanpenpen' },
-    { key: 'add.crumbs.posts', url: '/changanpenpen/posts' },
+    { key: 'add.crumbs.admin', url: '/admin' },
+    { key: 'add.crumbs.posts', url: '/admin/posts' },
     { key: 'add.crumbs.add' },
   ]);
 
