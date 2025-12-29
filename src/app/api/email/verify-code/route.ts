@@ -5,8 +5,8 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
 import {
-  SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS,
   consumeSettingsEmailVerificationCode,
+  SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS,
 } from '@/shared/models/email_verification_code';
 import { EmailVerifyCodeBodySchema } from '@/shared/schemas/api/email/verify-code';
 
