@@ -1,3 +1,6 @@
+// data: locale + signed-in user snapshot (better-auth) + chat sidebar translations
+// cache: no-store (request-bound auth)
+// reason: chat layout is user-specific; avoid caching across users
 import type { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 

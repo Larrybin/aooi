@@ -52,13 +52,13 @@ import { toNextJsHandler } from 'better-auth/next-js';
 import { getAuth } from '@/core/auth';
 
 export async function POST(request: Request) {
-  const auth = await getAuth();
+  const auth = await getAuth(request);
   const handler = toNextJsHandler(auth.handler);
   return handler.POST(request);
 }
 
 export async function GET(request: Request) {
-  const auth = await getAuth();
+  const auth = await getAuth(request);
   const handler = toNextJsHandler(auth.handler);
   return handler.GET(request);
 }
@@ -66,13 +66,14 @@ export async function GET(request: Request) {
 
 ### Getting Auth Instance
 
-Always use `getAuth()` in server-side code:
+Prefer `getAuth(request)` when a Request is available (enables per-request caching).
+Otherwise `getAuth()` works too:
 
 ```typescript
 import { getAuth } from '@/core/auth';
 
-// In a Route Handler or Server Action
-const auth = await getAuth();
+// In a Route Handler
+const auth = await getAuth(request);
 const session = await auth.api.getSession({ headers: request.headers });
 ```
 
@@ -123,34 +124,35 @@ Enabled by default. Can be toggled via database config:
 
 #### Google OAuth
 
-| Config Key               | Description                                                        |
-| ------------------------ | ------------------------------------------------------------------ |
+| Config Key               | Description                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
 | `google_auth_enabled`    | `true`/`false` — Explicitly enable Google OAuth (required to activate even if keys exist) |
-| `google_client_id`       | Google OAuth Client ID                                             |
-| `google_client_secret`   | Google OAuth Client Secret                                         |
-| `google_one_tap_enabled` | Enable Google One Tap sign-in                                      |
+| `google_client_id`       | Google OAuth Client ID                                                                    |
+| `google_client_secret`   | Google OAuth Client Secret                                                                |
+| `google_one_tap_enabled` | Enable Google One Tap sign-in                                                             |
 
 #### GitHub OAuth
 
-| Config Key             | Description                                                             |
-| ---------------------- | ----------------------------------------------------------------------- |
+| Config Key             | Description                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
 | `github_auth_enabled`  | `true`/`false` — Explicitly enable GitHub OAuth (required to activate even if keys exist) |
-| `github_client_id`     | GitHub OAuth Client ID                                                  |
-| `github_client_secret` | GitHub OAuth Client Secret                                              |
+| `github_client_id`     | GitHub OAuth Client ID                                                                    |
+| `github_client_secret` | GitHub OAuth Client Secret                                                                |
 
 ## Environment Variables
 
 ### Required
 
-| Variable                              | Description                                            |
-| ------------------------------------- | ------------------------------------------------------ |
-| `BETTER_AUTH_SECRET` or `AUTH_SECRET` | Secret key for signing tokens (required in production) |
-| `DATABASE_URL`                        | PostgreSQL connection string                           |
+| Variable                                               | Description                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` or `AUTH_SECRET`                  | Secret key for signing tokens (required in production)                     |
+| `DATABASE_URL`                                         | PostgreSQL connection string                                               |
 | `BETTER_AUTH_URL` / `AUTH_URL` / `NEXT_PUBLIC_APP_URL` | Auth base URL (must be a valid http/https origin; validated in production) |
 
 Auth base URL 必须是纯 origin（如 `https://app.example.com`），不支持带路径/查询；生产环境缺失或无效会直接 fail-fast。
 
 Notes:
+
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 

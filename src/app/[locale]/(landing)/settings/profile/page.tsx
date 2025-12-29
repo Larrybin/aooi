@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + profile form (Server Action writes to db)
+// cache: no-store (request-bound auth)
+// reason: user-specific settings page
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

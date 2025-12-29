@@ -1,3 +1,6 @@
+// data: landing translations + public configs (unstable_cache tag=public-configs, revalidate=3600s) + theme components
+// cache: cached configs + default RSC
+// reason: public marketing page; allow toggles without per-request db reads
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemeLayout, getThemePage } from '@/core/theme/landing';

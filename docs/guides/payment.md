@@ -176,6 +176,7 @@ interface CheckoutInfo {
 ```
 
 Notes:
+
 - All internal amounts use the smallest currency unit (e.g., cents); provider payloads convert to major units when required (Stripe/PayPal).
 - Callback base URL is derived from `NEXT_PUBLIC_APP_URL` origin (http/https only, trailing `/` stripped). Invalid origins fail fast.
 - Locale is optional; default locale uses as-needed routing (no prefix). Non-default locales add a `/locale` prefix; `zh-CN` is normalized to `zh`. Unsupported locales are rejected.

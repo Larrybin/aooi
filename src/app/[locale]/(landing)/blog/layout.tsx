@@ -1,3 +1,6 @@
+// data: public configs (unstable_cache tag=public-configs, revalidate=3600s) + landing translations + theme layout
+// cache: cached configs + default RSC
+// reason: public blog is config-gated; keep db reads cheap
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
