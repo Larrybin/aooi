@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + permissions list (db)
+// cache: no-store (request-bound auth/RBAC)
+// reason: permission catalog is admin-only; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';

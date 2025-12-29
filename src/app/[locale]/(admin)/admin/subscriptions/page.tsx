@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + subscriptions list (db) + pagination/filter
+// cache: no-store (request-bound auth/RBAC)
+// reason: billing data is sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';

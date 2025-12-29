@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + paid orders (db) + payment callback state (query) + pagination/filter
+// cache: no-store (request-bound auth)
+// reason: user-specific payment history and invoices
 import { getTranslations } from 'next-intl/server';
 
 import type { PaymentType } from '@/extensions/payment';

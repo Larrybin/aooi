@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + role record (db) + Server Action write (soft-delete)
+// cache: no-store (request-bound auth/RBAC)
+// reason: destructive admin action; must not cache across admins
 import { and, eq, isNull } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 

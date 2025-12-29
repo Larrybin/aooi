@@ -1,3 +1,6 @@
+// data: demo translations (next-intl) + static hero content
+// cache: default
+// reason: public demo page; keep server output cache-friendly
 import { getTranslations } from 'next-intl/server';
 
 import { Hero } from '@/themes/default/blocks/hero';

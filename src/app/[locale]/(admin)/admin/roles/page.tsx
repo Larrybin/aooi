@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + roles list (db) + includeDeleted flag (query)
+// cache: no-store (request-bound auth/RBAC)
+// reason: role management is permission-gated; avoid caching across admins
 import { desc } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 

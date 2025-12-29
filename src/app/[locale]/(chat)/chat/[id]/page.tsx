@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + RBAC + chat/messages (db) + redirects
+// cache: no-store (request-bound auth/RBAC)
+// reason: user-specific chat content; must not cache across users/roles
 import { redirect } from 'next/navigation';
 import type { UIMessage } from 'ai';
 

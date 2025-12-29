@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + chats list (db) + pagination
+// cache: no-store (request-bound auth)
+// reason: user-specific activity history
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

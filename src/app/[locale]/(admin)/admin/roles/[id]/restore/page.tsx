@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + role record (db) + Server Action write (restore)
+// cache: no-store (request-bound auth/RBAC)
+// reason: sensitive admin action; avoid caching across admins
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 

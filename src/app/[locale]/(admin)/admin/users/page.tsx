@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + users list (db) + roles/credits (db) + pagination/search
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin data is user/role-specific; avoid caching across users
 import { getTranslations } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';

@@ -1,3 +1,6 @@
+// data: request locale (next-intl) + landing translations (FAQ/CTA) + image generator widget (client)
+// cache: default (no request-bound auth; no explicit fetch)
+// reason: public interactive page; keep server output cache-friendly
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { PageHeader } from '@/shared/blocks/common';

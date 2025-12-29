@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + subscription (db) + Server Action cancels via provider then updates db
+// cache: no-store (request-bound auth)
+// reason: user-specific billing mutation flow
 import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';

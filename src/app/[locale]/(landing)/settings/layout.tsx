@@ -1,3 +1,6 @@
+// data: settings sidebar translations + landing header/footer translations + theme layout
+// cache: default (no explicit fetch); auth gating happens in middleware for `/settings/**`
+// reason: keep shared shell stable; user-specific data stays in leaf pages
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 

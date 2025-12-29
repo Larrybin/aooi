@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + post create form + categories (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin write flow; avoid caching across users/roles
 import { getTranslations } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';

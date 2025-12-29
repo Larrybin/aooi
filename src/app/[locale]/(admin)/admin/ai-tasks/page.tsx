@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + ai tasks list (db) + pagination/filter
+// cache: no-store (request-bound auth/RBAC)
+// reason: task logs are sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';

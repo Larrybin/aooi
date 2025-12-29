@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + role record (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: role metadata is permission-gated; avoid caching across admins
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

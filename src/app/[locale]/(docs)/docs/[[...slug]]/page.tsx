@@ -1,3 +1,6 @@
+// data: docs source (fumadocs) + slug/locale params + MDX components
+// cache: static (generateStaticParams) + default RSC
+// reason: public docs pages; unknown slugs should return notFound()
 import { notFound } from 'next/navigation';
 import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';

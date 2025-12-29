@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + posts list (db) + categories lookup (db) + pagination
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin content management; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';

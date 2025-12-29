@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + user record (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: user edit form is permission-gated and user-specific
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

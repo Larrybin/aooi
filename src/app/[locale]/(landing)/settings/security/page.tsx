@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth)
+// cache: no-store (request-bound auth)
+// reason: user-specific security entry page
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

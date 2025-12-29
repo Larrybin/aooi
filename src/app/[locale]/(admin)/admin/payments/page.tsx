@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + payments/orders list (db) + pagination/search/filter
+// cache: no-store (request-bound auth/RBAC)
+// reason: billing data is sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { PaymentType } from '@/extensions/payment';

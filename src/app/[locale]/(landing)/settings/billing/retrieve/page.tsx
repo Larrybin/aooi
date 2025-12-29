@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + subscription (db) + provider billing portal URL + redirect
+// cache: no-store (request-bound auth)
+// reason: user-specific provider portal entry; do not cache redirects
 import { redirect } from 'next/navigation';
 
 import { envConfigs } from '@/config';

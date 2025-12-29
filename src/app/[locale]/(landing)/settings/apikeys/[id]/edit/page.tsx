@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + apikey record (db) + Server Action updates it
+// cache: no-store (request-bound auth)
+// reason: user-specific write flow
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

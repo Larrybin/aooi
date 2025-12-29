@@ -1,3 +1,6 @@
+// data: slug/locale params + page content (content/pages/*.md) + theme page component + notFound()
+// cache: default (static per slug/locale; no request-bound auth)
+// reason: public markdown pages; no user-specific data
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 

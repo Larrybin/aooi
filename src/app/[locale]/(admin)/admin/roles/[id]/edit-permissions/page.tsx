@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + role/permissions (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: permission assignment is sensitive; avoid caching across admins
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
