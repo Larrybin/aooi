@@ -342,3 +342,35 @@ export async function getRemainingCredits(userId: string): Promise<number> {
 
   return parseInt(result?.total || '0');
 }
+
+export async function getRemainingCreditsSummary(
+  userId: string
+): Promise<{ remainingCredits: number; expiresAt: string | null }> {
+  const currentTime = new Date();
+
+  const [result] = await db()
+    .select({
+      total: sum(credit.remainingCredits),
+      expiresAt: sql<Date | null>`min(${credit.expiresAt})`,
+    })
+    .from(credit)
+    .where(
+      and(
+        eq(credit.userId, userId),
+        eq(credit.transactionType, CreditTransactionType.GRANT),
+        eq(credit.status, CreditStatus.ACTIVE),
+        gt(credit.remainingCredits, 0),
+        or(
+          isNull(credit.expiresAt), // Never expires
+          gt(credit.expiresAt, currentTime) // Not yet expired
+        )
+      )
+    );
+
+  return {
+    remainingCredits: parseInt(result?.total || '0'),
+    expiresAt: result?.expiresAt
+      ? new Date(result.expiresAt).toISOString()
+      : null,
+  };
+}
