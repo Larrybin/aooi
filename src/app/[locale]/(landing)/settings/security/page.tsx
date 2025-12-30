@@ -24,7 +24,7 @@ export default async function SecurityPage() {
         buttons={[
           {
             title: t('reset_password.buttons.submit'),
-            url: '/settings/security',
+            url: '/forgot-password',
             target: '_self',
             variant: 'default',
             size: 'sm',
@@ -37,16 +37,6 @@ export default async function SecurityPage() {
         title={t('delete_account.title')}
         description={t('delete_account.description')}
         content={t('delete_account.tip')}
-        buttons={[
-          {
-            title: t('delete_account.buttons.submit'),
-            url: '/settings/security',
-            target: '_self',
-            variant: 'destructive',
-            size: 'sm',
-            icon: 'RiDeleteBinLine',
-          },
-        ]}
         className="max-w-md"
       />
     </div>

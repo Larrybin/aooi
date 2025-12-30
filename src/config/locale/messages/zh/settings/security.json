@@ -14,7 +14,7 @@
       "security": "安全设置"
     },
     "buttons": {
-      "submit": "保存"
+      "submit": "发送重置链接"
     }
   },
   "delete_account": {

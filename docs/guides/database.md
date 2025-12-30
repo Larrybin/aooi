@@ -41,6 +41,11 @@ const users = await db().select().from(user);
 | `DB_SINGLETON_ENABLED` | `true` to enable singleton mode                   |
 | `DATABASE_PROVIDER`    | Must be `postgresql` (any other value will throw) |
 
+Notes:
+
+- In Cloudflare Workers runtime, `db()` ignores `DATABASE_URL` and uses `HYPERDRIVE.connectionString` from bindings (`[[hyperdrive]] binding = "HYPERDRIVE"`). Missing bindings fail with a `ServiceUnavailableError` and a generic public message.
+- Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
+
 ## Schema Definition
 
 All tables are defined in `src/config/db/schema.ts` using Drizzle's type-safe API:
@@ -97,6 +102,16 @@ pnpm db:migrate
 ```
 
 **Important**: Always apply migrations before starting the app in staging/production.
+
+### Schema Check (Fail-fast)
+
+Optional read-only check (does not apply migrations):
+
+```bash
+pnpm db:check
+```
+
+This verifies required columns exist (e.g. `role.deleted_at`) and provides a migration hint when they do not.
 
 ### Migration Files
 
@@ -239,6 +254,7 @@ Notes:
 
 - Schema checks cache successful results; failures are cleared and retried after a short cooldown to avoid“失败锁存”。
 - Hints reference the migrations directory/log table instead of a specific migration filename to avoid漂移。
+- In production, connectivity/schema mismatches are mapped to generic public errors (`DB_STARTUP_CHECK_FAILED (...)`) while detailed hints are logged server-side.
 
 ## Multi-Environment Support
 

@@ -143,11 +143,11 @@ Enabled by default. Can be toggled via database config:
 
 ### Required
 
-| Variable                                               | Description                                                                |
-| ------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `BETTER_AUTH_SECRET` or `AUTH_SECRET`                  | Secret key for signing tokens (required in production)                     |
-| `DATABASE_URL`                                         | PostgreSQL connection string                                               |
-| `BETTER_AUTH_URL` / `AUTH_URL` / `NEXT_PUBLIC_APP_URL` | Auth base URL (must be a valid http/https origin; validated in production) |
+| Variable                                               | Description                                                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` or `AUTH_SECRET`                  | Secret key for signing tokens (required in production)                                             |
+| `DATABASE_URL`                                         | PostgreSQL connection string (required in production unless running in Cloudflare Workers runtime) |
+| `BETTER_AUTH_URL` / `AUTH_URL` / `NEXT_PUBLIC_APP_URL` | Auth base URL (must be a valid http/https origin; validated in production)                         |
 
 Auth base URL 必须是纯 origin（如 `https://app.example.com`），不支持带路径/查询；生产环境缺失或无效会直接 fail-fast。
 
@@ -155,6 +155,7 @@ Notes:
 
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
+- 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
 
 ### Optional
 
@@ -186,7 +187,57 @@ The auth system automatically trusts:
 2. **Always set auth base URL** (`BETTER_AUTH_URL`/`AUTH_URL`/`NEXT_PUBLIC_APP_URL`) to a valid origin; missing/invalid values fail fast in production
 3. **Never expose auth secrets** to client-side code
 4. **Use HTTPS** in production for secure cookie transmission
-5. **Reset password is rate-limited** (per-email sliding window); excessive requests are throttled to protect outbound providers
+5. **Reset password is rate-limited** (per-email sliding window; `5m` window, `3` attempts, `1` concurrent); excessive requests are throttled to protect outbound providers
+
+## Password Reset
+
+### UI Routes
+
+- Request reset email: `/<locale?>/forgot-password`
+- Set new password (from email link): `/<locale?>/reset-password?token=...`
+- Settings entry: `/<locale?>/settings/security` links to `forgot-password` (reset email request)
+
+### Availability
+
+Password reset UI is only available when email/password auth is enabled:
+
+- Enabled when `email_auth_enabled !== 'false'`, or when neither Google nor GitHub auth is enabled (fallback).
+- When disabled, the UI shows a "Password reset is not available." message and does not send emails.
+
+### Throttling (Send Reset Email)
+
+The server throttles `sendResetPassword` per email to protect outbound providers:
+
+- Window: 5 minutes
+- Max attempts per window: 3
+- Max concurrent in-flight: 1
+
+### Reset Link Errors
+
+The reset page accepts query params:
+
+- `token`: required (from email link)
+- `error`: may be `INVALID_TOKEN`
+
+## Session Helpers (Server Components)
+
+Prefer `getSignedInUser()` / `getSignedInUserSnapshot()` in Server Components and server-only helpers:
+
+```typescript
+import { getSignedInUser } from '@/shared/lib/auth-session.server';
+
+const user = await getSignedInUser();
+```
+
+Related file: `src/shared/lib/auth-session.server.ts`
+
+## Code Generation
+
+If you need to regenerate Better Auth artifacts:
+
+```bash
+pnpm auth:generate
+```
 
 ## Troubleshooting
 

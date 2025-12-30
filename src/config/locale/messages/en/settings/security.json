@@ -14,7 +14,7 @@
       "security": "Security"
     },
     "buttons": {
-      "submit": "Save"
+      "submit": "Send reset link"
     }
   },
   "delete_account": {

@@ -1,0 +1,91 @@
+# Settings Guide
+
+This guide documents the **Settings** surfaces in the app. There are two different concepts that share the same word:
+
+- **User Settings**: end-user account pages under `/<locale?>/settings/**` (profile, API keys, credits, billing/payments, security).
+- **Admin Settings**: admin-config pages under `/<locale?>/admin/settings/**` (feature flags / integrations / system configs).
+
+## User Settings (`/settings/**`)
+
+### Routes
+
+- Entry: `/<locale?>/settings` → redirects to `/<locale?>/settings/profile`
+- Profile: `/<locale?>/settings/profile`
+- Security: `/<locale?>/settings/security`
+- API Keys: `/<locale?>/settings/apikeys` (+ `create`, `[id]/edit`, `[id]/delete`)
+- Credits: `/<locale?>/settings/credits`
+- Billing: `/<locale?>/settings/billing` (subscription)
+- Payments: `/<locale?>/settings/payments` (one-time/subscription history)
+- Invoices: `/<locale?>/settings/invoices/*` (provider-specific retrieve)
+
+Billing/Payments entry points are documented in `docs/guides/payment.md`.
+
+### Access Control
+
+- `src/request-proxy.ts` performs a **light** gate for `/settings/**` by checking the session cookie exists.
+- Each leaf page still treats auth as request-bound and renders `Empty message="no auth"` when `getUserInfo()` returns null.
+
+### Server Actions & Data Writes
+
+User settings writes are implemented via Server Actions (not `/api/settings/*` Route Handlers).
+
+**Profile**
+
+- Page: `src/app/[locale]/(landing)/settings/profile/page.tsx`
+- Schema: `src/shared/schemas/actions/settings-profile.ts`
+- Write: `updateUser(user.id, { name, image })`
+
+**API Keys**
+
+- List: `src/app/[locale]/(landing)/settings/apikeys/page.tsx`
+- Create: `src/app/[locale]/(landing)/settings/apikeys/create/page.tsx`
+- Edit: `src/app/[locale]/(landing)/settings/apikeys/[id]/edit/page.tsx`
+- Delete: `src/app/[locale]/(landing)/settings/apikeys/[id]/delete/page.tsx` (soft delete: `status=DELETED` + `deletedAt`)
+- Schema: `src/shared/schemas/actions/settings-apikey.ts` (requires `title`)
+
+**Security**
+
+- Page: `src/app/[locale]/(landing)/settings/security/page.tsx`
+- Password reset is handled by the auth flow (`/<locale?>/forgot-password` → email → `/<locale?>/reset-password?token=...`). See `docs/guides/auth.md`.
+- Account deletion UI is present but no self-serve delete flow is implemented.
+
+## Admin Settings (`/admin/settings/**`)
+
+### Routes
+
+- `/<locale?>/admin/settings/<tab>` (e.g. `general`, `auth`, `payment`, `email`, `storage`, ...)
+
+### Access Control
+
+Admin pages are guarded in two layers:
+
+1. `/<locale?>/admin/**` requires `admin.access` via `src/app/[locale]/(admin)/layout.tsx` (`requireAdminAccess()`).
+2. Admin Settings additionally require **both** `admin.settings.read` and `admin.settings.write` in
+   `src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx` (`requireAllPermissions()` and `requireActionPermissions()`).
+
+### Config Storage & Validation
+
+- Settings values are stored in the `config` table and loaded via `getConfigsSafe()` / saved via `saveConfigs()`.
+- After saving, the page triggers `revalidateTag(CONFIGS_CACHE_TAG, 'max')` and `revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max')`.
+- Some fields are validated/normalized on submit (e.g. JSON for social links / payment methods / product mapping).
+- The admin settings schema and UI definitions live in `src/shared/services/settings/definitions/*.ts` and are grouped/tabs in `src/shared/services/settings/groups.ts` / `src/shared/services/settings/tabs.ts`.
+
+## Related Files
+
+- `src/request-proxy.ts` - Protected-route session cookie gate (`/admin`, `/settings`, `/activity`)
+- `src/app/[locale]/(landing)/settings/layout.tsx` - User settings shell (sidebar + layout)
+- `src/app/[locale]/(landing)/settings/page.tsx` - `/settings` canonical redirect
+- `src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx` - Admin settings page + Server Action submit
+- `src/shared/services/settings/index.ts` - Settings schema aggregation
+- `src/shared/models/config.ts` - Config persistence and caching tags
+
+## How to Verify
+
+- Visit `/<locale?>/settings` and confirm it redirects to `/<locale?>/settings/profile`.
+- In user settings:
+  - Update profile name/avatar; refresh and confirm persistence.
+  - Create/edit/delete an API key; confirm list updates and deleted key disappears.
+  - Open security page and confirm the reset button navigates to `/<locale?>/forgot-password`.
+- In admin settings:
+  - As a user without `admin.access` / settings permissions, confirm redirect/deny behavior.
+  - Save a config and confirm the value takes effect where used (and tags revalidate).

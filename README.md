@@ -77,6 +77,7 @@ Read `content/docs` to start your AI SaaS project.
 | ----------------------------------------- | ---------------------------------- |
 | [Auth Guide](docs/guides/auth.md)         | Authentication with Better Auth    |
 | [RBAC Guide](docs/guides/rbac.md)         | Role-Based Access Control          |
+| [Settings Guide](docs/guides/settings.md) | User and admin settings surfaces   |
 | [Payment Guide](docs/guides/payment.md)   | Multi-provider payment integration |
 | [Database Guide](docs/guides/database.md) | Drizzle ORM and migrations         |
 

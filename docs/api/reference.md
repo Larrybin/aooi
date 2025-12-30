@@ -273,6 +273,7 @@ The middleware (`src/middleware.ts`) handles:
 3. **Light auth check** - Checks session cookie for protected routes
 
 Protected routes (`/admin`, `/settings`, `/activity`) require a session cookie. Full authentication is verified in the route handler.
+For settings surfaces, see `docs/guides/settings.md`.
 
 ## Best Practices
 

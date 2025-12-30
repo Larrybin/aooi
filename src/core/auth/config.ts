@@ -198,7 +198,11 @@ type SendResetPasswordData = Parameters<
 export async function getAuthOptions() {
   assertAuthEnv();
   const configs = await getAllConfigs();
-  const isEmailAuthEnabled = configs.email_auth_enabled !== 'false';
+  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
+  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
+  const isEmailAuthEnabled =
+    configs.email_auth_enabled !== 'false' ||
+    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
   const socialProviders = await getSocialProviders(configs);
   const appName = (configs.app_name || envConfigs.app_name || '').trim();
   return {

@@ -5,6 +5,10 @@ This guide covers the Role-Based Access Control system for managing user permiss
 ## Architecture Overview
 
 ```
+src/core/
+└── rbac/
+    └── index.ts              # Permission constants re-export (optional)
+
 src/shared/
 ├── services/
 │   ├── rbac.ts                # Core RBAC service (server-only)
@@ -208,6 +212,24 @@ export const GET = withApi(async (req: Request) => {
 });
 ```
 
+## Enforcement Model
+
+RBAC is enforced on the server. Client-side checks are advisory only.
+
+- `src/request-proxy.ts` only checks session cookie existence for `/admin`, `/settings`, `/activity` (lightweight gate).
+- `/admin/**` requires `admin.access` in `src/app/[locale]/(admin)/layout.tsx` via `requireAdminAccess()`.
+- Route Handlers should use `requireUser()` + `requirePermission()` (401 + CSRF, then 403) at the entry point.
+- Server Actions should use `src/shared/lib/action/guard.ts` (request-scoped cached permission checker).
+
+## Permission ↔ Endpoint Examples
+
+| Endpoint                       | Permission             | Notes                                                      |
+| ------------------------------ | ---------------------- | ---------------------------------------------------------- |
+| `POST /api/email/test`         | `admin.email.test`     | Per-user throttle (5m window, 3 attempts, 1 concurrent).   |
+| `POST /api/email/send-email`   | `admin.settings.write` | Per-user+recipient throttle (min interval 60s).            |
+| `POST /api/email/verify-code`  | `admin.settings.write` | Failed-attempt throttling within code TTL window.          |
+| `POST /api/user/get-user-info` | —                      | Auth only; returns `isAdmin` computed from `admin.access`. |
+
 ## Role Management API
 
 ### Create Role
@@ -308,7 +330,10 @@ Soft-deleted roles are excluded from all queries.
 
 ## Error Handling
 
-The RBAC system includes schema validation. If the `role.deleted_at` column is missing (e.g., migrations not applied), you'll see:
+The RBAC system includes schema validation. If the `role.deleted_at` column is missing (e.g., migrations not applied):
+
+- In non-production, the error includes a detailed migration hint.
+- In production, permission checks throw a generic public error (`permission check failed due to server misconfiguration`) and the detailed hint is logged server-side.
 
 ```
 Database schema mismatch: missing column public.role.deleted_at.
@@ -326,9 +351,11 @@ Run: pnpm db:migrate
 
 ## Related Files
 
+- `src/core/rbac/index.ts` - Permission constants re-export
 - `src/shared/services/rbac.ts` - Core RBAC service
 - `src/shared/lib/action/guard.ts` - Server Action guards
 - `src/shared/constants/rbac-permissions.ts` - Permission constants
 - `src/config/db/schema.ts` - Database schema definitions
 - `scripts/init-rbac.ts` - Initialization script
 - `scripts/assign-role.ts` - Role assignment script
+- `scripts/self-check-rbac.ts` - Smoke-check script
