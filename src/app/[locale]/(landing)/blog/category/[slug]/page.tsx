@@ -7,14 +7,14 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import {
-  buildCanonicalUrlWithAppUrl,
-  buildLanguageAlternatesWithAppUrl,
-} from '@/shared/lib/seo';
-import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import {
+  buildCanonicalUrlWithAppUrl,
+  buildLanguageAlternatesWithAppUrl,
+} from '@/shared/lib/seo';
 import {
   PostType as DBPostType,
   getPosts,

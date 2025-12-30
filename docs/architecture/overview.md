@@ -49,7 +49,7 @@ This document provides a high-level view of the application architecture.
 - **Rules**:
   - Keep page/layout files thin
   - Delegate logic to `shared/` services
-  - Route handlers use `withApi()` wrapper
+  - Route handlers prefer `withApi()` wrapper (contract exceptions like Better Auth may bypass it)
 
 ### `src/shared/` - Business & UI Layer
 
@@ -125,10 +125,12 @@ The `eslint.config.mjs` enforces:
 ### API Request
 
 ```
-Request → src/middleware.ts → route.ts → withApi() → service → model → db
-                ↓              ↓           ↓         ↓        ↓
-          x-request-id    validation   logging   business   data
+Request → src/middleware.ts → route.ts → withApi() (most) → service → model → db
+                ↓              ↓              ↓            ↓        ↓
+          x-request-id    validation      logging      business    data
 ```
+
+Some endpoints intentionally bypass `withApi()` (e.g. third-party handlers like Better Auth) to preserve response semantics (redirects/cookies/status codes).
 
 ### Page Request
 

@@ -4,11 +4,11 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
-import { logger } from '@/shared/lib/logger.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { logger } from '@/shared/lib/logger.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getMetadata } from '@/shared/lib/seo';
 import { getPostsAndCategories } from '@/shared/models/post';

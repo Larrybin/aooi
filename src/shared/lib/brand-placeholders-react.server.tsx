@@ -2,8 +2,10 @@ import 'server-only';
 
 import React from 'react';
 
-import type { BrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { replaceBrandPlaceholders } from '@/shared/lib/brand-placeholders.server';
+import {
+  replaceBrandPlaceholders,
+  type BrandPlaceholderValues,
+} from '@/shared/lib/brand-placeholders.server';
 
 function replaceInStringProps(
   props: Record<string, unknown>,
@@ -53,7 +55,9 @@ export function replaceBrandPlaceholdersInReactNode(
   }
 
   if (Array.isArray(node)) {
-    return node.map((child) => replaceBrandPlaceholdersInReactNode(child, brand));
+    return node.map((child) =>
+      replaceBrandPlaceholdersInReactNode(child, brand)
+    );
   }
 
   if (React.isValidElement(node)) {
@@ -72,4 +76,3 @@ export function replaceBrandPlaceholdersInReactNode(
 
   return node;
 }
-

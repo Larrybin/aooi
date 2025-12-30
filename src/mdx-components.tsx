@@ -119,7 +119,10 @@ function buildDefaultBrandMdxComponents(): MDXComponents {
     children,
     ...props
   }: React.PropsWithChildren<
-    { path?: string; href?: string } & React.AnchorHTMLAttributes<HTMLAnchorElement>
+    {
+      path?: string;
+      href?: string;
+    } & React.AnchorHTMLAttributes<HTMLAnchorElement>
   >) => {
     const resolvedHref = href
       ? href

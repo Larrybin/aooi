@@ -12,6 +12,7 @@ import { getRequestLogger } from '@/shared/lib/request-logger.server';
 
 import { ApiError } from './errors';
 import { jsonErr } from './response';
+import { setResponseHeader } from './response-headers';
 
 function logHandledServerError(
   reqLogger: ReturnType<typeof getRequestLogger> | undefined,
@@ -43,18 +44,7 @@ function attachRequestIdHeader(
   response: Response,
   requestId: string
 ): Response {
-  try {
-    response.headers.set('x-request-id', requestId);
-    return response;
-  } catch {
-    const headers = new Headers(response.headers);
-    headers.set('x-request-id', requestId);
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  }
+  return setResponseHeader(response, 'x-request-id', requestId);
 }
 
 type ApiRouteHandlerArgs =

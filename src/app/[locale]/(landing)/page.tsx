@@ -5,12 +5,12 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemeLayout, getThemePage } from '@/core/theme/landing';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
-import { filterLandingButtons } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { filterLandingButtons } from '@/shared/lib/landing-visibility';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   type Footer as FooterType,
   type Header as HeaderType,

@@ -6,12 +6,12 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   buildCanonicalUrlWithAppUrl,
   buildLanguageAlternatesWithAppUrl,
 } from '@/shared/lib/seo';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getPost } from '@/shared/models/post';
 
 export async function generateMetadata({

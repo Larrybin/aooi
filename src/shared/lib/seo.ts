@@ -126,7 +126,10 @@ export function getMetadata(
         ? undefined
         : normalizeRelativePath(options.canonicalUrl || '/');
     const languageAlternates = canonicalPathForAlternates
-      ? buildLanguageAlternatesWithAppUrl(canonicalPathForAlternates, brand.appUrl)
+      ? buildLanguageAlternatesWithAppUrl(
+          canonicalPathForAlternates,
+          brand.appUrl
+        )
       : undefined;
 
     const title =
