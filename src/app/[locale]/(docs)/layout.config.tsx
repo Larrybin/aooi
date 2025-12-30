@@ -20,9 +20,7 @@ export function baseOptions(
             height={28}
             className=""
           />
-          <span className="text-primary text-lg font-bold">
-            {appName}
-          </span>
+          <span className="text-primary text-lg font-bold">{appName}</span>
         </>
       ),
       transparentMode: 'top',

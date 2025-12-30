@@ -6,11 +6,11 @@ import { createRelativeLink } from 'fumadocs-ui/mdx';
 
 import { pagesSource, postsSource } from '@/core/docs/source';
 import { generateTOC } from '@/core/docs/toc';
+import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
-import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import { formatPostDate } from '@/shared/lib/post-date';
 import { getAllConfigs } from '@/shared/models/config';
 import type {

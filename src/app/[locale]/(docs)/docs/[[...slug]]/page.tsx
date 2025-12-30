@@ -13,11 +13,11 @@ import {
 } from 'fumadocs-ui/page';
 
 import { source } from '@/core/docs/source';
+import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
-import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export default async function DocsContentPage(props: {

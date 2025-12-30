@@ -11,8 +11,8 @@ import {
 } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { findOrderByOrderNo } from '@/shared/models/order';
 import { getAllConfigs } from '@/shared/models/config';
+import { findOrderByOrderNo } from '@/shared/models/order';
 import {
   PaymentCallbackBodySchema,
   PaymentCallbackQuerySchema,
@@ -22,7 +22,11 @@ import {
   handleCheckoutSuccess,
 } from '@/shared/services/payment';
 
-function appendOrderNoToUrl(url: string, orderNo: string, appUrl: string): string {
+function appendOrderNoToUrl(
+  url: string,
+  orderNo: string,
+  appUrl: string
+): string {
   try {
     const full = new URL(url, appUrl);
     full.searchParams.set('order_no', orderNo);

@@ -8,9 +8,9 @@ import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
 import { RootProvider } from 'fumadocs-ui/provider';
 
 import { source } from '@/core/docs/source';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 
 import { baseOptions } from './layout.config';
 
