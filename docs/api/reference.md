@@ -6,7 +6,9 @@ This document covers the API route patterns, common utilities, and available end
 
 ### Standard Structure
 
-All API routes use the `withApi()` wrapper for consistent error handling:
+Most API routes use the `withApi()` wrapper for consistent error handling.
+
+Contract exceptions exist (e.g. `/api/auth/[...all]` for Better Auth) where we intentionally bypass `withApi()` to preserve third-party semantics (redirects, cookies, status codes). These endpoints do not follow the `{code,message,data}` response envelope documented below.
 
 ```typescript
 // src/app/api/example/route.ts
@@ -130,9 +132,15 @@ Notes:
 
 ### Authentication
 
-| Method | Endpoint             | Description                                         |
-| ------ | -------------------- | --------------------------------------------------- |
-| `*`    | `/api/auth/[...all]` | Better Auth handler (signin, signup, signout, etc.) |
+| Method     | Endpoint             | Description                                         |
+| ---------- | -------------------- | --------------------------------------------------- |
+| `GET/POST` | `/api/auth/[...all]` | Better Auth handler (signin, signup, signout, etc.) |
+
+Notes:
+
+- `/api/auth/[...all]` is a passthrough to Better Auth and does not use `withApi()`; response shape and errors are defined by Better Auth.
+- Treat `/api/auth/**` as sensitive: do not cache it at the edge. The route sets `Cache-Control: no-store`.
+- `/api/auth/**` currently targets Node.js runtimes (e.g. Vercel/Node) and is not intended to run on Cloudflare/OpenNext deployments.
 
 ### User
 
@@ -226,6 +234,9 @@ Notes:
 
 ## Response Format
 
+This section applies to endpoints wrapped with `withApi()` (the standard JSON envelope).
+Contract exceptions (e.g. Better Auth) may return a different response shape.
+
 ### Success Response
 
 ```typescript
@@ -277,7 +288,7 @@ For settings surfaces, see `docs/guides/settings.md`.
 
 ## Best Practices
 
-1. **Always use `withApi()`** - For consistent error handling and logging
+1. **Prefer `withApi()`** - For consistent error handling and logging (except contract exceptions like Better Auth)
 2. **Validate all inputs** - Use Zod schemas with parse helpers
 3. **Use typed errors** - Throw specific error classes
 4. **Log appropriately** - Use request logger for traceability

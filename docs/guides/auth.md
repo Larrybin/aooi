@@ -45,22 +45,41 @@ export async function getAuthOptions() {
 
 The auth API is exposed via a catch-all route at `/api/auth/[...all]`:
 
+Notes:
+
+- This endpoint is a contract exception: it bypasses `withApi()` and does not return the standard `{code,message,data}` envelope (Better Auth controls redirects/cookies/status codes).
+- The route is explicitly `nodejs` + `force-dynamic`, and responses are marked `Cache-Control: no-store`.
+- This route currently targets Node.js runtimes (e.g. Vercel/Node) and is not intended to run on Cloudflare/OpenNext deployments.
+
 ```typescript
 // src/app/api/auth/[...all]/route.ts
 import { toNextJsHandler } from 'better-auth/next-js';
 
 import { getAuth } from '@/core/auth';
+import { setResponseHeader } from '@/shared/lib/api/response-headers';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+function withNoStore(response: Response): Response {
+  return setResponseHeader(response, 'Cache-Control', 'no-store');
+}
+
+async function createHandler(request: Request) {
+  const auth = await getAuth(request);
+  return toNextJsHandler(auth.handler);
+}
 
 export async function POST(request: Request) {
-  const auth = await getAuth(request);
-  const handler = toNextJsHandler(auth.handler);
-  return handler.POST(request);
+  const handler = await createHandler(request);
+  const response = await handler.POST(request);
+  return withNoStore(response);
 }
 
 export async function GET(request: Request) {
-  const auth = await getAuth(request);
-  const handler = toNextJsHandler(auth.handler);
-  return handler.GET(request);
+  const handler = await createHandler(request);
+  const response = await handler.GET(request);
+  return withNoStore(response);
 }
 ```
 
@@ -180,6 +199,8 @@ The auth system automatically trusts:
 
 1. Your application URL (`NEXT_PUBLIC_APP_URL`) — normalized to a valid origin (`http`/`https` only, otherwise fail-fast in production)
 2. Google accounts domain (`https://accounts.google.com`) for One Tap
+
+If you serve the app from multiple origins (custom domains, preview URLs, reverse proxies), ensure the runtime origin matches `NEXT_PUBLIC_APP_URL` or extend `buildTrustedOrigins()` accordingly; otherwise requests may be incorrectly blocked (or allowed).
 
 ## Security Best Practices
 
