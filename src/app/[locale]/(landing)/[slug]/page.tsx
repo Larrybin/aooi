@@ -6,6 +6,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import { envConfigs } from '@/config';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getLocalPage } from '@/shared/models/post';
 
 export async function generateMetadata({
@@ -17,10 +19,14 @@ export async function generateMetadata({
 
   const { locale, slug } = await params;
 
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const appUrl = brand.appUrl || envConfigs.app_url;
+
   const canonicalUrl =
     locale !== envConfigs.locale
-      ? `${envConfigs.app_url}/${locale}/${slug}`
-      : `${envConfigs.app_url}/${slug}`;
+      ? `${appUrl}/${locale}/${slug}`
+      : `${appUrl}/${slug}`;
 
   const page = await getLocalPage({ slug, locale });
   if (!page) {

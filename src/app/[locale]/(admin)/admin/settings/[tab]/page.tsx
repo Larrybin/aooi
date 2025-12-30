@@ -86,6 +86,52 @@ export default async function SettingsPage({
       const recordSchema = z.record(z.string(), z.string());
       const values = parseFormData(data, recordSchema);
 
+      let normalizedAppName: string | undefined;
+      const appName = values.app_name;
+      if (typeof appName === 'string') {
+        const trimmed = appName.trim();
+        if (!trimmed) {
+          return actionErr('Invalid App Name. Must not be empty.');
+        }
+        normalizedAppName = trimmed;
+      }
+
+      let normalizedAppUrl: string | undefined;
+      const appUrl = values.app_url;
+      if (typeof appUrl === 'string') {
+        const trimmed = appUrl.trim();
+        if (!trimmed) {
+          return actionErr('Invalid App URL. Must not be empty.');
+        }
+        try {
+          const url = new URL(trimmed);
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            return actionErr(
+              `Invalid App URL. Must use http/https (got: ${trimmed}).`
+            );
+          }
+          normalizedAppUrl = url.origin;
+        } catch (error: unknown) {
+          return actionErr(
+            `Invalid App URL. Must be a valid URL (got: ${trimmed}, error: ${String(error)}).`
+          );
+        }
+      }
+
+      let normalizedSupportEmail: string | undefined;
+      const supportEmail = values.general_support_email;
+      if (typeof supportEmail === 'string') {
+        const trimmed = supportEmail.trim().toLowerCase();
+        const emailSchema = z.string().email();
+        const result = emailSchema.safeParse(trimmed);
+        if (!result.success) {
+          return actionErr(
+            'Invalid Support Email. Must be a valid email address.'
+          );
+        }
+        normalizedSupportEmail = trimmed;
+      }
+
       let normalizedSocialLinks: string | undefined;
       const socialLinks = values.general_social_links;
       if (typeof socialLinks === 'string') {
@@ -144,6 +190,24 @@ export default async function SettingsPage({
       }
 
       for (const [name, value] of Object.entries(values)) {
+        if (name === 'app_name' && normalizedAppName !== undefined) {
+          configs[name] = normalizedAppName;
+          continue;
+        }
+
+        if (name === 'app_url' && normalizedAppUrl !== undefined) {
+          configs[name] = normalizedAppUrl;
+          continue;
+        }
+
+        if (
+          name === 'general_support_email' &&
+          normalizedSupportEmail !== undefined
+        ) {
+          configs[name] = normalizedSupportEmail;
+          continue;
+        }
+
         if (
           name === 'general_social_links' &&
           normalizedSocialLinks !== undefined

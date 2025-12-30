@@ -5,6 +5,11 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import { logger } from '@/shared/lib/logger.server';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getMetadata } from '@/shared/lib/seo';
 import { getPostsAndCategories } from '@/shared/models/post';
 import type {
@@ -63,8 +68,11 @@ export default async function BlogPage({
   }
 
   // build blog data
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+
   const blog: BlogType = {
-    ...t.raw('blog'),
+    ...replaceBrandPlaceholdersDeep(t.raw('blog'), brand),
     categories,
     currentCategory,
     posts,

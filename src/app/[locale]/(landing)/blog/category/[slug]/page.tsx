@@ -6,7 +6,15 @@ import moment from 'moment';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
-import { buildCanonicalUrl, buildLanguageAlternates } from '@/shared/lib/seo';
+import {
+  buildCanonicalUrlWithAppUrl,
+  buildLanguageAlternatesWithAppUrl,
+} from '@/shared/lib/seo';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   PostType as DBPostType,
   getPosts,
@@ -32,9 +40,18 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('blog.metadata');
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
   const canonicalPath = `/blog/category/${slug}`;
-  const canonicalUrl = buildCanonicalUrl(canonicalPath, locale);
-  const languageAlternates = buildLanguageAlternates(canonicalPath);
+  const canonicalUrl = buildCanonicalUrlWithAppUrl(
+    canonicalPath,
+    locale,
+    brand.appUrl
+  );
+  const languageAlternates = buildLanguageAlternatesWithAppUrl(
+    canonicalPath,
+    brand.appUrl
+  );
 
   return {
     title: `${slug} | ${t('title')}`,
@@ -121,9 +138,12 @@ export default async function CategoryBlogPage({
     url: `/blog/${post.slug}`,
   }));
 
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+
   // build blog
   const blog: BlogType = {
-    ...t.raw('blog'),
+    ...replaceBrandPlaceholdersDeep(t.raw('blog'), brand),
     categories,
     currentCategory,
     posts,

@@ -31,6 +31,7 @@ export const {
 // get auth client with configs
 export function getAuthClient(configs: Record<string, string>) {
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
+  const baseURL = configs.app_url?.trim() || envConfigs.app_url;
   const plugins =
     isGoogleAuthEnabled &&
     configs.google_client_id &&
@@ -55,7 +56,7 @@ export function getAuthClient(configs: Record<string, string>) {
       : [];
 
   const authClient = createAuthClient({
-    baseURL: envConfigs.app_url,
+    baseURL,
     plugins,
   });
 

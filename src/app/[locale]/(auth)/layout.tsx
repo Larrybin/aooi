@@ -8,22 +8,28 @@ import {
   ThemeToggler,
 } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+
+  const appName = brand.appName || envConfigs.app_name;
   return (
     <AppContextProvider>
       <div className="flex h-screen w-screen items-center justify-center">
         <div className="absolute top-4 left-4">
           <BrandLogo
             brand={{
-              title: envConfigs.app_name,
+              title: appName,
               logo: {
                 src: '/logo.png',
-                alt: envConfigs.app_name,
+                alt: appName,
               },
               url: '/',
               target: '_self',

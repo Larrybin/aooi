@@ -249,7 +249,7 @@ Configure in `wrangler.toml`:
 ```toml
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "your-hyperdrive-id"
+id = "hyperdrive-id"
 ```
 
 The `db()` function automatically detects and uses Hyperdrive.

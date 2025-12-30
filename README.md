@@ -1,4 +1,4 @@
-# Roller Rabbit
+# Your App
 
 A production-ready AI SaaS template built with Next.js App Router, TypeScript, and modern tooling.
 
@@ -46,6 +46,14 @@ pnpm dev
 ```
 
 Visit http://localhost:3000
+
+### 品牌配置（推荐）
+
+登录管理员后台后，在 `Admin -> Settings -> General -> Brand` 配置：
+
+- `App Name`：用于站点标题、文档/SEO、邮件标题等
+- `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
+- `Support Email`：用于法律页面与联系入口
 
 ### Initialize RBAC (Optional)
 
@@ -118,14 +126,14 @@ Example `general_social_links`:
   {
     "title": "X",
     "icon": "RiTwitterXFill",
-    "url": "https://x.com/your-app",
+    "url": "https://x.com/your_handle",
     "target": "_blank",
     "enabled": true
   },
   {
     "title": "Email",
     "icon": "Mail",
-    "url": "mailto:support@your-domain.com",
+    "url": "mailto:support@example.com",
     "target": "_self",
     "enabled": true
   }

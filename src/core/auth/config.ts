@@ -200,8 +200,10 @@ export async function getAuthOptions() {
   const configs = await getAllConfigs();
   const isEmailAuthEnabled = configs.email_auth_enabled !== 'false';
   const socialProviders = await getSocialProviders(configs);
+  const appName = (configs.app_name || envConfigs.app_name || '').trim();
   return {
     ...authOptions,
+    appName,
     // Add database connection only when actually needed (runtime)
     database: drizzleAdapter(db(), {
       provider: 'pg',

@@ -389,7 +389,7 @@ Pricing is defined in locale files (e.g., `src/config/locale/messages/en/pricing
 1. Get API keys from [Stripe Dashboard](https://dashboard.stripe.com)
 2. Enable Stripe: set `stripe_enabled=true`
 3. Set `stripe_secret_key` (and optionally store `stripe_publishable_key`)
-4. Configure webhook endpoint: `https://your-domain.com/api/payment/notify/stripe`
+4. Configure webhook endpoint: `https://example.com/api/payment/notify/stripe`
 5. Set `stripe_signing_secret` from webhook settings (required for signature verification; enforced in production)
 
 ### PayPal
@@ -398,7 +398,7 @@ Pricing is defined in locale files (e.g., `src/config/locale/messages/en/pricing
 2. Enable PayPal: set `paypal_enabled=true` and `paypal_environment` (`sandbox`/`production`)
 3. Set `paypal_client_id` and `paypal_client_secret`
 4. Create a webhook and set `paypal_webhook_id`
-5. Configure webhook: `https://your-domain.com/api/payment/notify/paypal`
+5. Configure webhook: `https://example.com/api/payment/notify/paypal`
 
 ### Creem
 

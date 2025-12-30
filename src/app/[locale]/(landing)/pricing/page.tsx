@@ -5,6 +5,11 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme/landing';
 import { logger } from '@/shared/lib/logger.server';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getMetadata } from '@/shared/lib/seo';
 import { getCurrentSubscription } from '@/shared/models/subscription';
 import { getUserInfo } from '@/shared/models/user';
@@ -50,10 +55,19 @@ export default async function PricingPage({
   // load page component
   const Page = await getThemePage('pricing');
 
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+
   // build sections
-  const pricing: PricingType = t.raw('pricing');
-  const faq: FAQType = tl.raw('faq');
-  const testimonials: TestimonialsType = tl.raw('testimonials');
+  const pricing: PricingType = replaceBrandPlaceholdersDeep(
+    t.raw('pricing'),
+    brand
+  );
+  const faq: FAQType = replaceBrandPlaceholdersDeep(tl.raw('faq'), brand);
+  const testimonials: TestimonialsType = replaceBrandPlaceholdersDeep(
+    tl.raw('testimonials'),
+    brand
+  );
 
   return (
     <Page

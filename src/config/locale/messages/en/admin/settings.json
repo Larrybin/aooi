@@ -1,6 +1,7 @@
 {
   "groups": {
     "general_ui": "UI",
+    "general_brand": "Brand",
     "email_auth": "Email Auth",
     "google_auth": "Google Auth",
     "github_auth": "Github Auth",

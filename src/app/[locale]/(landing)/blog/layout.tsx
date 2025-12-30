@@ -9,6 +9,10 @@ import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/shared/lib/brand-placeholders.server';
 import { isLandingBlogEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
@@ -29,9 +33,15 @@ export default async function BlogLayout({
   const t = await getTranslations('landing');
   const Layout = await getThemeLayout('landing');
 
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+
   const header: HeaderType = t.raw('header');
   const footer: FooterType = t.raw('footer');
-  const branded = applyBrandToLandingHeaderFooter({ header, footer });
+  const branded = applyBrandToLandingHeaderFooter({
+    header: replaceBrandPlaceholdersDeep(header, brand),
+    footer: replaceBrandPlaceholdersDeep(footer, brand),
+    configs: publicConfigs,
+  });
 
   return (
     <AppContextProvider>

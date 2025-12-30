@@ -2,6 +2,8 @@ import React from 'react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 
+import { envConfigs } from '@/config';
+
 // Custom link component with nofollow for external links
 const CustomLink = ({
   href,
@@ -71,10 +73,83 @@ export function withNoFollow(
   return LinkWithNoFollow;
 }
 
+function tryGetDomainFromOrigin(origin: string): string {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return '';
+  }
+}
+
+function defaultSupportEmail(appUrl: string): string {
+  const domain = tryGetDomainFromOrigin(appUrl);
+  if (!domain || domain.includes(':')) {
+    return 'support@example.com';
+  }
+  return `support@${domain}`;
+}
+
+function normalizePath(path: string): string {
+  if (!path) return '/';
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+function buildDefaultBrandMdxComponents(): MDXComponents {
+  const appName = envConfigs.app_name || '';
+  const appUrl = envConfigs.app_url || '';
+  const domain = tryGetDomainFromOrigin(appUrl);
+  const supportEmail = defaultSupportEmail(appUrl);
+
+  const AppName = () => appName;
+  const AppUrl = () => appUrl;
+  const AppDomain = () => domain;
+  const SupportEmail = () => supportEmail;
+
+  const SupportEmailLink = ({
+    children,
+  }: React.PropsWithChildren<Record<string, never>>) => (
+    <a href={`mailto:${supportEmail}`} rel="nofollow noopener noreferrer">
+      {children ?? supportEmail}
+    </a>
+  );
+
+  const AppLink = ({
+    path,
+    href,
+    children,
+    ...props
+  }: React.PropsWithChildren<
+    { path?: string; href?: string } & React.AnchorHTMLAttributes<HTMLAnchorElement>
+  >) => {
+    const resolvedHref = href
+      ? href
+      : appUrl
+        ? `${appUrl}${normalizePath(path || '/')}`
+        : normalizePath(path || '/');
+
+    return (
+      <a href={resolvedHref} {...props}>
+        {children}
+      </a>
+    );
+  };
+
+  return {
+    AppName,
+    AppUrl,
+    AppDomain,
+    SupportEmail,
+    SupportEmailLink,
+    AppLink,
+  };
+}
+
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
+  const defaultBrandComponents = buildDefaultBrandMdxComponents();
   const mergedComponents = {
     ...defaultMdxComponents,
     a: CustomLink,
+    ...defaultBrandComponents,
     ...components,
   };
 
@@ -92,6 +167,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
+    ...buildDefaultBrandMdxComponents(),
     ...components,
   };
 }
