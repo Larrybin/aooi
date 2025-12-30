@@ -3,7 +3,12 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
-import { buildCanonicalUrl, buildLanguageAlternates } from '@/shared/lib/seo';
+import {
+  buildCanonicalUrlWithAppUrl,
+  buildLanguageAlternatesWithAppUrl,
+} from '@/shared/lib/seo';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getPost } from '@/shared/models/post';
 
 export async function generateMetadata({
@@ -14,9 +19,18 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('blog.metadata');
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
   const canonicalPath = `/blog/${slug}`;
-  const canonicalUrl = buildCanonicalUrl(canonicalPath, locale);
-  const languageAlternates = buildLanguageAlternates(canonicalPath);
+  const canonicalUrl = buildCanonicalUrlWithAppUrl(
+    canonicalPath,
+    locale,
+    brand.appUrl
+  );
+  const languageAlternates = buildLanguageAlternatesWithAppUrl(
+    canonicalPath,
+    brand.appUrl
+  );
 
   const post = await getPost({ slug, locale });
   if (!post) {

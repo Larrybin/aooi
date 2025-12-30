@@ -214,7 +214,7 @@ OAuth callback error: redirect_uri_mismatch
 
 **Solution**:
 
-1. Check OAuth provider settings for correct callback URL: `https://your-domain.com/api/auth/callback/google`
+1. Check OAuth provider settings for correct callback URL: `https://example.com/api/auth/callback/google`
 2. Ensure `NEXT_PUBLIC_APP_URL` is set correctly
 3. Verify client ID and secret are correct
 

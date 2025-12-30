@@ -1,11 +1,18 @@
 import 'server-only';
 
+import { createElement, type ElementType, type ReactNode } from 'react';
 import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 
 import { pagesSource, postsSource } from '@/core/docs/source';
 import { generateTOC } from '@/core/docs/toc';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholders,
+} from '@/shared/lib/brand-placeholders.server';
+import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import { formatPostDate } from '@/shared/lib/post-date';
+import { getAllConfigs } from '@/shared/models/config';
 import type {
   Category as BlogCategoryType,
   Post as BlogPostType,
@@ -39,13 +46,22 @@ export async function getLocalPost({
     return null;
   }
 
+  const configs = await getAllConfigs();
+  const brand = buildBrandPlaceholderValues(configs);
+
   const MDXContent = localPost.data.body;
-  const body = (
-    <MDXContent
-      components={getMDXComponents({
-        a: createRelativeLink(postsSource, localPost),
-      })}
-    />
+  const mdxComponents = getMDXComponents({
+    a: createRelativeLink(postsSource, localPost),
+  });
+  const body = replaceBrandPlaceholdersInReactNode(
+    typeof MDXContent === 'function'
+      ? (MDXContent as (props: { components: unknown }) => ReactNode)({
+          components: mdxComponents,
+        })
+      : (createElement(MDXContent as ElementType<{ components: unknown }>, {
+          components: mdxComponents,
+        }) as ReactNode),
+    brand
   );
 
   const frontmatter = localPost.data as LocalPostFrontmatter;
@@ -53,8 +69,11 @@ export async function getLocalPost({
   return {
     id: localPost.path,
     slug,
-    title: localPost.data.title || '',
-    description: localPost.data.description || '',
+    title: replaceBrandPlaceholders(localPost.data.title || '', brand),
+    description: replaceBrandPlaceholders(
+      localPost.data.description || '',
+      brand
+    ),
     content: '',
     body,
     toc: localPost.data.toc,
@@ -82,13 +101,22 @@ export async function getLocalPage({
     return null;
   }
 
+  const configs = await getAllConfigs();
+  const brand = buildBrandPlaceholderValues(configs);
+
   const MDXContent = localPage.data.body;
-  const body = (
-    <MDXContent
-      components={getMDXComponents({
-        a: createRelativeLink(pagesSource, localPage),
-      })}
-    />
+  const mdxComponents = getMDXComponents({
+    a: createRelativeLink(pagesSource, localPage),
+  });
+  const body = replaceBrandPlaceholdersInReactNode(
+    typeof MDXContent === 'function'
+      ? (MDXContent as (props: { components: unknown }) => ReactNode)({
+          components: mdxComponents,
+        })
+      : (createElement(MDXContent as ElementType<{ components: unknown }>, {
+          components: mdxComponents,
+        }) as ReactNode),
+    brand
   );
 
   const frontmatter = localPage.data as LocalPostFrontmatter;
@@ -96,8 +124,11 @@ export async function getLocalPage({
   return {
     id: localPage.path,
     slug,
-    title: localPage.data.title || '',
-    description: localPage.data.description || '',
+    title: replaceBrandPlaceholders(localPage.data.title || '', brand),
+    description: replaceBrandPlaceholders(
+      localPage.data.description || '',
+      brand
+    ),
     content: '',
     body,
     toc: localPage.data.toc,
@@ -130,6 +161,9 @@ export async function getLocalPostsAndCategories({
     };
   }
 
+  const configs = await getAllConfigs();
+  const brand = buildBrandPlaceholderValues(configs);
+
   const posts = localPosts.map((post) => {
     const frontmatter = post.data as LocalPostFrontmatter;
     const slug = getPostSlugFromUrl({
@@ -141,8 +175,8 @@ export async function getLocalPostsAndCategories({
     return {
       id: post.path,
       slug,
-      title: post.data.title || '',
-      description: post.data.description || '',
+      title: replaceBrandPlaceholders(post.data.title || '', brand),
+      description: replaceBrandPlaceholders(post.data.description || '', brand),
       author_name: frontmatter.author_name || '',
       author_image: frontmatter.author_image || '',
       created_at: frontmatter.created_at

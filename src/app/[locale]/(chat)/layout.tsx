@@ -8,6 +8,11 @@ import { AppContextProvider } from '@/shared/contexts/app';
 import { ChatContextProvider } from '@/shared/contexts/chat';
 import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/shared/lib/brand-placeholders.server';
+import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
 export default async function ChatLayout({
@@ -20,9 +25,15 @@ export default async function ChatLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+
   const t = await getTranslations('ai.chat');
-  const sidebarRaw: SidebarType = t.raw('sidebar');
-  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw);
+  const sidebarRaw: SidebarType = replaceBrandPlaceholdersDeep(
+    t.raw('sidebar'),
+    brand
+  );
+  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw, publicConfigs);
 
   sidebar.library = <ChatLibrary />;
   const initialUser = await getSignedInUserSnapshot();

@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 
 import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import {
   isLandingBlogEnabled,
   isLandingDocsEnabled,
@@ -12,19 +13,20 @@ function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
-function buildUrl(pathname: string, locale: string) {
-  const appUrl = stripTrailingSlash(envConfigs.app_url);
+function buildUrl(pathname: string, locale: string, appUrl: string) {
+  const baseUrl = stripTrailingSlash(appUrl);
   const localePrefix = locale === defaultLocale ? '' : `/${locale}`;
 
   if (pathname === '/') {
-    return localePrefix ? `${appUrl}${localePrefix}` : `${appUrl}/`;
+    return localePrefix ? `${baseUrl}${localePrefix}` : `${baseUrl}/`;
   }
 
-  return `${appUrl}${localePrefix}${pathname}`;
+  return `${baseUrl}${localePrefix}${pathname}`;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
   const routes = [
     '/',
     '/pricing',
@@ -35,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return locales.flatMap((locale) =>
     routes.map((route) => ({
-      url: buildUrl(route, locale),
+      url: buildUrl(route, locale, brand.appUrl || envConfigs.app_url),
       lastModified,
     }))
   );

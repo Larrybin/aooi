@@ -19,16 +19,12 @@ export type Configs = Record<string, string>;
 // Known keys help avoid cross-module typos; keep in sync with env/db usage
 export type KnownConfigKey =
   | (typeof PUBLIC_SETTING_NAMES)[number]
-  | 'app_url'
-  | 'app_name'
   | 'theme'
   | 'appearance'
   | 'locale'
   | 'default_locale'
   | 'creem_product_ids'
   | 'default_payment_provider';
-
-const PUBLIC_SETTING_NAMES_SET = new Set<string>(PUBLIC_SETTING_NAMES);
 
 export function getString(
   configs: Configs,
@@ -128,20 +124,16 @@ export async function getAllConfigs(): Promise<Configs> {
 }
 
 export async function getPublicConfigs(): Promise<Configs> {
-  const dbConfigs = await getConfigs();
+  const allConfigs = await getAllConfigs();
 
   const publicConfigs: Record<string, string> = {};
 
-  // get public configs from db
-  for (const key in dbConfigs) {
-    if (PUBLIC_SETTING_NAMES_SET.has(key)) {
-      publicConfigs[key] = dbConfigs[key];
+  for (const key of PUBLIC_SETTING_NAMES) {
+    const value = allConfigs[key];
+    if (value !== undefined) {
+      publicConfigs[key] = value;
     }
   }
 
-  const configs = {
-    ...publicConfigs,
-  };
-
-  return configs;
+  return publicConfigs;
 }

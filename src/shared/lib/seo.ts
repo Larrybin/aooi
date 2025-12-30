@@ -1,7 +1,11 @@
+import 'server-only';
+
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getAllConfigs } from '@/shared/models/config';
 
 type MetadataFields = {
   title: string;
@@ -20,30 +24,48 @@ function normalizeRelativePath(value: string) {
 }
 
 export function buildCanonicalUrl(pathOrUrl: string, locale: string) {
+  return buildCanonicalUrlWithAppUrl(pathOrUrl, locale, envConfigs.app_url);
+}
+
+export function buildCanonicalUrlWithAppUrl(
+  pathOrUrl: string,
+  locale: string,
+  appUrl: string
+) {
   if (!pathOrUrl) pathOrUrl = '/';
 
   if (pathOrUrl.startsWith('http')) {
     return pathOrUrl;
   }
 
-  const appUrl = stripTrailingSlash(envConfigs.app_url);
+  const baseUrl = stripTrailingSlash(appUrl);
   const relativePath = normalizeRelativePath(pathOrUrl);
   const localePrefix = !locale || locale === defaultLocale ? '' : `/${locale}`;
 
   if (relativePath === '/') {
-    return localePrefix ? `${appUrl}${localePrefix}` : `${appUrl}/`;
+    return localePrefix ? `${baseUrl}${localePrefix}` : `${baseUrl}/`;
   }
 
-  return `${appUrl}${localePrefix}${relativePath}`;
+  return `${baseUrl}${localePrefix}${relativePath}`;
 }
 
 export function buildLanguageAlternates(relativePath: string) {
+  return buildLanguageAlternatesWithAppUrl(relativePath, envConfigs.app_url);
+}
+
+export function buildLanguageAlternatesWithAppUrl(
+  relativePath: string,
+  appUrl: string
+) {
   if (relativePath.startsWith('http')) {
     return undefined;
   }
 
   return Object.fromEntries(
-    locales.map((locale) => [locale, buildCanonicalUrl(relativePath, locale)])
+    locales.map((locale) => [
+      locale,
+      buildCanonicalUrlWithAppUrl(relativePath, locale, appUrl),
+    ])
   );
 }
 
@@ -68,6 +90,9 @@ export function getMetadata(
     const { locale } = await params;
     setRequestLocale(locale);
 
+    const configs = await getAllConfigs();
+    const brand = buildBrandPlaceholderValues(configs);
+
     // passed metadata
     const passedMetadata = {
       title: options.title,
@@ -76,28 +101,32 @@ export function getMetadata(
     };
 
     // default metadata
-    const defaultMetadata = await getTranslatedMetadata(
-      defaultMetadataKey,
-      locale
+    const defaultMetadata = applyBrandToMetadataFields(
+      await getTranslatedMetadata(defaultMetadataKey, locale),
+      { appName: brand.appName }
     );
 
     // translated metadata
     let translatedMetadata: Partial<MetadataFields> = {};
     if (options.metadataKey) {
-      translatedMetadata = await getTranslatedMetadata(
-        options.metadataKey,
-        locale
+      translatedMetadata = applyBrandToMetadataFields(
+        await getTranslatedMetadata(options.metadataKey, locale),
+        { appName: brand.appName }
       );
     }
 
     // canonical url
-    const canonicalUrl = buildCanonicalUrl(options.canonicalUrl || '/', locale);
+    const canonicalUrl = buildCanonicalUrlWithAppUrl(
+      options.canonicalUrl || '/',
+      locale,
+      brand.appUrl
+    );
     const canonicalPathForAlternates =
       options.canonicalUrl && options.canonicalUrl.startsWith('http')
         ? undefined
         : normalizeRelativePath(options.canonicalUrl || '/');
     const languageAlternates = canonicalPathForAlternates
-      ? buildLanguageAlternates(canonicalPathForAlternates)
+      ? buildLanguageAlternatesWithAppUrl(canonicalPathForAlternates, brand.appUrl)
       : undefined;
 
     const title =
@@ -112,17 +141,17 @@ export function getMetadata(
     if (imageUrl.startsWith('http')) {
       imageUrl = imageUrl;
     } else {
-      imageUrl = `${envConfigs.app_url}${imageUrl}`;
+      imageUrl = `${brand.appUrl}${imageUrl}`;
     }
 
     // app name
     let appName = options.appName;
     if (!appName) {
-      appName = envConfigs.app_name || '';
+      appName = brand.appName || '';
     }
 
     return {
-      metadataBase: new URL(stripTrailingSlash(envConfigs.app_url)),
+      metadataBase: new URL(stripTrailingSlash(brand.appUrl)),
       title:
         passedMetadata.title ||
         translatedMetadata.title ||
@@ -155,7 +184,7 @@ export function getMetadata(
         title,
         description,
         images: [imageUrl.toString()],
-        site: envConfigs.app_url,
+        site: brand.appUrl,
       },
 
       robots: {
@@ -176,5 +205,19 @@ async function getTranslatedMetadata(metadataKey: string, locale: string) {
     title: t.has('title') ? t('title') : '',
     description: t.has('description') ? t('description') : '',
     keywords: t.has('keywords') ? t('keywords') : '',
+  };
+}
+
+function applyBrandToMetadataFields(
+  fields: MetadataFields,
+  brand: { appName: string }
+): MetadataFields {
+  const appName = brand.appName;
+  if (!appName) return fields;
+
+  return {
+    title: fields.title.replaceAll('Roller Rabbit', appName),
+    description: fields.description.replaceAll('Roller Rabbit', appName),
+    keywords: fields.keywords.replaceAll('Roller Rabbit', appName),
   };
 }

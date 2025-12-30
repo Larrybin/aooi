@@ -1,8 +1,50 @@
 import 'server-only';
 
+import { envConfigs } from '@/config';
+
 import type { Setting } from '../types';
 
+function defaultSupportEmail(appUrl: string): string {
+  try {
+    const host = new URL(appUrl).host;
+    if (!host || host.includes(':')) {
+      return 'support@example.com';
+    }
+    return `support@${host}`;
+  } catch {
+    return 'support@example.com';
+  }
+}
+
 export const generalSettings: Setting[] = [
+  {
+    name: 'app_name',
+    title: 'App Name',
+    type: 'text',
+    value: envConfigs.app_name,
+    placeholder: 'My App',
+    group: 'general_brand',
+    tab: 'general',
+  },
+  {
+    name: 'app_url',
+    title: 'App URL (Origin)',
+    type: 'text',
+    value: envConfigs.app_url,
+    placeholder: 'https://your-domain.com',
+    tip: 'Must be a pure origin (http/https), e.g. https://example.com (no path/query). Used for canonical URLs, sitemap, and callbacks.',
+    group: 'general_brand',
+    tab: 'general',
+  },
+  {
+    name: 'general_support_email',
+    title: 'Support Email',
+    type: 'text',
+    value: defaultSupportEmail(envConfigs.app_url),
+    placeholder: 'support@example.com',
+    group: 'general_brand',
+    tab: 'general',
+  },
   {
     name: 'general_theme_toggle_enabled',
     title: 'Theme Toggle Enabled',

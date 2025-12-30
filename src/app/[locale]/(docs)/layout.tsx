@@ -7,6 +7,7 @@ import { RootProvider } from 'fumadocs-ui/provider';
 import { source } from '@/core/docs/source';
 import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 
 import { baseOptions } from './layout.config';
 
@@ -42,6 +43,8 @@ export default async function DocsRootLayout({
 
   const { locale } = await params;
   const lang = locale || 'en';
+  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const options = baseOptions(lang, { appName: brand.appName });
 
   return (
     <RootProvider
@@ -57,9 +60,9 @@ export default async function DocsRootLayout({
       }}
     >
       <DocsLayout
-        {...baseOptions(lang)}
+        {...options}
         tree={source.pageTree[lang]}
-        nav={{ ...baseOptions(lang).nav, mode: 'top' }}
+        nav={{ ...options.nav, mode: 'top' }}
         sidebar={{
           tabs: [],
         }}
