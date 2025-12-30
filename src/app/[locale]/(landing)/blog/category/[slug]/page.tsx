@@ -1,3 +1,6 @@
+// data: category taxonomy (db) + posts list (db) + i18n (next-intl) + pagination (query)
+// cache: dynamic (request-based searchParams); no explicit cache for db reads
+// reason: public listing varies by category/page; avoid serving stale mixed pagination data
 import { notFound } from 'next/navigation';
 import moment from 'moment';
 import { getTranslations, setRequestLocale } from 'next-intl/server';

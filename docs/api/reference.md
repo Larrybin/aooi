@@ -121,6 +121,11 @@ const user = await requireUser(req);
 // - image?: string
 ```
 
+Notes:
+
+- This repo commonly uses `POST` for cookie-authenticated endpoints (even if read-only) so `requireUser()` can enforce same-origin checks for requests carrying cookies.
+- For endpoints returning user-specific data, set `Cache-Control: no-store`.
+
 ## Available Endpoints
 
 ### Authentication
@@ -135,6 +140,17 @@ const user = await requireUser(req);
 | ------ | ---------------------------- | ----------------------- |
 | `POST` | `/api/user/get-user-info`    | Get current user info   |
 | `POST` | `/api/user/get-user-credits` | Get user credit balance |
+
+`POST /api/user/get-user-credits` returns:
+
+```json
+{
+  "remainingCredits": 123,
+  "expiresAt": "2026-01-01T00:00:00.000Z"
+}
+```
+
+- `expiresAt`: the earliest expiration time among remaining credits; `null` when there is no expiring credit.
 
 ### Payment
 

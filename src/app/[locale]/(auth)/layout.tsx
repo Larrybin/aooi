@@ -1,3 +1,6 @@
+// data: envConfigs (app name) + auth shell UI (theme/locale toggles)
+// cache: default (no request-bound data; no explicit fetch)
+// reason: keep auth pages lightweight; user-specific data starts after sign-in
 import { envConfigs } from '@/config';
 import {
   BrandLogo,

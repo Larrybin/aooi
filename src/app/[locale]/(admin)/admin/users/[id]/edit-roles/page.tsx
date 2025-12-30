@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + user/roles/permissions (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: role assignment is sensitive and permission-gated; avoid caching across admins
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
@@ -26,7 +29,7 @@ export default async function UserEditRolesPage({
   });
   await requireAllPermissions({
     codes: [PERMISSIONS.USERS_WRITE, PERMISSIONS.ROLES_WRITE],
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -38,8 +41,8 @@ export default async function UserEditRolesPage({
   const t = await getTranslations('admin.users');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit_roles.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit_roles.crumbs.users', url: '/changanpenpen/users' },
+    { key: 'edit_roles.crumbs.admin', url: '/admin' },
+    { key: 'edit_roles.crumbs.users', url: '/admin/users' },
     { key: 'edit_roles.crumbs.edit_roles' },
   ]);
 

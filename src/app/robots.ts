@@ -13,11 +13,9 @@ function uniqueStrings(values: string[]) {
   return Array.from(new Set(values));
 }
 
-export default async function robots(): Promise<MetadataRoute.Robots> {
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
-  const appUrl = stripTrailingSlash(brand.appUrl || envConfigs.app_url);
-  const protectedRoots = ['/admin', '/changanpenpen', '/settings', '/activity'];
+export default function robots(): MetadataRoute.Robots {
+  const appUrl = stripTrailingSlash(envConfigs.app_url);
+  const protectedRoots = ['/admin', '/settings', '/activity'];
 
   const disallow = uniqueStrings([
     '/*?*q=',

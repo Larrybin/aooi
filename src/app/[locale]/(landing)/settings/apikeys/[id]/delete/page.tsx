@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + apikey record (db) + Server Action soft-deletes it
+// cache: no-store (request-bound auth)
+// reason: user-specific destructive write flow
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';

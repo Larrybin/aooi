@@ -1,3 +1,6 @@
+// data: blog translations + posts/categories (content + db) + pagination (query)
+// cache: dynamic (request-based searchParams); no explicit cache for db reads
+// reason: public listing varies by page; avoid serving stale mixed pagination data
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';

@@ -1,3 +1,6 @@
+// data: docs source + public configs (unstable_cache tag=public-configs, revalidate=3600s) + locale param
+// cache: cached configs + default RSC
+// reason: docs are public; config-gated while keeping db reads cheap
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import type { Translations } from 'fumadocs-ui/i18n';

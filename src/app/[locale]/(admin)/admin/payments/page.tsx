@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + payments/orders list (db) + pagination/search/filter
+// cache: no-store (request-bound auth/RBAC)
+// reason: billing data is sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { PaymentType } from '@/extensions/payment';
@@ -34,7 +37,7 @@ export default async function PaymentsPage({
   // Check if user has permission to read payments
   await requirePermission({
     code: PERMISSIONS.PAYMENTS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -52,7 +55,7 @@ export default async function PaymentsPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.payments'), is_active: true },
   ];
 
@@ -60,19 +63,19 @@ export default async function PaymentsPage({
     {
       name: 'all',
       title: t('list.tabs.all'),
-      url: '/changanpenpen/payments',
+      url: '/admin/payments',
       is_active: !type || type === 'all',
     },
     {
       name: 'subscription',
       title: t('list.tabs.subscription'),
-      url: '/changanpenpen/payments?type=subscription',
+      url: '/admin/payments?type=subscription',
       is_active: type === 'subscription',
     },
     {
       name: 'one-time',
       title: t('list.tabs.one-time'),
-      url: '/changanpenpen/payments?type=one-time',
+      url: '/admin/payments?type=one-time',
       is_active: type === 'one-time',
     },
   ];

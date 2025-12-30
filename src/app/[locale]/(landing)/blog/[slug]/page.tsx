@@ -1,3 +1,6 @@
+// data: blog post (content + db) + i18n (next-intl) + notFound() for missing slugs
+// cache: default (no explicit cache; slug-based dynamic route)
+// reason: public content page; keep SEO metadata aligned with content source
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 

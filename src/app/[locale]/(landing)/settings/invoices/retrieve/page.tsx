@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + order (db) + provider invoice URL + redirect
+// cache: no-store (request-bound auth)
+// reason: user-specific invoice retrieval; do not cache redirects
 import { redirect } from 'next/navigation';
 
 import { Empty } from '@/shared/blocks/common';

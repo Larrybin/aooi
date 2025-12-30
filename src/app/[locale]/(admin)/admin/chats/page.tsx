@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + chats list (db) + pagination
+// cache: no-store (request-bound auth/RBAC)
+// reason: chat logs are sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -21,7 +24,7 @@ export default async function ChatsPage({
   // Check if user has permission to read api keys
   await requirePermission({
     code: PERMISSIONS.AITASKS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -32,7 +35,7 @@ export default async function ChatsPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.chats'), is_active: true },
   ];
 

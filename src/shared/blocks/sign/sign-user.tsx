@@ -115,7 +115,7 @@ export function SignUser({
             {user.isAdmin && (
               <>
                 <DropdownMenuItem asChild>
-                  <Link className="w-full cursor-pointer" href="/changanpenpen">
+                  <Link className="w-full cursor-pointer" href="/admin">
                     <LayoutDashboard />
                     {t('admin_title')}
                   </Link>

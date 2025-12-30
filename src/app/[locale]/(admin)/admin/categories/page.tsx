@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + categories list (db) + pagination
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin-managed taxonomy; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -26,7 +29,7 @@ export default async function CategoriesPage({
   // Check if user has permission to read categories
   await requirePermission({
     code: PERMISSIONS.CATEGORIES_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -37,7 +40,7 @@ export default async function CategoriesPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.categories'), is_active: true },
   ];
 
@@ -77,7 +80,7 @@ export default async function CategoriesPage({
               id: 'edit',
               title: t('list.buttons.edit'),
               icon: 'RiEditLine',
-              url: `/changanpenpen/categories/${item.id}/edit`,
+              url: `/admin/categories/${item.id}/edit`,
             },
           ];
         },
@@ -88,7 +91,7 @@ export default async function CategoriesPage({
         id: 'edit',
         title: t('list.buttons.edit'),
         icon: 'RiEditLine',
-        url: '/changanpenpen/categories/[id]/edit',
+        url: '/admin/categories/[id]/edit',
       },
     ],
     data,
@@ -104,7 +107,7 @@ export default async function CategoriesPage({
       id: 'add',
       title: t('list.buttons.add'),
       icon: 'RiAddLine',
-      url: '/changanpenpen/categories/add',
+      url: '/admin/categories/add',
     },
   ];
 

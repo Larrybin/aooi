@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + role record (db) + Server Action write (soft-delete)
+// cache: no-store (request-bound auth/RBAC)
+// reason: destructive admin action; must not cache across admins
 import { and, eq, isNull } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 
@@ -36,8 +39,8 @@ export default async function RoleDeletePage({
   }
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit.crumbs.roles', url: '/changanpenpen/roles' },
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.roles', url: '/admin/roles' },
     { key: 'delete.crumbs.delete' },
   ]);
 

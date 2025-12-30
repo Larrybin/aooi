@@ -1,3 +1,6 @@
+// data: pricing translations + (optional) signed-in user (better-auth) + subscription (db)
+// cache: no-store (request-bound auth to render current subscription)
+// reason: user-specific subscription state must not be cached across users
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme/landing';

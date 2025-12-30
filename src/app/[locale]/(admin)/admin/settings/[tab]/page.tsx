@@ -1,3 +1,6 @@
+// data: RBAC-gated user + settings schema + configs (unstable_cache tags) + Server Action writes + revalidateTag()
+// cache: no-store (request-bound auth); configs cached via unstable_cache (tag=db-configs, 60s) / (tag=public-configs, 3600s)
+// reason: admin settings are user-specific; revalidateTag ensures updates propagate
 import { revalidateTag } from 'next/cache';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
@@ -44,7 +47,7 @@ export default async function SettingsPage({
   // Check if user has permission to read settings
   await requireAllPermissions({
     codes: [PERMISSIONS.SETTINGS_READ, PERMISSIONS.SETTINGS_WRITE],
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -56,7 +59,7 @@ export default async function SettingsPage({
   const t = await getTranslations('admin.settings');
 
   const crumbs: Crumb[] = [
-    { title: t('edit.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('edit.crumbs.admin'), url: '/admin' },
     { title: t('edit.crumbs.settings'), is_active: true },
   ];
 

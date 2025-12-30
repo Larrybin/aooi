@@ -1,3 +1,6 @@
+// data: ai task (db) + upstream provider query + db update + redirect
+// cache: no-store
+// reason: refresh endpoint mutates state and redirects; do not cache
 import { redirect } from '@/core/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common';

@@ -39,7 +39,11 @@ function getOrCreateSchemaCheckPromise(
 ) {
   const state =
     schemaCheckStateByUrl.get(databaseUrl) ??
-    ({ promise: null, lastError: null, lastFailureAt: null } as SchemaCheckState);
+    ({
+      promise: null,
+      lastError: null,
+      lastFailureAt: null,
+    } as SchemaCheckState);
 
   if (state.promise) {
     return state.promise;

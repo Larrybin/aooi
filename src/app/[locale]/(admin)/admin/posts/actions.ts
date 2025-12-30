@@ -50,7 +50,7 @@ export async function createPostAction(formData: FormData) {
       throw new ActionError('add post failed');
     }
 
-    return actionOk('post added', '/changanpenpen/posts');
+    return actionOk('post added', '/admin/posts');
   });
 }
 
@@ -90,6 +90,6 @@ export async function updatePostAction(id: string, formData: FormData) {
       throw new ActionError('update post failed');
     }
 
-    return actionOk('post updated', '/changanpenpen/posts');
+    return actionOk('post updated', '/admin/posts');
   });
 }

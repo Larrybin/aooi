@@ -54,6 +54,37 @@
 - 使用 helper 的页面示例：`src/app/[locale]/(landing)/blog/page.tsx`、`src/app/[locale]/(landing)/pricing/page.tsx`
 - 手写 `generateMetadata` 的页面示例：`src/app/[locale]/(auth)/sign-in/page.tsx`、`src/app/[locale]/(auth)/sign-up/page.tsx`
 
+### 数据来源与缓存注释（App Router）
+
+当页面/布局的“数据来源、鉴权依赖、缓存语义”不直观时，在文件顶部补齐三行注释，避免后续误用 App Router 的默认缓存行为（尤其是 `fetch()` 的默认强缓存与 request-bound 动态渲染的差异）。
+
+适用文件：
+
+- `src/app/**/page.tsx`
+- `src/app/**/layout.tsx`
+
+模板（只写事实，不写愿景）：
+
+```ts
+// data: <本文件依赖的数据来源（db/configs/session/i18n/...）>
+// cache: <no-store | revalidate N | unstable_cache(tag=..., revalidate=...) | default>
+// reason: <为什么这样做（auth required / public page / avoid stale / layout shared ...）>
+```
+
+常见口径（示例）：
+
+```ts
+// data: signed-in user (better-auth) + RBAC + db
+// cache: no-store (request-bound auth)
+// reason: user-specific content; do not cache across users
+```
+
+```ts
+// data: public configs (unstable_cache tag=public-configs, revalidate=3600s) + i18n
+// cache: cached configs + default RSC
+// reason: public pages; keep db reads cheap while allowing toggles
+```
+
 ### Route Handlers（`src/app/**/route.ts`）
 
 约定：入口只做编排（鉴权/校验/调用 services/返回响应），避免引入 UI 依赖图；具体护栏见 `eslint.config.mjs` 与 `docs/architecture/shared-layering.md`。

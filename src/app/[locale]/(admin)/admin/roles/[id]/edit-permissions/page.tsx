@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + role/permissions (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: permission assignment is sensitive; avoid caching across admins
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
@@ -34,8 +37,8 @@ export default async function RoleEditPermissionsPage({
   const t = await getTranslations('admin.roles');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit_permissions.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit_permissions.crumbs.roles', url: '/changanpenpen/roles' },
+    { key: 'edit_permissions.crumbs.admin', url: '/admin' },
+    { key: 'edit_permissions.crumbs.roles', url: '/admin/roles' },
     { key: 'edit_permissions.crumbs.edit_permissions' },
   ]);
 

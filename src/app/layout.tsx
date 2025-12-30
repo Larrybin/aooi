@@ -1,3 +1,6 @@
+// data: request locale (next-intl) + configs (env + db via getAllConfigs) + injected ads/analytics tags
+// cache: dynamic (request-based); db configs cached via unstable_cache (tag=db-configs, revalidate=60s)
+// reason: avoid cross-locale caching; keep config reads cheap while allowing toggles
 import '@/config/style/global.css';
 
 import { getLocale, setRequestLocale } from 'next-intl/server';

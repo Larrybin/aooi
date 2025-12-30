@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + users list (db) + roles/credits (db) + pagination/search
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin data is user/role-specific; avoid caching across users
 import { getTranslations } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -27,7 +30,7 @@ export default async function AdminUsersPage({
   // Check if user has permission to read users
   await requirePermission({
     code: PERMISSIONS.USERS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -47,7 +50,7 @@ export default async function AdminUsersPage({
   });
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.users'), is_active: true },
   ];
 
@@ -111,13 +114,13 @@ export default async function AdminUsersPage({
             name: 'edit',
             title: t('list.buttons.edit'),
             icon: 'RiEditLine',
-            url: `/changanpenpen/users/${item.id}/edit`,
+            url: `/admin/users/${item.id}/edit`,
           },
           {
             name: 'edit-roles',
             title: t('list.buttons.edit_roles'),
             icon: 'Users',
-            url: `/changanpenpen/users/${item.id}/edit-roles`,
+            url: `/admin/users/${item.id}/edit-roles`,
           },
         ],
       },

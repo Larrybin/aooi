@@ -1,3 +1,6 @@
+// data: locale + signed-in user (RBAC) + admin sidebar translations
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin area is user-specific; avoid caching across users/roles
 import type { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 

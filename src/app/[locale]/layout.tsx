@@ -1,3 +1,6 @@
+// data: locale param + i18n messages (next-intl) + UI providers (theme/toaster)
+// cache: default (no explicit fetch); scoped per `[locale]` segment
+// reason: keep the locale shell cache-friendly; avoid request headers/cookies here
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';

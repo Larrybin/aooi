@@ -236,6 +236,7 @@ Run: pnpm db:migrate
 ```
 
 Notes:
+
 - Schema checks cache successful results; failures are cleared and retried after a short cooldown to avoid“失败锁存”。
 - Hints reference the migrations directory/log table instead of a specific migration filename to avoid漂移。
 

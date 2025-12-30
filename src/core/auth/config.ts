@@ -213,54 +213,52 @@ export async function getAuthOptions() {
       ? {
           enabled: true,
           sendResetPassword: async ({ user, url }: SendResetPasswordData) => {
-            void (async () => {
-              const email = user?.email?.trim().toLowerCase();
-              if (!email) {
+            const email = user?.email?.trim().toLowerCase();
+            if (!email) {
+              return;
+            }
+
+            const quota = consumeResetPasswordQuota(email);
+            if (!quota.allowed) {
+              logger.warn('[auth] sendResetPassword throttled', {
+                userId: user.id,
+                reason: quota.reason,
+              });
+              return;
+            }
+
+            try {
+              const emailService = await getEmailService();
+              const result = await emailService.sendEmail({
+                to: email,
+                subject: `${envConfigs.app_name} - Reset password`,
+                ...buildResetPasswordEmailPayload({ url }),
+              });
+
+              if (!result.success) {
+                logger.error('[auth] sendResetPassword failed', {
+                  userId: user.id,
+                  provider: result.provider,
+                  error: result.error,
+                });
                 return;
               }
 
-              const quota = consumeResetPasswordQuota(email);
-              if (!quota.allowed) {
-                logger.warn('[auth] sendResetPassword throttled', {
+              if (!isProduction) {
+                logger.debug('[auth] sendResetPassword ok', {
                   userId: user.id,
-                  reason: quota.reason,
+                  provider: result.provider,
+                  messageId: result.messageId,
                 });
-                return;
               }
-
-              try {
-                const emailService = await getEmailService();
-                const result = await emailService.sendEmail({
-                  to: email,
-                  subject: `${appName} - Reset password`,
-                  ...buildResetPasswordEmailPayload({ url }),
-                });
-
-                if (!result.success) {
-                  logger.error('[auth] sendResetPassword failed', {
-                    userId: user.id,
-                    provider: result.provider,
-                    error: result.error,
-                  });
-                  return;
-                }
-
-                if (!isProduction) {
-                  logger.debug('[auth] sendResetPassword ok', {
-                    userId: user.id,
-                    provider: result.provider,
-                    messageId: result.messageId,
-                  });
-                }
-              } catch (error: unknown) {
-                logger.error('[auth] sendResetPassword threw', {
-                  userId: user.id,
-                  error,
-                });
-              } finally {
-                releaseResetPasswordQuota(email);
-              }
-            })();
+            } catch (error: unknown) {
+              logger.error('[auth] sendResetPassword threw', {
+                userId: user.id,
+                error,
+              });
+            } finally {
+              releaseResetPasswordQuota(email);
+            }
           },
         }
       : { enabled: false },

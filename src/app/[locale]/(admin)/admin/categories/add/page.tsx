@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + category create form + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin write flow; avoid caching across users/roles
 import { getTranslations } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -23,8 +26,8 @@ export default async function CategoryAddPage({
   const t = await getTranslations('admin.categories');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'add.crumbs.admin', url: '/changanpenpen' },
-    { key: 'add.crumbs.categories', url: '/changanpenpen/categories' },
+    { key: 'add.crumbs.admin', url: '/admin' },
+    { key: 'add.crumbs.categories', url: '/admin/categories' },
     { key: 'add.crumbs.add' },
   ]);
 

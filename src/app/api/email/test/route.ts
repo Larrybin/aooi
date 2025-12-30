@@ -48,9 +48,10 @@ function cleanupEmailTestThrottle(now: number) {
   }
 }
 
-function consumeEmailTestQuota(
-  userId: string
-): { allowed: boolean; reason?: string } {
+function consumeEmailTestQuota(userId: string): {
+  allowed: boolean;
+  reason?: string;
+} {
   const now = Date.now();
 
   if ((throttleCleanupTick++ & 0xff) === 0) {

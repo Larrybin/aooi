@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + ai tasks (db) + pagination/filter
+// cache: no-store (request-bound auth)
+// reason: user-specific activity history
 import { getTranslations } from 'next-intl/server';
 
 import { AITaskStatus } from '@/extensions/ai';

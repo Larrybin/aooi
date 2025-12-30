@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + post create form + categories (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: admin write flow; avoid caching across users/roles
 import { getTranslations } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -28,8 +31,8 @@ export default async function PostAddPage({
   const t = await getTranslations('admin.posts');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'add.crumbs.admin', url: '/changanpenpen' },
-    { key: 'add.crumbs.posts', url: '/changanpenpen/posts' },
+    { key: 'add.crumbs.admin', url: '/admin' },
+    { key: 'add.crumbs.posts', url: '/admin/posts' },
     { key: 'add.crumbs.add' },
   ]);
 

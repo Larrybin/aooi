@@ -6,7 +6,7 @@
         "src": "/logo.png",
         "alt": "Roller Rabbit"
       },
-      "url": "/changanpenpen"
+      "url": "/admin"
     },
     "show_trigger": false
   },
@@ -21,17 +21,17 @@
           "children": [
             {
               "title": "用户",
-              "url": "/changanpenpen/users",
+              "url": "/admin/users",
               "icon": "User"
             },
             {
               "title": "角色",
-              "url": "/changanpenpen/roles",
+              "url": "/admin/roles",
               "icon": "Users"
             },
             {
               "title": "权限",
-              "url": "/changanpenpen/permissions",
+              "url": "/admin/permissions",
               "icon": "ShieldCheck"
             }
           ]
@@ -43,12 +43,12 @@
             {
               "title": "分类",
               "icon": "Folder",
-              "url": "/changanpenpen/categories"
+              "url": "/admin/categories"
             },
             {
               "title": "文章",
               "icon": "FileText",
-              "url": "/changanpenpen/posts"
+              "url": "/admin/posts"
             }
           ]
         },
@@ -58,17 +58,17 @@
           "children": [
             {
               "title": "支付",
-              "url": "/changanpenpen/payments",
+              "url": "/admin/payments",
               "icon": "DollarSign"
             },
             {
               "title": "订阅",
-              "url": "/changanpenpen/subscriptions",
+              "url": "/admin/subscriptions",
               "icon": "CreditCard"
             },
             {
               "title": "积分",
-              "url": "/changanpenpen/credits",
+              "url": "/admin/credits",
               "icon": "Coins"
             }
           ]
@@ -80,12 +80,12 @@
       "items": [
         {
           "title": "AI任务",
-          "url": "/changanpenpen/ai-tasks",
+          "url": "/admin/ai-tasks",
           "icon": "Brain"
         },
         {
           "title": "AI 对话",
-          "url": "/changanpenpen/chats",
+          "url": "/admin/chats",
           "icon": "MessageCircle"
         }
       ]
@@ -95,12 +95,12 @@
     "items": [
       {
         "title": "设置",
-        "url": "/changanpenpen/settings/auth",
+        "url": "/admin/settings/auth",
         "icon": "Settings"
       },
       {
         "title": "API密钥",
-        "url": "/changanpenpen/apikeys",
+        "url": "/admin/apikeys",
         "icon": "Key"
       }
     ]

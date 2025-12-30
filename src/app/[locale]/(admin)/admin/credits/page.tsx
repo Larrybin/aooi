@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + credits ledger (db) + pagination/filter
+// cache: no-store (request-bound auth/RBAC)
+// reason: billing/credits data is sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -27,7 +30,7 @@ export default async function CreditsPage({
   // Check if user has permission to read credits
   await requirePermission({
     code: PERMISSIONS.CREDITS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -38,7 +41,7 @@ export default async function CreditsPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.credits'), is_active: true },
   ];
 
@@ -46,19 +49,19 @@ export default async function CreditsPage({
     {
       name: 'all',
       title: t('list.tabs.all'),
-      url: '/changanpenpen/credits',
+      url: '/admin/credits',
       is_active: !type || type === 'all',
     },
     {
       name: 'grant',
       title: t('list.tabs.grant'),
-      url: '/changanpenpen/credits?type=grant',
+      url: '/admin/credits?type=grant',
       is_active: type === 'grant',
     },
     {
       name: 'consume',
       title: t('list.tabs.consume'),
-      url: '/changanpenpen/credits?type=consume',
+      url: '/admin/credits?type=consume',
       is_active: type === 'consume',
     },
   ];

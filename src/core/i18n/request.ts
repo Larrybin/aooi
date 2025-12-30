@@ -1,18 +1,25 @@
 import { getRequestConfig } from 'next-intl/server';
 
-import { defaultLocale, localeMessagesPaths, type Locale } from '@/config/locale';
+import {
+  defaultLocale,
+  localeMessagesPaths,
+  type Locale,
+} from '@/config/locale';
 import { logger } from '@/shared/lib/logger.server';
 
 import { routing } from './config';
 
 type Messages = Record<string, unknown>;
 
-const isDevOrCI = process.env.NODE_ENV !== 'production' || process.env.CI === 'true';
+const isDevOrCI =
+  process.env.NODE_ENV !== 'production' || process.env.CI === 'true';
 const shouldCacheMessages = !isDevOrCI;
 const namespaceCache = new Map<string, Messages>();
 const mergedMessagesCache = new Map<Locale, Messages>();
 
-const normalizeLocale = (input: string | null | undefined): Locale | undefined => {
+const normalizeLocale = (
+  input: string | null | undefined
+): Locale | undefined => {
   if (!input) return undefined;
   const normalized = input === 'zh-CN' ? 'zh' : input;
 
@@ -37,12 +44,20 @@ const createLoadError = (locale: Locale, path: string, cause?: unknown) => {
   );
 };
 
-const importMessages = async (path: string, locale: Locale): Promise<Messages> => {
-  const messages = await import(`@/config/locale/messages/${locale}/${path}.json`);
+const importMessages = async (
+  path: string,
+  locale: Locale
+): Promise<Messages> => {
+  const messages = await import(
+    `@/config/locale/messages/${locale}/${path}.json`
+  );
   return messages.default;
 };
 
-const loadMessages = async (path: string, locale: Locale): Promise<Messages> => {
+const loadMessages = async (
+  path: string,
+  locale: Locale
+): Promise<Messages> => {
   const cacheKey = `${locale}:${path}`;
   if (shouldCacheMessages && namespaceCache.has(cacheKey)) {
     return namespaceCache.get(cacheKey) as Messages;
@@ -78,7 +93,9 @@ const loadMessages = async (path: string, locale: Locale): Promise<Messages> => 
 };
 
 const mergeMessages = async (locale: Locale): Promise<Messages> => {
-  const cached = shouldCacheMessages ? mergedMessagesCache.get(locale) : undefined;
+  const cached = shouldCacheMessages
+    ? mergedMessagesCache.get(locale)
+    : undefined;
   if (cached) {
     return cached;
   }

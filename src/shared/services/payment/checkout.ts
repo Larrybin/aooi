@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { defaultLocale, locales, type Locale } from '@/config/locale';
 import {
   PaymentInterval,
   PaymentType,
@@ -7,7 +8,6 @@ import {
   type PaymentOrder,
   type PaymentPrice,
 } from '@/extensions/payment';
-import { locales, defaultLocale, type Locale } from '@/config/locale';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -61,10 +61,9 @@ function assertAppUrlOrigin(appUrl: string): string {
     }
     origin = url.origin;
   } catch (error) {
-    throw new ServiceUnavailableError(
-      'invalid app_url configuration',
-      { error }
-    );
+    throw new ServiceUnavailableError('invalid app_url configuration', {
+      error,
+    });
   }
 
   return origin;

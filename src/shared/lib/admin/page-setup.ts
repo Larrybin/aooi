@@ -20,7 +20,7 @@ import type { PermissionCode } from '../action/guard';
 export async function setupAdminPage({
   locale,
   permission,
-  redirectUrl = '/changanpenpen/no-permission',
+  redirectUrl = '/admin/no-permission',
 }: {
   locale: string;
   permission: PermissionCode;

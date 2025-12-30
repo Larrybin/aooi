@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + user record (db) + Server Action write
+// cache: no-store (request-bound auth/RBAC)
+// reason: user edit form is permission-gated and user-specific
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
@@ -30,8 +33,8 @@ export default async function UserEditPage({
   const t = await getTranslations('admin.users');
 
   const crumbs = buildAdminCrumbs(t, [
-    { key: 'edit.crumbs.admin', url: '/changanpenpen' },
-    { key: 'edit.crumbs.users', url: '/changanpenpen/users' },
+    { key: 'edit.crumbs.admin', url: '/admin' },
+    { key: 'edit.crumbs.users', url: '/admin/users' },
     { key: 'edit.crumbs.edit' },
   ]);
 

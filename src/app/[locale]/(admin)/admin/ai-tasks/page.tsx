@@ -1,3 +1,6 @@
+// data: admin session (RBAC) + ai tasks list (db) + pagination/filter
+// cache: no-store (request-bound auth/RBAC)
+// reason: task logs are sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
@@ -25,7 +28,7 @@ export default async function AiTasksPage({
   // Check if user has permission to read api keys
   await requirePermission({
     code: PERMISSIONS.AITASKS_READ,
-    redirectUrl: '/changanpenpen/no-permission',
+    redirectUrl: '/admin/no-permission',
     locale,
   });
 
@@ -36,7 +39,7 @@ export default async function AiTasksPage({
   const limit = pageSize || 30;
 
   const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/changanpenpen' },
+    { title: t('list.crumbs.admin'), url: '/admin' },
     { title: t('list.crumbs.ai-tasks'), is_active: true },
   ];
 
@@ -80,37 +83,37 @@ export default async function AiTasksPage({
     {
       title: t('list.tabs.all'),
       name: 'all',
-      url: '/changanpenpen/ai-tasks',
+      url: '/admin/ai-tasks',
       is_active: true,
     },
     {
       title: t('list.tabs.music'),
       name: 'music',
-      url: '/changanpenpen/ai-tasks?type=music',
+      url: '/admin/ai-tasks?type=music',
       is_active: false,
     },
     {
       title: t('list.tabs.image'),
       name: 'image',
-      url: '/changanpenpen/ai-tasks?type=image',
+      url: '/admin/ai-tasks?type=image',
       is_active: false,
     },
     {
       title: t('list.tabs.video'),
       name: 'video',
-      url: '/changanpenpen/ai-tasks?type=video',
+      url: '/admin/ai-tasks?type=video',
       is_active: false,
     },
     {
       title: t('list.tabs.audio'),
       name: 'audio',
-      url: '/changanpenpen/ai-tasks?type=audio',
+      url: '/admin/ai-tasks?type=audio',
       is_active: false,
     },
     {
       title: t('list.tabs.text'),
       name: 'text',
-      url: '/changanpenpen/ai-tasks?type=text',
+      url: '/admin/ai-tasks?type=text',
       is_active: false,
     },
   ];

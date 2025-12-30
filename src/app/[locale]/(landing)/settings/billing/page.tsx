@@ -1,3 +1,6 @@
+// data: signed-in user (better-auth) + subscriptions (db) + payment callback state (query)
+// cache: no-store (request-bound auth)
+// reason: user-specific billing history and actions
 import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 
