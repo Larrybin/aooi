@@ -58,12 +58,12 @@ export function Hero({
             <Link
               href={hero.announcement.url || ''}
               target={hero.announcement.target || '_self'}
-              className="hover:bg-background dark:hover:border-t-border bg-muted group mx-auto mb-8 flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-zinc-950/5 transition-colors duration-300 dark:border-t-white/5 dark:shadow-zinc-950"
+              className="hover:bg-background bg-muted group mx-auto mb-8 flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-zinc-950/5 transition-colors duration-300"
             >
               <span className="text-foreground text-sm">
                 {hero.announcement.title}
               </span>
-              <span className="dark:border-background block h-4 w-0.5 border-l bg-white dark:bg-zinc-700"></span>
+              <span className="block h-4 w-0.5 border-l bg-white"></span>
 
               <div className="bg-background group-hover:bg-muted size-6 overflow-hidden rounded-full duration-500">
                 <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
@@ -171,23 +171,7 @@ export function Hero({
                 aria-hidden
                 className="h-3 w-full bg-[repeating-linear-gradient(-45deg,var(--color-foreground),var(--color-foreground)_1px,transparent_1px,transparent_4px)] opacity-5"
               />
-              <div className="border-border/25 relative z-2 hidden w-full overflow-hidden border dark:block">
-                <div
-                  className="relative w-full"
-                  style={getImageWrapperStyle(hero.image_invert ?? hero.image)}
-                >
-                  <LazyImage
-                    src={hero.image_invert?.src || hero.image?.src || ''}
-                    alt={heroImageAlt}
-                    fill
-                    sizes="(max-width: 640px) 100vw, 1152px"
-                    priority={shouldPrioritizeHeroImage}
-                    fetchPriority="high"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-              <div className="border-border/25 relative z-2 w-full overflow-hidden border dark:hidden">
+              <div className="border-border/25 relative z-2 w-full overflow-hidden border">
                 <div
                   className="relative w-full"
                   style={getImageWrapperStyle(hero.image ?? hero.image_invert)}

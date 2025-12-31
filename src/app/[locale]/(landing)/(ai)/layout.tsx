@@ -1,7 +1,8 @@
-// data: landing translations (header/footer) + theme layout
-// cache: default (no explicit fetch)
-// reason: shared public shell; keep data loading in leaf pages
+// data: landing translations (header/footer) + theme layout + public configs (unstable_cache tag=public-configs, revalidate=3600s)
+// cache: cached configs + default RSC
+// reason: share the landing shell for AI demo pages; gate access via config
 import type { ReactNode } from 'react';
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { getThemeLayout } from '@/core/theme';
@@ -12,34 +13,39 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { isAiEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
   Footer as FooterType,
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
 
-export default async function LandingAiLayout({
+export default async function AiLandingLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  const publicConfigs = await getPublicConfigsCached();
+  if (!isAiEnabled(publicConfigs)) {
+    notFound();
+  }
+
   const t = await getTranslations('landing');
   const Layout = await getThemeLayout('landing');
 
-  const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
-  const header: HeaderType = t.raw('header');
-  const footer: FooterType = t.raw('footer');
-  const branded = applyBrandToLandingHeaderFooter({
-    header: replaceBrandPlaceholdersDeep(header, brand),
-    footer: replaceBrandPlaceholdersDeep(footer, brand),
+  const headerRaw: HeaderType = t.raw('header');
+  const footerRaw: FooterType = t.raw('footer');
+  const { header, footer } = applyBrandToLandingHeaderFooter({
+    header: replaceBrandPlaceholdersDeep(headerRaw, brand),
+    footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
     configs: publicConfigs,
   });
 
   return (
     <AppContextProvider>
-      <Layout header={branded.header} footer={branded.footer}>
+      <Layout header={header} footer={footer}>
         <LocaleDetector />
         {children}
       </Layout>

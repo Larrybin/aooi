@@ -14,7 +14,6 @@ export interface SidebarHeader {
 export interface SidebarFooter {
   nav?: Nav;
   show_locale?: boolean;
-  show_theme?: boolean;
 }
 
 export interface SidebarUser {

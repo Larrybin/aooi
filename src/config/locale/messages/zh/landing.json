@@ -14,11 +14,6 @@
     "nav": {
       "items": [
         {
-          "title": "功能亮点",
-          "url": "/#features",
-          "icon": "Sparkles"
-        },
-        {
           "title": "价格",
           "url": "/pricing",
           "icon": "DollarSign"
@@ -78,7 +73,6 @@
       ]
     },
     "show_sign": true,
-    "show_theme": true,
     "show_locale": true
   },
   "hero": {
@@ -532,26 +526,6 @@
               "target": "_blank"
             }
           ]
-        },
-        {
-          "title": "合作伙伴",
-          "children": [
-            {
-              "title": "Roller Rabbit",
-              "url": "/#pricing",
-              "target": "_self"
-            },
-            {
-              "title": "ThinkAny",
-              "url": "https://thinkany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "MCP.so",
-              "url": "https://mcp.so",
-              "target": "_blank"
-            }
-          ]
         }
       ]
     },
@@ -595,7 +569,6 @@
         }
       ]
     },
-    "show_theme": true,
     "show_locale": true
   }
 }

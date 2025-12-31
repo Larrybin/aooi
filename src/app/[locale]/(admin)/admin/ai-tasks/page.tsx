@@ -1,11 +1,13 @@
 // data: admin session (RBAC) + ai tasks list (db) + pagination/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: task logs are sensitive; avoid caching across users/roles
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import {
   getAITasks,
   getAITasksCount,
@@ -24,6 +26,10 @@ export default async function AiTasksPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  if (!(await isAiEnabledCached())) {
+    notFound();
+  }
 
   // Check if user has permission to read api keys
   await requirePermission({

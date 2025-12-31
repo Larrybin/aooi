@@ -20,7 +20,6 @@ export type Configs = Record<string, string>;
 export type KnownConfigKey =
   | (typeof PUBLIC_SETTING_NAMES)[number]
   | 'theme'
-  | 'appearance'
   | 'locale'
   | 'default_locale'
   | 'creem_product_ids'

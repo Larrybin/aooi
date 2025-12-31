@@ -1,9 +1,12 @@
 // data: ai task (db) + upstream provider query + db update + redirect
 // cache: no-store
 // reason: refresh endpoint mutates state and redirects; do not cache
+import { notFound } from 'next/navigation';
+
 import { redirect } from '@/core/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { findAITaskById, updateAITaskById } from '@/shared/models/ai_task';
 import { getAIService } from '@/shared/services/ai';
 
@@ -12,6 +15,10 @@ export default async function RefreshAITaskPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
+  if (!(await isAiEnabledCached())) {
+    notFound();
+  }
+
   const { locale, id } = await params;
 
   const task = await findAITaskById(id);

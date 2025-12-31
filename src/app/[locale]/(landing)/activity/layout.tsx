@@ -2,6 +2,7 @@
 // cache: default (no explicit fetch); auth gating happens in middleware for `/activity/**`
 // reason: keep shared shell stable; user-specific data stays in leaf pages
 import type { ReactNode } from 'react';
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { getThemeLayout } from '@/core/theme';
@@ -13,6 +14,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { isAiEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
   Footer as FooterType,
@@ -24,11 +26,15 @@ export default async function ActivityLayout({
 }: {
   children: ReactNode;
 }) {
+  const publicConfigs = await getPublicConfigsCached();
+  if (!isAiEnabled(publicConfigs)) {
+    notFound();
+  }
+
   const t = await getTranslations('activity.sidebar');
   const tl = await getTranslations('landing');
   const Layout = await getThemeLayout('landing');
 
-  const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
   // settings title

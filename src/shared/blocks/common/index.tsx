@@ -8,8 +8,6 @@ export * from './locale-detector';
 export * from './locale-detector-lazy';
 export * from './locale-selector';
 
-export * from './theme-toggler';
-
 export * from './copyright';
 export * from './general-social-links';
 

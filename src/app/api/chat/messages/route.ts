@@ -1,3 +1,4 @@
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
@@ -10,6 +11,10 @@ import {
 import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
 
 export const POST = withApi(async (req: Request) => {
+  if (!(await isAiEnabledCached())) {
+    return new Response('Not Found', { status: 404 });
+  }
+
   const api = createApiContext(req);
   const { log } = api;
   const { chatId, page, limit } = await api.parseJson(ChatMessagesBodySchema);

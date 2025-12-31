@@ -13,6 +13,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { requireAdminAccess } from '@/shared/services/rbac_guard';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
@@ -47,10 +48,46 @@ export default async function AdminLayout({
     brand
   );
   const sidebar = applyBrandToSidebar(sidebarRaw, publicConfigs);
+  const filteredSidebar: SidebarType = {
+    ...sidebar,
+    main_navs: sidebar.main_navs
+      ?.map((nav) => ({
+        ...nav,
+        items: filterLandingNavItems(nav.items, publicConfigs),
+      }))
+      .filter((nav) => nav.items.length > 0),
+    bottom_nav: sidebar.bottom_nav
+      ? {
+          ...sidebar.bottom_nav,
+          items: filterLandingNavItems(sidebar.bottom_nav.items, publicConfigs),
+        }
+      : sidebar.bottom_nav,
+    user: sidebar.user?.nav
+      ? {
+          ...sidebar.user,
+          nav: {
+            ...sidebar.user.nav,
+            items: filterLandingNavItems(sidebar.user.nav.items, publicConfigs),
+          },
+        }
+      : sidebar.user,
+    footer: sidebar.footer?.nav
+      ? {
+          ...sidebar.footer,
+          nav: {
+            ...sidebar.footer.nav,
+            items: filterLandingNavItems(
+              sidebar.footer.nav.items,
+              publicConfigs
+            ),
+          },
+        }
+      : sidebar.footer,
+  };
 
   return (
     <AppContextProvider>
-      <DashboardLayout sidebar={sidebar} initialUser={initialUser}>
+      <DashboardLayout sidebar={filteredSidebar} initialUser={initialUser}>
         <LocaleDetector />
         {children}
       </DashboardLayout>

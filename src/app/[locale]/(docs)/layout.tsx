@@ -51,6 +51,11 @@ export default async function DocsRootLayout({
 
   return (
     <RootProvider
+      theme={{
+        forcedTheme: 'light',
+        defaultTheme: 'light',
+        enableSystem: false,
+      }}
       i18n={{
         locale: lang,
         locales,

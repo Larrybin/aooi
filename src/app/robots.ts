@@ -2,8 +2,6 @@ import type { MetadataRoute } from 'next';
 
 import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;
@@ -15,7 +13,7 @@ function uniqueStrings(values: string[]) {
 
 export default function robots(): MetadataRoute.Robots {
   const appUrl = stripTrailingSlash(envConfigs.app_url);
-  const protectedRoots = ['/admin', '/settings', '/activity'];
+  const protectedRoots = ['/admin', '/settings', '/activity', '/chat'];
 
   const disallow = uniqueStrings([
     '/*?*q=',

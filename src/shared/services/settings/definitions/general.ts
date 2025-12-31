@@ -46,10 +46,11 @@ export const generalSettings: Setting[] = [
     tab: 'general',
   },
   {
-    name: 'general_theme_toggle_enabled',
-    title: 'Theme Toggle Enabled',
+    name: 'general_ai_enabled',
+    title: 'AI Module Enabled',
     type: 'switch',
     value: 'false',
+    tip: 'When disabled, the AI module is globally unavailable (AI pages and APIs return 404).',
     group: 'general_ui',
     tab: 'general',
   },

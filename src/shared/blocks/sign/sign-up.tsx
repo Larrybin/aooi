@@ -193,9 +193,7 @@ export function SignUp({
             <p className="text-center text-xs text-neutral-500">
               {t('already_have_account')}
               <Link href="/sign-in" className="underline">
-                <span className="cursor-pointer dark:text-white/70">
-                  {t('sign_in_title')}
-                </span>
+                <span className="cursor-pointer">{t('sign_in_title')}</span>
               </Link>
             </p>
           </div>

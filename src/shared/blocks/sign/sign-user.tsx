@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { useAppContext } from '@/shared/contexts/app';
+import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem, UserNav } from '@/shared/types/blocks/common';
 
@@ -36,8 +37,9 @@ export function SignUser({
   userNav?: UserNav;
 }) {
   const t = useTranslations('common.sign');
-  const { isCheckSign, user, setIsShowSignModal } = useAppContext();
+  const { isCheckSign, user, setIsShowSignModal, configs } = useAppContext();
   const router = useRouter();
+  const userNavItems = filterLandingNavItems(userNav?.items, configs);
 
   return (
     <>
@@ -91,7 +93,7 @@ export function SignUser({
               </>
             )}
 
-            {userNav?.items?.map((item: NavItem, idx: number) => (
+            {userNavItems.map((item: NavItem, idx: number) => (
               <Fragment key={idx}>
                 <DropdownMenuItem asChild>
                   <Link

@@ -1,7 +1,7 @@
 export const PUBLIC_SETTING_NAMES = [
   'app_name',
   'app_url',
-  'general_theme_toggle_enabled',
+  'general_ai_enabled',
   'general_blog_enabled',
   'general_docs_enabled',
   'general_social_links_enabled',

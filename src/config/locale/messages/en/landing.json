@@ -14,11 +14,6 @@
     "nav": {
       "items": [
         {
-          "title": "Features",
-          "url": "/#features",
-          "icon": "Sparkles"
-        },
-        {
           "title": "Pricing",
           "url": "/pricing",
           "icon": "DollarSign"
@@ -78,7 +73,6 @@
       ]
     },
     "show_sign": true,
-    "show_theme": true,
     "show_locale": true
   },
   "hero": {
@@ -532,26 +526,6 @@
               "target": "_self"
             }
           ]
-        },
-        {
-          "title": "Friends",
-          "children": [
-            {
-              "title": "Roller Rabbit",
-              "url": "/#pricing",
-              "target": "_self"
-            },
-            {
-              "title": "ThinkAny",
-              "url": "https://thinkany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "MCP.so",
-              "url": "https://mcp.so",
-              "target": "_blank"
-            }
-          ]
         }
       ]
     },
@@ -595,7 +569,6 @@
         }
       ]
     },
-    "show_theme": true,
     "show_locale": true
   }
 }

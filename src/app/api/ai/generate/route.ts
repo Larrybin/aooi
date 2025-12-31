@@ -4,6 +4,7 @@ import {
   AITaskStatus,
   type AIGenerateParams,
 } from '@/extensions/ai';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
@@ -19,6 +20,10 @@ import { AiGenerateBodySchema } from '@/shared/schemas/api/ai/generate';
 import { getAIService } from '@/shared/services/ai';
 
 export const POST = withApi(async (request: Request) => {
+  if (!(await isAiEnabledCached())) {
+    return new Response('Not Found', { status: 404 });
+  }
+
   const api = createApiContext(request);
   const { log } = api;
   const { provider, mediaType, model, prompt, options, scene } =

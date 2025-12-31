@@ -116,7 +116,7 @@ Read `content/docs` to start your AI SaaS project.
 
 ### Keys
 
-- `general_theme_toggle_enabled`: controls all `ThemeToggler` usages (global)
+- `general_ai_enabled`: globally enables/disables the AI module (default: `false`). When disabled, AI pages and APIs return `notFound()` / `404` (in addition to hiding landing nav/buttons). After upgrading, enable it in `/admin/settings/general` if you want AI features.
 - `general_social_links_enabled`: controls social icons rendering
 - `general_social_links`: JSON array of social links
 

@@ -9,7 +9,6 @@ import {
   LocaleSelector,
   SignUser,
   SmartIcon,
-  ThemeToggler,
 } from '@/shared/blocks/common';
 import {
   Accordion,
@@ -292,12 +291,9 @@ export function Header({
                 </div>
               )}
 
-              {/* Header right section: theme toggler, locale selector, sign, buttons */}
-              <div className="mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 in-data-[state=active]:flex max-lg:in-data-[state=active]:mt-6 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
+              {/* Header right section: locale selector, sign, buttons */}
+              <div className="mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 in-data-[state=active]:flex max-lg:in-data-[state=active]:mt-6 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
                 <div className="flex w-full flex-row items-center gap-4 sm:flex-row sm:gap-6 sm:space-y-0 md:w-fit">
-                  {header.show_theme ? (
-                    <ThemeToggler configs={publicConfigs} />
-                  ) : null}
                   {header.show_locale ? <LocaleSelector /> : null}
                   <div className="flex-1 md:hidden"></div>
                   {header.show_sign ? (
@@ -314,7 +310,7 @@ export function Header({
                           'focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
                           'h-7 px-3 ring-0',
                           button.variant === 'outline'
-                            ? 'bg-background ring-foreground/10 hover:bg-muted/50 dark:ring-foreground/15 dark:hover:bg-muted/50 border border-transparent shadow-sm ring-1 shadow-black/15 duration-200'
+                            ? 'bg-background ring-foreground/10 hover:bg-muted/50 border border-transparent shadow-sm ring-1 shadow-black/15 duration-200'
                             : 'bg-primary text-primary-foreground hover:bg-primary/90 border-[0.5px] border-white/25 shadow-md ring-1 shadow-black/20 ring-(--ring-color) [--ring-color:color-mix(in_oklab,var(--color-foreground)15%,var(--color-primary))]'
                         )}
                       >

@@ -9,6 +9,9 @@ export function baseOptions(
 ): BaseLayoutProps {
   const appName = brand?.appName || '';
   return {
+    themeSwitch: {
+      enabled: false,
+    },
     links: [],
     nav: {
       title: (

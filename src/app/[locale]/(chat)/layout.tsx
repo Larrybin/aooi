@@ -2,6 +2,7 @@
 // cache: no-store (request-bound auth)
 // reason: chat layout is user-specific; avoid caching across users
 import type { ReactNode } from 'react';
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ChatLibrary } from '@/shared/blocks/chat/library';
@@ -15,6 +16,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { isAiEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
 
@@ -29,6 +31,9 @@ export default async function ChatLayout({
   setRequestLocale(locale);
 
   const publicConfigs = await getPublicConfigsCached();
+  if (!isAiEnabled(publicConfigs)) {
+    notFound();
+  }
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
   const t = await getTranslations('ai.chat');
