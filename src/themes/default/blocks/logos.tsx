@@ -21,7 +21,7 @@ export function Logos({
           {logos.items?.map((item, idx) => (
             <Image
               key={idx}
-              className="h-8 w-fit dark:invert"
+              className="h-8 w-fit"
               src={item.image?.src ?? ''}
               alt={item.image?.alt || item.title || item.name || 'Logo'}
               height={20}

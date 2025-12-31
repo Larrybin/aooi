@@ -1,4 +1,4 @@
-// data: locale param + i18n messages (next-intl) + UI providers (theme/toaster)
+// data: locale param + i18n messages (next-intl) + UI providers (toaster)
 // cache: default (no explicit fetch); scoped per `[locale]` segment
 // reason: keep the locale shell cache-friendly; avoid request headers/cookies here
 import { notFound } from 'next/navigation';
@@ -6,7 +6,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 import { routing } from '@/core/i18n/config';
-import { ThemeProvider } from '@/core/theme/provider';
+import { HtmlLangProvider } from '@/core/i18n/html-lang-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
 import { getMetadata } from '@/shared/lib/seo';
 
@@ -29,10 +29,10 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <ThemeProvider>
+      <HtmlLangProvider>
         {children}
         <Toaster position="top-center" richColors />
-      </ThemeProvider>
+      </HtmlLangProvider>
     </NextIntlClientProvider>
   );
 }

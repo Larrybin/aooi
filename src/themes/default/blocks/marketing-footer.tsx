@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { defaultLocale } from '@/config/locale';
 import { LazyImage } from '@/shared/blocks/common';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
@@ -25,6 +26,12 @@ export function MarketingFooter({
   publicConfigs?: Configs;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
+  let navGridCols = 'sm:grid-cols-1';
+  if (navItems.length >= 3) {
+    navGridCols = 'sm:grid-cols-3';
+  } else if (navItems.length === 2) {
+    navGridCols = 'sm:grid-cols-2';
+  }
 
   return (
     <footer
@@ -67,7 +74,7 @@ export function MarketingFooter({
             ) : null}
           </div>
 
-          <div className="col-span-3 grid min-w-0 gap-6 sm:grid-cols-3">
+          <div className={cn('col-span-3 grid min-w-0 gap-6', navGridCols)}>
             {navItems.map((item, idx) => (
               <div key={idx} className="min-w-0 space-y-4 text-sm break-words">
                 <span className="block font-medium break-words">

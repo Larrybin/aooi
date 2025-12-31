@@ -36,7 +36,6 @@ export interface Header {
   nav?: Nav;
   buttons?: Button[];
   user_nav?: UserNav;
-  show_theme?: boolean;
   show_locale?: boolean;
   show_sign?: boolean;
   className?: string;
@@ -50,7 +49,6 @@ export interface Footer {
   copyright?: string;
   social?: SocialNav;
   agreement?: AgreementNav;
-  show_theme?: boolean;
   show_locale?: boolean;
   show_built_with?: boolean;
   className?: string;

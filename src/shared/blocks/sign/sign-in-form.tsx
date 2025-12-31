@@ -163,9 +163,7 @@ export function SignInForm({
           <p className="text-center text-xs text-neutral-500">
             {t('no_account')}
             <Link href="/sign-up" className="underline">
-              <span className="cursor-pointer dark:text-white/70">
-                {t('sign_up_title')}
-              </span>
+              <span className="cursor-pointer">{t('sign_up_title')}</span>
             </Link>
           </p>
         </div>

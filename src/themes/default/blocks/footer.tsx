@@ -4,9 +4,9 @@ import {
   Copyright,
   GeneralSocialLinks,
   LocaleSelector,
-  ThemeToggler,
 } from '@/shared/blocks/common';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
@@ -19,6 +19,12 @@ export function Footer({
   publicConfigs?: Configs;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
+  const navGridCols =
+    navItems.length >= 3
+      ? 'sm:grid-cols-3'
+      : navItems.length === 2
+        ? 'sm:grid-cols-2'
+        : 'sm:grid-cols-1';
 
   return (
     <footer
@@ -39,7 +45,7 @@ export function Footer({
             ) : null}
           </div>
 
-          <div className="col-span-3 grid min-w-0 gap-6 sm:grid-cols-3">
+          <div className={cn('col-span-3 grid min-w-0 gap-6', navGridCols)}>
             {navItems.map((item, idx) => (
               <div key={idx} className="min-w-0 space-y-4 text-sm break-words">
                 <span className="block font-medium break-words">
@@ -65,7 +71,6 @@ export function Footer({
 
         <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
           <div className="min-w-0 flex-1" />
-          <ThemeToggler type="toggle" configs={publicConfigs} />
           {footer.show_locale !== false ? (
             <LocaleSelector type="button" />
           ) : null}
