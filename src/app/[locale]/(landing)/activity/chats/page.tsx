@@ -1,10 +1,12 @@
 // data: signed-in user (better-auth) + chats list (db) + pagination
 // cache: no-store (request-bound auth)
 // reason: user-specific activity history
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
 import { getUserInfo } from '@/shared/models/user';
 import type { Button } from '@/shared/types/blocks/common';
@@ -15,6 +17,10 @@ export default async function ChatsPage({
 }: {
   searchParams: Promise<{ page?: number; pageSize?: number }>;
 }) {
+  if (!(await isAiEnabledCached())) {
+    notFound();
+  }
+
   const { page: pageNum, pageSize } = await searchParams;
   const page = pageNum || 1;
   const limit = pageSize || 20;

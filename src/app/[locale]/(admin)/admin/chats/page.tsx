@@ -1,11 +1,13 @@
 // data: admin session (RBAC) + chats list (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: chat logs are sensitive; avoid caching across users/roles
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
 import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Button, Crumb } from '@/shared/types/blocks/common';
@@ -20,6 +22,10 @@ export default async function ChatsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  if (!(await isAiEnabledCached())) {
+    notFound();
+  }
 
   // Check if user has permission to read api keys
   await requirePermission({

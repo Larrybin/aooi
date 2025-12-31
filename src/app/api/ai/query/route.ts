@@ -1,4 +1,5 @@
 import { AITaskStatus } from '@/extensions/ai';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
@@ -71,6 +72,10 @@ function shouldQueryProvider(taskId: string) {
 }
 
 export const POST = withApi(async (req: Request) => {
+  if (!(await isAiEnabledCached())) {
+    return new Response('Not Found', { status: 404 });
+  }
+
   const api = createApiContext(req);
   const { log } = api;
   const { taskId } = await api.parseJson(AiQueryBodySchema);

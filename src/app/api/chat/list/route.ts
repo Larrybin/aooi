@@ -1,3 +1,4 @@
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
@@ -5,6 +6,10 @@ import { ChatStatus, getChats, getChatsCount } from '@/shared/models/chat';
 import { ChatListBodySchema } from '@/shared/schemas/api/chat/list';
 
 export const POST = withApi(async (req: Request) => {
+  if (!(await isAiEnabledCached())) {
+    return new Response('Not Found', { status: 404 });
+  }
+
   const api = createApiContext(req);
   const { page, limit } = await api.parseJson(ChatListBodySchema);
   const user = await api.requireUser();

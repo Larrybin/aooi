@@ -1,11 +1,13 @@
 // data: signed-in user (better-auth) + ai tasks (db) + pagination/filter
 // cache: no-store (request-bound auth)
 // reason: user-specific activity history
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { AITaskStatus } from '@/extensions/ai';
 import { AudioPlayer, Empty, LazyImage } from '@/shared/blocks/common';
 import { TableCard } from '@/shared/blocks/table';
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
   getAITasks,
@@ -21,6 +23,10 @@ export default async function AiTasksPage({
 }: {
   searchParams: Promise<{ page?: number; pageSize?: number; type?: string }>;
 }) {
+  if (!(await isAiEnabledCached())) {
+    notFound();
+  }
+
   const { page: pageNum, pageSize, type } = await searchParams;
   const page = pageNum || 1;
   const limit = pageSize || 20;

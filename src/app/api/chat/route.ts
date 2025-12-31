@@ -7,6 +7,7 @@ import {
   type UIMessage,
 } from 'ai';
 
+import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
@@ -25,6 +26,10 @@ import { getAllConfigs } from '@/shared/models/config';
 import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
 
 export const POST = withApi(async (req: Request) => {
+  if (!(await isAiEnabledCached())) {
+    return new Response('Not Found', { status: 404 });
+  }
+
   const api = createApiContext(req);
   const { log } = api;
   const {
