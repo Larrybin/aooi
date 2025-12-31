@@ -4,6 +4,7 @@ import { isConfigTrue } from './general-ui.client';
 
 export const GENERAL_BLOG_ENABLED = 'general_blog_enabled';
 export const GENERAL_DOCS_ENABLED = 'general_docs_enabled';
+export const GENERAL_AI_ENABLED = 'general_ai_enabled';
 
 export function isLandingBlogEnabled(
   publicConfigs: Record<string, string> | undefined
@@ -17,17 +18,46 @@ export function isLandingDocsEnabled(
   return isConfigTrue(publicConfigs ?? {}, GENERAL_DOCS_ENABLED);
 }
 
+export function isAiEnabled(publicConfigs: Record<string, string> | undefined) {
+  const configs = publicConfigs ?? {};
+  return isConfigTrue(configs, GENERAL_AI_ENABLED);
+}
+
+export function isLandingAiEnabled(
+  publicConfigs: Record<string, string> | undefined
+) {
+  return isAiEnabled(publicConfigs);
+}
+
 function shouldHideLandingUrl(
   url: string | undefined,
   configs: Record<string, string>
 ) {
   if (!url) return false;
 
-  if (url === '/blog' || url.startsWith('/blog/')) {
+  const normalizedUrl =
+    url.length > 1 && url.endsWith('/') ? url.slice(0, -1) : url;
+
+  const isAiRoute =
+    normalizedUrl === '/chat' ||
+    normalizedUrl.startsWith('/chat/') ||
+    normalizedUrl.startsWith('/ai-') ||
+    normalizedUrl === '/activity' ||
+    normalizedUrl.startsWith('/activity/') ||
+    normalizedUrl === '/admin/ai-tasks' ||
+    normalizedUrl.startsWith('/admin/ai-tasks/') ||
+    normalizedUrl === '/admin/chats' ||
+    normalizedUrl.startsWith('/admin/chats/');
+
+  if (isAiRoute) {
+    return !isAiEnabled(configs);
+  }
+
+  if (normalizedUrl === '/blog' || normalizedUrl.startsWith('/blog/')) {
     return !isLandingBlogEnabled(configs);
   }
 
-  if (url === '/docs' || url.startsWith('/docs/')) {
+  if (normalizedUrl === '/docs' || normalizedUrl.startsWith('/docs/')) {
     return !isLandingDocsEnabled(configs);
   }
 
