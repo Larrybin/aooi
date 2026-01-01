@@ -78,8 +78,12 @@ export async function getChatsCount({
   return result?.count || 0;
 }
 
-export async function findChatById(id: string): Promise<Chat> {
-  const [result] = await db().select().from(chat).where(eq(chat.id, id));
+export async function findChatById(id: string): Promise<Chat | undefined> {
+  const [result] = await db()
+    .select()
+    .from(chat)
+    .where(eq(chat.id, id))
+    .limit(1);
 
   return result;
 }

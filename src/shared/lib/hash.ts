@@ -1,6 +1,9 @@
 import { SnowflakeIdv1 } from 'simple-flakeid';
 import { v4 as uuidv4 } from 'uuid';
 
+const NONCE_CHARACTERS =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
 export function getUuid(): string {
   return uuidv4();
 }
@@ -13,17 +16,32 @@ export function getUniSeq(prefix: string = ''): string {
 }
 
 export function getNonceStr(length: number): string {
-  const characters =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  const charactersLength = characters.length;
+  const normalizedLength = Math.max(0, Math.floor(length));
+  if (normalizedLength === 0) return '';
 
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * charactersLength);
-    result += characters[randomIndex];
+  const crypto = globalThis.crypto;
+  if (!crypto || typeof crypto.getRandomValues !== 'function') {
+    throw new Error('secure random is not available');
   }
 
-  return result;
+  const charactersLength = NONCE_CHARACTERS.length;
+  const maxUnbiased = 256 - (256 % charactersLength);
+
+  const out: string[] = [];
+
+  while (out.length < normalizedLength) {
+    const remaining = normalizedLength - out.length;
+    const bytes = new Uint8Array(Math.max(1, remaining * 2));
+    crypto.getRandomValues(bytes);
+
+    for (const byte of bytes) {
+      if (byte >= maxUnbiased) continue;
+      out.push(NONCE_CHARACTERS[byte % charactersLength]!);
+      if (out.length >= normalizedLength) break;
+    }
+  }
+
+  return out.join('');
 }
 
 /**

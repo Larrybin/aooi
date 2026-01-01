@@ -92,11 +92,14 @@ export async function getChatMessagesCount({
   return result?.count || 0;
 }
 
-export async function findChatMessageById(id: string): Promise<ChatMessage> {
+export async function findChatMessageById(
+  id: string
+): Promise<ChatMessage | undefined> {
   const [result] = await db()
     .select()
     .from(chatMessage)
-    .where(eq(chatMessage.id, id));
+    .where(eq(chatMessage.id, id))
+    .limit(1);
 
   return result;
 }

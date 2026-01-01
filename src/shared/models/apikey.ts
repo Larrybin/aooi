@@ -76,17 +76,26 @@ export async function getApikeysCount({
   return result?.count || 0;
 }
 
-export async function findApikeyById(id: string): Promise<Apikey> {
-  const [result] = await db().select().from(apikey).where(eq(apikey.id, id));
+export async function findApikeyById(
+  id: string
+): Promise<Apikey | undefined> {
+  const [result] = await db()
+    .select()
+    .from(apikey)
+    .where(eq(apikey.id, id))
+    .limit(1);
 
   return result;
 }
 
-export async function findApikeyByKey(key: string): Promise<Apikey> {
+export async function findApikeyByKey(
+  key: string
+): Promise<Apikey | undefined> {
   const [result] = await db()
     .select()
     .from(apikey)
-    .where(and(eq(apikey.key, key), eq(apikey.status, ApikeyStatus.ACTIVE)));
+    .where(and(eq(apikey.key, key), eq(apikey.status, ApikeyStatus.ACTIVE)))
+    .limit(1);
 
   return result;
 }
