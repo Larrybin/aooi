@@ -252,8 +252,8 @@ Run: pnpm db:migrate
 
 Notes:
 
-- Schema checks cache successful results; failures are cleared and retried after a short cooldown to avoid“失败锁存”。
-- Hints reference the migrations directory/log table instead of a specific migration filename to avoid漂移。
+- Schema checks cache successful results; failures are cleared and retried after a short cooldown, and queries always gate on the latest check so transient startup failures can self-heal without a process restart.
+- Hints reference the migrations directory/log table instead of a specific migration filename to avoid drift.
 - In production, connectivity/schema mismatches are mapped to generic public errors (`DB_STARTUP_CHECK_FAILED (...)`) while detailed hints are logged server-side.
 
 ## Multi-Environment Support

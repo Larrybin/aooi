@@ -86,8 +86,18 @@ function getOrCreateSchemaCheckPromise(
 
 function createSchemaCheckedClient(
   sql: ReturnType<typeof postgres>,
-  schemaReady: Promise<void>
+  getSchemaReady: () => Promise<void>
 ): ReturnType<typeof postgres> {
+  function waitForSchema(): Promise<void> {
+    try {
+      return getSchemaReady();
+    } catch (error: unknown) {
+      return Promise.reject(
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+
   function wrapQuery<T extends object>(query: T): T {
     return new Proxy(query, {
       get(target, prop, receiver) {
@@ -96,7 +106,7 @@ function createSchemaCheckedClient(
         if (prop === 'then' || prop === 'catch' || prop === 'finally') {
           return typeof value === 'function'
             ? (...args: unknown[]) =>
-                schemaReady.then(() =>
+                waitForSchema().then(() =>
                   Reflect.apply(
                     value as (...args: unknown[]) => unknown,
                     target,
@@ -108,7 +118,7 @@ function createSchemaCheckedClient(
 
         if (typeof value === 'function') {
           return (...args: unknown[]) =>
-            schemaReady.then(() =>
+            waitForSchema().then(() =>
               Reflect.apply(
                 value as (...args: unknown[]) => unknown,
                 target,
@@ -148,7 +158,9 @@ function createSchemaCheckedClient(
 
       if (typeof value === 'function') {
         return (...args: unknown[]) =>
-          schemaReady.then(() => Reflect.apply(value, target, args) as unknown);
+          waitForSchema().then(
+            () => Reflect.apply(value, target, args) as unknown
+          );
       }
 
       return value;
@@ -175,8 +187,9 @@ function getOrCreateCachedDb(
   }
 
   const rawClient = postgres(databaseUrl, options);
-  const schemaReady = getOrCreateSchemaCheckPromise(rawClient, databaseUrl);
-  const checkedClient = createSchemaCheckedClient(rawClient, schemaReady);
+  const checkedClient = createSchemaCheckedClient(rawClient, () =>
+    getOrCreateSchemaCheckPromise(rawClient, databaseUrl)
+  );
   const drizzleClient = drizzle(checkedClient);
   cache.set(databaseUrl, { drizzle: drizzleClient, client: rawClient });
   return drizzleClient;
@@ -284,8 +297,9 @@ export function db() {
       connect_timeout: 10, // Connection timeout (seconds)
     });
 
-    const schemaReady = getOrCreateSchemaCheckPromise(client, databaseUrl);
-    const checkedClient = createSchemaCheckedClient(client, schemaReady);
+    const checkedClient = createSchemaCheckedClient(client, () =>
+      getOrCreateSchemaCheckPromise(client, databaseUrl)
+    );
     dbInstance = drizzle(checkedClient);
     singletonClient = client;
     logEnvironmentOnce('db: using singleton connection pool');
