@@ -12,7 +12,7 @@
   - 日常：建议小步提交，一个 PR 聚焦一个问题或功能。
   - 特殊：首次全量审查可以跨模块，但仍按本文件顺序逐项过一遍。
 - 先机后人：
-  - 要求通过 `pnpm lint`、`pnpm format:check`、`pnpm build`（含 TypeScript 检查）后再人工 review。
+  - 要求通过 `pnpm lint`、`pnpm format:check`、`pnpm test`、`pnpm build`（含 TypeScript 检查）后再人工 review。
   - 机器负责“底线”，人重点看设计、边界条件和长期可维护性。
 - 以护栏为准：
   - 依赖方向与 Server/Client 边界以 `eslint.config.mjs` 为单一事实来源（不要靠口头约定）。

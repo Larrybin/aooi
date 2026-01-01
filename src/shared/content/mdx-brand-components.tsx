@@ -1,3 +1,5 @@
+import 'server-only';
+
 import type { AnchorHTMLAttributes, PropsWithChildren } from 'react';
 import type { MDXComponents } from 'mdx/types';
 
