@@ -25,6 +25,7 @@ import {
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
 import { listenEvent } from '@/shared/lib/dom/event-listener';
+import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
@@ -48,6 +49,10 @@ export function Header({
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const navItems = filterLandingNavItems(header.nav?.items, publicConfigs);
+  const isLocaleSwitcherEnabled = isConfigTrue(
+    publicConfigs ?? {},
+    'general_locale_switcher_enabled'
+  );
 
   useEffect(() => {
     // Listen to scroll event to enable header styles on scroll
@@ -294,7 +299,7 @@ export function Header({
               {/* Header right section: locale selector, sign, buttons */}
               <div className="mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 in-data-[state=active]:flex max-lg:in-data-[state=active]:mt-6 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
                 <div className="flex w-full flex-row items-center gap-4 sm:flex-row sm:gap-6 sm:space-y-0 md:w-fit">
-                  {header.show_locale ? <LocaleSelector /> : null}
+                  {isLocaleSwitcherEnabled ? <LocaleSelector /> : null}
                   <div className="flex-1 md:hidden"></div>
                   {header.show_sign ? (
                     <SignUser userNav={header.user_nav} />

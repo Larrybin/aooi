@@ -4,6 +4,7 @@ export const PUBLIC_SETTING_NAMES = [
   'general_ai_enabled',
   'general_blog_enabled',
   'general_docs_enabled',
+  'general_locale_switcher_enabled',
   'general_social_links_enabled',
   'general_social_links',
   'general_support_email',
