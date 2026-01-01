@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { createRequire } from 'node:module';
 import type { BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTap } from 'better-auth/plugins';
@@ -10,7 +9,7 @@ import { envConfigs } from '@/config';
 import * as schema from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
-import { isCloudflareWorker } from '@/shared/lib/env';
+import { isCloudflareWorkersRuntime } from '@/shared/lib/cloudflare-workers-env.server';
 import { getUuid } from '@/shared/lib/hash';
 import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
@@ -111,20 +110,6 @@ function buildTrustedOrigins(appUrl: string): string[] {
   origins.add(normalizeOrigin(appUrl, 'NEXT_PUBLIC_APP_URL'));
   origins.add('https://accounts.google.com');
   return [...origins];
-}
-
-function isCloudflareWorkersRuntime(): boolean {
-  if (isCloudflareWorker) return true;
-
-  try {
-    const require = createRequire(import.meta.url);
-    // Prevent webpack from trying to resolve the `cloudflare:` scheme at build time.
-    // This module only exists in Cloudflare Workers runtime (nodejs_compat).
-    const workers = require(['cloudflare', 'workers'].join(':')) as unknown;
-    return Boolean(workers && typeof workers === 'object' && 'env' in workers);
-  } catch {
-    return false;
-  }
 }
 
 function assertAuthEnv() {
