@@ -19,9 +19,12 @@ const searchSource = loader({
   i18n: searchI18n,
   icon(iconName) {
     if (!iconName) return;
-    if (iconName in icons) {
-      return createElement(icons[iconName as keyof typeof icons]);
+
+    if (!Object.prototype.hasOwnProperty.call(icons, iconName)) {
+      return;
     }
+
+    return createElement(icons[iconName as keyof typeof icons]);
   },
 });
 

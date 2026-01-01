@@ -15,7 +15,12 @@ const iconHelper = (icon: string | undefined) => {
     // You may set a default icon
     return;
   }
-  if (icon in icons) return createElement(icons[icon as keyof typeof icons]);
+
+  if (!Object.prototype.hasOwnProperty.call(icons, icon)) {
+    return;
+  }
+
+  return createElement(icons[icon as keyof typeof icons]);
 };
 
 export const toLoaderSource = <Config extends SourceConfig>(
