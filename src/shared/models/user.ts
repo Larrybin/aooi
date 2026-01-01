@@ -7,7 +7,6 @@ import { user } from '@/config/db/schema';
 import { getSignedInUser } from '@/shared/lib/auth-session.server';
 
 import type { Permission, Role } from '../services/rbac';
-import { getRemainingCredits } from './credit';
 
 export interface UserCredits {
   remainingCredits: number;
@@ -80,12 +79,6 @@ export async function getUserInfo() {
   const signUser = await getSignUser();
 
   return signUser;
-}
-
-export async function getUserCredits(userId: string) {
-  const remainingCredits = await getRemainingCredits(userId);
-
-  return { remainingCredits };
 }
 
 export async function getSignUser() {
