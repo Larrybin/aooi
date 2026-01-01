@@ -44,6 +44,7 @@ const users = await db().select().from(user);
 Notes:
 
 - In Cloudflare Workers runtime, `db()` ignores `DATABASE_URL` and uses `HYPERDRIVE.connectionString` from bindings (`[[hyperdrive]] binding = "HYPERDRIVE"`). Missing bindings fail with a `ServiceUnavailableError` and a generic public message.
+- This also enables DB-backed settings/configs (the `config` table, `getAllConfigs()`/`getConfigs()`) at runtime in Workers even when `DATABASE_URL` is empty.
 - Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
 
 ## Schema Definition

@@ -1,12 +1,12 @@
 import 'server-only';
 
-import { createRequire } from 'node:module';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
 import { serverEnv } from '@/config/server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import { tryGetCloudflareWorkersEnv } from '@/shared/lib/cloudflare-workers-env.server';
 import { isCloudflareWorker } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 
@@ -193,34 +193,6 @@ function getOrCreateCachedDb(
   const drizzleClient = drizzle(checkedClient);
   cache.set(databaseUrl, { drizzle: drizzleClient, client: rawClient });
   return drizzleClient;
-}
-
-type CloudflareWorkersEnv = {
-  HYPERDRIVE?: {
-    connectionString?: string;
-  };
-} & Record<string, unknown>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function tryGetCloudflareWorkersEnv(): CloudflareWorkersEnv | null {
-  try {
-    const require = createRequire(import.meta.url);
-    // Prevent webpack from trying to resolve the `cloudflare:` scheme at build time.
-    // This module only exists in Cloudflare Workers runtime (nodejs_compat).
-    const workers = require(['cloudflare', 'workers'].join(':')) as unknown;
-
-    if (!isRecord(workers) || !('env' in workers)) {
-      return null;
-    }
-
-    const env = (workers as { env?: unknown }).env;
-    return isRecord(env) ? (env as CloudflareWorkersEnv) : null;
-  } catch {
-    return null;
-  }
 }
 
 export function db() {
