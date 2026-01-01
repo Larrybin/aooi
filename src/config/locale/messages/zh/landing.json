@@ -496,11 +496,6 @@
           "title": "关于我们",
           "children": [
             {
-              "title": "功能亮点",
-              "url": "/#features",
-              "target": "_self"
-            },
-            {
               "title": "价格",
               "url": "/pricing",
               "target": "_self"

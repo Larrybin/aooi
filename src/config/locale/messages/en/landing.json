@@ -496,11 +496,6 @@
           "title": "About",
           "children": [
             {
-              "title": "Features",
-              "url": "/#features",
-              "target": "_self"
-            },
-            {
               "title": "Pricing",
               "url": "/pricing",
               "target": "_self"
