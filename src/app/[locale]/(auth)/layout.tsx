@@ -7,7 +7,6 @@ import { envConfigs } from '@/config';
 import { BrandLogo, LocaleSelector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export default async function AuthLayout({
@@ -22,10 +21,8 @@ export default async function AuthLayout({
 
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
-  const isLocaleSwitcherEnabled = isConfigTrue(
-    publicConfigs,
-    'general_locale_switcher_enabled'
-  );
+  const isLocaleSwitcherEnabled =
+    publicConfigs.general_locale_switcher_enabled === 'true';
 
   const appName = brand.appName || envConfigs.app_name;
   return (

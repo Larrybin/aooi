@@ -117,6 +117,7 @@ Read `content/docs` to start your AI SaaS project.
 ### Keys
 
 - `general_ai_enabled`: globally enables/disables the AI module (default: `false`). When disabled, AI pages and APIs return `notFound()` / `404` (in addition to hiding landing nav/buttons). After upgrading, enable it in `/admin/settings/general` if you want AI features.
+- `general_locale_switcher_enabled`: controls language switcher rendering (Pricing + Sign in/up) (default: `false`)
 - `general_social_links_enabled`: controls social icons rendering
 - `general_social_links`: JSON array of social links
 
