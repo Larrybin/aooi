@@ -79,6 +79,15 @@ export const generalSettings: Setting[] = [
     tab: 'general',
   },
   {
+    name: 'general_locale_switcher_enabled',
+    title: 'Language Switcher Enabled',
+    type: 'switch',
+    value: 'false',
+    tip: 'Controls whether the language switcher is shown on public pages (Pricing, Sign in/up).',
+    group: 'general_ui',
+    tab: 'general',
+  },
+  {
     name: 'general_social_links',
     title: 'Social Links (JSON)',
     type: 'textarea',

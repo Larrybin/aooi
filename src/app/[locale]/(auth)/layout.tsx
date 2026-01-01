@@ -1,12 +1,13 @@
 // data: envConfigs (app name) + auth shell UI (locale toggle)
 // cache: default (no request-bound data; no explicit fetch)
 // reason: keep auth pages lightweight; user-specific data starts after sign-in
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
 import { BrandLogo, LocaleSelector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export default async function AuthLayout({
@@ -19,11 +20,12 @@ export default async function AuthLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const tl = await getTranslations('landing');
-  const showLocale = tl.raw('header.show_locale') !== false;
-
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
+  const isLocaleSwitcherEnabled = isConfigTrue(
+    publicConfigs,
+    'general_locale_switcher_enabled'
+  );
 
   const appName = brand.appName || envConfigs.app_name;
   return (
@@ -44,7 +46,7 @@ export default async function AuthLayout({
           />
         </div>
         <div className="absolute top-4 right-4 flex items-center gap-4">
-          {showLocale ? <LocaleSelector type="button" /> : null}
+          {isLocaleSwitcherEnabled ? <LocaleSelector type="button" /> : null}
         </div>
         <div className="w-full px-4">{children}</div>
       </div>

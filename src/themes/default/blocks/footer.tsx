@@ -5,6 +5,7 @@ import {
   GeneralSocialLinks,
   LocaleSelector,
 } from '@/shared/blocks/common';
+import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
@@ -19,6 +20,10 @@ export function Footer({
   publicConfigs?: Configs;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
+  const isLocaleSwitcherEnabled = isConfigTrue(
+    publicConfigs ?? {},
+    'general_locale_switcher_enabled'
+  );
   const navGridCols =
     navItems.length >= 3
       ? 'sm:grid-cols-3'
@@ -71,9 +76,7 @@ export function Footer({
 
         <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
           <div className="min-w-0 flex-1" />
-          {footer.show_locale !== false ? (
-            <LocaleSelector type="button" />
-          ) : null}
+          {isLocaleSwitcherEnabled ? <LocaleSelector type="button" /> : null}
         </div>
 
         <div
