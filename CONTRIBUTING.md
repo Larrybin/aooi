@@ -36,18 +36,23 @@ pnpm dev
 
 ## Available Commands
 
-| Command             | Description                                      |
-| ------------------- | ------------------------------------------------ |
-| `pnpm dev`          | Start development server (http://localhost:3000) |
-| `pnpm build`        | Production build                                 |
-| `pnpm build:fast`   | Fast production build for larger deployments     |
-| `pnpm start`        | Run production build                             |
-| `pnpm lint`         | Run ESLint                                       |
-| `pnpm format`       | Format code with Prettier                        |
-| `pnpm format:check` | Check formatting without changes                 |
-| `pnpm db:generate`  | Generate Drizzle migrations                      |
-| `pnpm db:migrate`   | Apply database migrations                        |
-| `pnpm db:studio`    | Open Drizzle Studio                              |
+| Command              | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `pnpm dev`           | Start development server (http://localhost:3000)    |
+| `pnpm build`         | Production build                                    |
+| `pnpm build:fast`    | Fast production build for larger deployments        |
+| `pnpm start`         | Run production build                                |
+| `pnpm test`          | Run Node.js tests (expects `*.test.*` / `*.spec.*`) |
+| `pnpm test:coverage` | Run tests with coverage                             |
+| `pnpm lint`          | Run ESLint                                          |
+| `pnpm format`        | Format code with Prettier                           |
+| `pnpm format:check`  | Check formatting without changes                    |
+| `pnpm db:generate`   | Generate Drizzle migrations                         |
+| `pnpm db:migrate`    | Apply database migrations                           |
+| `pnpm db:check`      | Verify DB schema (read-only)                        |
+| `pnpm db:studio`     | Open Drizzle Studio                                 |
+| `pnpm rbac:init`     | Initialize roles and permissions                    |
+| `pnpm rbac:assign`   | Assign a role to a user                             |
 
 ## Code Style
 
@@ -99,6 +104,7 @@ src/
    ```bash
    pnpm lint
    pnpm format:check
+   pnpm test
    pnpm build
    ```
 
@@ -172,7 +178,7 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 
 export const POST = withApi(async (req: Request) => {
-  const user = await requireUser();
+  const user = await requireUser(req);
   const body = await parseJson(req, MySchema);
 
   // ... logic
@@ -189,12 +195,19 @@ export const POST = withApi(async (req: Request) => {
 
 ## Testing
 
-Currently, the project doesn't have a configured test runner. When adding tests:
+This project uses Node.js built-in test runner via `pnpm test`. When adding tests:
 
 - Colocate tests with features: `*.test.ts` / `*.test.tsx`
 - Prefer unit tests for `src/core/` logic
 - Use integration tests for `src/app/` routes
 - Keep tests fast and deterministic
+
+Run:
+
+```bash
+pnpm test
+pnpm test:coverage
+```
 
 ## Documentation
 
@@ -238,4 +251,4 @@ When contributing code:
 
 ## License
 
-Please review the [LICENSE](./LICENSE) file before contributing.
+No license file is included in this repository. Confirm licensing with the maintainers before distributing the code.

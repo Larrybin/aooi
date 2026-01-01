@@ -190,7 +190,7 @@ export async function getUserById(id: string): Promise<User | undefined> {
 | ----------------------- | ---------- | ------------------------- |
 | Development             | Serverless | Hot reload, debug logging |
 | Production (Vercel)     | Serverless | Edge functions, ISR       |
-| Production (Cloudflare) | Hyperdrive | Workers, KV, D1           |
+| Production (Cloudflare) | Hyperdrive | Workers (OpenNext)        |
 | Production (Docker)     | Singleton  | Traditional server        |
 
 ## Related Documents

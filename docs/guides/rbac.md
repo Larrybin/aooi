@@ -284,19 +284,19 @@ await assignRolesToUser(userId, [roleId1, roleId2]);
 Run this script to create default roles and permissions:
 
 ```bash
-npx tsx scripts/init-rbac.ts
+pnpm rbac:init
 ```
 
 ### Assign Super Admin Role
 
 ```bash
-npx tsx scripts/init-rbac.ts --admin-email=admin@example.com
+pnpm rbac:init -- --admin-email=admin@example.com
 ```
 
 ### Assign Role to User
 
 ```bash
-npx tsx scripts/assign-role.ts --email=user@example.com --role=editor
+pnpm rbac:assign -- --email=user@example.com --role=editor
 ```
 
 ## Role Expiration

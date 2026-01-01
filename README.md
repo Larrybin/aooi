@@ -1,4 +1,4 @@
-# Your App
+# Roller Rabbit
 
 A production-ready AI SaaS template built with Next.js App Router, TypeScript, and modern tooling.
 
@@ -54,15 +54,16 @@ Visit http://localhost:3000
 - `App Name`：用于站点标题、文档/SEO、邮件标题等
 - `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
 - `Support Email`：用于法律页面与联系入口
+- 生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致
 
 ### Initialize RBAC (Optional)
 
 ```bash
 # Create default roles and permissions
-npx tsx scripts/init-rbac.ts
+pnpm rbac:init
 
 # Assign super_admin role to a user
-npx tsx scripts/init-rbac.ts --admin-email=your@email.com
+pnpm rbac:init -- --admin-email=your@email.com
 ```
 
 ## Getting Started
@@ -144,7 +145,7 @@ Example `general_social_links`:
 
 ## Feedback
 
-submit your feedbacks on GitHub Issues
+Submit feedback via GitHub Issues.
 
 ## LICENSE
 
