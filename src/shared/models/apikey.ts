@@ -76,9 +76,7 @@ export async function getApikeysCount({
   return result?.count || 0;
 }
 
-export async function findApikeyById(
-  id: string
-): Promise<Apikey | undefined> {
+export async function findApikeyById(id: string): Promise<Apikey | undefined> {
   const [result] = await db()
     .select()
     .from(apikey)

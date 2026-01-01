@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import { assignRolesToUser } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
@@ -18,7 +19,6 @@ import {
   type UpdateUser,
 } from '@/shared/models/user';
 import { AdminUserUpdateFormSchema } from '@/shared/schemas/actions/admin-user';
-import { assignRolesToUser } from '@/shared/services/rbac';
 
 /**
  * Update user profile (name, image)

@@ -5,11 +5,11 @@ import { desc } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 
 import { db } from '@/core/db';
+import { getRoles, type Role } from '@/core/rbac';
 import { role } from '@/config/db/schema';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getRoles, type Role } from '@/shared/services/rbac';
 import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Button, Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';

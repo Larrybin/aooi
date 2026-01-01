@@ -4,6 +4,14 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db } from '@/core/db';
+import {
+  assignPermissionsToRole,
+  deleteRole,
+  getRoleById,
+  restoreRole,
+  updateRole,
+  type UpdateRole,
+} from '@/core/rbac';
 import { role } from '@/config/db/schema';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
@@ -15,14 +23,6 @@ import {
   validatePermission,
 } from '@/shared/lib/admin/action-utils';
 import { AdminRoleUpdateFormSchema } from '@/shared/schemas/actions/admin-role';
-import {
-  assignPermissionsToRole,
-  deleteRole,
-  getRoleById,
-  restoreRole,
-  updateRole,
-  type UpdateRole,
-} from '@/shared/services/rbac';
 
 /**
  * Update role title and description

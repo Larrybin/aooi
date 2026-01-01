@@ -3,16 +3,12 @@
 // reason: permission assignment is sensitive; avoid caching across admins
 import { getTranslations } from 'next-intl/server';
 
+import { getPermissions, getRoleById, getRolePermissions } from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
-import {
-  getPermissions,
-  getRoleById,
-  getRolePermissions,
-} from '@/shared/services/rbac';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateRolePermissionsAction } from '../../actions';

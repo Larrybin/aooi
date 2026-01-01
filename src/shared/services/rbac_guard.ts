@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { redirect } from '@/core/i18n/navigation';
+import { hasAnyRole, hasRole } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignUser } from '@/shared/models/user';
-import { hasAnyRole, hasRole } from '@/shared/services/rbac';
 import { getPermissionCheckerForRequest } from '@/shared/services/rbac_request_cache';
 
 export { PERMISSIONS };

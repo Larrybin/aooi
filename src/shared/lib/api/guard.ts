@@ -6,8 +6,8 @@
 
 import 'server-only';
 
+import { hasPermission } from '@/core/rbac';
 import { getUserInfo } from '@/shared/models/user';
-import { hasPermission } from '@/shared/services/rbac';
 
 import { assertCsrf } from './csrf.server';
 import { ForbiddenError, UnauthorizedError } from './errors';
