@@ -1,6 +1,8 @@
 // data: envConfigs (app name) + auth shell UI (locale toggle)
 // cache: default (no request-bound data; no explicit fetch)
 // reason: keep auth pages lightweight; user-specific data starts after sign-in
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
 import { envConfigs } from '@/config';
 import { BrandLogo, LocaleSelector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
@@ -9,9 +11,17 @@ import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export default async function AuthLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const tl = await getTranslations('landing');
+  const showLocale = tl.raw('header.show_locale') !== false;
+
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
@@ -34,7 +44,7 @@ export default async function AuthLayout({
           />
         </div>
         <div className="absolute top-4 right-4 flex items-center gap-4">
-          <LocaleSelector type="button" />
+          {showLocale ? <LocaleSelector type="button" /> : null}
         </div>
         <div className="w-full px-4">{children}</div>
       </div>
