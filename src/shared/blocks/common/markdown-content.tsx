@@ -10,7 +10,8 @@ function generateHeadingId(text: string): string {
 }
 
 const md = new MarkdownIt({
-  html: true,
+  // Security: database markdown is treated as untrusted input; do not allow raw HTML.
+  html: false,
   linkify: true,
   breaks: true,
 });

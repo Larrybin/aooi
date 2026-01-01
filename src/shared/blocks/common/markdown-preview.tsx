@@ -42,7 +42,8 @@ function generateHeadingId(text: string): string {
 }
 
 const md = new MarkdownIt({
-  html: true,
+  // Security: markdown preview may render user-provided content; do not allow raw HTML.
+  html: false,
   linkify: true,
   breaks: true,
 });
