@@ -13,6 +13,19 @@ type AnyComponent<
 > = (props: Props) => ReactNode | Promise<ReactNode>;
 type Loader = () => Promise<unknown>;
 
+function hasOwn(record: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function getOwnLoader(record: object, key: string): Loader | undefined {
+  if (!hasOwn(record, key)) {
+    return;
+  }
+
+  const value = (record as Record<string, unknown>)[key];
+  return typeof value === 'function' ? (value as Loader) : undefined;
+}
+
 const themeLandingPages: Record<
   ThemeName,
   Record<ThemeLandingPageName, Loader>
@@ -42,10 +55,9 @@ export async function getThemePage(
   theme?: string
 ) {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName =
-    activeTheme in themeLandingPages
-      ? (activeTheme as ThemeName)
-      : defaultTheme;
+  const loadTheme: ThemeName = hasOwn(themeLandingPages, activeTheme)
+    ? (activeTheme as ThemeName)
+    : defaultTheme;
 
   if (loadTheme !== activeTheme) {
     logger.warn('theme: unknown theme, fallback to default', {
@@ -56,8 +68,8 @@ export async function getThemePage(
   }
 
   const loader =
-    themeLandingPages[loadTheme]?.[pageName] ??
-    themeLandingPages[defaultTheme as ThemeName]?.[pageName];
+    getOwnLoader(themeLandingPages[loadTheme], pageName) ??
+    getOwnLoader(themeLandingPages[defaultTheme as ThemeName], pageName);
 
   if (!loader) {
     logger.error('theme: unknown landing page', {
@@ -83,10 +95,9 @@ export async function getThemeLayout(
   theme?: string
 ): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName =
-    activeTheme in themeLandingLayouts
-      ? (activeTheme as ThemeName)
-      : defaultTheme;
+  const loadTheme: ThemeName = hasOwn(themeLandingLayouts, activeTheme)
+    ? (activeTheme as ThemeName)
+    : defaultTheme;
 
   if (loadTheme !== activeTheme) {
     logger.warn('theme: unknown theme, fallback to default', {
@@ -97,8 +108,8 @@ export async function getThemeLayout(
   }
 
   const loader =
-    themeLandingLayouts[loadTheme]?.[layoutName] ??
-    themeLandingLayouts[defaultTheme as ThemeName]?.[layoutName];
+    getOwnLoader(themeLandingLayouts[loadTheme], layoutName) ??
+    getOwnLoader(themeLandingLayouts[defaultTheme as ThemeName], layoutName);
 
   if (!loader) {
     logger.error('theme: unknown landing layout', {

@@ -40,6 +40,19 @@ type AnyComponent<
 > = (props: Props) => ReactNode | Promise<ReactNode>;
 type Loader = () => Promise<unknown>;
 
+function hasOwn(record: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function getOwnLoader(record: object, key: string): Loader | undefined {
+  if (!hasOwn(record, key)) {
+    return;
+  }
+
+  const value = (record as Record<string, unknown>)[key];
+  return typeof value === 'function' ? (value as Loader) : undefined;
+}
+
 const themePages: Record<ThemeName, Record<ThemePageName, Loader>> = {
   default: {
     landing: () => import('@/themes/default/pages/landing'),
@@ -144,8 +157,9 @@ const themeBlocks: Record<ThemeName, Record<ThemeBlockName, Loader>> = {
  */
 export async function getThemePage(pageName: string, theme?: string) {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName =
-    activeTheme in themePages ? (activeTheme as ThemeName) : defaultTheme;
+  const loadTheme: ThemeName = hasOwn(themePages, activeTheme)
+    ? (activeTheme as ThemeName)
+    : defaultTheme;
 
   if (loadTheme !== activeTheme) {
     logger.warn('theme: unknown theme, fallback to default', {
@@ -156,8 +170,8 @@ export async function getThemePage(pageName: string, theme?: string) {
   }
 
   const loader =
-    themePages[loadTheme]?.[pageName as ThemePageName] ??
-    themePages[defaultTheme as ThemeName]?.[pageName as ThemePageName];
+    getOwnLoader(themePages[loadTheme], pageName) ??
+    getOwnLoader(themePages[defaultTheme as ThemeName], pageName);
 
   if (!loader) {
     logger.error('theme: unknown page', {
@@ -183,8 +197,9 @@ export async function getThemeLayout(
   theme?: string
 ): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName =
-    activeTheme in themeLayouts ? (activeTheme as ThemeName) : defaultTheme;
+  const loadTheme: ThemeName = hasOwn(themeLayouts, activeTheme)
+    ? (activeTheme as ThemeName)
+    : defaultTheme;
 
   if (loadTheme !== activeTheme) {
     logger.warn('theme: unknown theme, fallback to default', {
@@ -195,8 +210,8 @@ export async function getThemeLayout(
   }
 
   const loader =
-    themeLayouts[loadTheme]?.[layoutName as ThemeLayoutName] ??
-    themeLayouts[defaultTheme as ThemeName]?.[layoutName as ThemeLayoutName];
+    getOwnLoader(themeLayouts[loadTheme], layoutName) ??
+    getOwnLoader(themeLayouts[defaultTheme as ThemeName], layoutName);
 
   if (!loader) {
     logger.error('theme: unknown layout', {
@@ -222,8 +237,9 @@ export async function getThemeBlock(
   theme?: string
 ): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName =
-    activeTheme in themeBlocks ? (activeTheme as ThemeName) : defaultTheme;
+  const loadTheme: ThemeName = hasOwn(themeBlocks, activeTheme)
+    ? (activeTheme as ThemeName)
+    : defaultTheme;
 
   if (loadTheme !== activeTheme) {
     logger.warn('theme: unknown theme, fallback to default', {
@@ -234,8 +250,8 @@ export async function getThemeBlock(
   }
 
   const loader =
-    themeBlocks[loadTheme]?.[blockName as ThemeBlockName] ??
-    themeBlocks[defaultTheme as ThemeName]?.[blockName as ThemeBlockName];
+    getOwnLoader(themeBlocks[loadTheme], blockName) ??
+    getOwnLoader(themeBlocks[defaultTheme as ThemeName], blockName);
 
   if (!loader) {
     logger.error('theme: unknown block', {
