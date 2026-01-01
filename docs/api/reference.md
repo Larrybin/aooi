@@ -196,21 +196,22 @@ Notes:
 
 ### Chat / AI
 
-| Method | Endpoint             | Description       |
-| ------ | -------------------- | ----------------- |
-| `POST` | `/api/chat`          | Chat completion   |
-| `POST` | `/api/chat/new`      | Create new chat   |
-| `POST` | `/api/chat/list`     | List user chats   |
-| `POST` | `/api/chat/info`     | Get chat info     |
-| `POST` | `/api/chat/messages` | Get chat messages |
-| `POST` | `/api/ai/generate`   | AI generation     |
-| `POST` | `/api/ai/query`      | AI query          |
+| Method | Endpoint                    | Description                  |
+| ------ | --------------------------- | ---------------------------- |
+| `POST` | `/api/chat`                 | Chat completion              |
+| `POST` | `/api/chat/new`             | Create new chat              |
+| `POST` | `/api/chat/list`            | List user chats              |
+| `POST` | `/api/chat/info`            | Get chat info                |
+| `POST` | `/api/chat/messages`        | Get chat messages            |
+| `POST` | `/api/ai/generate`          | AI generation                |
+| `POST` | `/api/ai/query`             | AI query                     |
+| `POST` | `/api/ai/notify/[provider]` | AI provider webhook callback |
 
 ### Configuration
 
-| Method | Endpoint                  | Description        |
-| ------ | ------------------------- | ------------------ |
-| `POST` | `/api/config/get-configs` | Get public configs |
+| Method     | Endpoint                  | Description        |
+| ---------- | ------------------------- | ------------------ |
+| `GET/POST` | `/api/config/get-configs` | Get public configs |
 
 ### Storage
 

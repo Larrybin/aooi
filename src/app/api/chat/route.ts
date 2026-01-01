@@ -7,13 +7,15 @@ import {
   type UIMessage,
 } from 'ai';
 
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { CHAT_PROVIDER } from '@/shared/constants/chat-provider';
+import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
 import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
+import { setResponseHeader } from '@/shared/lib/api/response-headers';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
@@ -26,9 +28,7 @@ import { getAllConfigs } from '@/shared/models/config';
 import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
 
 export const POST = withApi(async (req: Request) => {
-  if (!(await isAiEnabledCached())) {
-    return new Response('Not Found', { status: 404 });
-  }
+  await requireAiEnabled();
 
   const api = createApiContext(req);
   const { log } = api;
@@ -58,7 +58,7 @@ export const POST = withApi(async (req: Request) => {
 
   const currentTime = new Date();
   const metadata = { model, webSearch, reasoning };
-  const provider = 'openrouter';
+  const provider = CHAT_PROVIDER;
 
   const userMessage: NewChatMessage = {
     id: generateId().toLowerCase(),
@@ -101,7 +101,7 @@ export const POST = withApi(async (req: Request) => {
     messages: convertToModelMessages(validatedMessages),
   });
 
-  return result.toUIMessageStreamResponse({
+  const response = result.toUIMessageStreamResponse({
     sendSources: true,
     sendReasoning: Boolean(reasoning),
     originalMessages: validatedMessages,
@@ -127,4 +127,6 @@ export const POST = withApi(async (req: Request) => {
       }
     },
   });
+
+  return setResponseHeader(response, 'Cache-Control', 'no-store');
 });

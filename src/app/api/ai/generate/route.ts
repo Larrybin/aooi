@@ -4,7 +4,7 @@ import {
   AITaskStatus,
   type AIGenerateParams,
 } from '@/extensions/ai';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
@@ -15,21 +15,32 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
 import { createAITask, type NewAITask } from '@/shared/models/ai_task';
+import { getAllConfigs } from '@/shared/models/config';
 import { getRemainingCredits } from '@/shared/models/credit';
 import { AiGenerateBodySchema } from '@/shared/schemas/api/ai/generate';
-import { getAIService } from '@/shared/services/ai';
+import { getAIManagerWithConfigs } from '@/shared/services/ai';
+
+function resolveAppUrlOrigin(appUrl: string): string {
+  const raw = appUrl?.trim() || '';
+  if (!raw) return envConfigs.app_url;
+
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return envConfigs.app_url;
+  }
+}
 
 export const POST = withApi(async (request: Request) => {
-  if (!(await isAiEnabledCached())) {
-    return new Response('Not Found', { status: 404 });
-  }
+  await requireAiEnabled();
 
   const api = createApiContext(request);
   const { log } = api;
   const { provider, mediaType, model, prompt, options, scene } =
     await api.parseJson(AiGenerateBodySchema);
 
-  const aiService = await getAIService();
+  const configs = await getAllConfigs();
+  const aiService = getAIManagerWithConfigs(configs);
 
   const aiProvider = aiService.getProvider(provider);
   if (!aiProvider) {
@@ -61,7 +72,8 @@ export const POST = withApi(async (request: Request) => {
     throw new ForbiddenError('insufficient credits');
   }
 
-  const callbackUrl = `${envConfigs.app_url}/api/ai/notify/${provider}`;
+  const appUrl = resolveAppUrlOrigin(configs.app_url || envConfigs.app_url);
+  const callbackUrl = `${appUrl}/api/ai/notify/${provider}`;
   const params: AIGenerateParams = {
     mediaType,
     model,
@@ -98,5 +110,5 @@ export const POST = withApi(async (request: Request) => {
   };
 
   await createAITask(newAITask);
-  return jsonOk(newAITask);
+  return jsonOk(newAITask, { headers: { 'Cache-Control': 'no-store' } });
 });
