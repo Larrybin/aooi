@@ -78,6 +78,7 @@ export function ImageUploader({
   const isInitializedRef = useRef(false);
   const onChangeRef = useRef(onChange);
   const isInternalChangeRef = useRef(false);
+  const itemsRef = useRef<UploadItem[]>([]);
 
   // 使用 defaultPreviews 初始化 items，只在组件挂载时执行一次
   const [items, setItems] = useState<UploadItem[]>(() => {
@@ -94,6 +95,11 @@ export function ImageUploader({
 
   const maxCount = allowMultiple ? maxImages : 1;
   const maxBytes = maxSizeMB * 1024 * 1024;
+
+  // 保持最新 items 引用（用于卸载时清理 blob URL）
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   // 更新 onChange ref
   useEffect(() => {
@@ -129,6 +135,13 @@ export function ImageUploader({
 
       // 只有当不一致时才返回新的 items
       if (!isSame) {
+        // defaultPreviews 覆盖时：回收即将被替换的 blob URL，避免泄漏
+        currentItems.forEach((item) => {
+          if (item.preview.startsWith('blob:')) {
+            URL.revokeObjectURL(item.preview);
+          }
+        });
+
         return defaultUrls.map((url, index) => ({
           id: `preset-${url}-${index}`,
           preview: url,
@@ -141,16 +154,16 @@ export function ImageUploader({
     });
   }, [defaultPreviews]);
 
-  // 清理 blob URLs
+  // 保底清理：组件卸载时回收仍存活的 blob URL
   useEffect(() => {
     return () => {
-      items.forEach((item) => {
+      itemsRef.current.forEach((item) => {
         if (item.preview.startsWith('blob:')) {
           URL.revokeObjectURL(item.preview);
         }
       });
     };
-  }, [items]);
+  }, []);
 
   // 当 items 变化时触发 onChange，但跳过初始化时的调用
   useEffect(() => {

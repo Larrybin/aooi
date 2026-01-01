@@ -284,14 +284,29 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       return;
     }
 
+    let cancelled = false;
+    let inFlight = false;
+
     const interval = setInterval(async () => {
-      const completed = await pollTaskStatus(taskId);
-      if (completed) {
-        clearInterval(interval);
+      if (cancelled || inFlight) {
+        return;
+      }
+      inFlight = true;
+      try {
+        const completed = await pollTaskStatus(taskId);
+        if (completed) {
+          cancelled = true;
+          clearInterval(interval);
+        }
+      } finally {
+        inFlight = false;
       }
     }, 10000); // Poll every 10 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [taskId, isGenerating, pollTaskStatus]);
 
   const handleGenerate = async () => {

@@ -1,5 +1,5 @@
 import type { TOCItemType as FumadocsTOCItemType } from 'fumadocs-core/server';
-import { slug } from 'github-slugger';
+import GithubSlugger from 'github-slugger';
 
 export type TOCItemType = FumadocsTOCItemType;
 
@@ -12,12 +12,13 @@ export function generateTOC(content: string): TOCItemType[] {
 
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
   const toc: TOCItemType[] = [];
+  const slugger = new GithubSlugger();
   let match;
 
   while ((match = headingRegex.exec(content)) !== null) {
     const level = match[1].length;
     const text = match[2].trim();
-    const url = `#${generateHeadingId(text)}`;
+    const url = `#${slugger.slug(text)}`;
 
     toc.push({
       title: text,
@@ -27,12 +28,4 @@ export function generateTOC(content: string): TOCItemType[] {
   }
 
   return toc;
-}
-
-/**
- * Generate heading ID from text
- * Uses github-slugger to match rehype-slug behavior
- */
-function generateHeadingId(text: string): string {
-  return slug(text);
 }

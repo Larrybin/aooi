@@ -47,14 +47,14 @@ export async function getSettingGroups() {
       name: 'stripe',
       title: t('groups.stripe'),
       description:
-        'custom your <a href="https://stripe.com" class="text-primary" target="_blank">Stripe</a> settings',
+        'custom your <a href="https://stripe.com" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Stripe</a> settings',
       tab: 'payment',
     },
     {
       name: 'creem',
       title: t('groups.creem'),
       description:
-        'custom your <a href="https://www.creem.io" class="text-primary" target="_blank">Creem</a> settings',
+        'custom your <a href="https://www.creem.io" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Creem</a> settings',
       tab: 'payment',
     },
     {
@@ -67,35 +67,35 @@ export async function getSettingGroups() {
       name: 'google_analytics',
       title: t('groups.google_analytics'),
       description:
-        'custom your <a href="https://analytics.google.com/" class="text-primary" target="_blank">Google Analytics</a> settings',
+        'custom your <a href="https://analytics.google.com/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Google Analytics</a> settings',
       tab: 'analytics',
     },
     {
       name: 'clarity',
       title: t('groups.clarity'),
       description:
-        'custom your <a href="https://clarity.microsoft.com/" class="text-primary" target="_blank">Clarity</a> settings',
+        'custom your <a href="https://clarity.microsoft.com/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Clarity</a> settings',
       tab: 'analytics',
     },
     {
       name: 'plausible',
       title: t('groups.plausible'),
       description:
-        'custom your <a href="https://plausible.io/" class="text-primary" target="_blank">Plausible</a> settings',
+        'custom your <a href="https://plausible.io/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Plausible</a> settings',
       tab: 'analytics',
     },
     {
       name: 'openpanel',
       title: t('groups.openpanel'),
       description:
-        'custom your <a href="https://openpanel.dev/" class="text-primary" target="_blank">OpenPanel</a> settings',
+        'custom your <a href="https://openpanel.dev/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">OpenPanel</a> settings',
       tab: 'analytics',
     },
     {
       name: 'vercel_analytics',
       title: t('groups.vercel_analytics'),
       description:
-        'custom your <a href="https://vercel.com/docs/analytics/" class="text-primary" target="_blank">Vercel Analytics</a> settings',
+        'custom your <a href="https://vercel.com/docs/analytics/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Vercel Analytics</a> settings',
       tab: 'analytics',
     },
     {
@@ -113,25 +113,25 @@ export async function getSettingGroups() {
     {
       name: 'openrouter',
       title: t('groups.openrouter'),
-      description: `Custom <a href="https://openrouter.ai" class="text-primary" target="_blank">OpenRouter</a> settings`,
+      description: `Custom <a href="https://openrouter.ai" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">OpenRouter</a> settings`,
       tab: 'ai',
     },
     {
       name: 'replicate',
       title: t('groups.replicate'),
-      description: `Custom <a href="https://replicate.com" class="text-primary" target="_blank">Replicate</a> settings`,
+      description: `Custom <a href="https://replicate.com" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Replicate</a> settings`,
       tab: 'ai',
     },
     {
       name: 'fal',
       title: 'Fal',
-      description: `Custom <a href="https://fal.ai" class="text-primary" target="_blank">Fal</a> settings`,
+      description: `Custom <a href="https://fal.ai" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Fal</a> settings`,
       tab: 'ai',
     },
     {
       name: 'kie',
       title: 'Kie',
-      description: `Custom <a href="https://kie.ai" class="text-primary" target="_blank">Kie</a> settings`,
+      description: `Custom <a href="https://kie.ai" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Kie</a> settings`,
       tab: 'ai',
     },
     {
@@ -144,28 +144,28 @@ export async function getSettingGroups() {
       name: 'affonso',
       title: t('groups.affonso'),
       description:
-        'custom your <a href="https://affonso.io" class="text-primary" target="_blank">Affonso</a> settings',
+        'custom your <a href="https://affonso.io" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Affonso</a> settings',
       tab: 'affiliate',
     },
     {
       name: 'promotekit',
       title: t('groups.promotekit'),
       description:
-        'custom your <a href="https://www.promotekit.com" class="text-primary" target="_blank">PromoteKit</a> settings',
+        'custom your <a href="https://www.promotekit.com" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">PromoteKit</a> settings',
       tab: 'affiliate',
     },
     {
       name: 'crisp',
       title: t('groups.crisp'),
       description:
-        'custom your <a href="https://crisp.chat" class="text-primary" target="_blank">Crisp</a> settings',
+        'custom your <a href="https://crisp.chat" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Crisp</a> settings',
       tab: 'customer_service',
     },
     {
       name: 'tawk',
       title: t('groups.tawk'),
       description:
-        'custom your <a href="https://www.tawk.to" class="text-primary" target="_blank">Tawk</a> settings',
+        'custom your <a href="https://www.tawk.to" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Tawk</a> settings',
       tab: 'customer_service',
     },
   ];
