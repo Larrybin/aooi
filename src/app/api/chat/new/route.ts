@@ -1,6 +1,7 @@
 import { generateId } from 'ai';
 
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { CHAT_PROVIDER } from '@/shared/constants/chat-provider';
+import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
 import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
@@ -8,21 +9,15 @@ import { ChatStatus, createChat, type NewChat } from '@/shared/models/chat';
 import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
 
 export const POST = withApi(async (req: Request) => {
-  if (!(await isAiEnabledCached())) {
-    return new Response('Not Found', { status: 404 });
-  }
+  await requireAiEnabled();
 
   const api = createApiContext(req);
   const { message, body } = await api.parseJson(ChatNewBodySchema);
   const user = await api.requireUser();
 
-  // todo: check user credits
+  const provider = CHAT_PROVIDER;
 
-  // todo: get provider from settings
-  const provider = 'openrouter';
-
-  // todo: auto generate title
-  const title = message.text.substring(0, 100);
+  const title = (message.text.trim() || message.text).substring(0, 100);
 
   const chatId = generateId().toLowerCase();
   const currentTime = new Date();
@@ -50,5 +45,5 @@ export const POST = withApi(async (req: Request) => {
 
   await createChat(chat);
 
-  return jsonOk(chat);
+  return jsonOk(chat, { headers: { 'Cache-Control': 'no-store' } });
 });

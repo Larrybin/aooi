@@ -1,15 +1,12 @@
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
 import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { safeJsonParse } from '@/shared/lib/json';
 import { ChatInfoBodySchema } from '@/shared/schemas/api/chat/info';
 
 export const POST = withApi(async (req: Request) => {
-  if (!(await isAiEnabledCached())) {
-    return new Response('Not Found', { status: 404 });
-  }
+  await requireAiEnabled();
 
   const api = createApiContext(req);
   const { chatId } = await api.parseJson(ChatInfoBodySchema);
@@ -17,10 +14,5 @@ export const POST = withApi(async (req: Request) => {
 
   const chat = await requireOwnedChat(chatId, user.id);
 
-  return jsonOk({
-    ...chat,
-    parts: safeJsonParse(chat.parts) ?? [],
-    metadata: safeJsonParse(chat.metadata),
-    content: safeJsonParse(chat.content),
-  });
+  return jsonOk(chat, { headers: { 'Cache-Control': 'no-store' } });
 });

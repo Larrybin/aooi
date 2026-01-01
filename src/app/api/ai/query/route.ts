@@ -1,5 +1,5 @@
 import { AITaskStatus } from '@/extensions/ai';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
@@ -72,9 +72,7 @@ function shouldQueryProvider(taskId: string) {
 }
 
 export const POST = withApi(async (req: Request) => {
-  if (!(await isAiEnabledCached())) {
-    return new Response('Not Found', { status: 404 });
-  }
+  await requireAiEnabled();
 
   const api = createApiContext(req);
   const { log } = api;
@@ -96,25 +94,31 @@ export const POST = withApi(async (req: Request) => {
 
   if (isFinalTaskStatus(task.status)) {
     lastProviderQueryAtByTaskId.delete(task.id);
-    return jsonOk({
-      id: task.id,
-      status: task.status,
-      provider: task.provider,
-      model: task.model,
-      prompt: task.prompt,
-      taskInfo: safeJsonParse(task.taskInfo),
-    });
+    return jsonOk(
+      {
+        id: task.id,
+        status: task.status,
+        provider: task.provider,
+        model: task.model,
+        prompt: task.prompt,
+        taskInfo: safeJsonParse(task.taskInfo),
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   }
 
   if (!shouldQueryProvider(task.id)) {
-    return jsonOk({
-      id: task.id,
-      status: task.status,
-      provider: task.provider,
-      model: task.model,
-      prompt: task.prompt,
-      taskInfo: safeJsonParse(task.taskInfo),
-    });
+    return jsonOk(
+      {
+        id: task.id,
+        status: task.status,
+        provider: task.provider,
+        model: task.model,
+        prompt: task.prompt,
+        taskInfo: safeJsonParse(task.taskInfo),
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   }
 
   const aiService = await getAIService();
@@ -170,12 +174,15 @@ export const POST = withApi(async (req: Request) => {
   task.taskInfo = updateAITask.taskInfo ?? null;
   task.taskResult = updateAITask.taskResult ?? null;
 
-  return jsonOk({
-    id: task.id,
-    status: task.status,
-    provider: task.provider,
-    model: task.model,
-    prompt: task.prompt,
-    taskInfo: safeJsonParse(task.taskInfo),
-  });
+  return jsonOk(
+    {
+      id: task.id,
+      status: task.status,
+      provider: task.provider,
+      model: task.model,
+      prompt: task.prompt,
+      taskInfo: safeJsonParse(task.taskInfo),
+    },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
 });
