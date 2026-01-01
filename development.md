@@ -217,9 +217,13 @@ Configuration in Admin Dashboard at `/<locale?>/admin/settings/storage`:
 Sending transactional emails with templates
 
 ```bash
-# Test email sending (requires an authenticated admin session with EMAIL_TEST permission)
+# Test email sending
+# NOTE: this endpoint requires a logged-in admin session (cookie auth) + CSRF checks.
+# A plain curl without session cookies will return 401/403.
 curl -X POST https://your-domain.com/api/email/test \
   -H "Content-Type: application/json" \
+  -H "Origin: https://your-domain.com" \
+  -H "Cookie: <paste your session cookies here>" \
   -d '{
     "emails": ["support@example.com"],
     "subject": "Test Email"
