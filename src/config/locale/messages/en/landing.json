@@ -415,7 +415,7 @@
     "id": "faq",
     "title": "Frequently Asked Questions About Roller Rabbit",
     "description": "Have another question? Contact us on Discord or by email.",
-    "tip": "Can't find what you're looking for? Contact our <a href='https://discord.gg/HQNnrzjZQS' target='_blank' class='text-primary font-medium hover:underline'>customer support team</a>",
+    "tip": "Can't find what you're looking for? Contact our <a href='https://discord.gg/HQNnrzjZQS' target='_blank' rel='nofollow noopener noreferrer' class='text-primary font-medium hover:underline'>customer support team</a>",
     "items": [
       {
         "question": "What exactly is Roller Rabbit and how does it work?",

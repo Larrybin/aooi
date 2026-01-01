@@ -8,6 +8,7 @@ import { signIn } from '@/core/auth/client';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
+import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import { cn } from '@/shared/lib/utils';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import type { Button as ButtonType } from '@/shared/types/blocks/common';
@@ -28,13 +29,11 @@ export function SocialProviders({
 
   const { setIsShowSignModal } = useAppContext();
 
-  const localizedCallbackUrl =
-    callbackUrl &&
-    locale !== defaultLocale &&
-    callbackUrl.startsWith('/') &&
-    !callbackUrl.startsWith(`/${locale}`)
-      ? `/${locale}${callbackUrl}`
-      : callbackUrl;
+  const localizedCallbackUrl = localizeCallbackUrl({
+    callbackUrl,
+    locale,
+    defaultLocale,
+  });
 
   const handleSignIn = async ({ provider }: { provider: string }) => {
     await signIn.social(

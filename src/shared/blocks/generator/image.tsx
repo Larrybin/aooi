@@ -346,14 +346,20 @@ export function ImageGenerator({
     }
 
     let cancelled = false;
+    let inFlight = false;
 
     const tick = async () => {
-      if (!taskId) {
+      if (!taskId || cancelled || inFlight) {
         return;
       }
-      const completed = await pollTaskStatus(taskId);
-      if (completed) {
-        cancelled = true;
+      inFlight = true;
+      try {
+        const completed = await pollTaskStatus(taskId);
+        if (completed) {
+          cancelled = true;
+        }
+      } finally {
+        inFlight = false;
       }
     };
 
@@ -364,9 +370,18 @@ export function ImageGenerator({
         clearInterval(interval);
         return;
       }
-      const completed = await pollTaskStatus(taskId);
-      if (completed) {
-        clearInterval(interval);
+      if (inFlight) {
+        return;
+      }
+      inFlight = true;
+      try {
+        const completed = await pollTaskStatus(taskId);
+        if (completed) {
+          cancelled = true;
+          clearInterval(interval);
+        }
+      } finally {
+        inFlight = false;
       }
     }, POLL_INTERVAL);
 

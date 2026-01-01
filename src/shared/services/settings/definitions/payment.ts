@@ -135,7 +135,7 @@ export const paymentSettings: Setting[] = [
 }`,
     group: 'creem',
     tab: 'payment',
-    tip: 'Map the product_id in pricing table to <a href="https://www.creem.io/dashboard/products" class="text-primary" target="_blank">payment_product_id</a> created in Creem. Must be a valid JSON object.',
+    tip: 'Map the product_id in pricing table to <a href="https://www.creem.io/dashboard/products" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">payment_product_id</a> created in Creem. Must be a valid JSON object.',
   },
   {
     name: 'paypal_enabled',

@@ -1,3 +1,5 @@
+import 'server-only';
+
 import moment from 'moment';
 
 export function formatPostDate(createdAt: string, locale?: string) {

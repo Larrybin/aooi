@@ -13,6 +13,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useAppContext } from '@/shared/contexts/app';
 import { toErrorMessage } from '@/shared/lib/errors';
+import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
 import { SocialProviders } from './social-providers';
@@ -38,13 +39,11 @@ export function SignInForm({
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
 
-  const localizedCallbackUrl =
-    callbackUrl &&
-    locale !== defaultLocale &&
-    callbackUrl.startsWith('/') &&
-    !callbackUrl.startsWith(`/${locale}`)
-      ? `/${locale}${callbackUrl}`
-      : callbackUrl;
+  const localizedCallbackUrl = localizeCallbackUrl({
+    callbackUrl,
+    locale,
+    defaultLocale,
+  });
 
   const handleSignIn = async () => {
     if (loading) {

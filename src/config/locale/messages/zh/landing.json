@@ -415,7 +415,7 @@
     "id": "faq",
     "title": "关于 Roller Rabbit 的常见问题",
     "description": "还有其他问题？欢迎加入 Discord 或发邮件联系我们。",
-    "tip": "没有找到想要的答案？请联系 <a href='https://discord.gg/HQNnrzjZQS' target='_blank' class='text-primary font-medium hover:underline'>我们的客服团队</a>",
+    "tip": "没有找到想要的答案？请联系 <a href='https://discord.gg/HQNnrzjZQS' target='_blank' rel='nofollow noopener noreferrer' class='text-primary font-medium hover:underline'>我们的客服团队</a>",
     "items": [
       {
         "question": "Roller Rabbit 是什么？怎么帮到我？",

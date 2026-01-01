@@ -1,33 +1,45 @@
 // Server-side Markdown renderer for database posts
+import GithubSlugger from 'github-slugger';
 import MarkdownIt from 'markdown-it';
 
-function generateHeadingId(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/(^-|-$)/g, '');
+type MarkdownEnv = { headingSlugger?: GithubSlugger };
+
+function getOrCreateHeadingSlugger(env: unknown): GithubSlugger {
+  if (env && typeof env === 'object') {
+    const typedEnv = env as MarkdownEnv;
+    if (!typedEnv.headingSlugger) {
+      typedEnv.headingSlugger = new GithubSlugger();
+    }
+    return typedEnv.headingSlugger;
+  }
+
+  return new GithubSlugger();
 }
 
 const md = new MarkdownIt({
-  html: true,
+  // Security: database markdown is treated as untrusted input; do not allow raw HTML.
+  html: false,
   linkify: true,
   breaks: true,
 });
 
 // Custom renderer for headings with IDs
-md.renderer.rules.heading_open = function (tokens, idx) {
-  const token = tokens[idx];
-  const level = token.markup.length;
+md.renderer.rules.heading_open = function (
+  tokens,
+  idx,
+  options,
+  env,
+  renderer
+) {
   const nextToken = tokens[idx + 1];
 
   if (nextToken && nextToken.type === 'inline') {
-    const headingText = nextToken.content;
-    const id = generateHeadingId(headingText);
-    return `<h${level} id="${id}">`;
+    const token = tokens[idx];
+    const slugger = getOrCreateHeadingSlugger(env);
+    token.attrSet('id', slugger.slug(nextToken.content));
   }
 
-  return `<h${level}>`;
+  return renderer.renderToken(tokens, idx, options);
 };
 
 // Custom renderer for links with nofollow
@@ -42,6 +54,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, renderer) {
     // Optionally add target="_blank" for external links
     if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
       token.attrSet('target', '_blank');
+      token.attrSet('rel', 'nofollow noopener noreferrer');
     }
   }
 
@@ -57,7 +70,11 @@ interface MarkdownContentProps {
  * This component uses markdown-it which works in all environments including Edge Runtime
  */
 export function MarkdownContent({ content }: MarkdownContentProps) {
-  const html = content ? md.render(content) : '';
+  let html = '';
+  if (content) {
+    const env: MarkdownEnv = {};
+    html = md.render(content, env);
+  }
 
   return (
     <div className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />

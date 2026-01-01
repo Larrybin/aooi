@@ -2,6 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import GithubSlugger from 'github-slugger';
 import MarkdownIt from 'markdown-it';
 
 import 'github-markdown-css/github-markdown-light.css';
@@ -18,15 +19,13 @@ export function getTocItems(content: string): TocItem[] {
 
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
   const toc: TocItem[] = [];
+  const slugger = new GithubSlugger();
   let match;
 
   while ((match = headingRegex.exec(content)) !== null) {
     const level = match[1].length;
     const text = match[2].trim();
-    const id = text
-      .toLowerCase()
-      .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+    const id = slugger.slug(text);
 
     toc.push({ id, text, level });
   }
@@ -34,32 +33,44 @@ export function getTocItems(content: string): TocItem[] {
   return toc;
 }
 
-function generateHeadingId(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+type MarkdownEnv = { headingSlugger?: GithubSlugger };
+
+function getOrCreateHeadingSlugger(env: unknown): GithubSlugger {
+  if (env && typeof env === 'object') {
+    const typedEnv = env as MarkdownEnv;
+    if (!typedEnv.headingSlugger) {
+      typedEnv.headingSlugger = new GithubSlugger();
+    }
+    return typedEnv.headingSlugger;
+  }
+
+  return new GithubSlugger();
 }
 
 const md = new MarkdownIt({
-  html: true,
+  // Security: markdown preview may render user-provided content; do not allow raw HTML.
+  html: false,
   linkify: true,
   breaks: true,
 });
 
 // Custom renderer for headings with IDs
-md.renderer.rules.heading_open = function (tokens, idx) {
-  const token = tokens[idx];
-  const level = token.markup.length;
+md.renderer.rules.heading_open = function (
+  tokens,
+  idx,
+  options,
+  env,
+  renderer
+) {
   const nextToken = tokens[idx + 1];
 
   if (nextToken && nextToken.type === 'inline') {
-    const headingText = nextToken.content;
-    const id = generateHeadingId(headingText);
-    return `<h${level} id="${id}">`;
+    const token = tokens[idx];
+    const slugger = getOrCreateHeadingSlugger(env);
+    token.attrSet('id', slugger.slug(nextToken.content));
   }
 
-  return `<h${level}>`;
+  return renderer.renderToken(tokens, idx, options);
 };
 
 // Custom renderer for links with nofollow
@@ -74,6 +85,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, renderer) {
     // Optionally add target="_blank" for external links
     if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
       token.attrSet('target', '_blank');
+      token.attrSet('rel', 'nofollow noopener noreferrer');
     }
   }
 
@@ -86,7 +98,9 @@ interface MarkdownPreviewProps {
 
 export function MarkdownPreview({ content }: MarkdownPreviewProps) {
   const html = useMemo(() => {
-    return content ? md.render(content) : '';
+    if (!content) return '';
+    const env: MarkdownEnv = {};
+    return md.render(content, env);
   }, [content]);
 
   return (

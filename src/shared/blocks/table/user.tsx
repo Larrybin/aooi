@@ -30,6 +30,7 @@ export function User({
     <Link
       href={`/admin/users?email=${value.email}`}
       target="_blank"
+      rel="noopener noreferrer"
       className={cn('flex items-center gap-2', className)}
     >
       <Avatar className={className}>
