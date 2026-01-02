@@ -75,15 +75,15 @@ test('assertRoleDeletedAtColumnExists: 生产环境列缺失时抛出通用 publ
   >[0]['sql'] = async () => [];
   const logger = { error: () => undefined };
 
-	  await assert.rejects(
-	    () => assertRoleDeletedAtColumnExists({ sql, isProduction: true, logger }),
-	    (error: unknown) => {
-	      assert.ok(error instanceof Error);
-	      assert.match(error.message, /^DB_STARTUP_CHECK_FAILED \(schema\):/);
-	      return true;
-	    }
-	  );
-	});
+  await assert.rejects(
+    () => assertRoleDeletedAtColumnExists({ sql, isProduction: true, logger }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /^DB_STARTUP_CHECK_FAILED \(schema\):/);
+      return true;
+    }
+  );
+});
 
 test('assertRoleDeletedAtColumnExists: 非生产环境连接失败时抛出详细 hint', async () => {
   const sql: Parameters<
@@ -121,15 +121,12 @@ test('assertRoleDeletedAtColumnExists: 生产环境连接失败时抛出通用 p
   };
   const logger = { error: () => undefined };
 
-	  await assert.rejects(
-	    () => assertRoleDeletedAtColumnExists({ sql, isProduction: true, logger }),
-	    (error: unknown) => {
-	      assert.ok(error instanceof Error);
-	      assert.match(
-	        error.message,
-	        /^DB_STARTUP_CHECK_FAILED \(connectivity\):/
-	      );
-	      return true;
-	    }
-	  );
-	});
+  await assert.rejects(
+    () => assertRoleDeletedAtColumnExists({ sql, isProduction: true, logger }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /^DB_STARTUP_CHECK_FAILED \(connectivity\):/);
+      return true;
+    }
+  );
+});

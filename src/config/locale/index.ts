@@ -1,13 +1,85 @@
 import { envConfigs } from '..';
 
-export const locales = ['en', 'zh'] as const;
+export const locales = [
+  'en',
+  'zh',
+  'ar',
+  'bn',
+  'cs',
+  'da',
+  'de',
+  'el',
+  'es',
+  'fa',
+  'fi',
+  'fr',
+  'he',
+  'hi',
+  'id',
+  'it',
+  'ja',
+  'ko',
+  'ms',
+  'nl',
+  'no',
+  'pl',
+  'pt',
+  'pt-BR',
+  'ro',
+  'ru',
+  'sv',
+  'th',
+  'tl-PH',
+  'tr',
+  'uk',
+  'ur',
+  'vi',
+  'zh-TW',
+] as const;
 
 export type Locale = (typeof locales)[number];
 
-export const localeNames: Record<Locale, string> = {
+export const localeNames = {
   en: 'English',
   zh: '中文',
-};
+  ar: 'العربية',
+  bn: 'বাংলা',
+  cs: 'Čeština',
+  da: 'Dansk',
+  de: 'Deutsch',
+  el: 'Ελληνικά',
+  es: 'Español',
+  fa: 'فارسی',
+  fi: 'Suomi',
+  fr: 'Français',
+  he: 'עברית',
+  hi: 'हिन्दी',
+  id: 'Bahasa Indonesia',
+  it: 'Italiano',
+  ja: '日本語',
+  ko: '한국어',
+  ms: 'Bahasa Melayu',
+  nl: 'Nederlands',
+  no: 'Norsk',
+  pl: 'Polski',
+  pt: 'Português',
+  'pt-BR': 'Português (Brasil)',
+  ro: 'Română',
+  ru: 'Русский',
+  sv: 'Svenska',
+  th: 'ไทย',
+  'tl-PH': 'Filipino (Philippines)',
+  tr: 'Türkçe',
+  uk: 'Українська',
+  ur: 'اردو',
+  vi: 'Tiếng Việt',
+  'zh-TW': '繁體中文',
+} satisfies Record<Locale, string>;
+
+export const rtlLocales = ['ar', 'fa', 'he', 'ur'] as const;
+
+export const isRtlLocale = (locale: string) =>
+  (rtlLocales as readonly string[]).includes(locale);
 
 const fallbackLocale = locales[0];
 const envDefaultLocale = envConfigs.locale;

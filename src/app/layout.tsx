@@ -5,6 +5,7 @@ import '@/config/style/global.css';
 
 import { getLocale, setRequestLocale } from 'next-intl/server';
 
+import { isRtlLocale } from '@/config/locale';
 import { getAllConfigs } from '@/shared/models/config';
 import { getAdsManagerWithConfigs } from '@/shared/services/ads';
 import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
@@ -71,7 +72,11 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={isRtlLocale(locale) ? 'rtl' : 'ltr'}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 

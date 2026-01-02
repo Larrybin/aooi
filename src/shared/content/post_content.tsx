@@ -4,7 +4,7 @@ import { createElement, type ElementType, type ReactNode } from 'react';
 import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 
-import { pagesSource, postsSource } from '@/core/docs/source';
+import { i18n, pagesSource, postsSource } from '@/core/docs/source';
 import { generateTOC } from '@/core/docs/toc';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
@@ -17,6 +17,12 @@ import type {
   Category as BlogCategoryType,
   Post as BlogPostType,
 } from '@/shared/types/blocks/blog';
+
+const supportedContentLocales = new Set(i18n.languages);
+
+function resolveContentLocale(locale: string) {
+  return supportedContentLocales.has(locale) ? locale : i18n.defaultLanguage;
+}
 
 /**
  * Content pipeline for local posts/pages and markdown-derived artifacts.
@@ -41,7 +47,12 @@ export async function getLocalPost({
   locale: string;
   postPrefix?: string;
 }): Promise<BlogPostType | null> {
-  const localPost = await postsSource.getPage([slug], locale);
+  const sourceLocale = resolveContentLocale(locale);
+  const localPost =
+    (await postsSource.getPage([slug], sourceLocale)) ??
+    (sourceLocale !== i18n.defaultLanguage
+      ? await postsSource.getPage([slug], i18n.defaultLanguage)
+      : null);
   if (!localPost) {
     return null;
   }
@@ -96,7 +107,12 @@ export async function getLocalPage({
   locale: string;
   pagePrefix?: string;
 }): Promise<BlogPostType | null> {
-  const localPage = await pagesSource.getPage([slug], locale);
+  const sourceLocale = resolveContentLocale(locale);
+  const localPage =
+    (await pagesSource.getPage([slug], sourceLocale)) ??
+    (sourceLocale !== i18n.defaultLanguage
+      ? await pagesSource.getPage([slug], i18n.defaultLanguage)
+      : null);
   if (!localPage) {
     return null;
   }
@@ -150,7 +166,18 @@ export async function getLocalPostsAndCategories({
   postPrefix?: string;
   categoryPrefix?: string;
 }) {
-  const localPosts = postsSource.getPages(locale);
+  const requestedLocale = locale;
+  const sourceLocale = resolveContentLocale(locale);
+  let contentLocale = sourceLocale;
+  let localPosts = postsSource.getPages(sourceLocale);
+
+  if (
+    (!localPosts || localPosts.length === 0) &&
+    sourceLocale !== i18n.defaultLanguage
+  ) {
+    contentLocale = i18n.defaultLanguage;
+    localPosts = postsSource.getPages(i18n.defaultLanguage);
+  }
 
   if (!localPosts || localPosts.length === 0) {
     return {
@@ -168,7 +195,7 @@ export async function getLocalPostsAndCategories({
     const frontmatter = post.data as LocalPostFrontmatter;
     const slug = getPostSlugFromUrl({
       url: post.url,
-      locale,
+      locale: contentLocale,
       prefix: postPrefix,
     });
 
@@ -180,7 +207,7 @@ export async function getLocalPostsAndCategories({
       author_name: frontmatter.author_name || '',
       author_image: frontmatter.author_image || '',
       created_at: frontmatter.created_at
-        ? formatPostDate(frontmatter.created_at, locale)
+        ? formatPostDate(frontmatter.created_at, requestedLocale)
         : '',
       image: frontmatter.image || '',
       url: `${postPrefix}${slug}`,
