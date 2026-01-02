@@ -1,0 +1,30 @@
+{
+  "fields": {
+    "order_no": "訂單號",
+    "user": "使用者",
+    "amount": "金額",
+    "product_name": "產品名稱",
+    "price": "標價",
+    "paid_amount": "付款金額",
+    "discount_amount": "優惠金額",
+    "description": "描述",
+    "type": "類型",
+    "provider": "供應商",
+    "created_at": "建立時間",
+    "status": "狀態",
+    "action": "操作",
+    "actions": {
+      "view_invoice": "查看發票"
+    }
+  },
+  "list": {
+    "title": "付款",
+    "description": "查看你的付款",
+    "tabs": {
+      "all": "全部",
+      "one-time": "一次性",
+      "subscription": "訂閱",
+      "renew": "續費"
+    }
+  }
+}

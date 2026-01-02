@@ -1,0 +1,53 @@
+{
+  "fields": {
+    "order_no": "訂單號",
+    "user": "使用者",
+    "amount": "金額",
+    "product": "產品",
+    "description": "描述",
+    "type": "類型",
+    "provider": "供應商",
+    "created_at": "建立時間",
+    "status": "狀態",
+    "action": "操作"
+  },
+  "list": {
+    "title": "付款",
+    "crumbs": {
+      "admin": "管理後台",
+      "payments": "付款"
+    },
+    "tabs": {
+      "all": "全部",
+      "subscription": "訂閱",
+      "one-time": "一次性"
+    },
+    "filters": {
+      "status": {
+        "title": "狀態",
+        "options": {
+          "all": "全部",
+          "paid": "已付款",
+          "created": "已建立",
+          "failed": "付款失敗"
+        }
+      },
+      "provider": {
+        "title": "供應商",
+        "options": {
+          "all": "全部",
+          "stripe": "Stripe",
+          "creem": "Creem",
+          "lemonsqueezy": "Lemonsqueezy",
+          "paypal": "Paypal"
+        }
+      }
+    },
+    "search": {
+      "order_no": {
+        "title": "訂單號",
+        "placeholder": "訂單號"
+      }
+    }
+  }
+}

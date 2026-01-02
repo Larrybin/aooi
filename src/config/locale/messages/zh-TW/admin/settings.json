@@ -1,0 +1,58 @@
+{
+  "groups": {
+    "general_ui": "介面",
+    "general_brand": "品牌",
+    "email_auth": "電子郵件驗證",
+    "google_auth": "Google 驗證",
+    "github_auth": "Github 驗證",
+    "basic_payment": "基礎付款",
+    "stripe": "Stripe",
+    "creem": "Creem",
+    "paypal": "Paypal",
+    "resend": "Resend",
+    "r2": "Cloudflare R2",
+    "s3": "AWS S3",
+    "openrouter": "OpenRouter",
+    "replicate": "Replicate",
+    "fal": "Fal",
+    "google_analytics": "Google 分析",
+    "clarity": "Clarity",
+    "plausible": "Plausible",
+    "openpanel": "OpenPanel",
+    "vercel_analytics": "Vercel Analytics",
+    "adsense": "Adsense",
+    "affonso": "Affonso",
+    "promotekit": "PromoteKit",
+    "tawk": "Tawk",
+    "crisp": "Crisp"
+  },
+  "edit": {
+    "title": "設定",
+    "crumbs": {
+      "admin": "管理後台",
+      "settings": "設定"
+    },
+    "tabs": {
+      "general": "一般",
+      "auth": "驗證",
+      "payment": "付款",
+      "email": "電子郵件",
+      "storage": "儲存",
+      "ai": "AI",
+      "analytics": "分析",
+      "ads": "廣告",
+      "affiliate": "聯盟行銷",
+      "customer_service": "客服"
+    },
+    "buttons": {
+      "submit": "儲存"
+    },
+    "errors": {
+      "load_failed_title": "設定載入失敗",
+      "load_failed_desc": "部分配置無法從伺服器載入，相關內容可能無法正常儲存，但你仍然可以瀏覽並切換其他設定。",
+      "global_title": "設定模組發生錯誤",
+      "global_desc": "頁面載入時發生意外錯誤，請稍後重試或聯絡管理員。",
+      "retry": "重試"
+    }
+  }
+}

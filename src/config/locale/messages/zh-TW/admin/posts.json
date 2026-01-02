@@ -1,0 +1,60 @@
+{
+  "fields": {
+    "slug": "路由",
+    "title": "標題",
+    "description": "描述",
+    "image": "圖片",
+    "content": "內容",
+    "categories": "分類",
+    "tags": "標籤",
+    "author_name": "作者名稱",
+    "author_role": "作者角色",
+    "author_image": "作者圖片",
+    "status": "狀態",
+    "created_at": "建立時間",
+    "updated_at": "更新時間",
+    "deleted_at": "刪除時間"
+  },
+  "list": {
+    "title": "文章",
+    "crumbs": {
+      "admin": "管理後台",
+      "posts": "文章"
+    },
+    "buttons": {
+      "add": "新增文章",
+      "edit": "編輯文章",
+      "view": "查看文章",
+      "delete": "刪除文章"
+    },
+    "tabs": {
+      "all": "全部",
+      "published": "已發佈",
+      "pending": "待審核",
+      "draft": "草稿",
+      "archived": "已封存"
+    }
+  },
+  "add": {
+    "title": "新增文章",
+    "crumbs": {
+      "admin": "管理後台",
+      "posts": "文章",
+      "add": "新增文章"
+    },
+    "buttons": {
+      "submit": "新增文章"
+    }
+  },
+  "edit": {
+    "title": "編輯文章",
+    "crumbs": {
+      "admin": "管理後台",
+      "posts": "文章",
+      "edit": "編輯文章"
+    },
+    "buttons": {
+      "submit": "編輯文章"
+    }
+  }
+}

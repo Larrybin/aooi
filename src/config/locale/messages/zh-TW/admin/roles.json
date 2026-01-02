@@ -1,0 +1,71 @@
+{
+  "fields": {
+    "id": "ID",
+    "name": "名稱",
+    "title": "標題",
+    "description": "描述",
+    "status": "狀態",
+    "sort": "排序",
+    "created_at": "建立時間",
+    "updated_at": "更新時間",
+    "deleted_at": "刪除時間",
+    "permissions": "權限",
+    "actions": "操作"
+  },
+  "list": {
+    "title": "角色",
+    "crumbs": {
+      "admin": "管理後台",
+      "roles": "角色"
+    },
+    "buttons": {
+      "create": "建立角色",
+      "edit": "編輯角色",
+      "edit_permissions": "編輯權限",
+      "delete": "刪除角色",
+      "restore": "還原角色",
+      "show_deleted": "查看已刪除",
+      "hide_deleted": "隱藏已刪除"
+    }
+  },
+  "delete": {
+    "title": "刪除角色",
+    "crumbs": {
+      "delete": "刪除角色"
+    },
+    "buttons": {
+      "submit": "刪除"
+    }
+  },
+  "restore": {
+    "title": "還原角色",
+    "crumbs": {
+      "restore": "還原角色"
+    },
+    "buttons": {
+      "submit": "還原"
+    }
+  },
+  "edit": {
+    "title": "編輯角色",
+    "crumbs": {
+      "admin": "管理後台",
+      "roles": "角色",
+      "edit": "編輯角色"
+    },
+    "buttons": {
+      "submit": "更新"
+    }
+  },
+  "edit_permissions": {
+    "title": "編輯權限",
+    "crumbs": {
+      "admin": "管理後台",
+      "roles": "角色",
+      "edit_permissions": "編輯權限"
+    },
+    "buttons": {
+      "submit": "更新"
+    }
+  }
+}

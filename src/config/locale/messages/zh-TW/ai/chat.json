@@ -1,0 +1,120 @@
+{
+  "sidebar": {
+    "header": {
+      "brand": {
+        "title": "Roller Rabbit Chat",
+        "logo": {
+          "src": "/logo.png",
+          "alt": "Roller Rabbit Chat"
+        },
+        "url": "/chat"
+      },
+      "show_trigger": false
+    },
+    "buttons": [
+      {
+        "title": "建立新對話",
+        "icon": "Plus",
+        "url": "/chat",
+        "variant": "outline"
+      }
+    ],
+    "main_navs": [
+      {
+        "items": [
+          {
+            "title": "歷史對話",
+            "icon": "History",
+            "url": "/chat/history"
+          }
+        ]
+      }
+    ],
+    "bottom_nav": {
+      "items": []
+    },
+    "user": {
+      "nav": {
+        "items": [
+          {
+            "title": "個人資料",
+            "url": "/settings/profile",
+            "icon": "User",
+            "target": "_blank"
+          }
+        ]
+      },
+      "show_email": false,
+      "show_signout": true,
+      "signout_callback": "/chat",
+      "signin_callback": "/chat"
+    },
+    "footer": {
+      "nav": {
+        "items": [
+          {
+            "title": "首頁",
+            "url": "/",
+            "icon": "Home",
+            "target": "_blank"
+          },
+          {
+            "title": "GitHub",
+            "url": "",
+            "icon": "Github",
+            "target": "_blank"
+          },
+          {
+            "title": "推特",
+            "url": "",
+            "icon": "RiTwitterXFill",
+            "target": "_blank"
+          },
+          {
+            "title": "Discord",
+            "url": "",
+            "icon": "RiDiscordFill",
+            "target": "_blank"
+          },
+          {
+            "title": "電子郵件",
+            "url": "",
+            "icon": "Mail",
+            "target": "_blank"
+          }
+        ]
+      },
+      "show_locale": false
+    },
+    "variant": "sidebar"
+  },
+  "library": {
+    "title": "歷史對話",
+    "icon": "History",
+    "url": "/chat/history",
+    "more": "更多",
+    "actions": {
+      "edit_title": "編輯標題",
+      "share": "分享",
+      "delete": "刪除"
+    }
+  },
+  "generator": {
+    "title": "今天有什麼可以幫到你？",
+    "input_placeholder": "你可以問我任何問題"
+  },
+  "history": {
+    "title": "歷史對話",
+    "description": "查看你之前的對話。",
+    "empty": "暫無對話紀錄。",
+    "error": "載入對話列表失敗。",
+    "retry": "重試",
+    "signin": "登入後可查看歷史對話。",
+    "summary": "正在顯示第 {from}-{to} 條，共 {total} 條",
+    "perPage": "每頁",
+    "prev": "上一頁",
+    "next": "下一頁",
+    "open": "進入對話",
+    "untitled": "未命名對話"
+  }
+}

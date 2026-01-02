@@ -1,0 +1,55 @@
+{
+  "fields": {
+    "id": "ID",
+    "name": "名稱",
+    "avatar": "頭像",
+    "email": "電子郵件",
+    "email_verified": "電子郵件已驗證",
+    "remaining_credits": "剩餘點數",
+    "created_at": "建立時間",
+    "actions": "操作",
+    "roles": "角色"
+  },
+  "list": {
+    "title": "使用者",
+    "crumbs": {
+      "admin": "管理後台",
+      "users": "使用者"
+    },
+    "buttons": {
+      "add": "新增使用者",
+      "edit": "編輯使用者",
+      "view": "查看使用者",
+      "delete": "刪除使用者",
+      "edit_roles": "編輯角色"
+    },
+    "search": {
+      "email": {
+        "title": "電子郵件",
+        "placeholder": "電子郵件"
+      }
+    }
+  },
+  "edit": {
+    "title": "編輯使用者",
+    "crumbs": {
+      "admin": "管理後台",
+      "users": "使用者",
+      "edit": "編輯使用者"
+    },
+    "buttons": {
+      "submit": "更新"
+    }
+  },
+  "edit_roles": {
+    "title": "編輯角色",
+    "crumbs": {
+      "admin": "管理後台",
+      "users": "使用者",
+      "edit_roles": "編輯角色"
+    },
+    "buttons": {
+      "submit": "更新"
+    }
+  }
+}

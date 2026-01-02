@@ -1,0 +1,18 @@
+{
+  "fields": {
+    "email": "電子郵件",
+    "name": "名稱",
+    "avatar": "頭像"
+  },
+  "edit": {
+    "title": "個人資料",
+    "description": "更新你的個人資料",
+    "crumbs": {
+      "settings": "設定",
+      "profile": "個人資料"
+    },
+    "buttons": {
+      "submit": "儲存"
+    }
+  }
+}

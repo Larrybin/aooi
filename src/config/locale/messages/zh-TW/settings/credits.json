@@ -1,0 +1,26 @@
+{
+  "fields": {
+    "transaction_no": "交易單號",
+    "description": "描述",
+    "type": "類型",
+    "scene": "情境",
+    "credits": "點數",
+    "expires_at": "到期時間",
+    "created_at": "建立時間",
+    "action": "操作"
+  },
+  "list": {
+    "title": "點數紀錄",
+    "tabs": {
+      "all": "全部",
+      "grant": "發放",
+      "consume": "消費"
+    }
+  },
+  "view": {
+    "title": "點數餘額",
+    "buttons": {
+      "purchase": "購買點數"
+    }
+  }
+}

@@ -1,0 +1,569 @@
+{
+  "header": {
+    "id": "header",
+    "brand": {
+      "title": "Roller Rabbit",
+      "logo": {
+        "src": "/logo.png",
+        "alt": "Roller Rabbit",
+        "width": 512,
+        "height": 512
+      },
+      "url": "/"
+    },
+    "nav": {
+      "items": [
+        {
+          "title": "價格",
+          "url": "/pricing",
+          "icon": "DollarSign"
+        },
+        {
+          "title": "AI",
+          "icon": "RiRobot2Line",
+          "children": [
+            {
+              "title": "AI 圖片生成器",
+              "description": "使用 AI 生成圖片",
+              "url": "/ai-image-generator",
+              "icon": "RiImage2Line"
+            },
+            {
+              "title": "AI 音樂生成器",
+              "description": "使用 AI 生成美妙的音樂",
+              "url": "/ai-music-generator",
+              "icon": "RiMusic2Line"
+            },
+            {
+              "title": "AI 聊天機器人",
+              "description": "與 AI 聊天機器人對話",
+              "url": "/chat",
+              "icon": "RiMessage2Line"
+            }
+          ]
+        },
+        {
+          "title": "部落格",
+          "url": "/blog",
+          "icon": "Newspaper"
+        },
+        {
+          "title": "文件",
+          "url": "/docs",
+          "icon": "BookOpenText"
+        }
+      ]
+    },
+    "buttons": [],
+    "user_nav": {
+      "show_name": true,
+      "show_credits": true,
+      "show_sign_out": true,
+      "items": [
+        {
+          "title": "帳單",
+          "url": "/settings/billing",
+          "icon": "CreditCard"
+        },
+        {
+          "title": "活動",
+          "url": "/activity",
+          "icon": "Activity"
+        }
+      ]
+    },
+    "show_sign": true,
+    "show_locale": true
+  },
+  "hero": {
+    "id": "hero",
+    "title": "一小時快速上線你的 AI 創業專案",
+    "highlight_text": "一小時",
+    "description": "Roller Rabbit 是用於構建 AI SaaS 創業專案的 Next.js 專案模板。<br/>整合常用功能，快速上線你的產品。",
+    "announcement": {
+      "badge": "全新",
+      "title": "🎉 Roller Rabbit 已發布",
+      "url": "/pricing"
+    },
+    "tip": "🎁 前 1000 名用戶特價優惠",
+    "buttons": [
+      {
+        "title": "立即開始",
+        "icon": "Zap",
+        "url": "/pricing",
+        "target": "_self",
+        "variant": "default"
+      },
+      {
+        "title": "閱讀文件",
+        "icon": "BookOpenText",
+        "url": "/docs",
+        "target": "_blank",
+        "variant": "outline"
+      }
+    ],
+    "show_avatars": true,
+    "avatars_tip": "999+ 用戶正在使用 Roller Rabbit",
+    "show_award": false,
+    "image": {
+      "src": "/imgs/features/admin.jpg",
+      "alt": "hero",
+      "width": 2434,
+      "height": 1642
+    },
+    "image_invert": {
+      "src": "/imgs/features/admin-dark.jpg",
+      "alt": "hero",
+      "width": 2432,
+      "height": 1648
+    }
+  },
+  "logos": {
+    "title": "Roller Rabbit 使用以下技術棧構建",
+    "items": [
+      {
+        "title": "Next.js",
+        "image": {
+          "src": "/imgs/logos/nextjs.svg",
+          "alt": "Next.js"
+        }
+      },
+      {
+        "title": "React",
+        "image": {
+          "src": "/imgs/logos/react.svg",
+          "alt": "React"
+        }
+      },
+      {
+        "title": "TailwindCSS",
+        "image": {
+          "src": "/imgs/logos/tailwindcss.svg",
+          "alt": "TailwindCSS"
+        }
+      },
+      {
+        "title": "Shadcn/UI",
+        "image": {
+          "src": "/imgs/logos/shadcn.svg",
+          "alt": "Shadcn/UI"
+        }
+      },
+      {
+        "title": "Vercel",
+        "image": {
+          "src": "/imgs/logos/vercel.svg",
+          "alt": "Vercel"
+        }
+      }
+    ]
+  },
+  "introduce": {
+    "id": "introduce",
+    "title": "Roller Rabbit 是什麼？",
+    "label": "產品簡介",
+    "description": "Roller Rabbit 是專為 AI SaaS 創業專案打造的 Next.js 腳手架，包含豐富模板、元件及文件。",
+    "image": {
+      "src": "/imgs/features/landing-page.png",
+      "alt": "introduce",
+      "width": 1200,
+      "height": 640
+    },
+    "items": [
+      {
+        "title": "開箱即用的模板",
+        "description": "從數十款生產級 AI SaaS 模板中選擇，快速開啟你的專案。",
+        "icon": "RiNextjsFill",
+        "image": {
+          "src": "/imgs/features/1.png",
+          "alt": "introduce"
+        }
+      },
+      {
+        "title": "基礎設施建置",
+        "description": "內建最佳實務，即刻擁有可擴充的基礎設施。",
+        "icon": "RiDatabase2Line",
+        "image": {
+          "src": "/imgs/features/2.png",
+          "alt": "introduce"
+        }
+      },
+      {
+        "title": "極速部署",
+        "description": "AI SaaS 產品快速上線，助力小時級交付。",
+        "icon": "RiCloudyFill",
+        "image": {
+          "src": "/imgs/features/3.png",
+          "alt": "introduce"
+        }
+      },
+      {
+        "title": "AI 整合",
+        "description": "透過內建的 AI SDK，輕鬆為你的專案整合 AI 能力。",
+        "icon": "RiRobot2Line",
+        "image": {
+          "src": "/imgs/features/4.png",
+          "alt": "introduce"
+        }
+      }
+    ]
+  },
+  "benefits": {
+    "id": "benefits",
+    "title": "為何選擇 Roller Rabbit",
+    "label": "產品優勢",
+    "description": "你獲得一切 AI 創業所需——從開箱即用的模板到專業技術支援。",
+    "items": [
+      {
+        "title": "全棧解決方案",
+        "description": "基於 Next.js，整合身分驗證、支付、AI，一站式開箱即用。",
+        "icon": "RiNextjsFill",
+        "image": {
+          "src": "/imgs/features/user-billing.png",
+          "alt": "benefits",
+          "width": 1600,
+          "height": 1103
+        }
+      },
+      {
+        "title": "豐富模板庫",
+        "description": "多樣的 AI SaaS 模板，點擊即用，涵蓋聊天、圖片生成等多場景。",
+        "icon": "RiClapperboardAiLine",
+        "image": {
+          "src": "/imgs/features/admin-settings.png",
+          "alt": "benefits",
+          "width": 1600,
+          "height": 1190
+        }
+      },
+      {
+        "title": "專屬技術指導",
+        "description": "享受專屬技術支援與開發者社群，為你的成功保駕護航。",
+        "icon": "RiCodeFill",
+        "image": {
+          "src": "/imgs/features/landing-page.png",
+          "alt": "benefits",
+          "width": 1200,
+          "height": 640
+        }
+      }
+    ]
+  },
+  "usage": {
+    "id": "usage",
+    "title": "三步使用 Roller Rabbit 極速上線",
+    "description": "只需三步，快速開啟你的 AI SaaS 創業之路：",
+    "image": {
+      "src": "/imgs/features/1.png",
+      "alt": "usage"
+    },
+    "image_position": "left",
+    "text_align": "center",
+    "items": [
+      {
+        "title": "取得 Roller Rabbit",
+        "description": "一次性購買 Roller Rabbit，查收郵件取得程式碼與文件。",
+        "image": {
+          "src": "/imgs/features/5.png",
+          "alt": "usage"
+        }
+      },
+      {
+        "title": "啟動你的專案",
+        "description": "閱讀說明文件，複製 Roller Rabbit 程式碼，開始開發你的 AI SaaS 專案。",
+        "image": {
+          "src": "/imgs/features/6.png",
+          "alt": "usage"
+        }
+      },
+      {
+        "title": "個人化客製",
+        "description": "根據需求修改模板內容和資料，設定專屬 AI 能力。",
+        "image": {
+          "src": "/imgs/features/7.png",
+          "alt": "usage"
+        }
+      },
+      {
+        "title": "部署上線",
+        "description": "簡單幾步將你的專案推向生產環境，立刻為客戶提供服務。",
+        "image": {
+          "src": "/imgs/features/8.png",
+          "alt": "usage"
+        }
+      }
+    ]
+  },
+  "features": {
+    "id": "features",
+    "title": "Roller Rabbit 核心功能",
+    "description": "一切你需要的工具，助力 AI SaaS 專案高效上線。",
+    "items": [
+      {
+        "title": "Next.js 專案模板",
+        "description": "生產就緒、支援 SEO 與多語言的 Next.js 腳手架。",
+        "icon": "RiNextjsFill"
+      },
+      {
+        "title": "身分驗證與支付",
+        "description": "整合 Google OAuth、一鍵登入，以及 Stripe 支付。",
+        "icon": "RiKey2Fill"
+      },
+      {
+        "title": "資料基礎設施",
+        "description": "內建 Supabase，穩定可靠的資料儲存。",
+        "icon": "RiDatabase2Line"
+      },
+      {
+        "title": "一鍵部署",
+        "description": "自動化部署到 Vercel 或 Cloudflare，極速上線。",
+        "icon": "RiCloudy2Fill"
+      },
+      {
+        "title": "商業分析",
+        "description": "整合 Google Analytics、Search Console，助力業務成長。",
+        "icon": "RiBarChart2Line"
+      },
+      {
+        "title": "AI 原生基礎設施",
+        "description": "預置 AI 整合、點數系統和 API 銷售能力。",
+        "icon": "RiRobot2Line"
+      }
+    ]
+  },
+  "stats": {
+    "id": "stats",
+    "title": "用戶喜愛 Roller Rabbit",
+    "description": "因其易用且上線飛快。",
+    "items": [
+      {
+        "title": "999+",
+        "description": "位用戶"
+      },
+      {
+        "title": "200+",
+        "description": "元件區塊"
+      },
+      {
+        "title": "50+",
+        "description": "專業模板"
+      }
+    ]
+  },
+  "testimonials": {
+    "id": "testimonials",
+    "title": "用戶對 Roller Rabbit 的評價",
+    "description": "聽聽開發者與創辦人用 Roller Rabbit 快速上線 AI 創業專案的故事。",
+    "items": [
+      {
+        "name": "David Chen",
+        "role": "AIWallpaper.shop 創辦人",
+        "quote": "Roller Rabbit 為我們節省了數月開發時間。2 天上線 AI 壁紙業務，一週內就收到了第一筆付費訂單！",
+        "image": {
+          "src": "/imgs/avatars/1.png",
+          "alt": "david"
+        }
+      },
+      {
+        "name": "Rachel Kim",
+        "role": "HeyBeauty.ai 技術長",
+        "quote": "內建 AI 基礎設施顛覆了開發體驗，無需擔心架構，只需專注核心功能，極快落地。",
+        "image": {
+          "src": "/imgs/avatars/2.png",
+          "alt": "rachel"
+        }
+      },
+      {
+        "name": "Marcus Thompson",
+        "role": "獨立開發者",
+        "quote": "作為獨立開發者，Roller Rabbit 滿足了全部需求——身分驗證、支付、AI 整合、美觀介面，一個週末上線 SaaS！",
+        "image": {
+          "src": "/imgs/avatars/3.png",
+          "alt": "marcus"
+        }
+      },
+      {
+        "name": "Sofia Garcia",
+        "role": "Melodisco 執行長",
+        "quote": "模板高度可客製且生產級。我們幾小時內搭建出了 AI 音樂平台，上市週期大大縮短！",
+        "image": {
+          "src": "/imgs/avatars/4.png",
+          "alt": "sofia"
+        }
+      },
+      {
+        "name": "James Wilson",
+        "role": "GPTs.works 技術負責人",
+        "quote": "Roller Rabbit 基礎設施極其穩定。我們從 0 到 1 萬用戶，無需關心後端維護，是最棒的 AI 創業投資。",
+        "image": {
+          "src": "/imgs/avatars/5.png",
+          "alt": "james"
+        }
+      },
+      {
+        "name": "Anna Zhang",
+        "role": "創業者",
+        "quote": "從想法到上線，僅用 3 天！Roller Rabbit 模板和部署工具讓我們極快驗證 AI 商業創意。",
+        "image": {
+          "src": "/imgs/avatars/6.png",
+          "alt": "anna"
+        }
+      }
+    ]
+  },
+  "faq": {
+    "id": "faq",
+    "title": "關於 Roller Rabbit 的常見問題",
+    "description": "還有其他問題？歡迎加入 Discord 或發郵件聯絡我們。",
+    "tip": "沒有找到想要的答案？請聯絡 <a href='https://discord.gg/HQNnrzjZQS' target='_blank' rel='nofollow noopener noreferrer' class='text-primary font-medium hover:underline'>我們的客服團隊</a>",
+    "items": [
+      {
+        "question": "Roller Rabbit 是什麼？怎麼幫到我？",
+        "answer": "Roller Rabbit 是專為 AI SaaS 創業設計的 Next.js 全套腳手架，內含開箱即用的模板、基礎設施建置和部署工具，讓你數小時內上線 AI 產品。"
+      },
+      {
+        "question": "使用 Roller Rabbit 需要很高的技術水準嗎？",
+        "answer": "有基礎程式設計知識即可上手。Roller Rabbit 對開發者友好，詳細文件和模板讓初學者也能輕鬆起步，不需深厚 AI 或雲端運算背景。"
+      },
+      {
+        "question": "Roller Rabbit 支援哪些類型的 AI SaaS 專案？",
+        "answer": "Roller Rabbit 支援內容生成、資料分析、AI 聊天機器人、圖片/內容生成器等多種主流 AI 應用場景。"
+      },
+      {
+        "question": "用 Roller Rabbit 一般多久能上線？",
+        "answer": "借助 Roller Rabbit，可在數小時內拿到產品原型並上線生產環境，預先設定的一鍵部署大幅縮短開發週期。"
+      },
+      {
+        "question": "Roller Rabbit 的基礎設施包含哪些內容？",
+        "answer": "包含認證、資料庫、API 整合、支付、雲端部署等全棧解決方案，全部遵循業界最佳實務預先設定。"
+      },
+      {
+        "question": "模板是否支援客製自己的品牌？",
+        "answer": "當然支援！所有模板均可自訂設計、功能和品牌，既保持基礎架構穩定，又能滿足個人化擴充需求。"
+      }
+    ]
+  },
+  "cta": {
+    "id": "cta",
+    "title": "發布你的第一個 AI SaaS 專案",
+    "description": "從這裡出發，用 Roller Rabbit 極速交付。",
+    "buttons": [
+      {
+        "title": "取得 Roller Rabbit",
+        "url": "/#pricing",
+        "target": "_self",
+        "icon": "Zap"
+      },
+      {
+        "title": "閱讀文件",
+        "url": "/docs",
+        "target": "_blank",
+        "variant": "outline",
+        "icon": "BookOpenText"
+      }
+    ]
+  },
+  "subscribe": {
+    "id": "subscribe",
+    "title": "訂閱我們的郵件通知",
+    "description": "取得 Roller Rabbit 最新資訊與產品動態。",
+    "submit": {
+      "input": {
+        "placeholder": "輸入電子郵件"
+      },
+      "button": {
+        "title": "訂閱"
+      },
+      "action": "/api/subscribe"
+    }
+  },
+  "footer": {
+    "id": "footer",
+    "brand": {
+      "title": "Roller Rabbit",
+      "description": "Roller Rabbit 是專為 AI SaaS 創業專案打造的 Next.js 模板。豐富模板與元件，極速交付你的產品。",
+      "logo": {
+        "src": "/logo.png",
+        "alt": "Roller Rabbit",
+        "width": 512,
+        "height": 512
+      },
+      "url": "/"
+    },
+    "nav": {
+      "items": [
+        {
+          "title": "關於我們",
+          "children": [
+            {
+              "title": "價格",
+              "url": "/pricing",
+              "target": "_self"
+            }
+          ]
+        },
+        {
+          "title": "資源",
+          "children": [
+            {
+              "title": "文件",
+              "url": "/docs",
+              "target": "_self"
+            },
+            {
+              "title": "部落格",
+              "url": "/blog",
+              "target": "_self"
+            },
+            {
+              "title": "對話",
+              "url": "/chat",
+              "target": "_blank"
+            }
+          ]
+        }
+      ]
+    },
+    "social": {
+      "items": [
+        {
+          "title": "X",
+          "icon": "RiTwitterXFill",
+          "url": "",
+          "target": "_blank"
+        },
+        {
+          "title": "GitHub",
+          "icon": "Github",
+          "url": "",
+          "target": "_blank"
+        },
+        {
+          "title": "Discord",
+          "icon": "RiDiscordFill",
+          "url": "",
+          "target": "_blank"
+        },
+        {
+          "title": "電子郵件",
+          "icon": "Mail",
+          "url": "",
+          "target": "_self"
+        }
+      ]
+    },
+    "agreement": {
+      "items": [
+        {
+          "title": "隱私政策",
+          "url": "/privacy-policy"
+        },
+        {
+          "title": "服務條款",
+          "url": "/terms-of-service"
+        }
+      ]
+    },
+    "show_locale": true
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit 是用於構建 AI SaaS 創業專案的 Next.js 腳手架。提供豐富模板和元件，助你快速上線產品。",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "登入",
+    "sign_in_description": "登入到你的帳戶",
+    "sign_up_title": "註冊",
+    "sign_up_description": "建立一個新帳戶",
+    "email_title": "電子郵件",
+    "email_placeholder": "請輸入你的電子郵件",
+    "password_title": "密碼",
+    "password_placeholder": "請輸入你的密碼",
+    "forgot_password": "忘記密碼？",
+    "forgot_password_title": "找回密碼",
+    "forgot_password_description": "我們會向你的電子郵件發送重置連結",
+    "forgot_password_submit": "傳送重置連結",
+    "forgot_password_sent": "如果該電子郵件存在於系統中，請查收重置連結郵件。",
+    "forgot_password_disabled": "目前未啟用找回密碼功能。",
+    "reset_password_title": "重置密碼",
+    "reset_password_description": "為你的帳戶設定新密碼",
+    "new_password_title": "新密碼",
+    "new_password_placeholder": "請輸入新密碼",
+    "new_password_required": "請輸入新密碼",
+    "confirm_password_title": "確認新密碼",
+    "confirm_password_placeholder": "請再次輸入新密碼",
+    "confirm_password_required": "請確認新密碼",
+    "password_mismatch": "兩次輸入的密碼不一致",
+    "reset_password_submit": "重置密碼",
+    "reset_password_success": "密碼已重置，請重新登入。",
+    "reset_password_disabled": "目前未啟用重置密碼功能。",
+    "invalid_reset_token": "重置連結無效或已過期。",
+    "missing_reset_token": "缺少重置權杖，請使用郵件中的連結。",
+    "email_required": "請輸入電子郵件",
+    "back_to_sign_in": "返回登入",
+    "or": "或",
+    "continue": "繼續",
+    "no_account": "還沒有帳戶？",
+    "already_have_account": "已經有帳戶？",
+    "email_sign_in": "使用電子郵件登入",
+    "google_sign_in_title": "使用 Google 登入",
+    "github_sign_in_title": "使用 GitHub 登入",
+    "close_title": "關閉",
+    "cancel_title": "取消",
+    "sign_out_title": "登出",
+    "billing_title": "帳單",
+    "name_title": "姓名",
+    "name_placeholder": "請輸入你的姓名",
+    "admin_title": "管理後台",
+    "credits_title": "點數: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "選擇付款方式",
+    "choose_payment_method_description": "",
+    "cancel_title": "取消"
+  },
+  "locale_detector": {
+    "title": "偵測到瀏覽器語言為: {locale}，是否切換？",
+    "switch_to": "切換到{locale}"
+  }
+}

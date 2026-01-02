@@ -1,0 +1,47 @@
+{
+  "fields": {
+    "title": "標題",
+    "key": "金鑰",
+    "created_at": "建立時間",
+    "action": "操作"
+  },
+  "list": {
+    "title": "API 金鑰",
+    "empty_message": "沒有 API 金鑰",
+    "buttons": {
+      "add": "建立 API 金鑰",
+      "edit": "編輯",
+      "delete": "刪除"
+    }
+  },
+  "add": {
+    "title": "建立 API 金鑰",
+    "crumbs": {
+      "apikeys": "API 金鑰",
+      "add": "建立 API 金鑰"
+    },
+    "buttons": {
+      "submit": "建立"
+    }
+  },
+  "edit": {
+    "title": "編輯 API 金鑰",
+    "crumbs": {
+      "apikeys": "API 金鑰",
+      "edit": "編輯 API 金鑰"
+    },
+    "buttons": {
+      "submit": "更新"
+    }
+  },
+  "delete": {
+    "title": "刪除 API 金鑰",
+    "crumbs": {
+      "apikeys": "API 金鑰",
+      "delete": "刪除 API 金鑰"
+    },
+    "buttons": {
+      "submit": "確認刪除"
+    }
+  }
+}

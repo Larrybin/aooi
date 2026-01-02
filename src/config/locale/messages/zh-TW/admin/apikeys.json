@@ -1,0 +1,17 @@
+{
+  "fields": {
+    "title": "名稱",
+    "key": "金鑰",
+    "user": "使用者",
+    "status": "狀態",
+    "created_at": "建立時間",
+    "action": "操作"
+  },
+  "list": {
+    "title": "API 金鑰",
+    "crumbs": {
+      "admin": "管理後台",
+      "apikeys": "API 金鑰"
+    }
+  }
+}

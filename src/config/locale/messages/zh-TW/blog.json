@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "title": "部落格",
+    "description": "閱讀我們最新的產品功能、解決方案和更新內容。"
+  },
+  "blog": {
+    "id": "blog",
+    "sr_only_title": "Roller Rabbit 部落格",
+    "title": "部落格",
+    "description": "閱讀我們最新的產品功能、解決方案和更新內容。"
+  },
+  "page": {
+    "all": "全部",
+    "no_content": "暫無內容",
+    "crumb": "部落格",
+    "toc": "目錄"
+  }
+}

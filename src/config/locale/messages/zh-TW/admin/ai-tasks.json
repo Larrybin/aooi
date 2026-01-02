@@ -1,0 +1,37 @@
+{
+  "fields": {
+    "task_id": "任務 ID",
+    "media_type": "類型",
+    "provider": "供應商",
+    "model": "模型",
+    "prompt": "提示詞",
+    "options": "選項",
+    "user": "使用者",
+    "status": "狀態",
+    "cost_credits": "消耗點數",
+    "result": "結果",
+    "created_at": "建立時間",
+    "action": "操作",
+    "scene": "情境"
+  },
+  "list": {
+    "title": "AI 任務",
+    "crumbs": {
+      "admin": "管理後台",
+      "ai-tasks": "AI 任務"
+    },
+    "tabs": {
+      "all": "全部",
+      "music": "音樂",
+      "image": "圖片",
+      "video": "影片",
+      "audio": "音訊",
+      "text": "文字"
+    },
+    "buttons": {
+      "view": "查看任務",
+      "refresh": "重新整理任務"
+    },
+    "empty_message": "沒有任務"
+  }
+}
