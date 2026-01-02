@@ -3,10 +3,10 @@
 // reason: permission catalog is admin-only; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { getPermissions, type Permission } from '@/core/rbac';
 import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getPermissions, type Permission } from '@/shared/services/rbac';
 import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Crumb } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';

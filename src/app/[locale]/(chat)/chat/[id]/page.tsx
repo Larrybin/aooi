@@ -4,6 +4,7 @@
 import { redirect } from 'next/navigation';
 import type { UIMessage } from 'ai';
 
+import { buildHasPermissionCondition } from '@/core/rbac';
 import { ChatBox } from '@/shared/blocks/chat/box';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { safeJsonParse } from '@/shared/lib/json';
@@ -13,7 +14,6 @@ import {
   getChatMessages,
 } from '@/shared/models/chat_message';
 import { getUserInfo } from '@/shared/models/user';
-import { buildHasPermissionCondition } from '@/shared/services/rbac';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({

@@ -1,6 +1,11 @@
 import type postgres from 'postgres';
 
-export type PostgresSqlClient = postgres.Sql;
+export type PostgresSqlClient = (
+  template: TemplateStringsArray,
+  ...parameters: readonly unknown[]
+) => PromiseLike<readonly unknown[]>;
+
+export type PostgresClientLike = postgres.Sql | PostgresSqlClient;
 
 export type SchemaCheckLogger = {
   error: (message: string, meta?: Record<string, unknown>) => void;
@@ -82,9 +87,9 @@ export function isMissingRoleDeletedAtColumnError(error: unknown): boolean {
 }
 
 async function hasRoleDeletedAtColumn(
-  sql: PostgresSqlClient
+  sql: PostgresClientLike
 ): Promise<boolean> {
-  const rows = await sql<{ ok: number }[]>`
+  const rows = await sql`
     select 1 as ok
     from information_schema.columns
     where table_schema = 'public'
@@ -97,7 +102,7 @@ async function hasRoleDeletedAtColumn(
 }
 
 export async function assertRoleDeletedAtColumnExists(params: {
-  sql: PostgresSqlClient;
+  sql: PostgresClientLike;
   isProduction: boolean;
   logger: SchemaCheckLogger;
 }): Promise<void> {
