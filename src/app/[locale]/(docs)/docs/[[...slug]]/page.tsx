@@ -12,7 +12,7 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/page';
 
-import { source } from '@/core/docs/source';
+import { i18n, source } from '@/core/docs/source';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
@@ -20,11 +20,21 @@ import {
 } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
+const supportedDocsLocales = new Set(i18n.languages);
+
+function resolveDocsLocale(locale?: string) {
+  const requestedLocale = locale || i18n.defaultLanguage;
+  return supportedDocsLocales.has(requestedLocale)
+    ? requestedLocale
+    : i18n.defaultLanguage;
+}
+
 export default async function DocsContentPage(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug, params.locale);
+  const docsLocale = resolveDocsLocale(params.locale);
+  const page = source.getPage(params.slug, docsLocale);
 
   if (!page) notFound();
 
@@ -74,7 +84,8 @@ export async function generateMetadata(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug, params.locale);
+  const docsLocale = resolveDocsLocale(params.locale);
+  const page = source.getPage(params.slug, docsLocale);
   if (!page) notFound();
 
   const publicConfigs = await getPublicConfigsCached();

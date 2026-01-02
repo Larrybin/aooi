@@ -1,0 +1,32 @@
+{
+  "fields": {
+    "email": "電子郵件",
+    "password": "密碼",
+    "new_password": "新密碼",
+    "confirm_password": "確認密碼"
+  },
+  "reset_password": {
+    "title": "重置密碼",
+    "description": "重置你的密碼",
+    "tip": "我們會寄送一封郵件到你的電子郵件，點擊郵件中的連結重置你的密碼。",
+    "crumbs": {
+      "settings": "設定",
+      "security": "安全設定"
+    },
+    "buttons": {
+      "submit": "傳送重置連結"
+    }
+  },
+  "delete_account": {
+    "title": "刪除帳戶",
+    "description": "刪除你的帳戶",
+    "tip": "你確定要刪除你的帳戶嗎？此操作無法復原。",
+    "crumbs": {
+      "settings": "設定",
+      "security": "安全設定"
+    },
+    "buttons": {
+      "submit": "刪除"
+    }
+  }
+}

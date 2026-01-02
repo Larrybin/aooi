@@ -1,0 +1,59 @@
+{
+  "fields": {
+    "subscription_no": "訂閱號",
+    "interval": "週期",
+    "provider": "供應商",
+    "current_period": "目前週期",
+    "plan": "方案",
+    "status": "狀態",
+    "amount": "金額",
+    "created_at": "建立時間",
+    "end_time": "結束時間",
+    "action": "操作"
+  },
+  "view": {
+    "title": "目前方案",
+    "tip": "你的訂閱將在 {date} 自動續費",
+    "end_tip": "你的訂閱將在 {date} 自動取消",
+    "no_subscription": "尚未訂閱",
+    "buttons": {
+      "adjust": "調整方案",
+      "subscribe": "前往訂閱",
+      "manage": "管理訂閱",
+      "cancel": "取消訂閱"
+    }
+  },
+  "list": {
+    "title": "訂閱紀錄",
+    "tabs": {
+      "all": "全部",
+      "active": "啟用中",
+      "pending_cancel": "待取消",
+      "canceled": "已取消",
+      "trialing": "試用中",
+      "paused": "暫停中",
+      "expired": "已過期"
+    }
+  },
+  "cancel": {
+    "title": "取消訂閱",
+    "description": "你確定要取消你的訂閱嗎？",
+    "fields": {
+      "subscription_no": "訂閱號",
+      "subscription_amount": "訂閱金額",
+      "interval_cycle": "付費週期",
+      "subscription_created_at": "訂閱建立時間",
+      "current_period": "目前週期",
+      "start_at": "開始時間",
+      "end_at": "結束時間"
+    },
+    "crumbs": {
+      "settings": "設定",
+      "billing": "帳單",
+      "cancel": "取消訂閱"
+    },
+    "buttons": {
+      "confirm_cancel": "確認取消"
+    }
+  }
+}

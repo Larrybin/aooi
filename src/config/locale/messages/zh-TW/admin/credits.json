@@ -1,0 +1,27 @@
+{
+  "fields": {
+    "transaction_no": "交易單號",
+    "user": "使用者",
+    "amount": "金額",
+    "remaining": "剩餘",
+    "type": "類型",
+    "scene": "情境",
+    "description": "描述",
+    "created_at": "建立時間",
+    "expires_at": "到期時間",
+    "metadata": "中繼資料",
+    "action": "操作"
+  },
+  "list": {
+    "title": "點數",
+    "crumbs": {
+      "admin": "管理後台",
+      "credits": "點數"
+    },
+    "tabs": {
+      "all": "全部",
+      "grant": "發放",
+      "consume": "消費"
+    }
+  }
+}

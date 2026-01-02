@@ -1,0 +1,52 @@
+{
+  "fields": {
+    "slug": "路由",
+    "title": "標題",
+    "description": "描述",
+    "status": "狀態",
+    "created_at": "建立時間",
+    "updated_at": "更新時間"
+  },
+  "list": {
+    "title": "分類",
+    "crumbs": {
+      "admin": "管理後台",
+      "categories": "分類"
+    },
+    "buttons": {
+      "add": "新增分類",
+      "edit": "編輯分類",
+      "view": "查看分類",
+      "delete": "刪除分類"
+    },
+    "tabs": {
+      "all": "全部",
+      "published": "已發佈",
+      "pending": "待審核",
+      "draft": "草稿",
+      "archived": "已封存"
+    }
+  },
+  "add": {
+    "title": "新增分類",
+    "crumbs": {
+      "admin": "管理後台",
+      "categories": "分類",
+      "add": "新增分類"
+    },
+    "buttons": {
+      "submit": "新增分類"
+    }
+  },
+  "edit": {
+    "title": "編輯分類",
+    "crumbs": {
+      "admin": "管理後台",
+      "categories": "分類",
+      "edit": "編輯分類"
+    },
+    "buttons": {
+      "submit": "編輯分類"
+    }
+  }
+}

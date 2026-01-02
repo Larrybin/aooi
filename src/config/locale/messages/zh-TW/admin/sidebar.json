@@ -1,0 +1,137 @@
+{
+  "header": {
+    "brand": {
+      "title": "Roller Rabbit",
+      "logo": {
+        "src": "/logo.png",
+        "alt": "Roller Rabbit"
+      },
+      "url": "/admin"
+    },
+    "show_trigger": false
+  },
+  "main_navs": [
+    {
+      "title": "系統",
+      "items": [
+        {
+          "title": "使用者與權限",
+          "icon": "User",
+          "is_expand": true,
+          "children": [
+            {
+              "title": "使用者",
+              "url": "/admin/users",
+              "icon": "User"
+            },
+            {
+              "title": "角色",
+              "url": "/admin/roles",
+              "icon": "Users"
+            },
+            {
+              "title": "權限",
+              "url": "/admin/permissions",
+              "icon": "ShieldCheck"
+            }
+          ]
+        },
+        {
+          "title": "頁面與內容",
+          "icon": "FileText",
+          "children": [
+            {
+              "title": "分類",
+              "icon": "Folder",
+              "url": "/admin/categories"
+            },
+            {
+              "title": "文章",
+              "icon": "FileText",
+              "url": "/admin/posts"
+            }
+          ]
+        },
+        {
+          "title": "付款與點數",
+          "icon": "DollarSign",
+          "children": [
+            {
+              "title": "付款",
+              "url": "/admin/payments",
+              "icon": "DollarSign"
+            },
+            {
+              "title": "訂閱",
+              "url": "/admin/subscriptions",
+              "icon": "CreditCard"
+            },
+            {
+              "title": "點數",
+              "url": "/admin/credits",
+              "icon": "Coins"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "業務",
+      "items": [
+        {
+          "title": "AI 任務",
+          "url": "/admin/ai-tasks",
+          "icon": "Brain"
+        },
+        {
+          "title": "AI 對話",
+          "url": "/admin/chats",
+          "icon": "MessageCircle"
+        }
+      ]
+    }
+  ],
+  "bottom_nav": {
+    "items": [
+      {
+        "title": "設定",
+        "url": "/admin/settings/auth",
+        "icon": "Settings"
+      },
+      {
+        "title": "API 金鑰",
+        "url": "/admin/apikeys",
+        "icon": "Key"
+      }
+    ]
+  },
+  "user": {
+    "nav": {
+      "items": [
+        {
+          "title": "個人資料",
+          "url": "/settings/profile",
+          "icon": "User",
+          "target": "_blank"
+        }
+      ]
+    },
+    "show_email": false,
+    "show_signout": true,
+    "signout_callback": "/"
+  },
+  "footer": {
+    "nav": {
+      "items": [
+        {
+          "title": "首頁",
+          "url": "/",
+          "icon": "Home",
+          "target": "_blank"
+        }
+      ]
+    },
+    "show_locale": false
+  },
+  "variant": "sidebar"
+}

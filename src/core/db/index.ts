@@ -200,7 +200,6 @@ function getOrCreateCachedDb(
   return drizzleClient;
 }
 
- 
 export function db() {
   let databaseUrl = serverEnv.databaseUrl;
 

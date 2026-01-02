@@ -72,7 +72,9 @@ const loadMessages = async (
 
     return messages;
   } catch (error) {
-    if (isDevOrCI || locale === defaultLocale) {
+    const isStrictLocaleInDev =
+      isDevOrCI && (locale === 'en' || locale === 'zh');
+    if (locale === defaultLocale || isStrictLocaleInDev) {
       throw createLoadError(locale, path, error);
     }
 

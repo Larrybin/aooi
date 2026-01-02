@@ -1,0 +1,19 @@
+{
+  "fields": {
+    "id": "ID",
+    "code": "權限碼",
+    "title": "標題",
+    "resource": "資源",
+    "action": "操作",
+    "description": "描述",
+    "created_at": "建立時間",
+    "updated_at": "更新時間"
+  },
+  "list": {
+    "title": "權限",
+    "crumbs": {
+      "admin": "管理後台",
+      "permissions": "權限"
+    }
+  }
+}

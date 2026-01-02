@@ -96,6 +96,14 @@ Read `content/docs` to start your AI SaaS project.
 - PR checklist: `content/docs/code-review-checklist.zh.mdx` (route: `/zh/docs/code-review-checklist`)
 - Logging conventions: `content/docs/logging-conventions.zh.mdx` (route: `/zh/docs/logging-conventions`)
 
+## Internationalization (i18n)
+
+- Locale routing uses next-intl under `src/app/[locale]/**` + `src/request-proxy.ts`.
+- Supported locales are defined in `src/config/locale/index.ts`.
+- Message bundles live in `src/config/locale/messages/<locale>/**`; `en/zh` are provided, other locales fall back to `defaultLocale` until you add message files.
+- Docs/local markdown (fumadocs pages/posts/docs) currently ship for `en/zh`; other locales fall back to `en`.
+- RTL locales (`ar`, `fa`, `he`, `ur`) set `<html dir="rtl">`.
+
 ## Deployment Notes
 
 - Docker builds now use the default `.next` output (not `.next/standalone`) and start with `next start` (see `Dockerfile`).

@@ -1,0 +1,24 @@
+{
+  "fields": {
+    "title": "標題",
+    "status": "狀態",
+    "model": "模型",
+    "provider": "供應商",
+    "created_at": "建立時間",
+    "action": "操作"
+  },
+  "list": {
+    "title": "AI 對話",
+    "tabs": {
+      "all": "全部",
+      "pending": "待處理",
+      "completed": "已完成",
+      "failed": "失敗"
+    },
+    "buttons": {
+      "view": "查看對話",
+      "new": "建立新對話"
+    },
+    "empty_message": "沒有對話紀錄"
+  }
+}

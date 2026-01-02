@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "title": "AI 圖片生成器",
+    "description": "使用 AI 模型生成圖片，支援文字到圖片和圖片到圖片。"
+  },
+  "page": {
+    "title": "AI 圖片生成器",
+    "description": "使用 AI 模型生成圖片，支援文字到圖片和圖片到圖片。"
+  },
+  "generator": {
+    "title": "圖片生成器",
+    "description": "使用 AI 模型生成圖片，支援文字到圖片和圖片到圖片。",
+    "tabs": {
+      "text-to-image": "文生圖",
+      "image-to-image": "圖生圖"
+    },
+    "form": {
+      "provider": "服務商",
+      "model": "模型",
+      "select_provider": "選擇服務商",
+      "select_model": "選擇模型",
+      "prompt": "提示詞",
+      "prompt_placeholder": "描述圖片的細節，如顏色、形狀、紋理等",
+      "reference_image": "參考圖片",
+      "reference_image_placeholder": "上傳參考圖片，支援多張",
+      "some_images_failed_to_upload": "部分圖片上傳失敗，請刪除它們並重新上傳",
+      "prompt_too_long": "提示詞太長，請刪除一些內容"
+    },
+    "generate": "生成圖片",
+    "checking_account": "檢查帳戶...",
+    "loading": "載入中...",
+    "generating": "生成中...",
+    "sign_in_to_generate": "登入以生成圖片",
+    "credits_cost": "消耗 {credits} 點數",
+    "credits_remaining": "剩餘 {credits} 點數",
+    "buy_credits": "購買點數",
+    "progress": "進度",
+    "generated_images": "圖片預覽",
+    "ready_to_generate": "準備生成",
+    "no_images_generated": "沒有生成圖片",
+    "ready_for_generating": "準備生成"
+  }
+}
