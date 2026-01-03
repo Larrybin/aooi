@@ -12,7 +12,8 @@ import type { z } from 'zod';
 import { tryJsonParse } from '@/shared/lib/json';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
 
-import { BadRequestError } from './errors';
+import { BadRequestError, PayloadTooLargeError } from './errors';
+import { readRequestTextWithLimit } from './request-body';
 
 function isAbortError(error: unknown): boolean {
   if (
@@ -30,15 +31,42 @@ function isAbortError(error: unknown): boolean {
   return false;
 }
 
+const DEFAULT_JSON_BODY_LIMIT_BYTES = 1024 * 1024; // 1MB
+
+function parseContentLengthHeader(value: string | null): number | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
 export async function parseJson<TSchema extends z.ZodTypeAny>(
   req: Request,
   schema: TSchema
 ): Promise<z.infer<TSchema>> {
   let rawText = '';
   try {
-    rawText = await req.text();
+    const limitBytes = DEFAULT_JSON_BODY_LIMIT_BYTES;
+    const contentLength = parseContentLengthHeader(
+      req.headers.get('content-length')
+    );
+    if (contentLength !== null && contentLength > limitBytes) {
+      throw new PayloadTooLargeError('payload too large');
+    }
+
+    rawText = await readRequestTextWithLimit(req, limitBytes);
   } catch (error: unknown) {
     const { log } = getRequestLogger(req);
+
+    if (error instanceof PayloadTooLargeError) {
+      const limitBytes = DEFAULT_JSON_BODY_LIMIT_BYTES;
+      const contentLength = parseContentLengthHeader(
+        req.headers.get('content-length')
+      );
+      log.warn('api: request body too large', { contentLength, limitBytes });
+      throw error;
+    }
 
     if (isAbortError(error)) {
       log.debug('api: request body read aborted', { error });

@@ -70,6 +70,13 @@ export class TooManyRequestsError extends ApiError {
   }
 }
 
+export class PayloadTooLargeError extends ApiError {
+  constructor(message = 'payload too large', data?: unknown) {
+    super(413, message, data);
+    this.name = 'PayloadTooLargeError';
+  }
+}
+
 export class ServiceUnavailableError extends ApiError {
   constructor(
     message = 'service unavailable',
@@ -82,8 +89,14 @@ export class ServiceUnavailableError extends ApiError {
 }
 
 export class UpstreamError extends ApiError {
-  constructor(status: 502 | 503, message = 'bad gateway', data?: unknown) {
-    super(status, message, data);
+  constructor(
+    status: 502 | 503,
+    message = status === 503 ? 'service unavailable' : 'bad gateway',
+    data?: unknown
+  ) {
+    const publicMessage =
+      status === 503 ? 'service unavailable' : 'bad gateway';
+    super(status, message, data, { publicMessage });
     this.name = 'UpstreamError';
   }
 }

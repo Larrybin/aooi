@@ -157,29 +157,31 @@ function isRedirectStatus(status: number): boolean {
   );
 }
 
-function stripSensitiveHeaders(headers: HeadersInit | undefined): HeadersInit {
+function pickCrossOriginRedirectHeaders(
+  headers: HeadersInit | undefined
+): HeadersInit {
   if (!headers) return [];
 
-  const banned = new Set(['authorization', 'cookie', 'proxy-authorization']);
+  const allowed = new Set(['accept', 'accept-language']);
   const entries: Array<[string, string]> = [];
 
   if (headers instanceof Headers) {
     for (const [key, value] of headers.entries()) {
-      if (!banned.has(key.toLowerCase())) entries.push([key, value]);
+      if (allowed.has(key.toLowerCase())) entries.push([key, value]);
     }
     return entries;
   }
 
   if (Array.isArray(headers)) {
     for (const [key, value] of headers) {
-      if (!banned.has(key.toLowerCase())) entries.push([key, value]);
+      if (allowed.has(key.toLowerCase())) entries.push([key, value]);
     }
     return entries;
   }
 
   for (const [key, value] of Object.entries(headers)) {
     if (typeof value !== 'string') continue;
-    if (!banned.has(key.toLowerCase())) entries.push([key, value]);
+    if (allowed.has(key.toLowerCase())) entries.push([key, value]);
   }
 
   return entries;
@@ -234,9 +236,14 @@ export async function safeFetchFollowingRedirects(
     }
 
     if (nextOrigin !== currentOrigin) {
+      const nextMethod = (currentInit?.method ?? 'GET').toUpperCase();
+      const safeMethod =
+        nextMethod === 'GET' || nextMethod === 'HEAD' ? nextMethod : 'GET';
       currentInit = {
         ...currentInit,
-        headers: stripSensitiveHeaders(currentInit?.headers),
+        method: safeMethod,
+        body: undefined,
+        headers: pickCrossOriginRedirectHeaders(currentInit?.headers),
       };
     }
   }

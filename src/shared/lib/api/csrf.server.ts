@@ -6,7 +6,8 @@
  * - Only when request carries cookies
  *
  * Strategy:
- * - Compare Origin/Referer host with Host (or X-Forwarded-Host).
+ * - Compare Origin/Referer host with Host (and configured APP_URL host).
+ * - X-Forwarded-Host is only used as a fallback when Host is missing.
  * - Reject if missing or mismatched.
  */
 
@@ -30,6 +31,18 @@ function firstForwardedHost(value: string): string {
 }
 
 function expectedHostFromRequest(req: Request): string | null {
+  const host = normalizeHeaderValue(req.headers.get('host'));
+  if (host) {
+    return firstForwardedHost(host);
+  }
+
+  try {
+    const urlHost = new URL(req.url).host;
+    if (urlHost) return urlHost;
+  } catch {
+    // ignore URL parse errors
+  }
+
   const forwardedHost = normalizeHeaderValue(
     req.headers.get('x-forwarded-host')
   );
@@ -37,16 +50,7 @@ function expectedHostFromRequest(req: Request): string | null {
     return firstForwardedHost(forwardedHost);
   }
 
-  const host = normalizeHeaderValue(req.headers.get('host'));
-  if (host) {
-    return firstForwardedHost(host);
-  }
-
-  try {
-    return new URL(req.url).host || null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function originOrReferer(req: Request): string | null {
