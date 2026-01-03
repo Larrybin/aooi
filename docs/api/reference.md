@@ -210,7 +210,7 @@ Notes:
 Notes:
 
 - `/api/chat` validates `model` against a server-side allowlist (see `src/shared/constants/chat-model-policy.ts`).
-- `/api/chat` consumes user credits per request; returns 403 when credits are insufficient.
+- `/api/chat` consumes user credits per request; returns 403 when credits are insufficient; credits are refunded when the completion fails.
 
 ### Configuration
 
