@@ -16,6 +16,7 @@ import {
 import { db } from '@/core/db';
 import { credit } from '@/config/db/schema';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
+import { safeJsonParse } from '@/shared/lib/json';
 
 import { appendUserToResult, type User } from './user';
 
@@ -373,4 +374,122 @@ export async function getRemainingCreditsSummary(
       ? new Date(result.expiresAt).toISOString()
       : null,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isConsumedItem(
+  value: unknown
+): value is { creditId: string; creditsConsumed: number } {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.creditId === 'string' &&
+    typeof value.creditsConsumed === 'number' &&
+    value.creditsConsumed > 0
+  );
+}
+
+export type RefundConsumedCreditResult =
+  | { refunded: true }
+  | {
+      refunded: false;
+      reason:
+        | 'not_found'
+        | 'not_consume'
+        | 'not_active'
+        | 'invalid_consumed_detail';
+    };
+
+type DbTransactionClient = Parameters<
+  Parameters<ReturnType<typeof db>['transaction']>[0]
+>[0];
+
+async function refundConsumedCreditByIdInClient(
+  tx: DbTransactionClient,
+  creditId: string
+): Promise<RefundConsumedCreditResult> {
+  const [consumedCredit] = await tx
+    .select()
+    .from(credit)
+    .where(eq(credit.id, creditId))
+    .limit(1)
+    .for('update');
+
+  if (!consumedCredit) {
+    return { refunded: false, reason: 'not_found' };
+  }
+
+  if (consumedCredit.transactionType !== CreditTransactionType.CONSUME) {
+    return { refunded: false, reason: 'not_consume' };
+  }
+
+  if (consumedCredit.status !== CreditStatus.ACTIVE) {
+    return { refunded: false, reason: 'not_active' };
+  }
+
+  const consumedItemsRaw = safeJsonParse<unknown>(
+    consumedCredit.consumedDetail
+  );
+  if (!Array.isArray(consumedItemsRaw) || consumedItemsRaw.length === 0) {
+    return { refunded: false, reason: 'invalid_consumed_detail' };
+  }
+
+  const consumedItems: Array<{ creditId: string; creditsConsumed: number }> =
+    [];
+  for (const item of consumedItemsRaw) {
+    if (!isConsumedItem(item)) {
+      return { refunded: false, reason: 'invalid_consumed_detail' };
+    }
+    consumedItems.push(item);
+  }
+
+  const expectedCredits = Math.abs(consumedCredit.credits || 0);
+  const consumedCreditsTotal = consumedItems.reduce(
+    (sum, item) => sum + item.creditsConsumed,
+    0
+  );
+
+  if (expectedCredits <= 0 || consumedCreditsTotal !== expectedCredits) {
+    return { refunded: false, reason: 'invalid_consumed_detail' };
+  }
+
+  await Promise.all(
+    consumedItems.map((item) =>
+      tx
+        .update(credit)
+        .set({
+          remainingCredits: sql`${credit.remainingCredits} + ${item.creditsConsumed}`,
+        })
+        .where(eq(credit.id, item.creditId))
+    )
+  );
+
+  await tx
+    .update(credit)
+    .set({
+      status: CreditStatus.DELETED,
+    })
+    .where(eq(credit.id, creditId));
+
+  return { refunded: true };
+}
+
+export async function refundConsumedCreditById(
+  creditId: string,
+  tx?: DbTransactionClient
+): Promise<RefundConsumedCreditResult> {
+  const trimmed = creditId?.trim();
+  if (!trimmed) {
+    return { refunded: false, reason: 'not_found' };
+  }
+
+  if (tx) {
+    return refundConsumedCreditByIdInClient(tx, trimmed);
+  }
+
+  return db().transaction(async (dbTx) =>
+    refundConsumedCreditByIdInClient(dbTx, trimmed)
+  );
 }

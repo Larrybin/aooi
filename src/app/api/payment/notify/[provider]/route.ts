@@ -32,6 +32,28 @@ import {
   handleSubscriptionUpdated,
 } from '@/shared/services/payment';
 
+function toISOStringOrNull(value: unknown): string | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+  return null;
+}
+
+function buildSubscriptionRenewalDedupeKey(input: {
+  provider: string;
+  subscriptionId: string;
+  subscriptionInfo: { currentPeriodStart: unknown; currentPeriodEnd: unknown };
+}): string | null {
+  const start = toISOStringOrNull(input.subscriptionInfo.currentPeriodStart);
+  const end = toISOStringOrNull(input.subscriptionInfo.currentPeriodEnd);
+  if (!start || !end) return null;
+  return `renewal:${input.provider}:${input.subscriptionId}:${start}:${end}`;
+}
+
 export const POST = withApi(
   async (
     req: Request,
@@ -125,39 +147,78 @@ export const POST = withApi(
           session.paymentInfo?.subscriptionCycleType ===
           SubscriptionCycleType.RENEWAL
         ) {
-          const transactionId = session.paymentInfo?.transactionId?.trim();
-          const invoiceId = session.paymentInfo?.invoiceId?.trim();
+          const rawTransactionId = session.paymentInfo?.transactionId?.trim();
+          const rawInvoiceId = session.paymentInfo?.invoiceId?.trim();
 
-          if (transactionId) {
+          if (rawTransactionId) {
             const existingOrder = await findOrderByTransactionId({
               provider,
-              transactionId,
+              transactionId: rawTransactionId,
             });
             if (existingOrder) {
               log.debug('payment: notify ignored duplicate renewal', {
                 provider,
                 eventType,
-                transactionId,
+                transactionId: rawTransactionId,
               });
               return jsonOk({ message: 'already processed' });
             }
-          } else if (invoiceId) {
+          }
+
+          if (rawInvoiceId && rawInvoiceId !== rawTransactionId) {
             const existingOrder = await findOrderByInvoiceId({
               provider,
-              invoiceId,
+              invoiceId: rawInvoiceId,
             });
             if (existingOrder) {
               log.debug('payment: notify ignored duplicate renewal', {
                 provider,
                 eventType,
-                invoiceId,
+                invoiceId: rawInvoiceId,
               });
               return jsonOk({ message: 'already processed' });
             }
-          } else {
+          }
+
+          const dedupeTransactionId =
+            rawTransactionId ||
+            rawInvoiceId ||
+            buildSubscriptionRenewalDedupeKey({
+              provider,
+              subscriptionId: session.subscriptionId,
+              subscriptionInfo: session.subscriptionInfo,
+            });
+
+          if (!dedupeTransactionId) {
+            log.error('payment: renewal missing idempotency context, ignored', {
+              provider,
+              eventType,
+              subscriptionId: session.subscriptionId,
+            });
+            return jsonOk({ message: 'ignored' });
+          }
+
+          if (!rawTransactionId && !rawInvoiceId) {
+            const existingOrder = await findOrderByTransactionId({
+              provider,
+              transactionId: dedupeTransactionId,
+            });
+            if (existingOrder) {
+              log.debug('payment: notify ignored duplicate renewal', {
+                provider,
+                eventType,
+                transactionId: dedupeTransactionId,
+              });
+              return jsonOk({ message: 'already processed' });
+            }
+
             log.warn(
-              'payment: renewal idempotency key missing (no transactionId/invoiceId), proceeding without duplicate check',
-              { provider, eventType }
+              'payment: renewal idempotency keys missing, using fallback',
+              {
+                provider,
+                eventType,
+                subscriptionId: session.subscriptionId,
+              }
             );
           }
 
@@ -170,9 +231,28 @@ export const POST = withApi(
             throw new NotFoundError('subscription not found');
           }
 
+          const paymentInfo = session.paymentInfo;
+          if (!paymentInfo) {
+            log.error('payment: renewal missing payment info, ignored', {
+              provider,
+              eventType,
+              subscriptionId: session.subscriptionId,
+            });
+            return jsonOk({ message: 'ignored' });
+          }
+
+          const sessionForRenewal = {
+            ...session,
+            paymentInfo: {
+              ...paymentInfo,
+              transactionId: dedupeTransactionId,
+              invoiceId: rawInvoiceId || paymentInfo.invoiceId,
+            },
+          };
+
           await handleSubscriptionRenewal({
             subscription: existingSubscription,
-            session,
+            session: sessionForRenewal,
             log,
           });
         } else {

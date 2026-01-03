@@ -1,30 +1,14 @@
 import 'server-only';
 
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
-import { aiTask, credit } from '@/config/db/schema';
+import { aiTask } from '@/config/db/schema';
 import { AITaskStatus } from '@/extensions/ai';
-import { safeJsonParse } from '@/shared/lib/json';
 import { logger } from '@/shared/lib/logger.server';
 import { appendUserToResult, type User } from '@/shared/models/user';
 
-import { consumeCredits, CreditStatus } from './credit';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function isConsumedItem(
-  value: unknown
-): value is { creditId: string; creditsConsumed: number } {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.creditId === 'string' &&
-    typeof value.creditsConsumed === 'number' &&
-    value.creditsConsumed > 0
-  );
-}
+import { consumeCredits, refundConsumedCreditById } from './credit';
 
 export type AITask = typeof aiTask.$inferSelect & {
   user?: User;
@@ -76,85 +60,12 @@ export async function updateAITaskById(id: string, updateAITask: UpdateAITask) {
   const result = await db().transaction(async (tx) => {
     // task failed, Revoke credit consumption record
     if (updateAITask.status === AITaskStatus.FAILED && updateAITask.creditId) {
-      // get consumed credit record
-      const [consumedCredit] = await tx
-        .select()
-        .from(credit)
-        .where(eq(credit.id, updateAITask.creditId));
-      if (consumedCredit && consumedCredit.status === CreditStatus.ACTIVE) {
-        const consumedItemsRaw = safeJsonParse<unknown>(
-          consumedCredit.consumedDetail
-        );
-        if (!Array.isArray(consumedItemsRaw) || consumedItemsRaw.length === 0) {
-          logger.error('credit: invalid consumedDetail payload, skip refund', {
-            aiTaskId: id,
-            creditId: updateAITask.creditId,
-            credits: consumedCredit.credits,
-            consumedDetailLength:
-              typeof consumedCredit.consumedDetail === 'string'
-                ? consumedCredit.consumedDetail.length
-                : 0,
-          });
-        } else {
-          const consumedItems: Array<{
-            creditId: string;
-            creditsConsumed: number;
-          }> = [];
-          let hasInvalidItem = false;
-          for (const item of consumedItemsRaw) {
-            if (!isConsumedItem(item)) {
-              hasInvalidItem = true;
-              break;
-            }
-            consumedItems.push(item);
-          }
-
-          const expectedCredits = Math.abs(consumedCredit.credits || 0);
-          const consumedCreditsTotal = consumedItems.reduce(
-            (sum, item) => sum + item.creditsConsumed,
-            0
-          );
-
-          const canRefund =
-            !hasInvalidItem &&
-            consumedItems.length === consumedItemsRaw.length &&
-            expectedCredits > 0 &&
-            consumedCreditsTotal === expectedCredits;
-
-          if (!canRefund) {
-            logger.error(
-              'credit: invalid consumedDetail payload, skip refund',
-              {
-                aiTaskId: id,
-                creditId: updateAITask.creditId,
-                credits: consumedCredit.credits,
-                expectedCredits,
-                consumedCreditsTotal,
-                itemCount: consumedItemsRaw.length,
-                validItemCount: consumedItems.length,
-              }
-            );
-          } else {
-            await Promise.all(
-              consumedItems.map((item) =>
-                tx
-                  .update(credit)
-                  .set({
-                    remainingCredits: sql`${credit.remainingCredits} + ${item.creditsConsumed}`,
-                  })
-                  .where(eq(credit.id, item.creditId))
-              )
-            );
-
-            // delete consumed credit record (only after refund succeeds)
-            await tx
-              .update(credit)
-              .set({
-                status: CreditStatus.DELETED,
-              })
-              .where(eq(credit.id, updateAITask.creditId));
-          }
-        }
+      const refund = await refundConsumedCreditById(updateAITask.creditId, tx);
+      if (!refund.refunded && refund.reason === 'invalid_consumed_detail') {
+        logger.error('credit: invalid consumedDetail payload, skip refund', {
+          aiTaskId: id,
+          creditId: updateAITask.creditId,
+        });
       }
     }
 

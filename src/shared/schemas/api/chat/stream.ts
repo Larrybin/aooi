@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 
+import { CHAT_ALLOWED_MODELS } from '@/shared/constants/chat-model-policy';
 import { safeJsonStringify, utf8ByteLength } from '@/shared/lib/utf8';
 
 const MAX_CHAT_MESSAGE_JSON_BYTES = 64 * 1024;
@@ -82,7 +83,7 @@ const ChatStreamMessageSchema = z.unknown().superRefine((value, ctx) => {
 export const ChatStreamBodySchema = z.object({
   chatId: z.string().min(1),
   message: ChatStreamMessageSchema,
-  model: z.string().min(1),
+  model: z.enum(CHAT_ALLOWED_MODELS),
   webSearch: z.boolean().optional().default(false),
   reasoning: z.boolean().optional(),
 });

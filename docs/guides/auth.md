@@ -208,7 +208,7 @@ If you serve the app from multiple origins (custom domains, preview URLs, revers
 2. **Always set auth base URL** (`BETTER_AUTH_URL`/`AUTH_URL`/`NEXT_PUBLIC_APP_URL`) to a valid origin; missing/invalid values fail fast in production
 3. **Never expose auth secrets** to client-side code
 4. **Use HTTPS** in production for secure cookie transmission
-5. **Reset password is rate-limited** (per-email sliding window; `5m` window, `3` attempts, `1` concurrent); excessive requests are throttled to protect outbound providers
+5. **Reset password is rate-limited** (per-email sliding window; `5m` window, `3` attempts, `1` concurrent; shared across instances via DB); excessive requests are throttled to protect outbound providers
 
 ## Password Reset
 
@@ -232,6 +232,7 @@ The server throttles `sendResetPassword` per email to protect outbound providers
 - Window: 5 minutes
 - Max attempts per window: 3
 - Max concurrent in-flight: 1
+- Storage: DB-backed throttle (shared across instances)
 
 ### Reset Link Errors
 

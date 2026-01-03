@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, asc, count, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { chatMessage } from '@/config/db/schema';
@@ -67,6 +67,41 @@ export async function getChatMessages({
   }
 
   return result;
+}
+
+export async function getChatMessageWindow({
+  userId,
+  chatId,
+  status,
+  limit = 30,
+  getUser = false,
+}: {
+  userId?: string;
+  chatId: string;
+  status?: ChatMessageStatus;
+  limit?: number;
+  getUser?: boolean;
+}): Promise<ChatMessage[]> {
+  const result = await db()
+    .select()
+    .from(chatMessage)
+    .where(
+      and(
+        userId ? eq(chatMessage.userId, userId) : undefined,
+        chatId ? eq(chatMessage.chatId, chatId) : undefined,
+        status ? eq(chatMessage.status, status) : undefined
+      )
+    )
+    .orderBy(desc(chatMessage.createdAt))
+    .limit(limit);
+
+  const ordered = result.reverse();
+
+  if (getUser) {
+    return appendUserToResult(ordered);
+  }
+
+  return ordered;
 }
 
 export async function getChatMessagesCount({
