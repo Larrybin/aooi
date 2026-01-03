@@ -402,10 +402,12 @@ export type RefundConsumedCreditResult =
         | 'invalid_consumed_detail';
     };
 
-type DbClient = ReturnType<typeof db>;
+type DbTransactionClient = Parameters<
+  Parameters<ReturnType<typeof db>['transaction']>[0]
+>[0];
 
 async function refundConsumedCreditByIdInClient(
-  tx: DbClient,
+  tx: DbTransactionClient,
   creditId: string
 ): Promise<RefundConsumedCreditResult> {
   const [consumedCredit] = await tx
@@ -476,7 +478,7 @@ async function refundConsumedCreditByIdInClient(
 
 export async function refundConsumedCreditById(
   creditId: string,
-  tx?: DbClient
+  tx?: DbTransactionClient
 ): Promise<RefundConsumedCreditResult> {
   const trimmed = creditId?.trim();
   if (!trimmed) {
