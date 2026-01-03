@@ -1,0 +1,25 @@
+{
+  "no_auth": "برای ادامه وارد شوید",
+  "fields": {
+    "email": "ایمیل",
+    "name": "نام",
+    "avatar": "آواتار"
+  },
+  "validation": {
+    "name_required": "نام الزامی است"
+  },
+  "edit": {
+    "title": "پروفایل",
+    "description": "پروفایل خود را به‌روزرسانی کنید",
+    "crumbs": {
+      "settings": "تنظیمات",
+      "profile": "پروفایل"
+    },
+    "buttons": {
+      "submit": "ذخیره"
+    }
+  },
+  "messages": {
+    "updated": "پروفایل به‌روزرسانی شد"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "title": "Ayarlar",
+  "nav": {
+    "items": [
+      {
+        "title": "Profil",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Faturalandırma",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Ödemeler",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Krediler",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API Anahtarları",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Etkinlik",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Ayarlar",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

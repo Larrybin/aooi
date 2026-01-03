@@ -29,6 +29,19 @@
     "downloading": "下载中...",
     "download_success": "下载成功",
     "download_failed": "下载失败",
+    "errors": {
+      "timeout": "生成超时",
+      "query_task_failed": "查询任务失败",
+      "generate_failed_with_reason": "生成失败：{reason}",
+      "unknown_error": "未知错误",
+      "create_song_failed_with_reason": "生成歌曲失败：{reason}",
+      "insufficient_credits": "积分不足",
+      "invalid_provider_or_model": "服务商或模型无效",
+      "title_and_style_required": "请填写标题和风格",
+      "lyrics_required": "请填写歌词",
+      "prompt_required": "请输入提示词",
+      "create_task_failed": "创建任务失败"
+    },
     "form": {
       "custom_mode": "自定义模式",
       "title": "标题",

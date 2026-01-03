@@ -29,6 +29,19 @@
     "downloading": "Downloading...",
     "download_success": "Download completed successfully",
     "download_failed": "Failed to download audio",
+    "errors": {
+      "timeout": "Generation timed out",
+      "query_task_failed": "Failed to query task",
+      "generate_failed_with_reason": "Generation failed: {reason}",
+      "unknown_error": "Unknown error",
+      "create_song_failed_with_reason": "Failed to create song: {reason}",
+      "insufficient_credits": "Insufficient credits",
+      "invalid_provider_or_model": "Invalid provider or model",
+      "title_and_style_required": "Title and style are required",
+      "lyrics_required": "Lyrics are required",
+      "prompt_required": "Prompt is required",
+      "create_task_failed": "Failed to create task"
+    },
     "form": {
       "custom_mode": "Custom Mode",
       "title": "Title",

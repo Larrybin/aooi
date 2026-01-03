@@ -2,6 +2,7 @@
 // cache: no-store
 // reason: refresh endpoint mutates state and redirects; do not cache
 import { notFound } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
 import { redirect } from '@/core/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
@@ -20,10 +21,11 @@ export default async function RefreshAITaskPage({
   }
 
   const { locale, id } = await params;
+  const t = await getTranslations('activity.ai-tasks');
 
   const task = await findAITaskById(id);
   if (!task || !task.taskId || !task.provider || !task.status) {
-    return <Empty message="Task not found" />;
+    return <Empty message={t('errors.task_not_found')} />;
   }
 
   // query task
@@ -35,7 +37,7 @@ export default async function RefreshAITaskPage({
     const aiService = await getAIService();
     const aiProvider = aiService.getProvider(task.provider);
     if (!aiProvider) {
-      return <Empty message="Invalid AI provider" />;
+      return <Empty message={t('errors.invalid_ai_provider')} />;
     }
 
     const result = await aiProvider?.query?.({

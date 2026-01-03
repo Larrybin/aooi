@@ -1,0 +1,25 @@
+{
+  "no_auth": "जारी रखने के लिए साइन इन करें",
+  "fields": {
+    "email": "ईमेल",
+    "name": "नाम",
+    "avatar": "अवतार"
+  },
+  "validation": {
+    "name_required": "नाम आवश्यक है"
+  },
+  "edit": {
+    "title": "प्रोफ़ाइल",
+    "description": "अपनी प्रोफ़ाइल अपडेट करें",
+    "crumbs": {
+      "settings": "सेटिंग्स",
+      "profile": "प्रोफ़ाइल"
+    },
+    "buttons": {
+      "submit": "सहेजें"
+    }
+  },
+  "messages": {
+    "updated": "प्रोफ़ाइल अपडेट हुई"
+  }
+}

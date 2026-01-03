@@ -27,5 +27,10 @@
       "refresh": "刷新任务"
     },
     "empty_message": "无任务"
+  },
+  "errors": {
+    "no_auth": "请先登录",
+    "task_not_found": "任务不存在",
+    "invalid_ai_provider": "AI 提供商无效"
   }
 }

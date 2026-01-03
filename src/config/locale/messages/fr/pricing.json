@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Tarifs",
+    "description": "Commencez avec une offre"
+  },
+  "page": {
+    "current_plan": "Offre actuelle",
+    "processing": "Traitement",
+    "currency_placeholder": "Devise",
+    "checkout_failed": "Échec du paiement"
+  }
+}

@@ -34,6 +34,8 @@
     "invalid_reset_token": "重置链接无效或已过期。",
     "missing_reset_token": "缺少重置令牌，请使用邮件中的链接。",
     "email_required": "请输入邮箱",
+    "password_required": "请输入密码",
+    "name_required": "请输入姓名",
     "back_to_sign_in": "返回登录",
     "or": "或",
     "continue": "继续",
@@ -45,6 +47,10 @@
     "close_title": "关闭",
     "cancel_title": "取消",
     "sign_out_title": "登出",
+    "sign_in_failed": "登录失败",
+    "sign_up_failed": "注册失败",
+    "request_password_reset_failed": "发送重置链接失败",
+    "reset_password_failed": "重置密码失败",
     "billing_title": "账单",
     "name_title": "姓名",
     "name_placeholder": "请输入您的姓名",
@@ -53,11 +59,36 @@
   },
   "payment": {
     "choose_payment_method": "选择支付方式",
-    "choose_payment_method_description": "",
-    "cancel_title": "取消"
+    "choose_payment_method_description": "请选择支付方式以继续结账。",
+    "cancel_title": "取消",
+    "payment_method_required": "请选择支付方式",
+    "pricing_item_required": "请选择一个套餐",
+    "invalid_payment_method": "支付方式无效"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "上传响应无效",
+      "max_images_reached": "已达到图片数量上限",
+      "file_too_large": "\"{name}\" 超过 {maxSize}MB 限制",
+      "upload_failed_with_reason": "上传失败：{reason}",
+      "upload_failed": "上传失败",
+      "reference_alt": "参考图片",
+      "status": {
+        "uploading": "上传中...",
+        "failed": "失败"
+      },
+      "button": {
+        "upload": "上传"
+      },
+      "max_size": "最大 {maxSize}MB"
+    }
   },
   "locale_detector": {
     "title": "检测到浏览器语言是: {locale}，是否切换？",
-    "switch_to": "切换到{locale}"
+    "switch_to": "切换到{locale}",
+    "dismiss_aria_label": "关闭"
+  },
+  "locale_switcher": {
+    "aria_label": "切换语言"
   }
 }

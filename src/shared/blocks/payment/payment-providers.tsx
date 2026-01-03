@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@/shared/components/ui/button';
@@ -27,15 +28,16 @@ export function PaymentProviders({
   onCheckout: (item: PricingItem, paymentProvider?: string) => void;
   className?: string;
 }) {
+  const t = useTranslations('common.payment');
   const [paymentProvider, setPaymentProvider] = useState<string | null>(null);
 
   const handlePayment = async ({ provider }: { provider: string }) => {
     if (!provider) {
-      toast.error('please select payment method');
+      toast.error(t('payment_method_required'));
       return;
     }
     if (!pricingItem) {
-      toast.error('please select a pricing item');
+      toast.error(t('pricing_item_required'));
       return;
     }
 
@@ -79,7 +81,7 @@ export function PaymentProviders({
   if (configs.paypal_enabled === 'true' && isProviderAllowed('paypal')) {
     providers.push({
       name: 'paypal',
-      title: 'Paypal',
+      title: 'PayPal',
       icon_url: '/imgs/icons/paypal.svg',
       onClick: () => handlePayment({ provider: 'paypal' }),
     });
@@ -101,7 +103,7 @@ export function PaymentProviders({
           disabled={loading}
           onClick={() => {
             if (!provider.onClick || !provider.name) {
-              toast.error('invalid payment method');
+              toast.error(t('invalid_payment_method'));
               return;
             }
 

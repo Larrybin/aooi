@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Harga",
+    "description": "Mulai dengan paket"
+  },
+  "page": {
+    "current_plan": "Paket saat ini",
+    "processing": "Memproses",
+    "currency_placeholder": "Mata uang",
+    "checkout_failed": "Checkout gagal"
+  }
+}

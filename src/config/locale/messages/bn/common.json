@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit হলো AI SaaS স্টার্টআপ তৈরি করার জন্য একটি Next.js বয়লারপ্লেট। নানা টেমপ্লেট ও কম্পোনেন্ট দিয়ে দ্রুত লঞ্চ করুন।",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "সাইন ইন",
+    "sign_in_description": "আপনার অ্যাকাউন্টে সাইন ইন করুন",
+    "sign_up_title": "সাইন আপ",
+    "sign_up_description": "একটি অ্যাকাউন্ট তৈরি করুন",
+    "email_title": "ইমেইল",
+    "email_placeholder": "এখানে আপনার ইমেইল লিখুন",
+    "password_title": "পাসওয়ার্ড",
+    "password_placeholder": "এখানে আপনার পাসওয়ার্ড লিখুন",
+    "forgot_password": "পাসওয়ার্ড ভুলে গেছেন?",
+    "forgot_password_title": "পাসওয়ার্ড ভুলে গেছেন",
+    "forgot_password_description": "আমরা আপনাকে একটি রিসেট লিংক ইমেইল করব",
+    "forgot_password_submit": "রিসেট লিংক পাঠান",
+    "forgot_password_sent": "যদি এই ইমেইল আমাদের সিস্টেমে থাকে, ইনবক্সে রিসেট লিংক দেখুন।",
+    "forgot_password_disabled": "পাসওয়ার্ড রিসেট উপলব্ধ নয়।",
+    "reset_password_title": "পাসওয়ার্ড রিসেট",
+    "reset_password_description": "আপনার অ্যাকাউন্টের জন্য নতুন পাসওয়ার্ড সেট করুন",
+    "new_password_title": "নতুন পাসওয়ার্ড",
+    "new_password_placeholder": "আপনার নতুন পাসওয়ার্ড লিখুন",
+    "new_password_required": "নতুন পাসওয়ার্ড আবশ্যক",
+    "confirm_password_title": "পাসওয়ার্ড নিশ্চিত করুন",
+    "confirm_password_placeholder": "নতুন পাসওয়ার্ড আবার লিখুন",
+    "confirm_password_required": "দয়া করে নতুন পাসওয়ার্ড নিশ্চিত করুন",
+    "password_mismatch": "পাসওয়ার্ড মিলছে না",
+    "reset_password_submit": "পাসওয়ার্ড রিসেট করুন",
+    "reset_password_success": "পাসওয়ার্ড সফলভাবে রিসেট হয়েছে। আবার সাইন ইন করুন।",
+    "reset_password_disabled": "পাসওয়ার্ড রিসেট উপলব্ধ নয়।",
+    "invalid_reset_token": "রিসেট লিংক অবৈধ বা মেয়াদোত্তীর্ণ।",
+    "missing_reset_token": "রিসেট টোকেন নেই। ইমেইলের লিংকটি ব্যবহার করুন।",
+    "email_required": "ইমেইল আবশ্যক",
+    "password_required": "পাসওয়ার্ড আবশ্যক",
+    "name_required": "নাম আবশ্যক",
+    "back_to_sign_in": "সাইন ইনে ফিরে যান",
+    "or": "অথবা",
+    "continue": "চালিয়ে যান",
+    "no_account": "অ্যাকাউন্ট নেই?",
+    "already_have_account": "ইতিমধ্যে অ্যাকাউন্ট আছে?",
+    "email_sign_in": "ইমেইল দিয়ে সাইন ইন",
+    "google_sign_in_title": "Google দিয়ে সাইন ইন",
+    "github_sign_in_title": "GitHub দিয়ে সাইন ইন",
+    "close_title": "বন্ধ",
+    "cancel_title": "বাতিল",
+    "sign_out_title": "সাইন আউট",
+    "sign_in_failed": "সাইন ইন ব্যর্থ",
+    "sign_up_failed": "সাইন আপ ব্যর্থ",
+    "request_password_reset_failed": "পাসওয়ার্ড রিসেট অনুরোধ ব্যর্থ",
+    "reset_password_failed": "পাসওয়ার্ড রিসেট ব্যর্থ",
+    "billing_title": "বিলিং",
+    "name_title": "নাম",
+    "name_placeholder": "এখানে আপনার নাম লিখুন",
+    "admin_title": "অ্যাডমিন",
+    "credits_title": "ক্রেডিট: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "পেমেন্ট পদ্ধতি নির্বাচন করুন",
+    "choose_payment_method_description": "চেকআউট চালিয়ে যেতে একটি প্রোভাইডার নির্বাচন করুন।",
+    "cancel_title": "বাতিল",
+    "payment_method_required": "দয়া করে পেমেন্ট পদ্ধতি নির্বাচন করুন",
+    "pricing_item_required": "দয়া করে একটি প্ল্যান নির্বাচন করুন",
+    "invalid_payment_method": "অবৈধ পেমেন্ট পদ্ধতি"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "আপলোড প্রতিক্রিয়া অবৈধ",
+      "max_images_reached": "ছবির সর্বোচ্চ সংখ্যা পৌঁছে গেছে",
+      "file_too_large": "\"{name}\" {maxSize}MB সীমা অতিক্রম করেছে",
+      "upload_failed_with_reason": "আপলোড ব্যর্থ: {reason}",
+      "upload_failed": "আপলোড ব্যর্থ",
+      "reference_alt": "রেফারেন্স ছবি",
+      "status": {
+        "uploading": "আপলোড হচ্ছে...",
+        "failed": "ব্যর্থ"
+      },
+      "button": {
+        "upload": "আপলোড"
+      },
+      "max_size": "সর্বোচ্চ {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "আমরা দেখেছি আপনার ব্রাউজারের ভাষা {locale}। সেখানে স্যুইচ করবেন?",
+    "switch_to": "{locale}-এ স্যুইচ করুন",
+    "dismiss_aria_label": "বন্ধ করুন"
+  },
+  "locale_switcher": {
+    "aria_label": "ভাষা পরিবর্তন করুন"
+  }
+}

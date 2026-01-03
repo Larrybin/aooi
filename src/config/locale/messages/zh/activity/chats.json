@@ -20,5 +20,8 @@
       "new": "新建对话"
     },
     "empty_message": "无对话记录"
+  },
+  "errors": {
+    "no_auth": "请先登录"
   }
 }

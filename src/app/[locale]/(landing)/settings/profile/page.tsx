@@ -15,12 +15,12 @@ import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-pro
 import type { Form as FormType } from '@/shared/types/blocks/form';
 
 export default async function ProfilePage() {
+  const t = await getTranslations('settings.profile');
+
   const user = await getUserInfo();
   if (!user) {
-    return <Empty message="no auth" />;
+    return <Empty message={t('no_auth')} />;
   }
-
-  const t = await getTranslations('settings.profile');
 
   const form = {
     fields: [
@@ -49,12 +49,14 @@ export default async function ProfilePage() {
         'use server';
 
         return withAction(async () => {
+          const t = await getTranslations('settings.profile');
+
           const user = await requireActionUser();
           const { name, image } = parseFormData(
             data,
             SettingsProfileFormSchema,
             {
-              message: 'name is required',
+              message: t('validation.name_required'),
             }
           );
 
@@ -73,7 +75,7 @@ export default async function ProfilePage() {
 
           await updateUser(user.id, updatedUser);
 
-          return actionOk('Profile updated', '/settings/profile');
+          return actionOk(t('messages.updated'), '/settings/profile');
         });
       },
       button: {

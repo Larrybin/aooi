@@ -1,0 +1,46 @@
+{
+  "title": "सेटिंग्स",
+  "nav": {
+    "items": [
+      {
+        "title": "प्रोफ़ाइल",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "बिलिंग",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "भुगतान",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "क्रेडिट",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API कुंजियाँ",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "गतिविधि",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "सेटिंग्स",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

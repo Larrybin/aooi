@@ -1,0 +1,25 @@
+{
+  "no_auth": "Veuillez vous connecter pour continuer",
+  "fields": {
+    "email": "E-mail",
+    "name": "Nom",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Le nom est requis"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Mettre à jour votre profil",
+    "crumbs": {
+      "settings": "Paramètres",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Enregistrer"
+    }
+  },
+  "messages": {
+    "updated": "Profil mis à jour"
+  }
+}

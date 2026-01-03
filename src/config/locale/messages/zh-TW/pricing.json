@@ -356,6 +356,8 @@
   },
   "page": {
     "current_plan": "目前方案",
-    "processing": "處理中"
+    "processing": "處理中",
+    "currency_placeholder": "幣別",
+    "checkout_failed": "結帳失敗"
   }
 }

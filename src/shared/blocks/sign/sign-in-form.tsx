@@ -50,8 +50,13 @@ export function SignInForm({
       return;
     }
 
-    if (!email || !password) {
-      toast.error('email and password are required');
+    if (!email) {
+      toast.error(t('email_required'));
+      return;
+    }
+
+    if (!password) {
+      toast.error(t('password_required'));
       return;
     }
 
@@ -72,13 +77,13 @@ export function SignInForm({
           },
           onSuccess: () => {},
           onError: (ctx: AuthErrorContext) => {
-            toast.error(ctx.error?.message || 'sign in failed');
+            toast.error(ctx.error?.message || t('sign_in_failed'));
             setLoading(false);
           },
         }
       );
     } catch (e: unknown) {
-      toast.error(toErrorMessage(e) || 'sign in failed');
+      toast.error(toErrorMessage(e) || t('sign_in_failed'));
     } finally {
       setLoading(false);
     }

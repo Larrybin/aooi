@@ -51,5 +51,8 @@
     "buttons": {
       "submit": "Update"
     }
+  },
+  "errors": {
+    "not_found": "User not found"
   }
 }

@@ -30,12 +30,12 @@ export default async function PostEditPage({
     permission: PERMISSIONS.POSTS_WRITE,
   });
 
+  const t = await getTranslations('admin.posts');
+
   const post = await findPost({ id });
   if (!post) {
-    return <Empty message="Post not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
-
-  const t = await getTranslations('admin.posts');
 
   const crumbs = buildAdminCrumbs(t, [
     { key: 'edit.crumbs.admin', url: '/admin' },

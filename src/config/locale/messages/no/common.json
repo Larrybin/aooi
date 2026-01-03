@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit er en Next.js-boilerplate for å bygge AI SaaS-startups. Lanser raskt med en rekke maler og komponenter.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Logg inn",
+    "sign_in_description": "Logg inn på kontoen din",
+    "sign_up_title": "Registrer deg",
+    "sign_up_description": "Opprett en konto",
+    "email_title": "E-post",
+    "email_placeholder": "Skriv inn e-posten din her",
+    "password_title": "Passord",
+    "password_placeholder": "Skriv inn passordet ditt her",
+    "forgot_password": "Glemt passord?",
+    "forgot_password_title": "Glemt passord",
+    "forgot_password_description": "Vi sender deg en lenke for tilbakestilling",
+    "forgot_password_submit": "Send tilbakestillingslenke",
+    "forgot_password_sent": "Hvis denne e-posten finnes i systemet vårt, sjekk innboksen din for lenken.",
+    "forgot_password_disabled": "Tilbakestilling av passord er ikke tilgjengelig.",
+    "reset_password_title": "Tilbakestill passord",
+    "reset_password_description": "Sett et nytt passord for kontoen din",
+    "new_password_title": "Nytt passord",
+    "new_password_placeholder": "Skriv inn ditt nye passord her",
+    "new_password_required": "Nytt passord er påkrevd",
+    "confirm_password_title": "Bekreft passord",
+    "confirm_password_placeholder": "Skriv inn det nye passordet på nytt",
+    "confirm_password_required": "Vennligst bekreft det nye passordet",
+    "password_mismatch": "Passordene samsvarer ikke",
+    "reset_password_submit": "Tilbakestill passord",
+    "reset_password_success": "Passordet ble tilbakestilt. Logg inn igjen.",
+    "reset_password_disabled": "Tilbakestilling av passord er ikke tilgjengelig.",
+    "invalid_reset_token": "Ugyldig eller utløpt lenke for tilbakestilling.",
+    "missing_reset_token": "Mangler reset-token. Bruk lenken fra e-posten.",
+    "email_required": "E-post er påkrevd",
+    "password_required": "Passord er påkrevd",
+    "name_required": "Navn er påkrevd",
+    "back_to_sign_in": "Tilbake til Logg inn",
+    "or": "Eller",
+    "continue": "Fortsett",
+    "no_account": "Har du ikke en konto?",
+    "already_have_account": "Har du allerede en konto?",
+    "email_sign_in": "Logg inn med e-post",
+    "google_sign_in_title": "Logg inn med Google",
+    "github_sign_in_title": "Logg inn med GitHub",
+    "close_title": "Lukk",
+    "cancel_title": "Avbryt",
+    "sign_out_title": "Logg ut",
+    "sign_in_failed": "Innlogging mislyktes",
+    "sign_up_failed": "Registrering mislyktes",
+    "request_password_reset_failed": "Forespørsel om tilbakestilling mislyktes",
+    "reset_password_failed": "Tilbakestilling mislyktes",
+    "billing_title": "Fakturering",
+    "name_title": "Navn",
+    "name_placeholder": "Skriv inn navnet ditt her",
+    "admin_title": "Admin",
+    "credits_title": "Kreditter: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Velg betalingsmetode",
+    "choose_payment_method_description": "Velg en leverandør for å fortsette til checkout.",
+    "cancel_title": "Avbryt",
+    "payment_method_required": "Velg betalingsmetode",
+    "pricing_item_required": "Velg en plan",
+    "invalid_payment_method": "Ugyldig betalingsmetode"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Ugyldig opplastingssvar",
+      "max_images_reached": "Maksimalt antall bilder er nådd",
+      "file_too_large": "\"{name}\" overskrider grensen på {maxSize}MB",
+      "upload_failed_with_reason": "Opplasting mislyktes: {reason}",
+      "upload_failed": "Opplasting mislyktes",
+      "reference_alt": "Referansebilde",
+      "status": {
+        "uploading": "Laster opp...",
+        "failed": "Mislyktes"
+      },
+      "button": {
+        "upload": "Last opp"
+      },
+      "max_size": "Maks {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Vi oppdaget at nettleserspråket ditt er {locale}. Vil du bytte?",
+    "switch_to": "Bytt til {locale}",
+    "dismiss_aria_label": "Lukk"
+  },
+  "locale_switcher": {
+    "aria_label": "Bytt språk"
+  }
+}

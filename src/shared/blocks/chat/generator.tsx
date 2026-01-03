@@ -49,7 +49,7 @@ export function ChatGenerator() {
             isPlainObject(value) &&
             typeof (value as { id?: unknown }).id === 'string' &&
             Boolean((value as { id: string }).id.trim()),
-          invalidDataMessage: 'failed to create chat',
+          invalidDataMessage: t('errors.create_chat_failed'),
         }
       );
 
@@ -65,7 +65,7 @@ export function ChatGenerator() {
       setError(null);
     } catch (e: unknown) {
       const baseMessage =
-        e instanceof Error ? e.message : 'request failed, please try again';
+        e instanceof Error ? e.message : t('errors.request_failed');
       const message = formatMessageWithRequestId(
         baseMessage,
         getRequestIdFromError(e)
@@ -95,7 +95,7 @@ export function ChatGenerator() {
     }
 
     if (!body.model) {
-      toast.error('please select a model');
+      toast.error(t('errors.model_required'));
       return;
     }
 

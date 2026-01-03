@@ -1,0 +1,25 @@
+{
+  "no_auth": "계속하려면 로그인하세요",
+  "fields": {
+    "email": "이메일",
+    "name": "이름",
+    "avatar": "아바타"
+  },
+  "validation": {
+    "name_required": "이름이 필요합니다"
+  },
+  "edit": {
+    "title": "프로필",
+    "description": "프로필을 업데이트하세요",
+    "crumbs": {
+      "settings": "설정",
+      "profile": "프로필"
+    },
+    "buttons": {
+      "submit": "저장"
+    }
+  },
+  "messages": {
+    "updated": "프로필이 업데이트되었습니다"
+  }
+}

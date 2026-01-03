@@ -68,7 +68,7 @@ export function ForgotPassword({
       });
       toast.success(t('forgot_password_sent'));
     } catch (e: unknown) {
-      toast.error(toErrorMessage(e) || 'request password reset failed');
+      toast.error(toErrorMessage(e) || t('request_password_reset_failed'));
     } finally {
       setLoading(false);
     }

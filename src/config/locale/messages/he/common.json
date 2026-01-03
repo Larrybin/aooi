@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit הוא Boilerplate של Next.js לבניית סטארטאפים של AI SaaS. השקה במהירות עם מגוון תבניות ורכיבים.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "התחברות",
+    "sign_in_description": "התחבר/י לחשבון שלך",
+    "sign_up_title": "הרשמה",
+    "sign_up_description": "יצירת חשבון",
+    "email_title": "אימייל",
+    "email_placeholder": "הזן/י את האימייל כאן",
+    "password_title": "סיסמה",
+    "password_placeholder": "הזן/י את הסיסמה כאן",
+    "forgot_password": "שכחת סיסמה?",
+    "forgot_password_title": "שכחת סיסמה",
+    "forgot_password_description": "נשלח לך קישור לאיפוס באימייל",
+    "forgot_password_submit": "שליחת קישור איפוס",
+    "forgot_password_sent": "אם האימייל הזה קיים במערכת שלנו, בדוק/י את תיבת הדואר לקבלת הקישור.",
+    "forgot_password_disabled": "איפוס סיסמה אינו זמין.",
+    "reset_password_title": "איפוס סיסמה",
+    "reset_password_description": "הגדר/י סיסמה חדשה לחשבון",
+    "new_password_title": "סיסמה חדשה",
+    "new_password_placeholder": "הזן/י סיסמה חדשה כאן",
+    "new_password_required": "נדרשת סיסמה חדשה",
+    "confirm_password_title": "אימות סיסמה",
+    "confirm_password_placeholder": "הזן/י שוב את הסיסמה החדשה",
+    "confirm_password_required": "נא לאמת את הסיסמה החדשה",
+    "password_mismatch": "הסיסמאות אינן תואמות",
+    "reset_password_submit": "איפוס סיסמה",
+    "reset_password_success": "הסיסמה אופסה בהצלחה. נא להתחבר שוב.",
+    "reset_password_disabled": "איפוס סיסמה אינו זמין.",
+    "invalid_reset_token": "קישור איפוס לא תקין או שפג תוקפו.",
+    "missing_reset_token": "חסר טוקן איפוס. השתמש/י בקישור מהאימייל.",
+    "email_required": "אימייל הוא שדה חובה",
+    "password_required": "סיסמה היא שדה חובה",
+    "name_required": "שם הוא שדה חובה",
+    "back_to_sign_in": "חזרה להתחברות",
+    "or": "או",
+    "continue": "המשך",
+    "no_account": "אין לך חשבון?",
+    "already_have_account": "כבר יש לך חשבון?",
+    "email_sign_in": "התחברות עם אימייל",
+    "google_sign_in_title": "התחברות עם Google",
+    "github_sign_in_title": "התחברות עם GitHub",
+    "close_title": "סגור",
+    "cancel_title": "ביטול",
+    "sign_out_title": "התנתקות",
+    "sign_in_failed": "ההתחברות נכשלה",
+    "sign_up_failed": "ההרשמה נכשלה",
+    "request_password_reset_failed": "בקשת איפוס סיסמה נכשלה",
+    "reset_password_failed": "איפוס סיסמה נכשל",
+    "billing_title": "חיוב",
+    "name_title": "שם",
+    "name_placeholder": "הזן/י את שמך כאן",
+    "admin_title": "ניהול",
+    "credits_title": "קרדיטים: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "בחירת אמצעי תשלום",
+    "choose_payment_method_description": "בחר/י ספק כדי להמשיך לתשלום.",
+    "cancel_title": "ביטול",
+    "payment_method_required": "נא לבחור אמצעי תשלום",
+    "pricing_item_required": "נא לבחור תוכנית",
+    "invalid_payment_method": "אמצעי תשלום לא תקין"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "תגובת העלאה לא תקינה",
+      "max_images_reached": "הגעת למספר התמונות המרבי",
+      "file_too_large": "\"{name}\" חורג ממגבלת {maxSize}MB",
+      "upload_failed_with_reason": "ההעלאה נכשלה: {reason}",
+      "upload_failed": "ההעלאה נכשלה",
+      "reference_alt": "תמונת ייחוס",
+      "status": {
+        "uploading": "מעלה...",
+        "failed": "נכשל"
+      },
+      "button": {
+        "upload": "העלה"
+      },
+      "max_size": "מקסימום {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "זיהינו ששפת הדפדפן שלך היא {locale}. לעבור אליה?",
+    "switch_to": "לעבור ל-{locale}",
+    "dismiss_aria_label": "סגור"
+  },
+  "locale_switcher": {
+    "aria_label": "שינוי שפה"
+  }
+}

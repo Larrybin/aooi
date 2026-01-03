@@ -31,11 +31,11 @@ export default async function RoleRestorePage({
 
   const [roleRow] = await db().select().from(role).where(eq(role.id, id));
   if (!roleRow) {
-    return <Empty message="Role not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
 
   if (!roleRow.deletedAt) {
-    return <Empty message="Role is not deleted" />;
+    return <Empty message={t('errors.not_deleted')} />;
   }
 
   const crumbs = buildAdminCrumbs(t, [

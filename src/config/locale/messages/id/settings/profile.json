@@ -1,0 +1,25 @@
+{
+  "no_auth": "Silakan masuk untuk melanjutkan",
+  "fields": {
+    "email": "Email",
+    "name": "Nama",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Nama wajib diisi"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Perbarui profil Anda",
+    "crumbs": {
+      "settings": "Pengaturan",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Simpan"
+    }
+  },
+  "messages": {
+    "updated": "Profil diperbarui"
+  }
+}

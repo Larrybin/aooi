@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Pricing",
+    "description": "Magsimula sa isang plan"
+  },
+  "page": {
+    "current_plan": "Kasalukuyang plan",
+    "processing": "Pinoproseso",
+    "currency_placeholder": "Currency",
+    "checkout_failed": "Nabigo ang checkout"
+  }
+}

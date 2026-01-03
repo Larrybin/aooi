@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit on Next.js‑boilerplate AI SaaS ‑startupien rakentamiseen. Julkaise nopeasti monipuolisten mallien ja komponenttien avulla.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Kirjaudu sisään",
+    "sign_in_description": "Kirjaudu tilillesi",
+    "sign_up_title": "Rekisteröidy",
+    "sign_up_description": "Luo tili",
+    "email_title": "Sähköposti",
+    "email_placeholder": "Syötä sähköpostisi tähän",
+    "password_title": "Salasana",
+    "password_placeholder": "Syötä salasanasi tähän",
+    "forgot_password": "Unohditko salasanan?",
+    "forgot_password_title": "Unohtuiko salasana",
+    "forgot_password_description": "Lähetämme sinulle palautuslinkin sähköpostitse",
+    "forgot_password_submit": "Lähetä palautuslinkki",
+    "forgot_password_sent": "Jos sähköposti löytyy järjestelmästämme, tarkista postilaatikkosi palautuslinkin varalta.",
+    "forgot_password_disabled": "Salasanan palautus ei ole käytettävissä.",
+    "reset_password_title": "Palauta salasana",
+    "reset_password_description": "Aseta tilillesi uusi salasana",
+    "new_password_title": "Uusi salasana",
+    "new_password_placeholder": "Syötä uusi salasanasi tähän",
+    "new_password_required": "Uusi salasana vaaditaan",
+    "confirm_password_title": "Vahvista salasana",
+    "confirm_password_placeholder": "Syötä uusi salasana uudelleen",
+    "confirm_password_required": "Vahvista uusi salasana",
+    "password_mismatch": "Salasanat eivät täsmää",
+    "reset_password_submit": "Palauta salasana",
+    "reset_password_success": "Salasana palautettu onnistuneesti. Kirjaudu sisään uudelleen.",
+    "reset_password_disabled": "Salasanan palautus ei ole käytettävissä.",
+    "invalid_reset_token": "Virheellinen tai vanhentunut palautuslinkki.",
+    "missing_reset_token": "Palautustoken puuttuu. Käytä sähköpostissa olevaa linkkiä.",
+    "email_required": "Sähköposti vaaditaan",
+    "password_required": "Salasana vaaditaan",
+    "name_required": "Nimi vaaditaan",
+    "back_to_sign_in": "Takaisin kirjautumiseen",
+    "or": "Tai",
+    "continue": "Jatka",
+    "no_account": "Ei vielä tiliä?",
+    "already_have_account": "Onko sinulla jo tili?",
+    "email_sign_in": "Kirjaudu sähköpostilla",
+    "google_sign_in_title": "Kirjaudu Googlella",
+    "github_sign_in_title": "Kirjaudu GitHubilla",
+    "close_title": "Sulje",
+    "cancel_title": "Peruuta",
+    "sign_out_title": "Kirjaudu ulos",
+    "sign_in_failed": "Kirjautuminen epäonnistui",
+    "sign_up_failed": "Rekisteröityminen epäonnistui",
+    "request_password_reset_failed": "Salasanan palautuspyyntö epäonnistui",
+    "reset_password_failed": "Salasanan palautus epäonnistui",
+    "billing_title": "Laskutus",
+    "name_title": "Nimi",
+    "name_placeholder": "Syötä nimesi tähän",
+    "admin_title": "Ylläpito",
+    "credits_title": "Kreditit: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Valitse maksutapa",
+    "choose_payment_method_description": "Valitse palveluntarjoaja jatkaaksesi kassalle.",
+    "cancel_title": "Peruuta",
+    "payment_method_required": "Valitse maksutapa",
+    "pricing_item_required": "Valitse paketti",
+    "invalid_payment_method": "Virheellinen maksutapa"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Virheellinen latausvastaus",
+      "max_images_reached": "Kuvien enimmäismäärä saavutettu",
+      "file_too_large": "\"{name}\" ylittää {maxSize}MB rajan",
+      "upload_failed_with_reason": "Lataus epäonnistui: {reason}",
+      "upload_failed": "Lataus epäonnistui",
+      "reference_alt": "Viitekuva",
+      "status": {
+        "uploading": "Ladataan...",
+        "failed": "Epäonnistui"
+      },
+      "button": {
+        "upload": "Lataa"
+      },
+      "max_size": "Enint. {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Havaitsimme, että selaimesi kieli on {locale}. Vaihdetaanko siihen?",
+    "switch_to": "Vaihda kieleen {locale}",
+    "dismiss_aria_label": "Sulje"
+  },
+  "locale_switcher": {
+    "aria_label": "Vaihda kieli"
+  }
+}

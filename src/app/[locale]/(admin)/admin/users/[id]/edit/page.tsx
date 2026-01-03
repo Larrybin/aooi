@@ -25,12 +25,12 @@ export default async function UserEditPage({
     permission: PERMISSIONS.USERS_WRITE,
   });
 
+  const t = await getTranslations('admin.users');
+
   const user = await findUserById(id);
   if (!user) {
-    return <Empty message="User not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
-
-  const t = await getTranslations('admin.users');
 
   const crumbs = buildAdminCrumbs(t, [
     { key: 'edit.crumbs.admin', url: '/admin' },

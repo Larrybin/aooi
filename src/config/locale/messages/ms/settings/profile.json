@@ -1,0 +1,25 @@
+{
+  "no_auth": "Sila log masuk untuk meneruskan",
+  "fields": {
+    "email": "E-mel",
+    "name": "Nama",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Nama diperlukan"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Kemas kini profil anda",
+    "crumbs": {
+      "settings": "Tetapan",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Simpan"
+    }
+  },
+  "messages": {
+    "updated": "Profil dikemas kini"
+  }
+}

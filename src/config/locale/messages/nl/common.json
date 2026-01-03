@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit is een Next.js-boilerplate voor het bouwen van AI SaaS-startups. Lanceer snel met een verscheidenheid aan templates en componenten.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Inloggen",
+    "sign_in_description": "Log in op je account",
+    "sign_up_title": "Registreren",
+    "sign_up_description": "Maak een account aan",
+    "email_title": "E-mail",
+    "email_placeholder": "Vul hier je e-mail in",
+    "password_title": "Wachtwoord",
+    "password_placeholder": "Vul hier je wachtwoord in",
+    "forgot_password": "Wachtwoord vergeten?",
+    "forgot_password_title": "Wachtwoord vergeten",
+    "forgot_password_description": "We sturen je een resetlink per e-mail",
+    "forgot_password_submit": "Resetlink sturen",
+    "forgot_password_sent": "Als dit e-mailadres in ons systeem bestaat, controleer je inbox voor de resetlink.",
+    "forgot_password_disabled": "Wachtwoord resetten is niet beschikbaar.",
+    "reset_password_title": "Wachtwoord resetten",
+    "reset_password_description": "Stel een nieuw wachtwoord in voor je account",
+    "new_password_title": "Nieuw wachtwoord",
+    "new_password_placeholder": "Vul hier je nieuwe wachtwoord in",
+    "new_password_required": "Nieuw wachtwoord is verplicht",
+    "confirm_password_title": "Bevestig wachtwoord",
+    "confirm_password_placeholder": "Vul je nieuwe wachtwoord opnieuw in",
+    "confirm_password_required": "Bevestig je nieuwe wachtwoord",
+    "password_mismatch": "Wachtwoorden komen niet overeen",
+    "reset_password_submit": "Wachtwoord resetten",
+    "reset_password_success": "Wachtwoord succesvol gereset. Log opnieuw in.",
+    "reset_password_disabled": "Wachtwoord resetten is niet beschikbaar.",
+    "invalid_reset_token": "Ongeldige of verlopen resetlink.",
+    "missing_reset_token": "Reset-token ontbreekt. Gebruik de link uit je e-mail.",
+    "email_required": "E-mail is verplicht",
+    "password_required": "Wachtwoord is verplicht",
+    "name_required": "Naam is verplicht",
+    "back_to_sign_in": "Terug naar Inloggen",
+    "or": "Of",
+    "continue": "Doorgaan",
+    "no_account": "Nog geen account?",
+    "already_have_account": "Heb je al een account?",
+    "email_sign_in": "Inloggen met e-mail",
+    "google_sign_in_title": "Inloggen met Google",
+    "github_sign_in_title": "Inloggen met GitHub",
+    "close_title": "Sluiten",
+    "cancel_title": "Annuleren",
+    "sign_out_title": "Uitloggen",
+    "sign_in_failed": "Inloggen mislukt",
+    "sign_up_failed": "Registreren mislukt",
+    "request_password_reset_failed": "Aanvraag voor reset mislukt",
+    "reset_password_failed": "Reset mislukt",
+    "billing_title": "Facturatie",
+    "name_title": "Naam",
+    "name_placeholder": "Vul hier je naam in",
+    "admin_title": "Admin",
+    "credits_title": "Credits: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Kies betaalmethode",
+    "choose_payment_method_description": "Selecteer een provider om door te gaan naar de checkout.",
+    "cancel_title": "Annuleren",
+    "payment_method_required": "Selecteer een betaalmethode",
+    "pricing_item_required": "Selecteer een plan",
+    "invalid_payment_method": "Ongeldige betaalmethode"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Ongeldig uploadantwoord",
+      "max_images_reached": "Maximumaantal afbeeldingen bereikt",
+      "file_too_large": "\"{name}\" overschrijdt de limiet van {maxSize}MB",
+      "upload_failed_with_reason": "Upload mislukt: {reason}",
+      "upload_failed": "Upload mislukt",
+      "reference_alt": "Referentieafbeelding",
+      "status": {
+        "uploading": "Bezig met uploaden...",
+        "failed": "Mislukt"
+      },
+      "button": {
+        "upload": "Uploaden"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "We hebben gedetecteerd dat je browsertaal {locale} is. Wil je daarnaar overschakelen?",
+    "switch_to": "Schakel naar {locale}",
+    "dismiss_aria_label": "Sluiten"
+  },
+  "locale_switcher": {
+    "aria_label": "Taal wijzigen"
+  }
+}

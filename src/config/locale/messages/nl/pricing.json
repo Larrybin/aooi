@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Prijzen",
+    "description": "Begin met een plan"
+  },
+  "page": {
+    "current_plan": "Huidig plan",
+    "processing": "Verwerken",
+    "currency_placeholder": "Valuta",
+    "checkout_failed": "Checkout mislukt"
+  }
+}

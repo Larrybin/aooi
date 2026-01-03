@@ -27,5 +27,10 @@
       "refresh": "Refresh Task"
     },
     "empty_message": "No tasks found"
+  },
+  "errors": {
+    "no_auth": "Please sign in to continue",
+    "task_not_found": "Task not found",
+    "invalid_ai_provider": "Invalid AI provider"
   }
 }

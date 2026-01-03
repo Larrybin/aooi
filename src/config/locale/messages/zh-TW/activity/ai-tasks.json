@@ -27,5 +27,10 @@
       "refresh": "重新整理任務"
     },
     "empty_message": "沒有任務"
+  },
+  "errors": {
+    "no_auth": "請先登入",
+    "task_not_found": "任務不存在",
+    "invalid_ai_provider": "AI 供應商無效"
   }
 }

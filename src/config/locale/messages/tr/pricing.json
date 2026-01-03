@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Fiyatlandırma",
+    "description": "Bir planla başlayın"
+  },
+  "page": {
+    "current_plan": "Mevcut plan",
+    "processing": "İşleniyor",
+    "currency_placeholder": "Para birimi",
+    "checkout_failed": "Checkout başarısız"
+  }
+}

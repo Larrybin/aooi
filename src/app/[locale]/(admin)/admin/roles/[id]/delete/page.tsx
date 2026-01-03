@@ -35,7 +35,7 @@ export default async function RoleDeletePage({
     .where(and(eq(role.id, id), isNull(role.deletedAt)));
 
   if (!roleRow) {
-    return <Empty message="Role not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
 
   const crumbs = buildAdminCrumbs(t, [

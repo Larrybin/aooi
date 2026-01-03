@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit é um boilerplate Next.js para construir startups de AI SaaS. Lance rapidamente com uma variedade de modelos e componentes.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Entrar",
+    "sign_in_description": "Entre na sua conta",
+    "sign_up_title": "Criar conta",
+    "sign_up_description": "Crie uma conta",
+    "email_title": "E-mail",
+    "email_placeholder": "Digite seu e-mail aqui",
+    "password_title": "Senha",
+    "password_placeholder": "Digite sua senha aqui",
+    "forgot_password": "Esqueceu a senha?",
+    "forgot_password_title": "Esqueci a senha",
+    "forgot_password_description": "Enviaremos um link de redefinição por e-mail",
+    "forgot_password_submit": "Enviar link de redefinição",
+    "forgot_password_sent": "Se este e-mail existir no nosso sistema, verifique sua caixa de entrada para o link.",
+    "forgot_password_disabled": "A redefinição de senha não está disponível.",
+    "reset_password_title": "Redefinir senha",
+    "reset_password_description": "Defina uma nova senha para sua conta",
+    "new_password_title": "Nova senha",
+    "new_password_placeholder": "Digite sua nova senha aqui",
+    "new_password_required": "A nova senha é obrigatória",
+    "confirm_password_title": "Confirmar senha",
+    "confirm_password_placeholder": "Digite novamente a nova senha",
+    "confirm_password_required": "Confirme a nova senha",
+    "password_mismatch": "As senhas não coincidem",
+    "reset_password_submit": "Redefinir senha",
+    "reset_password_success": "Senha redefinida com sucesso. Entre novamente.",
+    "reset_password_disabled": "A redefinição de senha não está disponível.",
+    "invalid_reset_token": "Link de redefinição inválido ou expirado.",
+    "missing_reset_token": "Token de redefinição ausente. Use o link do e-mail.",
+    "email_required": "E-mail é obrigatório",
+    "password_required": "Senha é obrigatória",
+    "name_required": "Nome é obrigatório",
+    "back_to_sign_in": "Voltar para Entrar",
+    "or": "Ou",
+    "continue": "Continuar",
+    "no_account": "Não tem uma conta?",
+    "already_have_account": "Já tem uma conta?",
+    "email_sign_in": "Entrar com e-mail",
+    "google_sign_in_title": "Entrar com Google",
+    "github_sign_in_title": "Entrar com GitHub",
+    "close_title": "Fechar",
+    "cancel_title": "Cancelar",
+    "sign_out_title": "Sair",
+    "sign_in_failed": "Falha ao entrar",
+    "sign_up_failed": "Falha ao criar conta",
+    "request_password_reset_failed": "Falha ao solicitar redefinição",
+    "reset_password_failed": "Falha ao redefinir senha",
+    "billing_title": "Faturamento",
+    "name_title": "Nome",
+    "name_placeholder": "Digite seu nome aqui",
+    "admin_title": "Admin",
+    "credits_title": "Créditos: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Escolher método de pagamento",
+    "choose_payment_method_description": "Selecione um provedor para continuar para o checkout.",
+    "cancel_title": "Cancelar",
+    "payment_method_required": "Selecione um método de pagamento",
+    "pricing_item_required": "Selecione um plano",
+    "invalid_payment_method": "Método de pagamento inválido"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Resposta de upload inválida",
+      "max_images_reached": "Número máximo de imagens atingido",
+      "file_too_large": "\"{name}\" excede o limite de {maxSize}MB",
+      "upload_failed_with_reason": "Falha no upload: {reason}",
+      "upload_failed": "Falha no upload",
+      "reference_alt": "Imagem de referência",
+      "status": {
+        "uploading": "Enviando...",
+        "failed": "Falhou"
+      },
+      "button": {
+        "upload": "Enviar"
+      },
+      "max_size": "Máx {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Detectamos que o idioma do seu navegador é {locale}. Deseja mudar?",
+    "switch_to": "Mudar para {locale}",
+    "dismiss_aria_label": "Fechar"
+  },
+  "locale_switcher": {
+    "aria_label": "Mudar idioma"
+  }
+}

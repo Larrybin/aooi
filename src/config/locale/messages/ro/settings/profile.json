@@ -1,0 +1,25 @@
+{
+  "no_auth": "Autentifică-te pentru a continua",
+  "fields": {
+    "email": "E-mail",
+    "name": "Nume",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Numele este obligatoriu"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Actualizează-ți profilul",
+    "crumbs": {
+      "settings": "Setări",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Salvează"
+    }
+  },
+  "messages": {
+    "updated": "Profil actualizat"
+  }
+}

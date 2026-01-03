@@ -1,0 +1,25 @@
+{
+  "no_auth": "Vui lòng đăng nhập để tiếp tục",
+  "fields": {
+    "email": "Email",
+    "name": "Tên",
+    "avatar": "Ảnh đại diện"
+  },
+  "validation": {
+    "name_required": "Tên là bắt buộc"
+  },
+  "edit": {
+    "title": "Hồ sơ",
+    "description": "Cập nhật hồ sơ của bạn",
+    "crumbs": {
+      "settings": "Cài đặt",
+      "profile": "Hồ sơ"
+    },
+    "buttons": {
+      "submit": "Lưu"
+    }
+  },
+  "messages": {
+    "updated": "Đã cập nhật hồ sơ"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit, AI SaaS girişimleri oluşturmak için bir Next.js boilerplate'idir. Çeşitli şablonlar ve bileşenlerle hızlıca yayınlayın.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Giriş yap",
+    "sign_in_description": "Hesabınıza giriş yapın",
+    "sign_up_title": "Kaydol",
+    "sign_up_description": "Hesap oluştur",
+    "email_title": "E-posta",
+    "email_placeholder": "E-postanızı buraya girin",
+    "password_title": "Şifre",
+    "password_placeholder": "Şifrenizi buraya girin",
+    "forgot_password": "Şifremi unuttum?",
+    "forgot_password_title": "Şifremi unuttum",
+    "forgot_password_description": "Size bir sıfırlama bağlantısı e-posta ile göndereceğiz",
+    "forgot_password_submit": "Sıfırlama bağlantısı gönder",
+    "forgot_password_sent": "Bu e-posta sistemimizde varsa, sıfırlama bağlantısı için gelen kutunuzu kontrol edin.",
+    "forgot_password_disabled": "Şifre sıfırlama kullanılamıyor.",
+    "reset_password_title": "Şifreyi sıfırla",
+    "reset_password_description": "Hesabınız için yeni bir şifre belirleyin",
+    "new_password_title": "Yeni şifre",
+    "new_password_placeholder": "Yeni şifrenizi buraya girin",
+    "new_password_required": "Yeni şifre gerekli",
+    "confirm_password_title": "Şifreyi doğrula",
+    "confirm_password_placeholder": "Yeni şifreyi tekrar girin",
+    "confirm_password_required": "Lütfen yeni şifreyi doğrulayın",
+    "password_mismatch": "Şifreler eşleşmiyor",
+    "reset_password_submit": "Şifreyi sıfırla",
+    "reset_password_success": "Şifre başarıyla sıfırlandı. Lütfen tekrar giriş yapın.",
+    "reset_password_disabled": "Şifre sıfırlama kullanılamıyor.",
+    "invalid_reset_token": "Geçersiz veya süresi dolmuş sıfırlama bağlantısı.",
+    "missing_reset_token": "Sıfırlama tokeni eksik. Lütfen e-postadaki bağlantıyı kullanın.",
+    "email_required": "E-posta gerekli",
+    "password_required": "Şifre gerekli",
+    "name_required": "Ad gerekli",
+    "back_to_sign_in": "Giriş sayfasına dön",
+    "or": "Veya",
+    "continue": "Devam et",
+    "no_account": "Hesabınız yok mu?",
+    "already_have_account": "Zaten hesabınız var mı?",
+    "email_sign_in": "E-posta ile giriş yap",
+    "google_sign_in_title": "Google ile giriş yap",
+    "github_sign_in_title": "GitHub ile giriş yap",
+    "close_title": "Kapat",
+    "cancel_title": "İptal",
+    "sign_out_title": "Çıkış yap",
+    "sign_in_failed": "Giriş başarısız",
+    "sign_up_failed": "Kayıt başarısız",
+    "request_password_reset_failed": "Şifre sıfırlama isteği başarısız",
+    "reset_password_failed": "Şifre sıfırlama başarısız",
+    "billing_title": "Faturalandırma",
+    "name_title": "Ad",
+    "name_placeholder": "Adınızı buraya girin",
+    "admin_title": "Admin",
+    "credits_title": "Krediler: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Ödeme yöntemi seç",
+    "choose_payment_method_description": "Checkout'a devam etmek için bir sağlayıcı seçin.",
+    "cancel_title": "İptal",
+    "payment_method_required": "Lütfen ödeme yöntemi seçin",
+    "pricing_item_required": "Lütfen bir plan seçin",
+    "invalid_payment_method": "Geçersiz ödeme yöntemi"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Geçersiz yükleme yanıtı",
+      "max_images_reached": "Maksimum görsel sayısına ulaşıldı",
+      "file_too_large": "\"{name}\" {maxSize}MB sınırını aşıyor",
+      "upload_failed_with_reason": "Yükleme başarısız: {reason}",
+      "upload_failed": "Yükleme başarısız",
+      "reference_alt": "Referans görsel",
+      "status": {
+        "uploading": "Yükleniyor...",
+        "failed": "Başarısız"
+      },
+      "button": {
+        "upload": "Yükle"
+      },
+      "max_size": "Maks {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Tarayıcı dilinizin {locale} olduğunu tespit ettik. Değiştirilsin mi?",
+    "switch_to": "{locale} diline geç",
+    "dismiss_aria_label": "Kapat"
+  },
+  "locale_switcher": {
+    "aria_label": "Dili değiştir"
+  }
+}

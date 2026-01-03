@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Το Roller Rabbit είναι ένα Next.js boilerplate για τη δημιουργία AI SaaS startups. Ξεκινήστε γρήγορα με ποικιλία από templates και components.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Σύνδεση",
+    "sign_in_description": "Συνδεθείτε στον λογαριασμό σας",
+    "sign_up_title": "Εγγραφή",
+    "sign_up_description": "Δημιουργήστε λογαριασμό",
+    "email_title": "Email",
+    "email_placeholder": "Εισαγάγετε το email σας εδώ",
+    "password_title": "Κωδικός",
+    "password_placeholder": "Εισαγάγετε τον κωδικό σας εδώ",
+    "forgot_password": "Ξεχάσατε τον κωδικό;",
+    "forgot_password_title": "Ξεχάσατε τον κωδικό",
+    "forgot_password_description": "Θα σας στείλουμε έναν σύνδεσμο επαναφοράς",
+    "forgot_password_submit": "Αποστολή συνδέσμου επαναφοράς",
+    "forgot_password_sent": "Αν αυτό το email υπάρχει στο σύστημά μας, ελέγξτε τα εισερχόμενά σας για τον σύνδεσμο επαναφοράς.",
+    "forgot_password_disabled": "Η επαναφορά κωδικού δεν είναι διαθέσιμη.",
+    "reset_password_title": "Επαναφορά κωδικού",
+    "reset_password_description": "Ορίστε νέο κωδικό για τον λογαριασμό σας",
+    "new_password_title": "Νέος κωδικός",
+    "new_password_placeholder": "Εισαγάγετε τον νέο κωδικό σας εδώ",
+    "new_password_required": "Απαιτείται νέος κωδικός",
+    "confirm_password_title": "Επιβεβαίωση κωδικού",
+    "confirm_password_placeholder": "Εισαγάγετε ξανά τον νέο κωδικό",
+    "confirm_password_required": "Παρακαλούμε επιβεβαιώστε τον νέο κωδικό",
+    "password_mismatch": "Οι κωδικοί δεν ταιριάζουν",
+    "reset_password_submit": "Επαναφορά κωδικού",
+    "reset_password_success": "Ο κωδικός επαναφέρθηκε με επιτυχία. Παρακαλούμε συνδεθείτε ξανά.",
+    "reset_password_disabled": "Η επαναφορά κωδικού δεν είναι διαθέσιμη.",
+    "invalid_reset_token": "Μη έγκυρος ή ληγμένος σύνδεσμος επαναφοράς.",
+    "missing_reset_token": "Λείπει το token επαναφοράς. Χρησιμοποιήστε τον σύνδεσμο από το email σας.",
+    "email_required": "Το email είναι υποχρεωτικό",
+    "password_required": "Ο κωδικός είναι υποχρεωτικός",
+    "name_required": "Το όνομα είναι υποχρεωτικό",
+    "back_to_sign_in": "Επιστροφή στη Σύνδεση",
+    "or": "Ή",
+    "continue": "Συνέχεια",
+    "no_account": "Δεν έχετε λογαριασμό;",
+    "already_have_account": "Έχετε ήδη λογαριασμό;",
+    "email_sign_in": "Σύνδεση με Email",
+    "google_sign_in_title": "Σύνδεση με Google",
+    "github_sign_in_title": "Σύνδεση με GitHub",
+    "close_title": "Κλείσιμο",
+    "cancel_title": "Ακύρωση",
+    "sign_out_title": "Αποσύνδεση",
+    "sign_in_failed": "Αποτυχία σύνδεσης",
+    "sign_up_failed": "Αποτυχία εγγραφής",
+    "request_password_reset_failed": "Αποτυχία αίτησης επαναφοράς κωδικού",
+    "reset_password_failed": "Αποτυχία επαναφοράς κωδικού",
+    "billing_title": "Χρέωση",
+    "name_title": "Όνομα",
+    "name_placeholder": "Εισαγάγετε το όνομά σας εδώ",
+    "admin_title": "Διαχείριση",
+    "credits_title": "Credits: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Επιλογή τρόπου πληρωμής",
+    "choose_payment_method_description": "Επιλέξτε πάροχο για να συνεχίσετε στο checkout.",
+    "cancel_title": "Ακύρωση",
+    "payment_method_required": "Παρακαλούμε επιλέξτε τρόπο πληρωμής",
+    "pricing_item_required": "Παρακαλούμε επιλέξτε ένα πακέτο",
+    "invalid_payment_method": "Μη έγκυρος τρόπος πληρωμής"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Μη έγκυρη απάντηση μεταφόρτωσης",
+      "max_images_reached": "Έχετε φτάσει το μέγιστο αριθμό εικόνων",
+      "file_too_large": "Το \"{name}\" υπερβαίνει το όριο των {maxSize}MB",
+      "upload_failed_with_reason": "Η μεταφόρτωση απέτυχε: {reason}",
+      "upload_failed": "Η μεταφόρτωση απέτυχε",
+      "reference_alt": "Εικόνα αναφοράς",
+      "status": {
+        "uploading": "Μεταφόρτωση...",
+        "failed": "Απέτυχε"
+      },
+      "button": {
+        "upload": "Μεταφόρτωση"
+      },
+      "max_size": "Μέγιστο {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Εντοπίσαμε ότι η γλώσσα του browser σας είναι {locale}. Θέλετε να αλλάξετε σε αυτήν;",
+    "switch_to": "Αλλαγή σε {locale}",
+    "dismiss_aria_label": "Κλείσιμο"
+  },
+  "locale_switcher": {
+    "aria_label": "Αλλαγή γλώσσας"
+  }
+}

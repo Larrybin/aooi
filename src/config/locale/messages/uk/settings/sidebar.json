@@ -1,0 +1,46 @@
+{
+  "title": "Налаштування",
+  "nav": {
+    "items": [
+      {
+        "title": "Профіль",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Білінг",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Платежі",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Кредити",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "Ключі API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Активність",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Налаштування",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

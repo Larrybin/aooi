@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit AI SaaS اسٹارٹ اپس بنانے کے لیے ایک Next.js بوائلر پلیٹ ہے۔ مختلف ٹیمپلیٹس اور کمپوننٹس کے ساتھ تیزی سے لانچ کریں۔",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "سائن اِن",
+    "sign_in_description": "اپنے اکاؤنٹ میں سائن اِن کریں",
+    "sign_up_title": "سائن اپ",
+    "sign_up_description": "اکاؤنٹ بنائیں",
+    "email_title": "ای میل",
+    "email_placeholder": "یہاں اپنی ای میل درج کریں",
+    "password_title": "پاس ورڈ",
+    "password_placeholder": "یہاں اپنا پاس ورڈ درج کریں",
+    "forgot_password": "پاس ورڈ بھول گئے؟",
+    "forgot_password_title": "پاس ورڈ بھول گئے",
+    "forgot_password_description": "ہم آپ کو ری سیٹ لنک ای میل کریں گے",
+    "forgot_password_submit": "ری سیٹ لنک بھیجیں",
+    "forgot_password_sent": "اگر یہ ای میل ہمارے سسٹم میں موجود ہے تو ری سیٹ لنک کے لیے اپنا اِن باکس چیک کریں۔",
+    "forgot_password_disabled": "پاس ورڈ ری سیٹ دستیاب نہیں ہے۔",
+    "reset_password_title": "پاس ورڈ ری سیٹ کریں",
+    "reset_password_description": "اپنے اکاؤنٹ کے لیے نیا پاس ورڈ سیٹ کریں",
+    "new_password_title": "نیا پاس ورڈ",
+    "new_password_placeholder": "یہاں نیا پاس ورڈ درج کریں",
+    "new_password_required": "نیا پاس ورڈ ضروری ہے",
+    "confirm_password_title": "پاس ورڈ کی تصدیق",
+    "confirm_password_placeholder": "نیا پاس ورڈ دوبارہ درج کریں",
+    "confirm_password_required": "براہ کرم نئے پاس ورڈ کی تصدیق کریں",
+    "password_mismatch": "پاس ورڈز مماثل نہیں ہیں",
+    "reset_password_submit": "پاس ورڈ ری سیٹ کریں",
+    "reset_password_success": "پاس ورڈ کامیابی سے ری سیٹ ہو گیا۔ براہ کرم دوبارہ سائن اِن کریں۔",
+    "reset_password_disabled": "پاس ورڈ ری سیٹ دستیاب نہیں ہے۔",
+    "invalid_reset_token": "ری سیٹ لنک غلط یا میعاد ختم ہو چکا ہے۔",
+    "missing_reset_token": "ری سیٹ ٹوکن موجود نہیں۔ براہ کرم ای میل والے لنک کا استعمال کریں۔",
+    "email_required": "ای میل ضروری ہے",
+    "password_required": "پاس ورڈ ضروری ہے",
+    "name_required": "نام ضروری ہے",
+    "back_to_sign_in": "سائن اِن پر واپس جائیں",
+    "or": "یا",
+    "continue": "جاری رکھیں",
+    "no_account": "اکاؤنٹ نہیں ہے؟",
+    "already_have_account": "پہلے سے اکاؤنٹ ہے؟",
+    "email_sign_in": "ای میل سے سائن اِن کریں",
+    "google_sign_in_title": "Google سے سائن اِن کریں",
+    "github_sign_in_title": "GitHub سے سائن اِن کریں",
+    "close_title": "بند کریں",
+    "cancel_title": "منسوخ کریں",
+    "sign_out_title": "سائن آؤٹ",
+    "sign_in_failed": "سائن اِن ناکام",
+    "sign_up_failed": "سائن اپ ناکام",
+    "request_password_reset_failed": "پاس ورڈ ری سیٹ کی درخواست ناکام",
+    "reset_password_failed": "پاس ورڈ ری سیٹ ناکام",
+    "billing_title": "بلنگ",
+    "name_title": "نام",
+    "name_placeholder": "یہاں اپنا نام درج کریں",
+    "admin_title": "ایڈمن",
+    "credits_title": "کریڈٹس: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "ادائیگی کا طریقہ منتخب کریں",
+    "choose_payment_method_description": "چیک آؤٹ جاری رکھنے کے لیے ایک فراہم کنندہ منتخب کریں۔",
+    "cancel_title": "منسوخ کریں",
+    "payment_method_required": "براہ کرم ادائیگی کا طریقہ منتخب کریں",
+    "pricing_item_required": "براہ کرم ایک پلان منتخب کریں",
+    "invalid_payment_method": "غلط ادائیگی کا طریقہ"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "اپ لوڈ کا جواب درست نہیں",
+      "max_images_reached": "تصاویر کی زیادہ سے زیادہ تعداد تک پہنچ گئے ہیں",
+      "file_too_large": "\"{name}\" {maxSize}MB کی حد سے زیادہ ہے",
+      "upload_failed_with_reason": "اپ لوڈ ناکام: {reason}",
+      "upload_failed": "اپ لوڈ ناکام",
+      "reference_alt": "حوالہ تصویر",
+      "status": {
+        "uploading": "اپ لوڈ ہو رہا ہے...",
+        "failed": "ناکام"
+      },
+      "button": {
+        "upload": "اپ لوڈ"
+      },
+      "max_size": "زیادہ سے زیادہ {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "ہم نے محسوس کیا کہ آپ کے براؤزر کی زبان {locale} ہے۔ کیا آپ اس پر سوئچ کرنا چاہتے ہیں؟",
+    "switch_to": "{locale} پر سوئچ کریں",
+    "dismiss_aria_label": "بند کریں"
+  },
+  "locale_switcher": {
+    "aria_label": "زبان تبدیل کریں"
+  }
+}

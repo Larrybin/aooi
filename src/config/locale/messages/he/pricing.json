@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "תמחור",
+    "description": "התחל עם תוכנית"
+  },
+  "page": {
+    "current_plan": "התוכנית הנוכחית",
+    "processing": "מעבד",
+    "currency_placeholder": "מטבע",
+    "checkout_failed": "התשלום נכשל"
+  }
+}

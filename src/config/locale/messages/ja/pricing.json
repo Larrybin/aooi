@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "料金",
+    "description": "プランを選んで開始"
+  },
+  "page": {
+    "current_plan": "現在のプラン",
+    "processing": "処理中",
+    "currency_placeholder": "通貨",
+    "checkout_failed": "チェックアウトに失敗しました"
+  }
+}

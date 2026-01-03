@@ -256,7 +256,7 @@ export function Pricing({
         return;
       }
 
-      toastFetchError(e, 'Checkout failed');
+      toastFetchError(e, t('checkout_failed'));
 
       setIsLoading(false);
       setProductId(null);
@@ -370,7 +370,9 @@ export function Pricing({
                           size="sm"
                           className="border-muted-foreground/30 bg-background/50 h-6 min-w-[60px] px-2 text-xs"
                         >
-                          <SelectValue placeholder="Currency" />
+                          <SelectValue
+                            placeholder={t('currency_placeholder')}
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {currencies.map((currency) => (

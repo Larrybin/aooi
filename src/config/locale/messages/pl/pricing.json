@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Cennik",
+    "description": "Zacznij od planu"
+  },
+  "page": {
+    "current_plan": "Obecny plan",
+    "processing": "Przetwarzanie",
+    "currency_placeholder": "Waluta",
+    "checkout_failed": "Checkout nie powiódł się"
+  }
+}

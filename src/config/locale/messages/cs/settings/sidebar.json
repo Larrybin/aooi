@@ -1,0 +1,46 @@
+{
+  "title": "Nastavení",
+  "nav": {
+    "items": [
+      {
+        "title": "Profil",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Fakturace",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Platby",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Kredity",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API klíče",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Aktivity",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Nastavení",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

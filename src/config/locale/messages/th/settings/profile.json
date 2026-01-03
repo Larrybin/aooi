@@ -1,0 +1,25 @@
+{
+  "no_auth": "โปรดเข้าสู่ระบบเพื่อดำเนินการต่อ",
+  "fields": {
+    "email": "อีเมล",
+    "name": "ชื่อ",
+    "avatar": "อวาตาร์"
+  },
+  "validation": {
+    "name_required": "ต้องระบุชื่อ"
+  },
+  "edit": {
+    "title": "โปรไฟล์",
+    "description": "อัปเดตโปรไฟล์ของคุณ",
+    "crumbs": {
+      "settings": "การตั้งค่า",
+      "profile": "โปรไฟล์"
+    },
+    "buttons": {
+      "submit": "บันทึก"
+    }
+  },
+  "messages": {
+    "updated": "อัปเดตโปรไฟล์แล้ว"
+  }
+}

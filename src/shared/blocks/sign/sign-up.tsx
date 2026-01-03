@@ -78,8 +78,18 @@ export function SignUp({
       return;
     }
 
-    if (!email || !password || !name) {
-      toast.error('email, password and name are required');
+    if (!name) {
+      toast.error(t('name_required'));
+      return;
+    }
+
+    if (!email) {
+      toast.error(t('email_required'));
+      return;
+    }
+
+    if (!password) {
+      toast.error(t('password_required'));
       return;
     }
 
@@ -102,7 +112,7 @@ export function SignUp({
           router.push(localizedCallbackUrl);
         },
         onError: (ctx: AuthErrorContext) => {
-          toast.error(ctx.error?.message || 'sign up failed');
+          toast.error(ctx.error?.message || t('sign_up_failed'));
           setLoading(false);
         },
       }

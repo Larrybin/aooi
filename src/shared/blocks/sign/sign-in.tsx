@@ -54,8 +54,13 @@ export function SignIn({
       return;
     }
 
-    if (!email || !password) {
-      toast.error('email and password are required');
+    if (!email) {
+      toast.error(t('email_required'));
+      return;
+    }
+
+    if (!password) {
+      toast.error(t('password_required'));
       return;
     }
 
@@ -74,7 +79,7 @@ export function SignIn({
         },
         onSuccess: () => {},
         onError: (ctx: AuthErrorContext) => {
-          toast.error(ctx.error?.message || 'sign in failed');
+          toast.error(ctx.error?.message || t('sign_in_failed'));
           setLoading(false);
         },
       }

@@ -1,0 +1,46 @@
+{
+  "title": "Tetapan",
+  "nav": {
+    "items": [
+      {
+        "title": "Profil",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Pengebilan",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Pembayaran",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Kredit",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "Kunci API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Aktiviti",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Tetapan",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

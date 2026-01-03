@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "الأسعار",
+    "description": "ابدأ بخطة"
+  },
+  "page": {
+    "current_plan": "الخطة الحالية",
+    "processing": "جارٍ المعالجة",
+    "currency_placeholder": "العملة",
+    "checkout_failed": "فشل إتمام الدفع"
+  }
+}

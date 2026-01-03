@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit je Next.js boilerplate pro rychlé vytváření AI SaaS startupů. Spusťte se rychle díky mnoha šablonám a komponentám.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Přihlásit se",
+    "sign_in_description": "Přihlaste se ke svému účtu",
+    "sign_up_title": "Registrovat se",
+    "sign_up_description": "Vytvořte si účet",
+    "email_title": "E-mail",
+    "email_placeholder": "Zadejte svůj e-mail",
+    "password_title": "Heslo",
+    "password_placeholder": "Zadejte své heslo",
+    "forgot_password": "Zapomněli jste heslo?",
+    "forgot_password_title": "Zapomenuté heslo",
+    "forgot_password_description": "Pošleme vám odkaz pro reset hesla",
+    "forgot_password_submit": "Odeslat odkaz",
+    "forgot_password_sent": "Pokud tento e-mail existuje v našem systému, zkontrolujte si doručenou poštu pro odkaz na reset.",
+    "forgot_password_disabled": "Obnova hesla není k dispozici.",
+    "reset_password_title": "Resetovat heslo",
+    "reset_password_description": "Nastavte nové heslo pro svůj účet",
+    "new_password_title": "Nové heslo",
+    "new_password_placeholder": "Zadejte nové heslo",
+    "new_password_required": "Nové heslo je povinné",
+    "confirm_password_title": "Potvrdit heslo",
+    "confirm_password_placeholder": "Zadejte nové heslo znovu",
+    "confirm_password_required": "Potvrďte nové heslo",
+    "password_mismatch": "Hesla se neshodují",
+    "reset_password_submit": "Resetovat heslo",
+    "reset_password_success": "Heslo bylo úspěšně resetováno. Přihlaste se prosím znovu.",
+    "reset_password_disabled": "Obnova hesla není k dispozici.",
+    "invalid_reset_token": "Neplatný nebo expirovaný odkaz pro reset.",
+    "missing_reset_token": "Chybí token pro reset. Použijte prosím odkaz z e-mailu.",
+    "email_required": "E-mail je povinný",
+    "password_required": "Heslo je povinné",
+    "name_required": "Jméno je povinné",
+    "back_to_sign_in": "Zpět na přihlášení",
+    "or": "Nebo",
+    "continue": "Pokračovat",
+    "no_account": "Nemáte účet?",
+    "already_have_account": "Už máte účet?",
+    "email_sign_in": "Přihlásit se e-mailem",
+    "google_sign_in_title": "Přihlásit se přes Google",
+    "github_sign_in_title": "Přihlásit se přes GitHub",
+    "close_title": "Zavřít",
+    "cancel_title": "Zrušit",
+    "sign_out_title": "Odhlásit se",
+    "sign_in_failed": "Přihlášení se nezdařilo",
+    "sign_up_failed": "Registrace se nezdařila",
+    "request_password_reset_failed": "Žádost o reset hesla se nezdařila",
+    "reset_password_failed": "Reset hesla se nezdařil",
+    "billing_title": "Fakturace",
+    "name_title": "Jméno",
+    "name_placeholder": "Zadejte své jméno",
+    "admin_title": "Administrace",
+    "credits_title": "Kredity: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Vybrat způsob platby",
+    "choose_payment_method_description": "Vyberte poskytovatele pro pokračování k platbě.",
+    "cancel_title": "Zrušit",
+    "payment_method_required": "Vyberte prosím způsob platby",
+    "pricing_item_required": "Vyberte prosím tarif",
+    "invalid_payment_method": "Neplatný způsob platby"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Neplatná odpověď nahrávání",
+      "max_images_reached": "Byl dosažen maximální počet obrázků",
+      "file_too_large": "\"{name}\" překračuje limit {maxSize}MB",
+      "upload_failed_with_reason": "Nahrávání se nezdařilo: {reason}",
+      "upload_failed": "Nahrávání se nezdařilo",
+      "reference_alt": "Referenční obrázek",
+      "status": {
+        "uploading": "Nahrávání...",
+        "failed": "Neúspěšné"
+      },
+      "button": {
+        "upload": "Nahrát"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Zjistili jsme, že jazyk vašeho prohlížeče je {locale}. Chcete se na něj přepnout?",
+    "switch_to": "Přepnout na {locale}",
+    "dismiss_aria_label": "Zavřít"
+  },
+  "locale_switcher": {
+    "aria_label": "Změnit jazyk"
+  }
+}

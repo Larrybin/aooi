@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Τιμές",
+    "description": "Ξεκινήστε με ένα πλάνο"
+  },
+  "page": {
+    "current_plan": "Τρέχον πλάνο",
+    "processing": "Επεξεργασία",
+    "currency_placeholder": "Νόμισμα",
+    "checkout_failed": "Αποτυχία checkout"
+  }
+}

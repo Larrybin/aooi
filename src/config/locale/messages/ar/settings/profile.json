@@ -1,0 +1,25 @@
+{
+  "no_auth": "يرجى تسجيل الدخول للمتابعة",
+  "fields": {
+    "email": "البريد الإلكتروني",
+    "name": "الاسم",
+    "avatar": "الصورة الرمزية"
+  },
+  "validation": {
+    "name_required": "الاسم مطلوب"
+  },
+  "edit": {
+    "title": "الملف الشخصي",
+    "description": "حدّث ملفك الشخصي",
+    "crumbs": {
+      "settings": "الإعدادات",
+      "profile": "الملف الشخصي"
+    },
+    "buttons": {
+      "submit": "حفظ"
+    }
+  },
+  "messages": {
+    "updated": "تم تحديث الملف الشخصي"
+  }
+}

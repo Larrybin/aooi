@@ -1,0 +1,25 @@
+{
+  "no_auth": "Log in om door te gaan",
+  "fields": {
+    "email": "E-mail",
+    "name": "Naam",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Naam is verplicht"
+  },
+  "edit": {
+    "title": "Profiel",
+    "description": "Werk je profiel bij",
+    "crumbs": {
+      "settings": "Instellingen",
+      "profile": "Profiel"
+    },
+    "buttons": {
+      "submit": "Opslaan"
+    }
+  },
+  "messages": {
+    "updated": "Profiel bijgewerkt"
+  }
+}

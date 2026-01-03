@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Цены",
+    "description": "Начните с плана"
+  },
+  "page": {
+    "current_plan": "Текущий план",
+    "processing": "Обработка",
+    "currency_placeholder": "Валюта",
+    "checkout_failed": "Не удалось оформить оплату"
+  }
+}

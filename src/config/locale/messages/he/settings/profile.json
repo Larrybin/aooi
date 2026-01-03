@@ -1,0 +1,25 @@
+{
+  "no_auth": "נא להתחבר כדי להמשיך",
+  "fields": {
+    "email": "אימייל",
+    "name": "שם",
+    "avatar": "אווטאר"
+  },
+  "validation": {
+    "name_required": "שם הוא שדה חובה"
+  },
+  "edit": {
+    "title": "פרופיל",
+    "description": "עדכון הפרופיל שלך",
+    "crumbs": {
+      "settings": "הגדרות",
+      "profile": "פרופיל"
+    },
+    "buttons": {
+      "submit": "שמור"
+    }
+  },
+  "messages": {
+    "updated": "הפרופיל עודכן"
+  }
+}

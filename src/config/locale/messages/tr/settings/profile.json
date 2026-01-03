@@ -1,0 +1,25 @@
+{
+  "no_auth": "Devam etmek için giriş yapın",
+  "fields": {
+    "email": "E-posta",
+    "name": "Ad",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Ad gerekli"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Profilinizi güncelleyin",
+    "crumbs": {
+      "settings": "Ayarlar",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Kaydet"
+    }
+  },
+  "messages": {
+    "updated": "Profil güncellendi"
+  }
+}

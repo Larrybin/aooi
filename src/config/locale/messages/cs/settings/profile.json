@@ -1,0 +1,25 @@
+{
+  "no_auth": "Pro pokračování se prosím přihlaste",
+  "fields": {
+    "email": "E-mail",
+    "name": "Jméno",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Jméno je povinné"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Aktualizujte svůj profil",
+    "crumbs": {
+      "settings": "Nastavení",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Uložit"
+    }
+  },
+  "messages": {
+    "updated": "Profil byl aktualizován"
+  }
+}

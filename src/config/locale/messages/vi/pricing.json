@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Bảng giá",
+    "description": "Bắt đầu với một gói"
+  },
+  "page": {
+    "current_plan": "Gói hiện tại",
+    "processing": "Đang xử lý",
+    "currency_placeholder": "Tiền tệ",
+    "checkout_failed": "Checkout thất bại"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "title": "Pengaturan",
+  "nav": {
+    "items": [
+      {
+        "title": "Profil",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Penagihan",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Pembayaran",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Kredit",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "Kunci API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Aktivitas",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Pengaturan",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

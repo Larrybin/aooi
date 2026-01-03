@@ -1,0 +1,25 @@
+{
+  "no_auth": "Παρακαλούμε συνδεθείτε για να συνεχίσετε",
+  "fields": {
+    "email": "Email",
+    "name": "Όνομα",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Το όνομα είναι υποχρεωτικό"
+  },
+  "edit": {
+    "title": "Προφίλ",
+    "description": "Ενημερώστε το προφίλ σας",
+    "crumbs": {
+      "settings": "Ρυθμίσεις",
+      "profile": "Προφίλ"
+    },
+    "buttons": {
+      "submit": "Αποθήκευση"
+    }
+  },
+  "messages": {
+    "updated": "Το προφίλ ενημερώθηκε"
+  }
+}

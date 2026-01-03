@@ -1,8 +1,12 @@
 {
+  "no_auth": "请先登录",
   "fields": {
     "email": "邮箱",
     "name": "名称",
     "avatar": "头像"
+  },
+  "validation": {
+    "name_required": "请输入名称"
   },
   "edit": {
     "title": "个人资料",
@@ -14,5 +18,8 @@
     "buttons": {
       "submit": "保存"
     }
+  },
+  "messages": {
+    "updated": "个人资料已更新"
   }
 }

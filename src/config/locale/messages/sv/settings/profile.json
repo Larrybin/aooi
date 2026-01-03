@@ -1,0 +1,25 @@
+{
+  "no_auth": "Logga in för att fortsätta",
+  "fields": {
+    "email": "E-post",
+    "name": "Namn",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Namn krävs"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Uppdatera din profil",
+    "crumbs": {
+      "settings": "Inställningar",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Spara"
+    }
+  },
+  "messages": {
+    "updated": "Profil uppdaterad"
+  }
+}

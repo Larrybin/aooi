@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "मूल्य",
+    "description": "एक प्लान से शुरू करें"
+  },
+  "page": {
+    "current_plan": "वर्तमान प्लान",
+    "processing": "प्रोसेसिंग",
+    "currency_placeholder": "मुद्रा",
+    "checkout_failed": "चेकआउट विफल"
+  }
+}

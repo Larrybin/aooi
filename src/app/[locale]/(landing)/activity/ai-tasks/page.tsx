@@ -31,12 +31,12 @@ export default async function AiTasksPage({
   const page = pageNum || 1;
   const limit = pageSize || 20;
 
+  const t = await getTranslations('activity.ai-tasks');
+
   const user = await getUserInfo();
   if (!user) {
-    return <Empty message="no auth" />;
+    return <Empty message={t('errors.no_auth')} />;
   }
-
-  const t = await getTranslations('activity.ai-tasks');
 
   const aiTasks = await getAITasks({
     userId: user.id,

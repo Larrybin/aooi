@@ -55,5 +55,16 @@
     "buttons": {
       "confirm_cancel": "Confirm Cancel"
     }
+  },
+  "errors": {
+    "invalid_subscription_no": "Invalid subscription number",
+    "no_auth": "Please sign in to continue",
+    "subscription_not_found": "Subscription not found",
+    "missing_payment_subscription_id": "Missing payment subscription ID",
+    "missing_payment_user_id": "Missing payment user ID",
+    "no_permission": "You don't have permission",
+    "payment_provider_not_found": "Payment provider not found",
+    "billing_url_not_found": "Billing URL not found",
+    "get_billing_failed": "Failed to retrieve billing link"
   }
 }

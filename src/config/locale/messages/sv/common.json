@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit är en Next.js-boilerplate för att bygga AI SaaS-startups. Lansera snabbt med en mängd mallar och komponenter.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Logga in",
+    "sign_in_description": "Logga in på ditt konto",
+    "sign_up_title": "Registrera dig",
+    "sign_up_description": "Skapa ett konto",
+    "email_title": "E-post",
+    "email_placeholder": "Ange din e-post här",
+    "password_title": "Lösenord",
+    "password_placeholder": "Ange ditt lösenord här",
+    "forgot_password": "Glömt lösenord?",
+    "forgot_password_title": "Glömt lösenord",
+    "forgot_password_description": "Vi skickar en återställningslänk via e-post",
+    "forgot_password_submit": "Skicka återställningslänk",
+    "forgot_password_sent": "Om denna e-post finns i vårt system, kontrollera inkorgen för återställningslänken.",
+    "forgot_password_disabled": "Återställning av lösenord är inte tillgänglig.",
+    "reset_password_title": "Återställ lösenord",
+    "reset_password_description": "Ange ett nytt lösenord för ditt konto",
+    "new_password_title": "Nytt lösenord",
+    "new_password_placeholder": "Ange ditt nya lösenord här",
+    "new_password_required": "Nytt lösenord krävs",
+    "confirm_password_title": "Bekräfta lösenord",
+    "confirm_password_placeholder": "Ange det nya lösenordet igen",
+    "confirm_password_required": "Bekräfta ditt nya lösenord",
+    "password_mismatch": "Lösenorden matchar inte",
+    "reset_password_submit": "Återställ lösenord",
+    "reset_password_success": "Lösenordet har återställts. Logga in igen.",
+    "reset_password_disabled": "Återställning av lösenord är inte tillgänglig.",
+    "invalid_reset_token": "Ogiltig eller utgången återställningslänk.",
+    "missing_reset_token": "Saknar återställningstoken. Använd länken från ditt e-postmeddelande.",
+    "email_required": "E-post krävs",
+    "password_required": "Lösenord krävs",
+    "name_required": "Namn krävs",
+    "back_to_sign_in": "Tillbaka till Logga in",
+    "or": "Eller",
+    "continue": "Fortsätt",
+    "no_account": "Har du inget konto?",
+    "already_have_account": "Har du redan ett konto?",
+    "email_sign_in": "Logga in med e-post",
+    "google_sign_in_title": "Logga in med Google",
+    "github_sign_in_title": "Logga in med GitHub",
+    "close_title": "Stäng",
+    "cancel_title": "Avbryt",
+    "sign_out_title": "Logga ut",
+    "sign_in_failed": "Inloggning misslyckades",
+    "sign_up_failed": "Registrering misslyckades",
+    "request_password_reset_failed": "Begäran om återställning misslyckades",
+    "reset_password_failed": "Återställning misslyckades",
+    "billing_title": "Fakturering",
+    "name_title": "Namn",
+    "name_placeholder": "Ange ditt namn här",
+    "admin_title": "Admin",
+    "credits_title": "Krediter: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Välj betalningsmetod",
+    "choose_payment_method_description": "Välj en leverantör för att fortsätta till checkout.",
+    "cancel_title": "Avbryt",
+    "payment_method_required": "Välj betalningsmetod",
+    "pricing_item_required": "Välj en plan",
+    "invalid_payment_method": "Ogiltig betalningsmetod"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Ogiltigt uppladdningssvar",
+      "max_images_reached": "Maximalt antal bilder har nåtts",
+      "file_too_large": "\"{name}\" överskrider gränsen på {maxSize}MB",
+      "upload_failed_with_reason": "Uppladdning misslyckades: {reason}",
+      "upload_failed": "Uppladdning misslyckades",
+      "reference_alt": "Referensbild",
+      "status": {
+        "uploading": "Laddar upp...",
+        "failed": "Misslyckades"
+      },
+      "button": {
+        "upload": "Ladda upp"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Vi upptäckte att ditt webbläsarspråk är {locale}. Vill du byta?",
+    "switch_to": "Byt till {locale}",
+    "dismiss_aria_label": "Stäng"
+  },
+  "locale_switcher": {
+    "aria_label": "Byt språk"
+  }
+}

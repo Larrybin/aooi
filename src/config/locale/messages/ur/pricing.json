@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "قیمتیں",
+    "description": "ایک پلان سے آغاز کریں"
+  },
+  "page": {
+    "current_plan": "موجودہ پلان",
+    "processing": "پروسیسنگ",
+    "currency_placeholder": "کرنسی",
+    "checkout_failed": "چیک آؤٹ ناکام"
+  }
+}

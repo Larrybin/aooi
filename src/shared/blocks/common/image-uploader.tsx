@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { IconUpload, IconX } from '@tabler/icons-react';
 import { ImageIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@/shared/components/ui/button';
@@ -45,25 +46,6 @@ const formatBytes = (bytes?: number) => {
   return `${mb.toFixed(2)} MB`;
 };
 
-const uploadImageFile = async (file: File) => {
-  const formData = new FormData();
-  formData.append('files', file);
-
-  const data = await fetchApiData<{ urls: string[] }>(
-    '/api/storage/upload-image',
-    { method: 'POST', body: formData },
-    {
-      validate: (value): value is { urls: string[] } =>
-        isPlainObject(value) &&
-        Array.isArray((value as { urls?: unknown }).urls) &&
-        typeof (value as { urls: unknown[] }).urls[0] === 'string',
-      invalidDataMessage: 'invalid upload response',
-    }
-  );
-
-  return data.urls[0].trim();
-};
-
 export function ImageUploader({
   allowMultiple = false,
   maxImages = 1,
@@ -74,6 +56,8 @@ export function ImageUploader({
   defaultPreviews,
   onChange,
 }: ImageUploaderProps) {
+  const t = useTranslations('common.uploader.image');
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isInitializedRef = useRef(false);
   const onChangeRef = useRef(onChange);
@@ -95,6 +79,25 @@ export function ImageUploader({
 
   const maxCount = allowMultiple ? maxImages : 1;
   const maxBytes = maxSizeMB * 1024 * 1024;
+
+  const uploadImageFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('files', file);
+
+    const data = await fetchApiData<{ urls: string[] }>(
+      '/api/storage/upload-image',
+      { method: 'POST', body: formData },
+      {
+        validate: (value): value is { urls: string[] } =>
+          isPlainObject(value) &&
+          Array.isArray((value as { urls?: unknown }).urls) &&
+          typeof (value as { urls: unknown[] }).urls[0] === 'string',
+        invalidDataMessage: t('invalid_upload_response'),
+      }
+    );
+
+    return data.urls[0].trim();
+  };
 
   // 保持最新 items 引用（用于卸载时清理 blob URL）
   useEffect(() => {
@@ -194,13 +197,15 @@ export function ImageUploader({
 
     const availableSlots = maxCount - items.length;
     if (availableSlots <= 0) {
-      toast.error('Maximum number of images reached');
+      toast.error(t('max_images_reached'));
       return;
     }
 
     const filesToAdd = selectedFiles.slice(0, availableSlots).filter((file) => {
       if (file.size > maxBytes) {
-        toast.error(`"${file.name}" exceeds the ${maxSizeMB}MB limit`);
+        toast.error(
+          t('file_too_large', { name: file.name, maxSize: maxSizeMB })
+        );
         return false;
       }
       return true;
@@ -252,8 +257,8 @@ export function ImageUploader({
           toastFetchError(
             error,
             error instanceof Error && error.message
-              ? `Upload failed: ${error.message}`
-              : 'Upload failed'
+              ? t('upload_failed_with_reason', { reason: error.message })
+              : t('upload_failed')
           );
           setItems((prev) => {
             const next = prev.map((current) =>
@@ -327,7 +332,7 @@ export function ImageUploader({
             <div className="relative overflow-hidden rounded-lg">
               <Image
                 src={item.preview}
-                alt="Reference"
+                alt={t('reference_alt')}
                 className="h-32 w-32 rounded-lg object-cover"
                 width={128}
                 height={128}
@@ -339,12 +344,12 @@ export function ImageUploader({
               )}
               {item.status === 'uploading' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs font-medium text-white">
-                  Uploading...
+                  {t('status.uploading')}
                 </div>
               )}
               {item.status === 'error' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-red-500/70 text-xs font-medium text-white">
-                  Failed
+                  {t('status.failed')}
                 </div>
               )}
               <Button
@@ -370,8 +375,12 @@ export function ImageUploader({
                 <div className="border-border flex h-10 w-10 items-center justify-center rounded-full border border-dashed">
                   <IconUpload className="h-5 w-5" />
                 </div>
-                <span className="text-xs font-medium">Upload</span>
-                <span className="text-primary text-xs">Max {maxSizeMB}MB</span>
+                <span className="text-xs font-medium">
+                  {t('button.upload')}
+                </span>
+                <span className="text-primary text-xs">
+                  {t('max_size', { maxSize: maxSizeMB })}
+                </span>
               </button>
             </div>
           </div>

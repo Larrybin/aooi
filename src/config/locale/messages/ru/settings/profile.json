@@ -1,0 +1,25 @@
+{
+  "no_auth": "Войдите, чтобы продолжить",
+  "fields": {
+    "email": "Эл. почта",
+    "name": "Имя",
+    "avatar": "Аватар"
+  },
+  "validation": {
+    "name_required": "Имя обязательно"
+  },
+  "edit": {
+    "title": "Профиль",
+    "description": "Обновите профиль",
+    "crumbs": {
+      "settings": "Настройки",
+      "profile": "Профиль"
+    },
+    "buttons": {
+      "submit": "Сохранить"
+    }
+  },
+  "messages": {
+    "updated": "Профиль обновлён"
+  }
+}

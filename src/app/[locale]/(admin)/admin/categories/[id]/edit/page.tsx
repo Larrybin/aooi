@@ -29,7 +29,7 @@ export default async function CategoryEditPage({
 
   const category = await findTaxonomy({ id });
   if (!category) {
-    return <Empty message="Category not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
 
   const crumbs = buildAdminCrumbs(t, [

@@ -329,6 +329,8 @@
   },
   "page": {
     "current_plan": "Current Plan",
-    "processing": "Processing"
+    "processing": "Processing",
+    "currency_placeholder": "Currency",
+    "checkout_failed": "Checkout failed"
   }
 }

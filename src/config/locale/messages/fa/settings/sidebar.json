@@ -1,0 +1,46 @@
+{
+  "title": "تنظیمات",
+  "nav": {
+    "items": [
+      {
+        "title": "پروفایل",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "صورتحساب",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "پرداخت‌ها",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "اعتبار",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "کلیدهای API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "فعالیت",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "تنظیمات",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

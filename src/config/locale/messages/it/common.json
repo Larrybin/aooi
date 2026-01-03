@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit è un boilerplate Next.js per creare startup AI SaaS. Lancia velocemente con una varietà di template e componenti.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Accedi",
+    "sign_in_description": "Accedi al tuo account",
+    "sign_up_title": "Registrati",
+    "sign_up_description": "Crea un account",
+    "email_title": "Email",
+    "email_placeholder": "Inserisci qui la tua email",
+    "password_title": "Password",
+    "password_placeholder": "Inserisci qui la tua password",
+    "forgot_password": "Password dimenticata?",
+    "forgot_password_title": "Password dimenticata",
+    "forgot_password_description": "Ti invieremo un link di reimpostazione via email",
+    "forgot_password_submit": "Invia link di reimpostazione",
+    "forgot_password_sent": "Se questa email esiste nel nostro sistema, controlla la posta in arrivo per il link.",
+    "forgot_password_disabled": "Il reset della password non è disponibile.",
+    "reset_password_title": "Reimposta password",
+    "reset_password_description": "Imposta una nuova password per il tuo account",
+    "new_password_title": "Nuova password",
+    "new_password_placeholder": "Inserisci qui la nuova password",
+    "new_password_required": "La nuova password è obbligatoria",
+    "confirm_password_title": "Conferma password",
+    "confirm_password_placeholder": "Reinserisci la nuova password",
+    "confirm_password_required": "Conferma la nuova password",
+    "password_mismatch": "Le password non corrispondono",
+    "reset_password_submit": "Reimposta password",
+    "reset_password_success": "Password reimpostata con successo. Effettua di nuovo l'accesso.",
+    "reset_password_disabled": "Il reset della password non è disponibile.",
+    "invalid_reset_token": "Link di reimpostazione non valido o scaduto.",
+    "missing_reset_token": "Token di reimpostazione mancante. Usa il link dell'email.",
+    "email_required": "L'email è obbligatoria",
+    "password_required": "La password è obbligatoria",
+    "name_required": "Il nome è obbligatorio",
+    "back_to_sign_in": "Torna ad Accedi",
+    "or": "Oppure",
+    "continue": "Continua",
+    "no_account": "Non hai un account?",
+    "already_have_account": "Hai già un account?",
+    "email_sign_in": "Accedi con Email",
+    "google_sign_in_title": "Accedi con Google",
+    "github_sign_in_title": "Accedi con GitHub",
+    "close_title": "Chiudi",
+    "cancel_title": "Annulla",
+    "sign_out_title": "Esci",
+    "sign_in_failed": "Accesso non riuscito",
+    "sign_up_failed": "Registrazione non riuscita",
+    "request_password_reset_failed": "Richiesta di reset non riuscita",
+    "reset_password_failed": "Reset della password non riuscito",
+    "billing_title": "Fatturazione",
+    "name_title": "Nome",
+    "name_placeholder": "Inserisci qui il tuo nome",
+    "admin_title": "Admin",
+    "credits_title": "Crediti: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Scegli metodo di pagamento",
+    "choose_payment_method_description": "Seleziona un provider per continuare al checkout.",
+    "cancel_title": "Annulla",
+    "payment_method_required": "Seleziona un metodo di pagamento",
+    "pricing_item_required": "Seleziona un piano",
+    "invalid_payment_method": "Metodo di pagamento non valido"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Risposta di caricamento non valida",
+      "max_images_reached": "Numero massimo di immagini raggiunto",
+      "file_too_large": "\"{name}\" supera il limite di {maxSize}MB",
+      "upload_failed_with_reason": "Caricamento non riuscito: {reason}",
+      "upload_failed": "Caricamento non riuscito",
+      "reference_alt": "Immagine di riferimento",
+      "status": {
+        "uploading": "Caricamento...",
+        "failed": "Non riuscito"
+      },
+      "button": {
+        "upload": "Carica"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Abbiamo rilevato che la lingua del tuo browser è {locale}. Vuoi passare a questa lingua?",
+    "switch_to": "Passa a {locale}",
+    "dismiss_aria_label": "Chiudi"
+  },
+  "locale_switcher": {
+    "aria_label": "Cambia lingua"
+  }
+}

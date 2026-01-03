@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit là boilerplate Next.js để xây dựng startup AI SaaS. Ra mắt nhanh với nhiều mẫu và thành phần.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Đăng nhập",
+    "sign_in_description": "Đăng nhập vào tài khoản của bạn",
+    "sign_up_title": "Đăng ký",
+    "sign_up_description": "Tạo tài khoản",
+    "email_title": "Email",
+    "email_placeholder": "Nhập email của bạn tại đây",
+    "password_title": "Mật khẩu",
+    "password_placeholder": "Nhập mật khẩu của bạn tại đây",
+    "forgot_password": "Quên mật khẩu?",
+    "forgot_password_title": "Quên mật khẩu",
+    "forgot_password_description": "Chúng tôi sẽ gửi liên kết đặt lại qua email",
+    "forgot_password_submit": "Gửi liên kết đặt lại",
+    "forgot_password_sent": "Nếu email này tồn tại trong hệ thống, hãy kiểm tra hộp thư đến để lấy liên kết.",
+    "forgot_password_disabled": "Không thể đặt lại mật khẩu.",
+    "reset_password_title": "Đặt lại mật khẩu",
+    "reset_password_description": "Đặt mật khẩu mới cho tài khoản của bạn",
+    "new_password_title": "Mật khẩu mới",
+    "new_password_placeholder": "Nhập mật khẩu mới tại đây",
+    "new_password_required": "Bắt buộc nhập mật khẩu mới",
+    "confirm_password_title": "Xác nhận mật khẩu",
+    "confirm_password_placeholder": "Nhập lại mật khẩu mới",
+    "confirm_password_required": "Vui lòng xác nhận mật khẩu mới",
+    "password_mismatch": "Mật khẩu không khớp",
+    "reset_password_submit": "Đặt lại mật khẩu",
+    "reset_password_success": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.",
+    "reset_password_disabled": "Không thể đặt lại mật khẩu.",
+    "invalid_reset_token": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn.",
+    "missing_reset_token": "Thiếu token đặt lại. Vui lòng dùng liên kết từ email.",
+    "email_required": "Email là bắt buộc",
+    "password_required": "Mật khẩu là bắt buộc",
+    "name_required": "Tên là bắt buộc",
+    "back_to_sign_in": "Quay lại Đăng nhập",
+    "or": "Hoặc",
+    "continue": "Tiếp tục",
+    "no_account": "Chưa có tài khoản?",
+    "already_have_account": "Đã có tài khoản?",
+    "email_sign_in": "Đăng nhập bằng Email",
+    "google_sign_in_title": "Đăng nhập bằng Google",
+    "github_sign_in_title": "Đăng nhập bằng GitHub",
+    "close_title": "Đóng",
+    "cancel_title": "Hủy",
+    "sign_out_title": "Đăng xuất",
+    "sign_in_failed": "Đăng nhập thất bại",
+    "sign_up_failed": "Đăng ký thất bại",
+    "request_password_reset_failed": "Yêu cầu đặt lại mật khẩu thất bại",
+    "reset_password_failed": "Đặt lại mật khẩu thất bại",
+    "billing_title": "Thanh toán",
+    "name_title": "Tên",
+    "name_placeholder": "Nhập tên của bạn tại đây",
+    "admin_title": "Quản trị",
+    "credits_title": "Tín dụng: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Chọn phương thức thanh toán",
+    "choose_payment_method_description": "Chọn nhà cung cấp để tiếp tục thanh toán.",
+    "cancel_title": "Hủy",
+    "payment_method_required": "Vui lòng chọn phương thức thanh toán",
+    "pricing_item_required": "Vui lòng chọn gói",
+    "invalid_payment_method": "Phương thức thanh toán không hợp lệ"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Phản hồi tải lên không hợp lệ",
+      "max_images_reached": "Đã đạt số lượng ảnh tối đa",
+      "file_too_large": "\"{name}\" vượt quá giới hạn {maxSize}MB",
+      "upload_failed_with_reason": "Tải lên thất bại: {reason}",
+      "upload_failed": "Tải lên thất bại",
+      "reference_alt": "Ảnh tham chiếu",
+      "status": {
+        "uploading": "Đang tải lên...",
+        "failed": "Thất bại"
+      },
+      "button": {
+        "upload": "Tải lên"
+      },
+      "max_size": "Tối đa {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Chúng tôi phát hiện ngôn ngữ trình duyệt của bạn là {locale}. Chuyển sang ngôn ngữ này?",
+    "switch_to": "Chuyển sang {locale}",
+    "dismiss_aria_label": "Đóng"
+  },
+  "locale_switcher": {
+    "aria_label": "Đổi ngôn ngữ"
+  }
+}

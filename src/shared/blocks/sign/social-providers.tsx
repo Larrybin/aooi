@@ -51,7 +51,7 @@ export function SocialProviders({
         },
         onSuccess: () => {},
         onError: (ctx: AuthErrorContext) => {
-          toast.error(ctx.error?.message || 'sign in failed');
+          toast.error(ctx.error?.message || t('sign_in_failed'));
           setLoading(false);
         },
       }

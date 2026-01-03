@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "قیمت‌ها",
+    "description": "با یک طرح شروع کنید"
+  },
+  "page": {
+    "current_plan": "طرح فعلی",
+    "processing": "در حال پردازش",
+    "currency_placeholder": "ارز",
+    "checkout_failed": "پرداخت ناموفق"
+  }
+}

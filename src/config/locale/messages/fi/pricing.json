@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Hinnoittelu",
+    "description": "Aloita valitsemalla suunnitelma"
+  },
+  "page": {
+    "current_plan": "Nykyinen suunnitelma",
+    "processing": "Käsitellään",
+    "currency_placeholder": "Valuutta",
+    "checkout_failed": "Checkout epäonnistui"
+  }
+}

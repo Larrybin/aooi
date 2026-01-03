@@ -1,0 +1,46 @@
+{
+  "title": "הגדרות",
+  "nav": {
+    "items": [
+      {
+        "title": "פרופיל",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "חיוב",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "תשלומים",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "קרדיטים",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "מפתחות API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "פעילות",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "הגדרות",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

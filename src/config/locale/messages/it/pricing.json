@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Prezzi",
+    "description": "Inizia con un piano"
+  },
+  "page": {
+    "current_plan": "Piano attuale",
+    "processing": "Elaborazione",
+    "currency_placeholder": "Valuta",
+    "checkout_failed": "Checkout non riuscito"
+  }
+}

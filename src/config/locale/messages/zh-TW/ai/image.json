@@ -38,6 +38,31 @@
     "generated_images": "圖片預覽",
     "ready_to_generate": "準備生成",
     "no_images_generated": "沒有生成圖片",
-    "ready_for_generating": "準備生成"
+    "ready_for_generating": "準備生成",
+    "status": {
+      "pending": "待處理",
+      "processing": "處理中",
+      "success": "成功",
+      "failed": "失敗"
+    },
+    "messages": {
+      "generated_success": "生成成功",
+      "download_success": "下載成功"
+    },
+    "errors": {
+      "timeout": "生成逾時",
+      "query_task_failed": "查詢任務失敗",
+      "no_images_returned": "未返回圖片",
+      "generate_failed": "生成失敗",
+      "query_task_failed_with_reason": "查詢任務失敗：{reason}",
+      "unknown_error": "未知錯誤",
+      "insufficient_credits": "點數不足",
+      "prompt_required": "請輸入提示詞",
+      "invalid_provider_or_model": "服務商或模型無效",
+      "reference_images_required": "請上傳參考圖片",
+      "create_task_failed": "建立任務失敗",
+      "generate_failed_with_reason": "生成失敗：{reason}",
+      "download_failed": "下載失敗"
+    }
   }
 }

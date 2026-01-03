@@ -101,7 +101,12 @@
   },
   "generator": {
     "title": "今天有什么可以帮到你？",
-    "input_placeholder": "你可以问我任何问题"
+    "input_placeholder": "你可以问我任何问题",
+    "errors": {
+      "create_chat_failed": "创建对话失败",
+      "request_failed": "请求失败",
+      "model_required": "请选择模型"
+    }
   },
   "history": {
     "title": "历史对话",

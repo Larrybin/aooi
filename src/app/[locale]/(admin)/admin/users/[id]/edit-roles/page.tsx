@@ -33,12 +33,12 @@ export default async function UserEditRolesPage({
     locale,
   });
 
+  const t = await getTranslations('admin.users');
+
   const user = await findUserById(id);
   if (!user) {
-    return <Empty message="User not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
-
-  const t = await getTranslations('admin.users');
 
   const crumbs = buildAdminCrumbs(t, [
     { key: 'edit_roles.crumbs.admin', url: '/admin' },

@@ -25,12 +25,12 @@ export default async function ChatsPage({
   const page = pageNum || 1;
   const limit = pageSize || 20;
 
+  const t = await getTranslations('activity.chats');
+
   const user = await getUserInfo();
   if (!user) {
-    return <Empty message="no auth" />;
+    return <Empty message={t('errors.no_auth')} />;
   }
-
-  const t = await getTranslations('activity.chats');
 
   const chats = await getChats({
     userId: user.id,

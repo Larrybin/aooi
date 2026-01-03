@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Prețuri",
+    "description": "Începe cu un plan"
+  },
+  "page": {
+    "current_plan": "Plan curent",
+    "processing": "Se procesează",
+    "currency_placeholder": "Monedă",
+    "checkout_failed": "Checkout eșuat"
+  }
+}
