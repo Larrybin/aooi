@@ -195,17 +195,17 @@ export function ImageGenerator({
 
     switch (taskStatus) {
       case AITaskStatus.PENDING:
-        return 'Waiting for the model to start';
+        return t('status.pending');
       case AITaskStatus.PROCESSING:
-        return 'Generating your image...';
+        return t('status.processing');
       case AITaskStatus.SUCCESS:
-        return 'Image generation completed';
+        return t('status.success');
       case AITaskStatus.FAILED:
-        return 'Generation failed';
+        return t('status.failed');
       default:
         return '';
     }
-  }, [taskStatus]);
+  }, [taskStatus, t]);
 
   const handleReferenceImagesChange = useCallback(
     (items: ImageUploaderValue[]) => {
@@ -244,7 +244,7 @@ export function ImageGenerator({
           Date.now() - generationStartTime > GENERATION_TIMEOUT
         ) {
           resetTaskState();
-          toast.error('Image generation timed out. Please try again.');
+          toast.error(t('errors.timeout'));
           return true;
         }
 
@@ -258,7 +258,7 @@ export function ImageGenerator({
               typeof (value as { status?: unknown }).status === 'string' &&
               typeof (value as { provider?: unknown }).provider === 'string' &&
               typeof (value as { model?: unknown }).model === 'string',
-            invalidDataMessage: 'Query task failed',
+            invalidDataMessage: t('errors.query_task_failed'),
           }
         );
 
@@ -292,7 +292,7 @@ export function ImageGenerator({
 
         if (currentStatus === AITaskStatus.SUCCESS) {
           if (imageUrls.length === 0) {
-            toast.error('The provider returned no images. Please retry.');
+            toast.error(t('errors.no_images_returned'));
           } else {
             setGeneratedImages(
               imageUrls.map((url, index) => ({
@@ -303,7 +303,7 @@ export function ImageGenerator({
                 prompt: task.prompt ?? undefined,
               }))
             );
-            toast.success('Image generated successfully');
+            toast.success(t('messages.generated_success'));
           }
 
           setProgress(100);
@@ -313,7 +313,7 @@ export function ImageGenerator({
 
         if (currentStatus === AITaskStatus.FAILED) {
           const errorMessage =
-            task.taskInfo?.errorMessage || 'Generate image failed';
+            task.taskInfo?.errorMessage || t('errors.generate_failed');
           toast.error(errorMessage);
           resetTaskState();
 
@@ -328,7 +328,12 @@ export function ImageGenerator({
         console.error('Error polling image task:', error);
         toastFetchError(
           error,
-          `Query task failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
+          t('errors.query_task_failed_with_reason', {
+            reason:
+              error instanceof Error && error.message
+                ? error.message
+                : t('errors.unknown_error'),
+          })
         );
         resetTaskState();
 
@@ -337,7 +342,7 @@ export function ImageGenerator({
         return true;
       }
     },
-    [generationStartTime, resetTaskState, fetchUserCredits]
+    [generationStartTime, resetTaskState, fetchUserCredits, t]
   );
 
   useEffect(() => {
@@ -398,23 +403,23 @@ export function ImageGenerator({
     }
 
     if (remainingCredits < costCredits) {
-      toast.error('Insufficient credits. Please top up to keep creating.');
+      toast.error(t('errors.insufficient_credits'));
       return;
     }
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
-      toast.error('Please enter a prompt before generating.');
+      toast.error(t('errors.prompt_required'));
       return;
     }
 
     if (!provider || !model) {
-      toast.error('Provider or model is not configured correctly.');
+      toast.error(t('errors.invalid_provider_or_model'));
       return;
     }
 
     if (!isTextToImageMode && referenceImageUrls.length === 0) {
-      toast.error('Please upload reference images before generating.');
+      toast.error(t('errors.reference_images_required'));
       return;
     }
 
@@ -449,7 +454,7 @@ export function ImageGenerator({
             isPlainObject(value) &&
             typeof (value as { id?: unknown }).id === 'string' &&
             Boolean((value as { id: string }).id.trim()),
-          invalidDataMessage: 'Failed to create an image task',
+          invalidDataMessage: t('errors.create_task_failed'),
         }
       );
 
@@ -463,7 +468,12 @@ export function ImageGenerator({
       console.error('Failed to generate image:', error);
       toastFetchError(
         error,
-        `Failed to generate image: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
+        t('errors.generate_failed_with_reason', {
+          reason:
+            error instanceof Error && error.message
+              ? error.message
+              : t('errors.unknown_error'),
+        })
       );
       resetTaskState();
     }
@@ -485,10 +495,10 @@ export function ImageGenerator({
       link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 200);
-      toast.success('Image downloaded');
+      toast.success(t('messages.download_success'));
     } catch (error) {
       console.error('Failed to download image:', error);
-      toast.error('Failed to download image');
+      toast.error(t('errors.download_failed'));
     } finally {
       setDownloadingImageId(null);
     }

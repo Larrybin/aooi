@@ -20,5 +20,8 @@
       "new": "建立新對話"
     },
     "empty_message": "沒有對話紀錄"
+  },
+  "errors": {
+    "no_auth": "請先登入"
   }
 }

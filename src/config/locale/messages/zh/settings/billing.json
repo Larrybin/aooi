@@ -55,5 +55,16 @@
     "buttons": {
       "confirm_cancel": "确认取消"
     }
+  },
+  "errors": {
+    "invalid_subscription_no": "订阅号无效",
+    "no_auth": "请先登录",
+    "subscription_not_found": "订阅不存在",
+    "missing_payment_subscription_id": "订阅缺少支付订阅 ID",
+    "missing_payment_user_id": "订阅缺少支付用户 ID",
+    "no_permission": "无权限",
+    "payment_provider_not_found": "支付提供商不存在",
+    "billing_url_not_found": "未获取到账单链接",
+    "get_billing_failed": "获取账单链接失败"
   }
 }

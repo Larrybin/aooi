@@ -1,0 +1,25 @@
+{
+  "no_auth": "جاری رکھنے کے لیے سائن اِن کریں",
+  "fields": {
+    "email": "ای میل",
+    "name": "نام",
+    "avatar": "اوتار"
+  },
+  "validation": {
+    "name_required": "نام ضروری ہے"
+  },
+  "edit": {
+    "title": "پروفائل",
+    "description": "اپنا پروفائل اپ ڈیٹ کریں",
+    "crumbs": {
+      "settings": "سیٹنگز",
+      "profile": "پروفائل"
+    },
+    "buttons": {
+      "submit": "محفوظ کریں"
+    }
+  },
+  "messages": {
+    "updated": "پروفائل اپ ڈیٹ ہو گیا"
+  }
+}

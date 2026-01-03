@@ -1,0 +1,46 @@
+{
+  "title": "Cài đặt",
+  "nav": {
+    "items": [
+      {
+        "title": "Hồ sơ",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Thanh toán",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Giao dịch",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Tín dụng",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "Khóa API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Hoạt động",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Cài đặt",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

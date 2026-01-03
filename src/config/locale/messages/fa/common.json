@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit یک بویلرپلیت Next.js برای ساخت استارتاپ‌های AI SaaS است. با انواع قالب‌ها و کامپوننت‌ها سریع راه‌اندازی کنید.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "ورود",
+    "sign_in_description": "به حساب خود وارد شوید",
+    "sign_up_title": "ثبت‌نام",
+    "sign_up_description": "یک حساب ایجاد کنید",
+    "email_title": "ایمیل",
+    "email_placeholder": "ایمیل خود را اینجا وارد کنید",
+    "password_title": "رمز عبور",
+    "password_placeholder": "رمز عبور خود را اینجا وارد کنید",
+    "forgot_password": "رمز عبور را فراموش کرده‌اید؟",
+    "forgot_password_title": "فراموشی رمز عبور",
+    "forgot_password_description": "لینک بازنشانی را برای شما ایمیل می‌کنیم",
+    "forgot_password_submit": "ارسال لینک بازنشانی",
+    "forgot_password_sent": "اگر این ایمیل در سیستم ما وجود داشته باشد، لینک بازنشانی را در صندوق ورودی خود بررسی کنید.",
+    "forgot_password_disabled": "بازنشانی رمز عبور در دسترس نیست.",
+    "reset_password_title": "بازنشانی رمز عبور",
+    "reset_password_description": "برای حساب خود رمز عبور جدید تنظیم کنید",
+    "new_password_title": "رمز عبور جدید",
+    "new_password_placeholder": "رمز عبور جدید را اینجا وارد کنید",
+    "new_password_required": "رمز عبور جدید الزامی است",
+    "confirm_password_title": "تأیید رمز عبور",
+    "confirm_password_placeholder": "رمز عبور جدید را دوباره وارد کنید",
+    "confirm_password_required": "لطفاً رمز عبور جدید را تأیید کنید",
+    "password_mismatch": "رمزهای عبور یکسان نیستند",
+    "reset_password_submit": "بازنشانی رمز عبور",
+    "reset_password_success": "رمز عبور با موفقیت بازنشانی شد. لطفاً دوباره وارد شوید.",
+    "reset_password_disabled": "بازنشانی رمز عبور در دسترس نیست.",
+    "invalid_reset_token": "لینک بازنشانی نامعتبر یا منقضی شده است.",
+    "missing_reset_token": "توکن بازنشانی وجود ندارد. لطفاً از لینک ایمیل استفاده کنید.",
+    "email_required": "ایمیل الزامی است",
+    "password_required": "رمز عبور الزامی است",
+    "name_required": "نام الزامی است",
+    "back_to_sign_in": "بازگشت به ورود",
+    "or": "یا",
+    "continue": "ادامه",
+    "no_account": "حساب ندارید؟",
+    "already_have_account": "از قبل حساب دارید؟",
+    "email_sign_in": "ورود با ایمیل",
+    "google_sign_in_title": "ورود با Google",
+    "github_sign_in_title": "ورود با GitHub",
+    "close_title": "بستن",
+    "cancel_title": "لغو",
+    "sign_out_title": "خروج",
+    "sign_in_failed": "ورود ناموفق بود",
+    "sign_up_failed": "ثبت‌نام ناموفق بود",
+    "request_password_reset_failed": "درخواست بازنشانی ناموفق بود",
+    "reset_password_failed": "بازنشانی ناموفق بود",
+    "billing_title": "صورتحساب",
+    "name_title": "نام",
+    "name_placeholder": "نام خود را اینجا وارد کنید",
+    "admin_title": "مدیریت",
+    "credits_title": "اعتبار: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "انتخاب روش پرداخت",
+    "choose_payment_method_description": "برای ادامهٔ پرداخت یک ارائه‌دهنده انتخاب کنید.",
+    "cancel_title": "لغو",
+    "payment_method_required": "لطفاً روش پرداخت را انتخاب کنید",
+    "pricing_item_required": "لطفاً یک طرح را انتخاب کنید",
+    "invalid_payment_method": "روش پرداخت نامعتبر است"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "پاسخ آپلود نامعتبر است",
+      "max_images_reached": "حداکثر تعداد تصویر رسیده است",
+      "file_too_large": "\"{name}\" از محدودیت {maxSize}MB بیشتر است",
+      "upload_failed_with_reason": "آپلود ناموفق: {reason}",
+      "upload_failed": "آپلود ناموفق",
+      "reference_alt": "تصویر مرجع",
+      "status": {
+        "uploading": "در حال آپلود...",
+        "failed": "ناموفق"
+      },
+      "button": {
+        "upload": "آپلود"
+      },
+      "max_size": "حداکثر {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "زبان مرورگر شما {locale} است. می‌خواهید به آن تغییر دهید؟",
+    "switch_to": "تغییر به {locale}",
+    "dismiss_aria_label": "بستن"
+  },
+  "locale_switcher": {
+    "aria_label": "تغییر زبان"
+  }
+}

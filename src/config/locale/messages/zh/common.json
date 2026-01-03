@@ -59,14 +59,36 @@
   },
   "payment": {
     "choose_payment_method": "选择支付方式",
-    "choose_payment_method_description": "",
+    "choose_payment_method_description": "请选择支付方式以继续结账。",
     "cancel_title": "取消",
     "payment_method_required": "请选择支付方式",
     "pricing_item_required": "请选择一个套餐",
     "invalid_payment_method": "支付方式无效"
   },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "上传响应无效",
+      "max_images_reached": "已达到图片数量上限",
+      "file_too_large": "\"{name}\" 超过 {maxSize}MB 限制",
+      "upload_failed_with_reason": "上传失败：{reason}",
+      "upload_failed": "上传失败",
+      "reference_alt": "参考图片",
+      "status": {
+        "uploading": "上传中...",
+        "failed": "失败"
+      },
+      "button": {
+        "upload": "上传"
+      },
+      "max_size": "最大 {maxSize}MB"
+    }
+  },
   "locale_detector": {
     "title": "检测到浏览器语言是: {locale}，是否切换？",
-    "switch_to": "切换到{locale}"
+    "switch_to": "切换到{locale}",
+    "dismiss_aria_label": "关闭"
+  },
+  "locale_switcher": {
+    "aria_label": "切换语言"
   }
 }

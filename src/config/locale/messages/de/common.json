@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit ist ein Next.js-Boilerplate zum Aufbau von AI‑SaaS‑Startups. Starte schnell mit einer Vielzahl von Templates und Komponenten.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Anmelden",
+    "sign_in_description": "Melde dich bei deinem Konto an",
+    "sign_up_title": "Registrieren",
+    "sign_up_description": "Ein Konto erstellen",
+    "email_title": "E-Mail",
+    "email_placeholder": "Gib hier deine E-Mail ein",
+    "password_title": "Passwort",
+    "password_placeholder": "Gib hier dein Passwort ein",
+    "forgot_password": "Passwort vergessen?",
+    "forgot_password_title": "Passwort vergessen",
+    "forgot_password_description": "Wir senden dir einen Reset-Link per E-Mail",
+    "forgot_password_submit": "Reset-Link senden",
+    "forgot_password_sent": "Wenn diese E-Mail in unserem System existiert, prüfe deinen Posteingang auf den Reset-Link.",
+    "forgot_password_disabled": "Passwort-Zurücksetzen ist nicht verfügbar.",
+    "reset_password_title": "Passwort zurücksetzen",
+    "reset_password_description": "Lege ein neues Passwort für dein Konto fest",
+    "new_password_title": "Neues Passwort",
+    "new_password_placeholder": "Gib dein neues Passwort ein",
+    "new_password_required": "Neues Passwort ist erforderlich",
+    "confirm_password_title": "Passwort bestätigen",
+    "confirm_password_placeholder": "Gib dein neues Passwort erneut ein",
+    "confirm_password_required": "Bitte bestätige dein neues Passwort",
+    "password_mismatch": "Passwörter stimmen nicht überein",
+    "reset_password_submit": "Passwort zurücksetzen",
+    "reset_password_success": "Passwort erfolgreich zurückgesetzt. Bitte melde dich erneut an.",
+    "reset_password_disabled": "Passwort-Zurücksetzen ist nicht verfügbar.",
+    "invalid_reset_token": "Ungültiger oder abgelaufener Reset-Link.",
+    "missing_reset_token": "Reset-Token fehlt. Bitte verwende den Link aus deiner E-Mail.",
+    "email_required": "E-Mail ist erforderlich",
+    "password_required": "Passwort ist erforderlich",
+    "name_required": "Name ist erforderlich",
+    "back_to_sign_in": "Zurück zur Anmeldung",
+    "or": "Oder",
+    "continue": "Weiter",
+    "no_account": "Noch kein Konto?",
+    "already_have_account": "Du hast bereits ein Konto?",
+    "email_sign_in": "Mit E-Mail anmelden",
+    "google_sign_in_title": "Mit Google anmelden",
+    "github_sign_in_title": "Mit GitHub anmelden",
+    "close_title": "Schließen",
+    "cancel_title": "Abbrechen",
+    "sign_out_title": "Abmelden",
+    "sign_in_failed": "Anmeldung fehlgeschlagen",
+    "sign_up_failed": "Registrierung fehlgeschlagen",
+    "request_password_reset_failed": "Anfrage zum Zurücksetzen fehlgeschlagen",
+    "reset_password_failed": "Zurücksetzen fehlgeschlagen",
+    "billing_title": "Abrechnung",
+    "name_title": "Name",
+    "name_placeholder": "Gib hier deinen Namen ein",
+    "admin_title": "Admin-Bereich",
+    "credits_title": "Credits: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Zahlungsmethode wählen",
+    "choose_payment_method_description": "Wähle einen Anbieter, um mit dem Checkout fortzufahren.",
+    "cancel_title": "Abbrechen",
+    "payment_method_required": "Bitte Zahlungsmethode auswählen",
+    "pricing_item_required": "Bitte ein Paket auswählen",
+    "invalid_payment_method": "Ungültige Zahlungsmethode"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Ungültige Upload-Antwort",
+      "max_images_reached": "Maximale Anzahl an Bildern erreicht",
+      "file_too_large": "\"{name}\" überschreitet das Limit von {maxSize}MB",
+      "upload_failed_with_reason": "Upload fehlgeschlagen: {reason}",
+      "upload_failed": "Upload fehlgeschlagen",
+      "reference_alt": "Referenzbild",
+      "status": {
+        "uploading": "Wird hochgeladen...",
+        "failed": "Fehlgeschlagen"
+      },
+      "button": {
+        "upload": "Hochladen"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Wir haben festgestellt, dass deine Browsersprache {locale} ist. Dorthin wechseln?",
+    "switch_to": "Zu {locale} wechseln",
+    "dismiss_aria_label": "Schließen"
+  },
+  "locale_switcher": {
+    "aria_label": "Sprache ändern"
+  }
+}

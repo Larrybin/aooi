@@ -1,0 +1,46 @@
+{
+  "title": "Настройки",
+  "nav": {
+    "items": [
+      {
+        "title": "Профиль",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Биллинг",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Платежи",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Кредиты",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "Ключи API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Активность",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Настройки",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

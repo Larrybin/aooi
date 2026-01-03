@@ -1,0 +1,25 @@
+{
+  "no_auth": "Inicia sesión para continuar",
+  "fields": {
+    "email": "Correo electrónico",
+    "name": "Nombre",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "El nombre es obligatorio"
+  },
+  "edit": {
+    "title": "Perfil",
+    "description": "Actualiza tu perfil",
+    "crumbs": {
+      "settings": "Ajustes",
+      "profile": "Perfil"
+    },
+    "buttons": {
+      "submit": "Guardar"
+    }
+  },
+  "messages": {
+    "updated": "Perfil actualizado"
+  }
+}

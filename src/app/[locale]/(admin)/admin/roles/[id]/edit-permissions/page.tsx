@@ -25,12 +25,12 @@ export default async function RoleEditPermissionsPage({
     permission: PERMISSIONS.ROLES_WRITE,
   });
 
+  const t = await getTranslations('admin.roles');
+
   const role = await getRoleById(id);
   if (!role) {
-    return <Empty message="Role not found" />;
+    return <Empty message={t('errors.not_found')} />;
   }
-
-  const t = await getTranslations('admin.roles');
 
   const crumbs = buildAdminCrumbs(t, [
     { key: 'edit_permissions.crumbs.admin', url: '/admin' },

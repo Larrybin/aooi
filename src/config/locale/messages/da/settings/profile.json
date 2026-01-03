@@ -1,0 +1,25 @@
+{
+  "no_auth": "Log venligst ind for at fortsætte",
+  "fields": {
+    "email": "E-mail",
+    "name": "Navn",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Navn er påkrævet"
+  },
+  "edit": {
+    "title": "Profil",
+    "description": "Opdater din profil",
+    "crumbs": {
+      "settings": "Indstillinger",
+      "profile": "Profil"
+    },
+    "buttons": {
+      "submit": "Gem"
+    }
+  },
+  "messages": {
+    "updated": "Profil opdateret"
+  }
+}

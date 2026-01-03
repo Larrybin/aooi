@@ -1,0 +1,46 @@
+{
+  "title": "سیٹنگز",
+  "nav": {
+    "items": [
+      {
+        "title": "پروفائل",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "بلنگ",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "ادائیگیاں",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "کریڈٹس",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API کیز",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "سرگرمی",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "سیٹنگز",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

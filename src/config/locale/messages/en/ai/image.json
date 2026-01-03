@@ -38,6 +38,31 @@
     "generated_images": "Image Preview",
     "ready_to_generate": "Ready to Generate",
     "ready_for_generating": "Ready for Generating",
-    "no_images_generated": "No Images Generated"
+    "no_images_generated": "No Images Generated",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "success": "Success",
+      "failed": "Failed"
+    },
+    "messages": {
+      "generated_success": "Generated successfully",
+      "download_success": "Downloaded successfully"
+    },
+    "errors": {
+      "timeout": "Generation timed out",
+      "query_task_failed": "Failed to query task",
+      "no_images_returned": "No images returned",
+      "generate_failed": "Generation failed",
+      "query_task_failed_with_reason": "Failed to query task: {reason}",
+      "unknown_error": "Unknown error",
+      "insufficient_credits": "Insufficient credits",
+      "prompt_required": "Prompt is required",
+      "invalid_provider_or_model": "Invalid provider or model",
+      "reference_images_required": "Please upload reference images",
+      "create_task_failed": "Failed to create task",
+      "generate_failed_with_reason": "Generation failed: {reason}",
+      "download_failed": "Download failed"
+    }
   }
 }

@@ -59,14 +59,36 @@
   },
   "payment": {
     "choose_payment_method": "Choose Payment Method",
-    "choose_payment_method_description": "",
+    "choose_payment_method_description": "Select a provider to continue to checkout.",
     "cancel_title": "Cancel",
     "payment_method_required": "Please select payment method",
     "pricing_item_required": "Please select a pricing item",
     "invalid_payment_method": "Invalid payment method"
   },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Invalid upload response",
+      "max_images_reached": "Maximum number of images reached",
+      "file_too_large": "\"{name}\" exceeds the {maxSize}MB limit",
+      "upload_failed_with_reason": "Upload failed: {reason}",
+      "upload_failed": "Upload failed",
+      "reference_alt": "Reference image",
+      "status": {
+        "uploading": "Uploading...",
+        "failed": "Failed"
+      },
+      "button": {
+        "upload": "Upload"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
   "locale_detector": {
     "title": "We detected your browser language is {locale}. Switch to it?",
-    "switch_to": "Switch to {locale}"
+    "switch_to": "Switch to {locale}",
+    "dismiss_aria_label": "Close"
+  },
+  "locale_switcher": {
+    "aria_label": "Change language"
   }
 }

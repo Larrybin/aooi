@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Ceník",
+    "description": "Začněte s tarifem"
+  },
+  "page": {
+    "current_plan": "Aktuální tarif",
+    "processing": "Zpracovává se",
+    "currency_placeholder": "Měna",
+    "checkout_failed": "Platba se nezdařila"
+  }
+}

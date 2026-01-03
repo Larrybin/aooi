@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Preise",
+    "description": "Starte mit einem Plan"
+  },
+  "page": {
+    "current_plan": "Aktueller Plan",
+    "processing": "Wird verarbeitet",
+    "currency_placeholder": "Währung",
+    "checkout_failed": "Checkout fehlgeschlagen"
+  }
+}

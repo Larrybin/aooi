@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit は AI SaaS スタートアップを構築するための Next.js ボイラープレートです。豊富なテンプレートとコンポーネントで素早く立ち上げられます。",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "サインイン",
+    "sign_in_description": "アカウントにサインイン",
+    "sign_up_title": "サインアップ",
+    "sign_up_description": "アカウントを作成",
+    "email_title": "メール",
+    "email_placeholder": "ここにメールアドレスを入力",
+    "password_title": "パスワード",
+    "password_placeholder": "ここにパスワードを入力",
+    "forgot_password": "パスワードを忘れましたか？",
+    "forgot_password_title": "パスワードを忘れた",
+    "forgot_password_description": "リセットリンクをメールで送信します",
+    "forgot_password_submit": "リセットリンクを送信",
+    "forgot_password_sent": "このメールが登録されている場合、受信箱にリセットリンクが届きます。",
+    "forgot_password_disabled": "パスワードのリセットは利用できません。",
+    "reset_password_title": "パスワードをリセット",
+    "reset_password_description": "新しいパスワードを設定します",
+    "new_password_title": "新しいパスワード",
+    "new_password_placeholder": "新しいパスワードを入力",
+    "new_password_required": "新しいパスワードが必要です",
+    "confirm_password_title": "パスワードを確認",
+    "confirm_password_placeholder": "新しいパスワードを再入力",
+    "confirm_password_required": "新しいパスワードを確認してください",
+    "password_mismatch": "パスワードが一致しません",
+    "reset_password_submit": "パスワードをリセット",
+    "reset_password_success": "パスワードをリセットしました。再度サインインしてください。",
+    "reset_password_disabled": "パスワードのリセットは利用できません。",
+    "invalid_reset_token": "リセットリンクが無効、または期限切れです。",
+    "missing_reset_token": "リセットトークンがありません。メールのリンクを使用してください。",
+    "email_required": "メールは必須です",
+    "password_required": "パスワードは必須です",
+    "name_required": "名前は必須です",
+    "back_to_sign_in": "サインインに戻る",
+    "or": "または",
+    "continue": "続行",
+    "no_account": "アカウントをお持ちではありませんか？",
+    "already_have_account": "すでにアカウントをお持ちですか？",
+    "email_sign_in": "メールでサインイン",
+    "google_sign_in_title": "Googleでサインイン",
+    "github_sign_in_title": "GitHubでサインイン",
+    "close_title": "閉じる",
+    "cancel_title": "キャンセル",
+    "sign_out_title": "サインアウト",
+    "sign_in_failed": "サインインに失敗しました",
+    "sign_up_failed": "サインアップに失敗しました",
+    "request_password_reset_failed": "パスワードリセットのリクエストに失敗しました",
+    "reset_password_failed": "パスワードリセットに失敗しました",
+    "billing_title": "請求",
+    "name_title": "名前",
+    "name_placeholder": "ここに名前を入力",
+    "admin_title": "管理",
+    "credits_title": "クレジット: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "支払い方法を選択",
+    "choose_payment_method_description": "チェックアウトを続行するにはプロバイダーを選択してください。",
+    "cancel_title": "キャンセル",
+    "payment_method_required": "支払い方法を選択してください",
+    "pricing_item_required": "プランを選択してください",
+    "invalid_payment_method": "無効な支払い方法です"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "アップロード応答が無効です",
+      "max_images_reached": "画像の最大枚数に達しました",
+      "file_too_large": "\"{name}\" は {maxSize}MB の制限を超えています",
+      "upload_failed_with_reason": "アップロードに失敗しました: {reason}",
+      "upload_failed": "アップロードに失敗しました",
+      "reference_alt": "参照画像",
+      "status": {
+        "uploading": "アップロード中...",
+        "failed": "失敗"
+      },
+      "button": {
+        "upload": "アップロード"
+      },
+      "max_size": "最大 {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "ブラウザの言語が {locale} のようです。切り替えますか？",
+    "switch_to": "{locale} に切り替える",
+    "dismiss_aria_label": "閉じる"
+  },
+  "locale_switcher": {
+    "aria_label": "言語を変更"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit adalah boilerplate Next.js untuk membangun startup AI SaaS. Luncurkan dengan cepat dengan berbagai template dan komponen.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Masuk",
+    "sign_in_description": "Masuk ke akun Anda",
+    "sign_up_title": "Daftar",
+    "sign_up_description": "Buat akun",
+    "email_title": "Email",
+    "email_placeholder": "Masukkan email Anda di sini",
+    "password_title": "Kata sandi",
+    "password_placeholder": "Masukkan kata sandi Anda di sini",
+    "forgot_password": "Lupa kata sandi?",
+    "forgot_password_title": "Lupa kata sandi",
+    "forgot_password_description": "Kami akan mengirim tautan reset melalui email",
+    "forgot_password_submit": "Kirim tautan reset",
+    "forgot_password_sent": "Jika email ini ada di sistem kami, periksa kotak masuk Anda untuk tautan reset.",
+    "forgot_password_disabled": "Reset kata sandi tidak tersedia.",
+    "reset_password_title": "Reset kata sandi",
+    "reset_password_description": "Atur kata sandi baru untuk akun Anda",
+    "new_password_title": "Kata sandi baru",
+    "new_password_placeholder": "Masukkan kata sandi baru Anda di sini",
+    "new_password_required": "Kata sandi baru wajib diisi",
+    "confirm_password_title": "Konfirmasi kata sandi",
+    "confirm_password_placeholder": "Masukkan kembali kata sandi baru Anda",
+    "confirm_password_required": "Harap konfirmasi kata sandi baru Anda",
+    "password_mismatch": "Kata sandi tidak cocok",
+    "reset_password_submit": "Reset kata sandi",
+    "reset_password_success": "Kata sandi berhasil direset. Silakan masuk lagi.",
+    "reset_password_disabled": "Reset kata sandi tidak tersedia.",
+    "invalid_reset_token": "Tautan reset tidak valid atau kedaluwarsa.",
+    "missing_reset_token": "Token reset tidak ditemukan. Gunakan tautan dari email Anda.",
+    "email_required": "Email wajib diisi",
+    "password_required": "Kata sandi wajib diisi",
+    "name_required": "Nama wajib diisi",
+    "back_to_sign_in": "Kembali ke Masuk",
+    "or": "Atau",
+    "continue": "Lanjutkan",
+    "no_account": "Belum punya akun?",
+    "already_have_account": "Sudah punya akun?",
+    "email_sign_in": "Masuk dengan Email",
+    "google_sign_in_title": "Masuk dengan Google",
+    "github_sign_in_title": "Masuk dengan GitHub",
+    "close_title": "Tutup",
+    "cancel_title": "Batal",
+    "sign_out_title": "Keluar",
+    "sign_in_failed": "Gagal masuk",
+    "sign_up_failed": "Gagal daftar",
+    "request_password_reset_failed": "Permintaan reset kata sandi gagal",
+    "reset_password_failed": "Reset kata sandi gagal",
+    "billing_title": "Penagihan",
+    "name_title": "Nama",
+    "name_placeholder": "Masukkan nama Anda di sini",
+    "admin_title": "Admin",
+    "credits_title": "Kredit: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Pilih metode pembayaran",
+    "choose_payment_method_description": "Pilih penyedia untuk melanjutkan ke checkout.",
+    "cancel_title": "Batal",
+    "payment_method_required": "Silakan pilih metode pembayaran",
+    "pricing_item_required": "Silakan pilih paket",
+    "invalid_payment_method": "Metode pembayaran tidak valid"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Respons unggahan tidak valid",
+      "max_images_reached": "Jumlah gambar maksimal telah tercapai",
+      "file_too_large": "\"{name}\" melebihi batas {maxSize}MB",
+      "upload_failed_with_reason": "Unggah gagal: {reason}",
+      "upload_failed": "Unggah gagal",
+      "reference_alt": "Gambar referensi",
+      "status": {
+        "uploading": "Mengunggah...",
+        "failed": "Gagal"
+      },
+      "button": {
+        "upload": "Unggah"
+      },
+      "max_size": "Maks {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Kami mendeteksi bahasa browser Anda adalah {locale}. Beralih ke sana?",
+    "switch_to": "Beralih ke {locale}",
+    "dismiss_aria_label": "Tutup"
+  },
+  "locale_switcher": {
+    "aria_label": "Ganti bahasa"
+  }
+}

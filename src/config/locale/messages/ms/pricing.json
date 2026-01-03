@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Harga",
+    "description": "Mulakan dengan pelan"
+  },
+  "page": {
+    "current_plan": "Pelan semasa",
+    "processing": "Memproses",
+    "currency_placeholder": "Mata wang",
+    "checkout_failed": "Checkout gagal"
+  }
+}

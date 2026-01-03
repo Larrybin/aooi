@@ -1,0 +1,46 @@
+{
+  "title": "Asetukset",
+  "nav": {
+    "items": [
+      {
+        "title": "Profiili",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Laskutus",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Maksut",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Kreditit",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API-avaimet",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Toiminta",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Asetukset",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

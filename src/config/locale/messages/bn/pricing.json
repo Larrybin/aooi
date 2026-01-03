@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "মূল্য",
+    "description": "একটি প্ল্যান দিয়ে শুরু করুন"
+  },
+  "page": {
+    "current_plan": "বর্তমান প্ল্যান",
+    "processing": "প্রসেস হচ্ছে",
+    "currency_placeholder": "মুদ্রা",
+    "checkout_failed": "চেকআউট ব্যর্থ"
+  }
+}

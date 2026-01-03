@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Ang Roller Rabbit ay isang Next.js boilerplate para sa paggawa ng AI SaaS startups. Mabilis na mag‑launch gamit ang iba't ibang template at components.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Mag-sign in",
+    "sign_in_description": "Mag-sign in sa iyong account",
+    "sign_up_title": "Mag-sign up",
+    "sign_up_description": "Gumawa ng account",
+    "email_title": "Email",
+    "email_placeholder": "Ilagay ang iyong email dito",
+    "password_title": "Password",
+    "password_placeholder": "Ilagay ang iyong password dito",
+    "forgot_password": "Nakalimutan ang password?",
+    "forgot_password_title": "Nakalimutan ang password",
+    "forgot_password_description": "I-e-email namin ang reset link",
+    "forgot_password_submit": "Ipadala ang reset link",
+    "forgot_password_sent": "Kung ang email na ito ay nasa aming system, tingnan ang iyong inbox para sa reset link.",
+    "forgot_password_disabled": "Hindi available ang pag-reset ng password.",
+    "reset_password_title": "I-reset ang password",
+    "reset_password_description": "Magtakda ng bagong password para sa iyong account",
+    "new_password_title": "Bagong password",
+    "new_password_placeholder": "Ilagay ang iyong bagong password dito",
+    "new_password_required": "Kailangan ang bagong password",
+    "confirm_password_title": "Kumpirmahin ang password",
+    "confirm_password_placeholder": "Ilagay muli ang bagong password",
+    "confirm_password_required": "Pakikumpirma ang bagong password",
+    "password_mismatch": "Hindi tugma ang mga password",
+    "reset_password_submit": "I-reset ang password",
+    "reset_password_success": "Matagumpay na na-reset ang password. Mag-sign in muli.",
+    "reset_password_disabled": "Hindi available ang pag-reset ng password.",
+    "invalid_reset_token": "Hindi valid o expired ang reset link.",
+    "missing_reset_token": "Walang reset token. Gamitin ang link mula sa email.",
+    "email_required": "Kailangan ang email",
+    "password_required": "Kailangan ang password",
+    "name_required": "Kailangan ang pangalan",
+    "back_to_sign_in": "Bumalik sa Sign In",
+    "or": "O",
+    "continue": "Magpatuloy",
+    "no_account": "Wala pang account?",
+    "already_have_account": "May account na?",
+    "email_sign_in": "Mag-sign in gamit ang Email",
+    "google_sign_in_title": "Mag-sign in gamit ang Google",
+    "github_sign_in_title": "Mag-sign in gamit ang GitHub",
+    "close_title": "Isara",
+    "cancel_title": "Kanselahin",
+    "sign_out_title": "Mag-sign out",
+    "sign_in_failed": "Nabigo ang sign in",
+    "sign_up_failed": "Nabigo ang sign up",
+    "request_password_reset_failed": "Nabigo ang pag-request ng reset",
+    "reset_password_failed": "Nabigo ang pag-reset ng password",
+    "billing_title": "Billing",
+    "name_title": "Pangalan",
+    "name_placeholder": "Ilagay ang iyong pangalan dito",
+    "admin_title": "Admin",
+    "credits_title": "Credits: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Pumili ng paraan ng pagbabayad",
+    "choose_payment_method_description": "Pumili ng provider para magpatuloy sa checkout.",
+    "cancel_title": "Kanselahin",
+    "payment_method_required": "Pumili ng paraan ng pagbabayad",
+    "pricing_item_required": "Pumili ng plan",
+    "invalid_payment_method": "Hindi valid na paraan ng pagbabayad"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Hindi wasto ang tugon ng pag-upload",
+      "max_images_reached": "Naabot na ang maximum na bilang ng mga larawan",
+      "file_too_large": "\"{name}\" ay lumampas sa limit na {maxSize}MB",
+      "upload_failed_with_reason": "Nabigo ang pag-upload: {reason}",
+      "upload_failed": "Nabigo ang pag-upload",
+      "reference_alt": "Larawang sanggunian",
+      "status": {
+        "uploading": "Ina-upload...",
+        "failed": "Nabigo"
+      },
+      "button": {
+        "upload": "Mag-upload"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Nakita namin na ang wika ng iyong browser ay {locale}. Lumipat dito?",
+    "switch_to": "Lumipat sa {locale}",
+    "dismiss_aria_label": "Isara"
+  },
+  "locale_switcher": {
+    "aria_label": "Palitan ang wika"
+  }
+}

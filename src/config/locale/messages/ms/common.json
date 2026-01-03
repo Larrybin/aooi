@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit ialah boilerplate Next.js untuk membina startup AI SaaS. Lancarkan dengan pantas dengan pelbagai templat dan komponen.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Log masuk",
+    "sign_in_description": "Log masuk ke akaun anda",
+    "sign_up_title": "Daftar",
+    "sign_up_description": "Cipta akaun",
+    "email_title": "E-mel",
+    "email_placeholder": "Masukkan e-mel anda di sini",
+    "password_title": "Kata laluan",
+    "password_placeholder": "Masukkan kata laluan anda di sini",
+    "forgot_password": "Terlupa kata laluan?",
+    "forgot_password_title": "Terlupa kata laluan",
+    "forgot_password_description": "Kami akan e-melkan pautan set semula",
+    "forgot_password_submit": "Hantar pautan set semula",
+    "forgot_password_sent": "Jika e-mel ini wujud dalam sistem kami, semak peti masuk anda untuk pautan set semula.",
+    "forgot_password_disabled": "Set semula kata laluan tidak tersedia.",
+    "reset_password_title": "Set semula kata laluan",
+    "reset_password_description": "Tetapkan kata laluan baharu untuk akaun anda",
+    "new_password_title": "Kata laluan baharu",
+    "new_password_placeholder": "Masukkan kata laluan baharu anda di sini",
+    "new_password_required": "Kata laluan baharu diperlukan",
+    "confirm_password_title": "Sahkan kata laluan",
+    "confirm_password_placeholder": "Masukkan semula kata laluan baharu",
+    "confirm_password_required": "Sila sahkan kata laluan baharu anda",
+    "password_mismatch": "Kata laluan tidak sepadan",
+    "reset_password_submit": "Set semula kata laluan",
+    "reset_password_success": "Kata laluan berjaya diset semula. Sila log masuk semula.",
+    "reset_password_disabled": "Set semula kata laluan tidak tersedia.",
+    "invalid_reset_token": "Pautan set semula tidak sah atau telah tamat tempoh.",
+    "missing_reset_token": "Token set semula tiada. Sila gunakan pautan daripada e-mel anda.",
+    "email_required": "E-mel diperlukan",
+    "password_required": "Kata laluan diperlukan",
+    "name_required": "Nama diperlukan",
+    "back_to_sign_in": "Kembali ke Log masuk",
+    "or": "Atau",
+    "continue": "Teruskan",
+    "no_account": "Tiada akaun?",
+    "already_have_account": "Sudah ada akaun?",
+    "email_sign_in": "Log masuk dengan E-mel",
+    "google_sign_in_title": "Log masuk dengan Google",
+    "github_sign_in_title": "Log masuk dengan GitHub",
+    "close_title": "Tutup",
+    "cancel_title": "Batal",
+    "sign_out_title": "Log keluar",
+    "sign_in_failed": "Log masuk gagal",
+    "sign_up_failed": "Pendaftaran gagal",
+    "request_password_reset_failed": "Permintaan set semula kata laluan gagal",
+    "reset_password_failed": "Set semula kata laluan gagal",
+    "billing_title": "Pengebilan",
+    "name_title": "Nama",
+    "name_placeholder": "Masukkan nama anda di sini",
+    "admin_title": "Admin",
+    "credits_title": "Kredit: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Pilih kaedah pembayaran",
+    "choose_payment_method_description": "Pilih penyedia untuk meneruskan ke checkout.",
+    "cancel_title": "Batal",
+    "payment_method_required": "Sila pilih kaedah pembayaran",
+    "pricing_item_required": "Sila pilih pelan",
+    "invalid_payment_method": "Kaedah pembayaran tidak sah"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Respons muat naik tidak sah",
+      "max_images_reached": "Bilangan imej maksimum telah dicapai",
+      "file_too_large": "\"{name}\" melebihi had {maxSize}MB",
+      "upload_failed_with_reason": "Muat naik gagal: {reason}",
+      "upload_failed": "Muat naik gagal",
+      "reference_alt": "Imej rujukan",
+      "status": {
+        "uploading": "Sedang memuat naik...",
+        "failed": "Gagal"
+      },
+      "button": {
+        "upload": "Muat naik"
+      },
+      "max_size": "Maks {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Kami mengesan bahasa pelayar anda ialah {locale}. Tukar kepadanya?",
+    "switch_to": "Tukar kepada {locale}",
+    "dismiss_aria_label": "Tutup"
+  },
+  "locale_switcher": {
+    "aria_label": "Tukar bahasa"
+  }
+}

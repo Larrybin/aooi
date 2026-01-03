@@ -56,5 +56,8 @@
     "buttons": {
       "submit": "Edit Post"
     }
+  },
+  "errors": {
+    "not_found": "Post not found"
   }
 }

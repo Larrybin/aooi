@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "ราคา",
+    "description": "เริ่มต้นด้วยแพ็กเกจ"
+  },
+  "page": {
+    "current_plan": "แพ็กเกจปัจจุบัน",
+    "processing": "กำลังประมวลผล",
+    "currency_placeholder": "สกุลเงิน",
+    "checkout_failed": "เช็คเอาต์ล้มเหลว"
+  }
+}

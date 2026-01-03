@@ -67,5 +67,9 @@
     "buttons": {
       "submit": "更新"
     }
+  },
+  "errors": {
+    "not_found": "角色不存在",
+    "not_deleted": "该角色未被删除"
   }
 }

@@ -30,29 +30,30 @@ export default async function CancelBillingPage({
   searchParams: Promise<{ subscription_no: string }>;
 }) {
   const t = await getTranslations('settings.billing.cancel');
+  const tb = await getTranslations('settings.billing');
   const { locale: _locale } = await params;
   const { subscription_no } = await searchParams;
 
   if (!subscription_no) {
-    return <Empty message="invalid subscription no" />;
+    return <Empty message={tb('errors.invalid_subscription_no')} />;
   }
 
   const user = await getUserInfo();
   if (!user) {
-    return <Empty message="no auth, please sign in" />;
+    return <Empty message={tb('errors.no_auth')} />;
   }
 
   const subscription = await findSubscriptionBySubscriptionNo(subscription_no);
   if (!subscription) {
-    return <Empty message="subscription not found" />;
+    return <Empty message={tb('errors.subscription_not_found')} />;
   }
 
   if (!subscription.paymentProvider || !subscription.subscriptionId) {
-    return <Empty message="subscription with no payment subscription id" />;
+    return <Empty message={tb('errors.missing_payment_subscription_id')} />;
   }
 
   if (subscription.userId !== user.id) {
-    return <Empty message="no permission" />;
+    return <Empty message={tb('errors.no_permission')} />;
   }
 
   const paymentService = await getPaymentService();
@@ -60,7 +61,7 @@ export default async function CancelBillingPage({
     subscription.paymentProvider
   );
   if (!paymentProvider) {
-    return <Empty message="payment provider not found" />;
+    return <Empty message={tb('errors.payment_provider_not_found')} />;
   }
 
   const crumb: Crumb[] = [

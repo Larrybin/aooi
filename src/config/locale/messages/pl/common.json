@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit to boilerplate Next.js do tworzenia startupów AI SaaS. Szybko uruchom produkt dzięki wielu szablonom i komponentom.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Zaloguj się",
+    "sign_in_description": "Zaloguj się do swojego konta",
+    "sign_up_title": "Zarejestruj się",
+    "sign_up_description": "Utwórz konto",
+    "email_title": "E-mail",
+    "email_placeholder": "Wpisz tutaj swój e-mail",
+    "password_title": "Hasło",
+    "password_placeholder": "Wpisz tutaj swoje hasło",
+    "forgot_password": "Nie pamiętasz hasła?",
+    "forgot_password_title": "Nie pamiętasz hasła",
+    "forgot_password_description": "Wyślemy Ci link do resetu",
+    "forgot_password_submit": "Wyślij link resetujący",
+    "forgot_password_sent": "Jeśli ten e-mail istnieje w naszym systemie, sprawdź skrzynkę odbiorczą w poszukiwaniu linku.",
+    "forgot_password_disabled": "Reset hasła nie jest dostępny.",
+    "reset_password_title": "Zresetuj hasło",
+    "reset_password_description": "Ustaw nowe hasło do konta",
+    "new_password_title": "Nowe hasło",
+    "new_password_placeholder": "Wpisz nowe hasło",
+    "new_password_required": "Nowe hasło jest wymagane",
+    "confirm_password_title": "Potwierdź hasło",
+    "confirm_password_placeholder": "Wpisz ponownie nowe hasło",
+    "confirm_password_required": "Potwierdź nowe hasło",
+    "password_mismatch": "Hasła nie są takie same",
+    "reset_password_submit": "Zresetuj hasło",
+    "reset_password_success": "Hasło zostało zresetowane. Zaloguj się ponownie.",
+    "reset_password_disabled": "Reset hasła nie jest dostępny.",
+    "invalid_reset_token": "Nieprawidłowy lub wygasły link resetujący.",
+    "missing_reset_token": "Brak tokenu resetu. Użyj linku z e-maila.",
+    "email_required": "E-mail jest wymagany",
+    "password_required": "Hasło jest wymagane",
+    "name_required": "Imię jest wymagane",
+    "back_to_sign_in": "Powrót do logowania",
+    "or": "Lub",
+    "continue": "Kontynuuj",
+    "no_account": "Nie masz konta?",
+    "already_have_account": "Masz już konto?",
+    "email_sign_in": "Zaloguj się e-mailem",
+    "google_sign_in_title": "Zaloguj się przez Google",
+    "github_sign_in_title": "Zaloguj się przez GitHub",
+    "close_title": "Zamknij",
+    "cancel_title": "Anuluj",
+    "sign_out_title": "Wyloguj się",
+    "sign_in_failed": "Logowanie nie powiodło się",
+    "sign_up_failed": "Rejestracja nie powiodła się",
+    "request_password_reset_failed": "Prośba o reset hasła nie powiodła się",
+    "reset_password_failed": "Reset hasła nie powiódł się",
+    "billing_title": "Rozliczenia",
+    "name_title": "Imię",
+    "name_placeholder": "Wpisz tutaj swoje imię",
+    "admin_title": "Panel administracyjny",
+    "credits_title": "Kredyty: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Wybierz metodę płatności",
+    "choose_payment_method_description": "Wybierz dostawcę, aby przejść do płatności.",
+    "cancel_title": "Anuluj",
+    "payment_method_required": "Wybierz metodę płatności",
+    "pricing_item_required": "Wybierz plan",
+    "invalid_payment_method": "Nieprawidłowa metoda płatności"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Nieprawidłowa odpowiedź przesyłania",
+      "max_images_reached": "Osiągnięto maksymalną liczbę obrazów",
+      "file_too_large": "\"{name}\" przekracza limit {maxSize}MB",
+      "upload_failed_with_reason": "Przesyłanie nie powiodło się: {reason}",
+      "upload_failed": "Przesyłanie nie powiodło się",
+      "reference_alt": "Obraz referencyjny",
+      "status": {
+        "uploading": "Przesyłanie...",
+        "failed": "Niepowodzenie"
+      },
+      "button": {
+        "upload": "Prześlij"
+      },
+      "max_size": "Maks {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Wykryliśmy, że język Twojej przeglądarki to {locale}. Przełączyć?",
+    "switch_to": "Przełącz na {locale}",
+    "dismiss_aria_label": "Zamknij"
+  },
+  "locale_switcher": {
+    "aria_label": "Zmień język"
+  }
+}

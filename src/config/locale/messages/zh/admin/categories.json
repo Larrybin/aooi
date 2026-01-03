@@ -48,5 +48,8 @@
     "buttons": {
       "submit": "编辑分类"
     }
+  },
+  "errors": {
+    "not_found": "分类不存在"
   }
 }

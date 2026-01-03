@@ -55,5 +55,16 @@
     "buttons": {
       "confirm_cancel": "確認取消"
     }
+  },
+  "errors": {
+    "invalid_subscription_no": "訂閱號無效",
+    "no_auth": "請先登入",
+    "subscription_not_found": "訂閱不存在",
+    "missing_payment_subscription_id": "訂閱缺少付款訂閱 ID",
+    "missing_payment_user_id": "訂閱缺少付款使用者 ID",
+    "no_permission": "沒有權限",
+    "payment_provider_not_found": "付款供應商不存在",
+    "billing_url_not_found": "找不到帳單連結",
+    "get_billing_failed": "取得帳單連結失敗"
   }
 }

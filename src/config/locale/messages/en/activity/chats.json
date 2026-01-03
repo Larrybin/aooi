@@ -20,5 +20,8 @@
       "new": "New Chat"
     },
     "empty_message": "No chats found"
+  },
+  "errors": {
+    "no_auth": "Please sign in to continue"
   }
 }

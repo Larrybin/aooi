@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit er en Next.js-boilerplate til at bygge AI SaaS-startups. Kom hurtigt i gang med en række skabeloner og komponenter.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Log ind",
+    "sign_in_description": "Log ind på din konto",
+    "sign_up_title": "Opret konto",
+    "sign_up_description": "Opret en konto",
+    "email_title": "E-mail",
+    "email_placeholder": "Indtast din e-mail her",
+    "password_title": "Adgangskode",
+    "password_placeholder": "Indtast din adgangskode her",
+    "forgot_password": "Glemt adgangskode?",
+    "forgot_password_title": "Glemt adgangskode",
+    "forgot_password_description": "Vi sender dig et nulstillingslink",
+    "forgot_password_submit": "Send nulstillingslink",
+    "forgot_password_sent": "Hvis denne e-mail findes i vores system, så tjek din indbakke for nulstillingslinket.",
+    "forgot_password_disabled": "Nulstilling af adgangskode er ikke tilgængelig.",
+    "reset_password_title": "Nulstil adgangskode",
+    "reset_password_description": "Angiv en ny adgangskode til din konto",
+    "new_password_title": "Ny adgangskode",
+    "new_password_placeholder": "Indtast din nye adgangskode her",
+    "new_password_required": "Ny adgangskode er påkrævet",
+    "confirm_password_title": "Bekræft adgangskode",
+    "confirm_password_placeholder": "Indtast din nye adgangskode igen",
+    "confirm_password_required": "Bekræft venligst din nye adgangskode",
+    "password_mismatch": "Adgangskoderne matcher ikke",
+    "reset_password_submit": "Nulstil adgangskode",
+    "reset_password_success": "Adgangskoden er nulstillet. Log venligst ind igen.",
+    "reset_password_disabled": "Nulstilling af adgangskode er ikke tilgængelig.",
+    "invalid_reset_token": "Ugyldigt eller udløbet nulstillingslink.",
+    "missing_reset_token": "Mangler nulstillingstoken. Brug venligst linket fra din e-mail.",
+    "email_required": "E-mail er påkrævet",
+    "password_required": "Adgangskode er påkrævet",
+    "name_required": "Navn er påkrævet",
+    "back_to_sign_in": "Tilbage til Log ind",
+    "or": "Eller",
+    "continue": "Fortsæt",
+    "no_account": "Har du ikke en konto?",
+    "already_have_account": "Har du allerede en konto?",
+    "email_sign_in": "Log ind med e-mail",
+    "google_sign_in_title": "Log ind med Google",
+    "github_sign_in_title": "Log ind med GitHub",
+    "close_title": "Luk",
+    "cancel_title": "Annuller",
+    "sign_out_title": "Log ud",
+    "sign_in_failed": "Login mislykkedes",
+    "sign_up_failed": "Oprettelse af konto mislykkedes",
+    "request_password_reset_failed": "Anmodning om nulstilling mislykkedes",
+    "reset_password_failed": "Nulstilling mislykkedes",
+    "billing_title": "Fakturering",
+    "name_title": "Navn",
+    "name_placeholder": "Indtast dit navn her",
+    "admin_title": "Admin",
+    "credits_title": "Credits: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Vælg betalingsmetode",
+    "choose_payment_method_description": "Vælg en udbyder for at fortsætte til betaling.",
+    "cancel_title": "Annuller",
+    "payment_method_required": "Vælg venligst betalingsmetode",
+    "pricing_item_required": "Vælg venligst et abonnement",
+    "invalid_payment_method": "Ugyldig betalingsmetode"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Ugyldigt upload-svar",
+      "max_images_reached": "Maksimalt antal billeder er nået",
+      "file_too_large": "\"{name}\" overstiger grænsen på {maxSize}MB",
+      "upload_failed_with_reason": "Upload mislykkedes: {reason}",
+      "upload_failed": "Upload mislykkedes",
+      "reference_alt": "Referencebillede",
+      "status": {
+        "uploading": "Uploader...",
+        "failed": "Mislykkedes"
+      },
+      "button": {
+        "upload": "Upload"
+      },
+      "max_size": "Maks {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Vi har registreret, at din browsersprog er {locale}. Vil du skifte til det?",
+    "switch_to": "Skift til {locale}",
+    "dismiss_aria_label": "Luk"
+  },
+  "locale_switcher": {
+    "aria_label": "Skift sprog"
+  }
+}

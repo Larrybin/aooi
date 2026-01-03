@@ -1,0 +1,46 @@
+{
+  "title": "সেটিংস",
+  "nav": {
+    "items": [
+      {
+        "title": "প্রোফাইল",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "বিলিং",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "পেমেন্টস",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "ক্রেডিটস",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API কী",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "অ্যাক্টিভিটি",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "সেটিংস",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

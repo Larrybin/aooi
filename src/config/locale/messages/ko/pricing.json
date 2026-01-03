@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "요금",
+    "description": "플랜으로 시작하세요"
+  },
+  "page": {
+    "current_plan": "현재 플랜",
+    "processing": "처리 중",
+    "currency_placeholder": "통화",
+    "checkout_failed": "결제에 실패했습니다"
+  }
+}

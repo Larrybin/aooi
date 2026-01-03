@@ -129,7 +129,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
             setProgress(0);
             setIsGenerating(false);
             setGenerationStartTime(null);
-            toast.error('Generate music timed out. Please try again.');
+            toast.error(t('generator.errors.timeout'));
             return true; // Stop polling
           }
         }
@@ -144,7 +144,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
               typeof (value as { status?: unknown }).status === 'string' &&
               Boolean((value as { status: string }).status) &&
               isPlainObject((value as { taskInfo?: unknown }).taskInfo),
-            invalidDataMessage: 'Query task info failed',
+            invalidDataMessage: t('generator.errors.query_task_failed'),
           }
         );
 
@@ -157,7 +157,9 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         };
         const { errorCode, errorMessage, songs } = task;
         if (errorCode || errorMessage) {
-          throw new RequestIdError(errorMessage || 'Query task failed');
+          throw new RequestIdError(
+            errorMessage || t('generator.errors.query_task_failed')
+          );
         }
 
         // handle task status
@@ -226,7 +228,11 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
           setProgress(0);
           setIsGenerating(false);
           setGenerationStartTime(null);
-          toast.error('Generate music failed: ' + errorMessage);
+          toast.error(
+            t('generator.errors.generate_failed_with_reason', {
+              reason: errorMessage || t('generator.errors.unknown_error'),
+            })
+          );
 
           fetchUserCredits();
 
@@ -267,7 +273,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         setGenerationStartTime(null);
         toastFetchError(
           error,
-          `Create song failed: ${error instanceof Error && error.message ? error.message : 'unknown error'}`
+          t('generator.errors.create_song_failed_with_reason', {
+            reason:
+              error instanceof Error && error.message
+                ? error.message
+                : t('generator.errors.unknown_error'),
+          })
         );
 
         fetchUserCredits();
@@ -275,7 +286,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         return true; // Stop polling on error
       }
     },
-    [generationStartTime, fetchUserCredits]
+    [generationStartTime, fetchUserCredits, t]
   );
 
   // Start task polling
@@ -316,27 +327,27 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     }
 
     if (!user.credits || user.credits.remainingCredits < costCredits) {
-      toast.error('Insufficient credits');
+      toast.error(t('generator.errors.insufficient_credits'));
       return;
     }
 
     if (!provider || !model) {
-      toast.error('Invalid provider or model');
+      toast.error(t('generator.errors.invalid_provider_or_model'));
       return;
     }
 
     if (customMode) {
       if (!title || !style) {
-        toast.error('Please enter title and style');
+        toast.error(t('generator.errors.title_and_style_required'));
         return;
       }
       if (!instrumental && !lyrics) {
-        toast.error('Please enter lyrics');
+        toast.error(t('generator.errors.lyrics_required'));
         return;
       }
     } else {
       if (!prompt) {
-        toast.error('Please enter prompt');
+        toast.error(t('generator.errors.prompt_required'));
         return;
       }
     }
@@ -392,7 +403,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
             isPlainObject(value) &&
             typeof (value as { id?: unknown }).id === 'string' &&
             Boolean((value as { id: string }).id.trim()),
-          invalidDataMessage: 'Failed to generate music',
+          invalidDataMessage: t('generator.errors.create_task_failed'),
         }
       );
 
@@ -406,7 +417,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     } catch (err: unknown) {
       toastFetchError(
         err,
-        `Failed to generate music: ${err instanceof Error && err.message ? err.message : 'unknown error'}`
+        t('generator.errors.generate_failed_with_reason', {
+          reason:
+            err instanceof Error && err.message
+              ? err.message
+              : t('generator.errors.unknown_error'),
+        })
       );
       setIsGenerating(false);
       setProgress(0);

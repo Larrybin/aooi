@@ -38,6 +38,31 @@
     "generated_images": "图片预览",
     "ready_to_generate": "准备生成",
     "no_images_generated": "没有生成图片",
-    "ready_for_generating": "准备生成"
+    "ready_for_generating": "准备生成",
+    "status": {
+      "pending": "待处理",
+      "processing": "处理中",
+      "success": "成功",
+      "failed": "失败"
+    },
+    "messages": {
+      "generated_success": "生成成功",
+      "download_success": "下载成功"
+    },
+    "errors": {
+      "timeout": "生成超时",
+      "query_task_failed": "查询任务失败",
+      "no_images_returned": "未返回图片",
+      "generate_failed": "生成失败",
+      "query_task_failed_with_reason": "查询任务失败：{reason}",
+      "unknown_error": "未知错误",
+      "insufficient_credits": "积分不足",
+      "prompt_required": "请输入提示词",
+      "invalid_provider_or_model": "服务商或模型无效",
+      "reference_images_required": "请上传参考图片",
+      "create_task_failed": "创建任务失败",
+      "generate_failed_with_reason": "生成失败：{reason}",
+      "download_failed": "下载失败"
+    }
   }
 }

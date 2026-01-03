@@ -1,0 +1,25 @@
+{
+  "no_auth": "Mag-sign in para magpatuloy",
+  "fields": {
+    "email": "Email",
+    "name": "Pangalan",
+    "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Kailangan ang pangalan"
+  },
+  "edit": {
+    "title": "Profile",
+    "description": "I-update ang iyong profile",
+    "crumbs": {
+      "settings": "Settings",
+      "profile": "Profile"
+    },
+    "buttons": {
+      "submit": "I-save"
+    }
+  },
+  "messages": {
+    "updated": "Na-update ang profile"
+  }
+}

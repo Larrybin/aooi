@@ -1,15 +1,20 @@
 import { getRequestConfig } from 'next-intl/server';
 
-import {
-  defaultLocale,
-  localeMessagesPaths,
-  type Locale,
-} from '@/config/locale';
-import { logger } from '@/shared/lib/logger.server';
+import { localeMessagesPaths, type Locale } from '@/config/locale';
 
 import { routing } from './config';
 
 type Messages = Record<string, unknown>;
+
+/**
+ * Base message bundle.
+ *
+ * Notes:
+ * - We keep a complete `en` bundle as the base.
+ * - Other locales may override partially; missing namespaces fall back to `en`.
+ * - In dev/CI, we keep `en/zh/zh-TW` strict to catch missing files early.
+ */
+const baseMessagesLocale: Locale = 'en';
 
 const isDevOrCI =
   process.env.NODE_ENV !== 'production' || process.env.CI === 'true';
@@ -28,8 +33,8 @@ const normalizeLocale = (
     : undefined;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const createLoadError = (locale: Locale, path: string, cause?: unknown) => {
   const reason =
@@ -54,7 +59,25 @@ const importMessages = async (
   return messages.default;
 };
 
-const loadMessages = async (
+const isMissingModuleError = (error: unknown): boolean => {
+  const message =
+    error instanceof Error
+      ? error.message
+      : error !== undefined
+        ? String(error)
+        : '';
+
+  return (
+    message.includes('Cannot find module') ||
+    message.includes('Module not found') ||
+    message.includes("Can't resolve")
+  );
+};
+
+const isStrictLocaleInDev = (locale: Locale): boolean =>
+  isDevOrCI && (locale === 'en' || locale === 'zh' || locale === 'zh-TW');
+
+const loadMessagesRequired = async (
   path: string,
   locale: Locale
 ): Promise<Messages> => {
@@ -72,26 +95,38 @@ const loadMessages = async (
 
     return messages;
   } catch (error) {
-    const isStrictLocaleInDev =
-      isDevOrCI && (locale === 'en' || locale === 'zh');
-    if (locale === defaultLocale || isStrictLocaleInDev) {
-      throw createLoadError(locale, path, error);
-    }
-
-    try {
-      const fallbackMessages = await importMessages(path, defaultLocale);
-      logger.warn('i18n: missing locale messages, fallback to default locale', {
-        locale,
-        path,
-      });
-      if (shouldCacheMessages) {
-        namespaceCache.set(cacheKey, fallbackMessages);
-      }
-      return fallbackMessages;
-    } catch (fallbackError) {
-      throw createLoadError(locale, path, fallbackError);
-    }
+    throw createLoadError(locale, path, error);
   }
+};
+
+const loadMessagesOptional = async (
+  path: string,
+  locale: Locale
+): Promise<Messages | undefined> => {
+  try {
+    return await loadMessagesRequired(path, locale);
+  } catch (error) {
+    if (isMissingModuleError(error) && !isStrictLocaleInDev(locale)) {
+      return undefined;
+    }
+    throw createLoadError(locale, path, error);
+  }
+};
+
+const mergeDeep = (base: unknown, override: unknown): unknown => {
+  if (override === undefined) {
+    return base;
+  }
+
+  if (isPlainObject(base) && isPlainObject(override)) {
+    const result: Record<string, unknown> = { ...base };
+    for (const [key, value] of Object.entries(override)) {
+      result[key] = mergeDeep(result[key], value);
+    }
+    return result;
+  }
+
+  return override;
 };
 
 const mergeMessages = async (locale: Locale): Promise<Messages> => {
@@ -103,7 +138,15 @@ const mergeMessages = async (locale: Locale): Promise<Messages> => {
   }
 
   const segments = await Promise.all(
-    localeMessagesPaths.map((path) => loadMessages(path, locale))
+    localeMessagesPaths.map(async (path) => {
+      const base = await loadMessagesRequired(path, baseMessagesLocale);
+      if (locale === baseMessagesLocale) {
+        return base;
+      }
+
+      const localized = await loadMessagesOptional(path, locale);
+      return localized ? (mergeDeep(base, localized) as Messages) : base;
+    })
   );
 
   const messages: Messages = {};
@@ -117,7 +160,7 @@ const mergeMessages = async (locale: Locale): Promise<Messages> => {
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
       const next = current[key];
-      if (!isRecord(next)) {
+      if (!isPlainObject(next)) {
         current[key] = {};
       }
       current = current[key] as Messages;

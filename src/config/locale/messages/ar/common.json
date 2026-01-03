@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit هو قالب Next.js لبناء شركات AI SaaS الناشئة. أطلق بسرعة باستخدام مجموعة متنوعة من القوالب والمكوّنات.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "تسجيل الدخول",
+    "sign_in_description": "سجّل الدخول إلى حسابك",
+    "sign_up_title": "إنشاء حساب",
+    "sign_up_description": "أنشئ حسابًا",
+    "email_title": "البريد الإلكتروني",
+    "email_placeholder": "أدخل بريدك الإلكتروني هنا",
+    "password_title": "كلمة المرور",
+    "password_placeholder": "أدخل كلمة المرور هنا",
+    "forgot_password": "هل نسيت كلمة المرور؟",
+    "forgot_password_title": "نسيت كلمة المرور",
+    "forgot_password_description": "سنرسل لك رابط إعادة تعيين عبر البريد الإلكتروني",
+    "forgot_password_submit": "إرسال رابط إعادة التعيين",
+    "forgot_password_sent": "إذا كان هذا البريد الإلكتروني موجودًا في نظامنا، فتحقق من صندوق الوارد للحصول على رابط إعادة التعيين.",
+    "forgot_password_disabled": "إعادة تعيين كلمة المرور غير متاحة.",
+    "reset_password_title": "إعادة تعيين كلمة المرور",
+    "reset_password_description": "عيّن كلمة مرور جديدة لحسابك",
+    "new_password_title": "كلمة مرور جديدة",
+    "new_password_placeholder": "أدخل كلمة المرور الجديدة هنا",
+    "new_password_required": "كلمة المرور الجديدة مطلوبة",
+    "confirm_password_title": "تأكيد كلمة المرور",
+    "confirm_password_placeholder": "أعد إدخال كلمة المرور الجديدة",
+    "confirm_password_required": "يرجى تأكيد كلمة المرور الجديدة",
+    "password_mismatch": "كلمتا المرور غير متطابقتين",
+    "reset_password_submit": "إعادة تعيين كلمة المرور",
+    "reset_password_success": "تمت إعادة تعيين كلمة المرور بنجاح. يرجى تسجيل الدخول مرة أخرى.",
+    "reset_password_disabled": "إعادة تعيين كلمة المرور غير متاحة.",
+    "invalid_reset_token": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.",
+    "missing_reset_token": "رمز إعادة التعيين مفقود. يرجى استخدام الرابط من بريدك الإلكتروني.",
+    "email_required": "البريد الإلكتروني مطلوب",
+    "password_required": "كلمة المرور مطلوبة",
+    "name_required": "الاسم مطلوب",
+    "back_to_sign_in": "العودة إلى تسجيل الدخول",
+    "or": "أو",
+    "continue": "متابعة",
+    "no_account": "ليس لديك حساب؟",
+    "already_have_account": "لديك حساب بالفعل؟",
+    "email_sign_in": "تسجيل الدخول بالبريد الإلكتروني",
+    "google_sign_in_title": "تسجيل الدخول باستخدام Google",
+    "github_sign_in_title": "تسجيل الدخول باستخدام GitHub",
+    "close_title": "إغلاق",
+    "cancel_title": "إلغاء",
+    "sign_out_title": "تسجيل الخروج",
+    "sign_in_failed": "فشل تسجيل الدخول",
+    "sign_up_failed": "فشل إنشاء الحساب",
+    "request_password_reset_failed": "فشل طلب إعادة تعيين كلمة المرور",
+    "reset_password_failed": "فشل إعادة تعيين كلمة المرور",
+    "billing_title": "الفوترة",
+    "name_title": "الاسم",
+    "name_placeholder": "أدخل اسمك هنا",
+    "admin_title": "لوحة الإدارة",
+    "credits_title": "الرصيد: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "اختر طريقة الدفع",
+    "choose_payment_method_description": "اختر مزودًا للمتابعة إلى الدفع.",
+    "cancel_title": "إلغاء",
+    "payment_method_required": "يرجى اختيار طريقة الدفع",
+    "pricing_item_required": "يرجى اختيار خطة",
+    "invalid_payment_method": "طريقة دفع غير صالحة"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "استجابة رفع غير صالحة",
+      "max_images_reached": "تم الوصول إلى الحد الأقصى لعدد الصور",
+      "file_too_large": "\"{name}\" يتجاوز حد {maxSize}MB",
+      "upload_failed_with_reason": "فشل الرفع: {reason}",
+      "upload_failed": "فشل الرفع",
+      "reference_alt": "صورة مرجعية",
+      "status": {
+        "uploading": "جارٍ الرفع...",
+        "failed": "فشل"
+      },
+      "button": {
+        "upload": "رفع"
+      },
+      "max_size": "الحد الأقصى {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "اكتشفنا أن لغة المتصفح لديك هي {locale}. هل تريد التبديل إليها؟",
+    "switch_to": "التبديل إلى {locale}",
+    "dismiss_aria_label": "إغلاق"
+  },
+  "locale_switcher": {
+    "aria_label": "تغيير اللغة"
+  }
+}

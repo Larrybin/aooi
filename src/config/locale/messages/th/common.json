@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit คือบอยเลอร์เพลต Next.js สำหรับสร้างสตาร์ทอัป AI SaaS เปิดตัวได้รวดเร็วด้วยเทมเพลตและคอมโพเนนต์มากมาย",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "เข้าสู่ระบบ",
+    "sign_in_description": "เข้าสู่ระบบบัญชีของคุณ",
+    "sign_up_title": "สมัครสมาชิก",
+    "sign_up_description": "สร้างบัญชี",
+    "email_title": "อีเมล",
+    "email_placeholder": "กรอกอีเมลของคุณที่นี่",
+    "password_title": "รหัสผ่าน",
+    "password_placeholder": "กรอกรหัสผ่านของคุณที่นี่",
+    "forgot_password": "ลืมรหัสผ่าน?",
+    "forgot_password_title": "ลืมรหัสผ่าน",
+    "forgot_password_description": "เราจะส่งลิงก์รีเซ็ตให้ทางอีเมล",
+    "forgot_password_submit": "ส่งลิงก์รีเซ็ต",
+    "forgot_password_sent": "หากอีเมลนี้มีอยู่ในระบบของเรา โปรดตรวจสอบกล่องจดหมายสำหรับลิงก์รีเซ็ต",
+    "forgot_password_disabled": "ไม่สามารถรีเซ็ตรหัสผ่านได้",
+    "reset_password_title": "รีเซ็ตรหัสผ่าน",
+    "reset_password_description": "ตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ",
+    "new_password_title": "รหัสผ่านใหม่",
+    "new_password_placeholder": "กรอกรหัสผ่านใหม่ที่นี่",
+    "new_password_required": "ต้องระบุรหัสผ่านใหม่",
+    "confirm_password_title": "ยืนยันรหัสผ่าน",
+    "confirm_password_placeholder": "กรอกรหัสผ่านใหม่อีกครั้ง",
+    "confirm_password_required": "โปรดยืนยันรหัสผ่านใหม่",
+    "password_mismatch": "รหัสผ่านไม่ตรงกัน",
+    "reset_password_submit": "รีเซ็ตรหัสผ่าน",
+    "reset_password_success": "รีเซ็ตรหัสผ่านสำเร็จ โปรดเข้าสู่ระบบอีกครั้ง",
+    "reset_password_disabled": "ไม่สามารถรีเซ็ตรหัสผ่านได้",
+    "invalid_reset_token": "ลิงก์รีเซ็ตไม่ถูกต้องหรือหมดอายุ",
+    "missing_reset_token": "ไม่พบโทเค็นรีเซ็ต โปรดใช้ลิงก์จากอีเมล",
+    "email_required": "ต้องระบุอีเมล",
+    "password_required": "ต้องระบุรหัสผ่าน",
+    "name_required": "ต้องระบุชื่อ",
+    "back_to_sign_in": "กลับไปหน้าเข้าสู่ระบบ",
+    "or": "หรือ",
+    "continue": "ดำเนินการต่อ",
+    "no_account": "ยังไม่มีบัญชีใช่ไหม?",
+    "already_have_account": "มีบัญชีอยู่แล้วใช่ไหม?",
+    "email_sign_in": "เข้าสู่ระบบด้วยอีเมล",
+    "google_sign_in_title": "เข้าสู่ระบบด้วย Google",
+    "github_sign_in_title": "เข้าสู่ระบบด้วย GitHub",
+    "close_title": "ปิด",
+    "cancel_title": "ยกเลิก",
+    "sign_out_title": "ออกจากระบบ",
+    "sign_in_failed": "เข้าสู่ระบบล้มเหลว",
+    "sign_up_failed": "สมัครสมาชิกล้มเหลว",
+    "request_password_reset_failed": "ส่งคำขอรีเซ็ตรหัสผ่านล้มเหลว",
+    "reset_password_failed": "รีเซ็ตรหัสผ่านล้มเหลว",
+    "billing_title": "การเรียกเก็บเงิน",
+    "name_title": "ชื่อ",
+    "name_placeholder": "กรอกชื่อของคุณที่นี่",
+    "admin_title": "ผู้ดูแลระบบ",
+    "credits_title": "เครดิต: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "เลือกวิธีการชำระเงิน",
+    "choose_payment_method_description": "เลือกผู้ให้บริการเพื่อไปต่อที่การชำระเงิน",
+    "cancel_title": "ยกเลิก",
+    "payment_method_required": "โปรดเลือกวิธีการชำระเงิน",
+    "pricing_item_required": "โปรดเลือกแพ็กเกจ",
+    "invalid_payment_method": "วิธีการชำระเงินไม่ถูกต้อง"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "การตอบกลับการอัปโหลดไม่ถูกต้อง",
+      "max_images_reached": "ถึงจำนวนรูปภาพสูงสุดแล้ว",
+      "file_too_large": "\"{name}\" เกินขีดจำกัด {maxSize}MB",
+      "upload_failed_with_reason": "อัปโหลดล้มเหลว: {reason}",
+      "upload_failed": "อัปโหลดล้มเหลว",
+      "reference_alt": "รูปภาพอ้างอิง",
+      "status": {
+        "uploading": "กำลังอัปโหลด...",
+        "failed": "ล้มเหลว"
+      },
+      "button": {
+        "upload": "อัปโหลด"
+      },
+      "max_size": "สูงสุด {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "ตรวจพบว่าภาษาของเบราว์เซอร์คือ {locale} ต้องการสลับหรือไม่?",
+    "switch_to": "สลับไปยัง {locale}",
+    "dismiss_aria_label": "ปิด"
+  },
+  "locale_switcher": {
+    "aria_label": "เปลี่ยนภาษา"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "no_auth": "Kirjaudu sisään jatkaaksesi",
+  "fields": {
+    "email": "Sähköposti",
+    "name": "Nimi",
+    "avatar": "Profiilikuva"
+  },
+  "validation": {
+    "name_required": "Nimi vaaditaan"
+  },
+  "edit": {
+    "title": "Profiili",
+    "description": "Päivitä profiilisi",
+    "crumbs": {
+      "settings": "Asetukset",
+      "profile": "Profiili"
+    },
+    "buttons": {
+      "submit": "Tallenna"
+    }
+  },
+  "messages": {
+    "updated": "Profiili päivitetty"
+  }
+}

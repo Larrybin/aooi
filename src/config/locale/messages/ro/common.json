@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit este un boilerplate Next.js pentru a construi startupuri AI SaaS. Lansează rapid cu o varietate de șabloane și componente.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Autentificare",
+    "sign_in_description": "Autentifică-te în cont",
+    "sign_up_title": "Înregistrare",
+    "sign_up_description": "Creează un cont",
+    "email_title": "E-mail",
+    "email_placeholder": "Introdu e-mailul aici",
+    "password_title": "Parolă",
+    "password_placeholder": "Introdu parola aici",
+    "forgot_password": "Ai uitat parola?",
+    "forgot_password_title": "Parolă uitată",
+    "forgot_password_description": "Îți vom trimite un link de resetare pe e-mail",
+    "forgot_password_submit": "Trimite linkul de resetare",
+    "forgot_password_sent": "Dacă acest e-mail există în sistemul nostru, verifică inboxul pentru linkul de resetare.",
+    "forgot_password_disabled": "Resetarea parolei nu este disponibilă.",
+    "reset_password_title": "Resetează parola",
+    "reset_password_description": "Setează o parolă nouă pentru contul tău",
+    "new_password_title": "Parolă nouă",
+    "new_password_placeholder": "Introdu parola nouă aici",
+    "new_password_required": "Parola nouă este obligatorie",
+    "confirm_password_title": "Confirmă parola",
+    "confirm_password_placeholder": "Reintrodu parola nouă",
+    "confirm_password_required": "Te rugăm să confirmi parola nouă",
+    "password_mismatch": "Parolele nu coincid",
+    "reset_password_submit": "Resetează parola",
+    "reset_password_success": "Parola a fost resetată. Te rugăm să te autentifici din nou.",
+    "reset_password_disabled": "Resetarea parolei nu este disponibilă.",
+    "invalid_reset_token": "Link de resetare invalid sau expirat.",
+    "missing_reset_token": "Lipsește tokenul de resetare. Folosește linkul din e-mail.",
+    "email_required": "E-mailul este obligatoriu",
+    "password_required": "Parola este obligatorie",
+    "name_required": "Numele este obligatoriu",
+    "back_to_sign_in": "Înapoi la Autentificare",
+    "or": "Sau",
+    "continue": "Continuă",
+    "no_account": "Nu ai cont?",
+    "already_have_account": "Ai deja cont?",
+    "email_sign_in": "Autentificare cu e-mail",
+    "google_sign_in_title": "Autentificare cu Google",
+    "github_sign_in_title": "Autentificare cu GitHub",
+    "close_title": "Închide",
+    "cancel_title": "Anulează",
+    "sign_out_title": "Deconectare",
+    "sign_in_failed": "Autentificare eșuată",
+    "sign_up_failed": "Înregistrare eșuată",
+    "request_password_reset_failed": "Cererea de resetare a eșuat",
+    "reset_password_failed": "Resetarea parolei a eșuat",
+    "billing_title": "Facturare",
+    "name_title": "Nume",
+    "name_placeholder": "Introdu numele aici",
+    "admin_title": "Admin",
+    "credits_title": "Credite: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Alege metoda de plată",
+    "choose_payment_method_description": "Selectează un furnizor pentru a continua la checkout.",
+    "cancel_title": "Anulează",
+    "payment_method_required": "Selectează metoda de plată",
+    "pricing_item_required": "Selectează un plan",
+    "invalid_payment_method": "Metodă de plată invalidă"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Răspuns de încărcare invalid",
+      "max_images_reached": "S-a atins numărul maxim de imagini",
+      "file_too_large": "\"{name}\" depășește limita de {maxSize}MB",
+      "upload_failed_with_reason": "Încărcarea a eșuat: {reason}",
+      "upload_failed": "Încărcarea a eșuat",
+      "reference_alt": "Imagine de referință",
+      "status": {
+        "uploading": "Se încarcă...",
+        "failed": "Eșuat"
+      },
+      "button": {
+        "upload": "Încarcă"
+      },
+      "max_size": "Max {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Am detectat că limba browserului tău este {locale}. Vrei să comuți?",
+    "switch_to": "Comută la {locale}",
+    "dismiss_aria_label": "Închide"
+  },
+  "locale_switcher": {
+    "aria_label": "Schimbă limba"
+  }
+}

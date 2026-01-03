@@ -1,0 +1,25 @@
+{
+  "no_auth": "চালিয়ে যেতে সাইন ইন করুন",
+  "fields": {
+    "email": "ইমেইল",
+    "name": "নাম",
+    "avatar": "অবতার"
+  },
+  "validation": {
+    "name_required": "নাম আবশ্যক"
+  },
+  "edit": {
+    "title": "প্রোফাইল",
+    "description": "আপনার প্রোফাইল আপডেট করুন",
+    "crumbs": {
+      "settings": "সেটিংস",
+      "profile": "প্রোফাইল"
+    },
+    "buttons": {
+      "submit": "সেভ"
+    }
+  },
+  "messages": {
+    "updated": "প্রোফাইল আপডেট হয়েছে"
+  }
+}

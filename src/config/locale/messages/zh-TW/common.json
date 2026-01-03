@@ -59,14 +59,36 @@
   },
   "payment": {
     "choose_payment_method": "選擇付款方式",
-    "choose_payment_method_description": "",
+    "choose_payment_method_description": "請選擇付款方式以繼續結帳。",
     "cancel_title": "取消",
     "payment_method_required": "請選擇付款方式",
     "pricing_item_required": "請選擇一個方案",
     "invalid_payment_method": "付款方式無效"
   },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "上傳回應無效",
+      "max_images_reached": "已達到圖片數量上限",
+      "file_too_large": "\"{name}\" 超過 {maxSize}MB 限制",
+      "upload_failed_with_reason": "上傳失敗：{reason}",
+      "upload_failed": "上傳失敗",
+      "reference_alt": "參考圖片",
+      "status": {
+        "uploading": "上傳中...",
+        "failed": "失敗"
+      },
+      "button": {
+        "upload": "上傳"
+      },
+      "max_size": "最大 {maxSize}MB"
+    }
+  },
   "locale_detector": {
     "title": "偵測到瀏覽器語言為: {locale}，是否切換？",
-    "switch_to": "切換到{locale}"
+    "switch_to": "切換到{locale}",
+    "dismiss_aria_label": "關閉"
+  },
+  "locale_switcher": {
+    "aria_label": "切換語言"
   }
 }

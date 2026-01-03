@@ -1,0 +1,46 @@
+{
+  "title": "الإعدادات",
+  "nav": {
+    "items": [
+      {
+        "title": "الملف الشخصي",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "الفوترة",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "المدفوعات",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "الرصيد",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "مفاتيح API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "النشاط",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "الإعدادات",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit — это boilerplate на Next.js для создания AI SaaS‑стартапов. Быстро запускайте продукт с помощью шаблонов и компонентов.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Войти",
+    "sign_in_description": "Войдите в свой аккаунт",
+    "sign_up_title": "Регистрация",
+    "sign_up_description": "Создайте аккаунт",
+    "email_title": "Эл. почта",
+    "email_placeholder": "Введите вашу почту здесь",
+    "password_title": "Пароль",
+    "password_placeholder": "Введите ваш пароль здесь",
+    "forgot_password": "Забыли пароль?",
+    "forgot_password_title": "Забыли пароль",
+    "forgot_password_description": "Мы отправим вам ссылку для сброса",
+    "forgot_password_submit": "Отправить ссылку",
+    "forgot_password_sent": "Если этот адрес есть в системе, проверьте входящие для ссылки на сброс.",
+    "forgot_password_disabled": "Сброс пароля недоступен.",
+    "reset_password_title": "Сброс пароля",
+    "reset_password_description": "Установите новый пароль для аккаунта",
+    "new_password_title": "Новый пароль",
+    "new_password_placeholder": "Введите новый пароль здесь",
+    "new_password_required": "Новый пароль обязателен",
+    "confirm_password_title": "Подтвердите пароль",
+    "confirm_password_placeholder": "Повторите новый пароль",
+    "confirm_password_required": "Пожалуйста, подтвердите новый пароль",
+    "password_mismatch": "Пароли не совпадают",
+    "reset_password_submit": "Сбросить пароль",
+    "reset_password_success": "Пароль успешно сброшен. Пожалуйста, войдите снова.",
+    "reset_password_disabled": "Сброс пароля недоступен.",
+    "invalid_reset_token": "Недействительная или просроченная ссылка на сброс.",
+    "missing_reset_token": "Отсутствует токен сброса. Используйте ссылку из письма.",
+    "email_required": "Эл. почта обязательна",
+    "password_required": "Пароль обязателен",
+    "name_required": "Имя обязательно",
+    "back_to_sign_in": "Назад ко входу",
+    "or": "Или",
+    "continue": "Продолжить",
+    "no_account": "Нет аккаунта?",
+    "already_have_account": "Уже есть аккаунт?",
+    "email_sign_in": "Войти по почте",
+    "google_sign_in_title": "Войти через Google",
+    "github_sign_in_title": "Войти через GitHub",
+    "close_title": "Закрыть",
+    "cancel_title": "Отмена",
+    "sign_out_title": "Выйти",
+    "sign_in_failed": "Не удалось войти",
+    "sign_up_failed": "Не удалось зарегистрироваться",
+    "request_password_reset_failed": "Не удалось запросить сброс пароля",
+    "reset_password_failed": "Не удалось сбросить пароль",
+    "billing_title": "Биллинг",
+    "name_title": "Имя",
+    "name_placeholder": "Введите имя здесь",
+    "admin_title": "Админ",
+    "credits_title": "Кредиты: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Выберите способ оплаты",
+    "choose_payment_method_description": "Выберите провайдера, чтобы продолжить к оплате.",
+    "cancel_title": "Отмена",
+    "payment_method_required": "Пожалуйста, выберите способ оплаты",
+    "pricing_item_required": "Пожалуйста, выберите тариф",
+    "invalid_payment_method": "Неверный способ оплаты"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Недопустимый ответ загрузки",
+      "max_images_reached": "Достигнуто максимальное количество изображений",
+      "file_too_large": "\"{name}\" превышает лимит {maxSize}MB",
+      "upload_failed_with_reason": "Загрузка не удалась: {reason}",
+      "upload_failed": "Загрузка не удалась",
+      "reference_alt": "Эталонное изображение",
+      "status": {
+        "uploading": "Загрузка...",
+        "failed": "Ошибка"
+      },
+      "button": {
+        "upload": "Загрузить"
+      },
+      "max_size": "Макс {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Мы обнаружили, что язык вашего браузера — {locale}. Переключить?",
+    "switch_to": "Переключить на {locale}",
+    "dismiss_aria_label": "Закрыть"
+  },
+  "locale_switcher": {
+    "aria_label": "Сменить язык"
+  }
+}

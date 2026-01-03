@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "title": "Priser",
+    "description": "Start med en plan"
+  },
+  "page": {
+    "current_plan": "Nuværende plan",
+    "processing": "Behandler",
+    "currency_placeholder": "Valuta",
+    "checkout_failed": "Checkout mislykkedes"
+  }
+}

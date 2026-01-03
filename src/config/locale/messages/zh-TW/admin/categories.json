@@ -48,5 +48,8 @@
     "buttons": {
       "submit": "編輯分類"
     }
+  },
+  "errors": {
+    "not_found": "分類不存在"
   }
 }

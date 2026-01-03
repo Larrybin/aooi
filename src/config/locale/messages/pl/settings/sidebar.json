@@ -1,0 +1,46 @@
+{
+  "title": "Ustawienia",
+  "nav": {
+    "items": [
+      {
+        "title": "Profil",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Rozliczenia",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Płatności",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Kredyty",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "Klucze API",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Aktywność",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Ustawienia",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

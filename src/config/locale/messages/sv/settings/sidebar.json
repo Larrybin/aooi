@@ -1,0 +1,46 @@
+{
+  "title": "Inställningar",
+  "nav": {
+    "items": [
+      {
+        "title": "Profil",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Fakturering",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Betalningar",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Krediter",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API-nycklar",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Aktivitet",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Inställningar",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

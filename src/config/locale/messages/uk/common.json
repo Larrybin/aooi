@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "Roller Rabbit",
+    "description": "Roller Rabbit — це Next.js boilerplate для створення AI SaaS‑стартапів. Запускайтеся швидко з різноманітними шаблонами та компонентами.",
+    "keywords": "roller-rabbit, ai-saas, nextjs, boilerplate"
+  },
+  "sign": {
+    "sign_in_title": "Увійти",
+    "sign_in_description": "Увійдіть у свій обліковий запис",
+    "sign_up_title": "Реєстрація",
+    "sign_up_description": "Створіть обліковий запис",
+    "email_title": "Ел. пошта",
+    "email_placeholder": "Введіть свою ел. пошту",
+    "password_title": "Пароль",
+    "password_placeholder": "Введіть свій пароль",
+    "forgot_password": "Забули пароль?",
+    "forgot_password_title": "Забули пароль",
+    "forgot_password_description": "Ми надішлемо вам посилання для скидання",
+    "forgot_password_submit": "Надіслати посилання",
+    "forgot_password_sent": "Якщо ця ел. пошта є в нашій системі, перевірте вхідні для посилання.",
+    "forgot_password_disabled": "Скидання пароля недоступне.",
+    "reset_password_title": "Скинути пароль",
+    "reset_password_description": "Встановіть новий пароль для вашого акаунта",
+    "new_password_title": "Новий пароль",
+    "new_password_placeholder": "Введіть новий пароль",
+    "new_password_required": "Новий пароль обов’язковий",
+    "confirm_password_title": "Підтвердіть пароль",
+    "confirm_password_placeholder": "Введіть новий пароль ще раз",
+    "confirm_password_required": "Підтвердіть новий пароль",
+    "password_mismatch": "Паролі не збігаються",
+    "reset_password_submit": "Скинути пароль",
+    "reset_password_success": "Пароль успішно скинуто. Будь ласка, увійдіть знову.",
+    "reset_password_disabled": "Скидання пароля недоступне.",
+    "invalid_reset_token": "Недійсне або прострочене посилання для скидання.",
+    "missing_reset_token": "Відсутній токен скидання. Використайте посилання з листа.",
+    "email_required": "Ел. пошта обов’язкова",
+    "password_required": "Пароль обов’язковий",
+    "name_required": "Ім’я обов’язкове",
+    "back_to_sign_in": "Назад до входу",
+    "or": "Або",
+    "continue": "Продовжити",
+    "no_account": "Немає акаунта?",
+    "already_have_account": "Вже є акаунт?",
+    "email_sign_in": "Увійти через ел. пошту",
+    "google_sign_in_title": "Увійти через Google",
+    "github_sign_in_title": "Увійти через GitHub",
+    "close_title": "Закрити",
+    "cancel_title": "Скасувати",
+    "sign_out_title": "Вийти",
+    "sign_in_failed": "Не вдалося увійти",
+    "sign_up_failed": "Не вдалося зареєструватися",
+    "request_password_reset_failed": "Не вдалося надіслати запит на скидання",
+    "reset_password_failed": "Не вдалося скинути пароль",
+    "billing_title": "Білінг",
+    "name_title": "Ім’я",
+    "name_placeholder": "Введіть своє ім’я",
+    "admin_title": "Адмін",
+    "credits_title": "Кредити: {credits}"
+  },
+  "payment": {
+    "choose_payment_method": "Виберіть спосіб оплати",
+    "choose_payment_method_description": "Виберіть провайдера, щоб продовжити до оплати.",
+    "cancel_title": "Скасувати",
+    "payment_method_required": "Будь ласка, виберіть спосіб оплати",
+    "pricing_item_required": "Будь ласка, виберіть план",
+    "invalid_payment_method": "Невірний спосіб оплати"
+  },
+  "uploader": {
+    "image": {
+      "invalid_upload_response": "Неприпустима відповідь завантаження",
+      "max_images_reached": "Досягнуто максимальної кількості зображень",
+      "file_too_large": "\"{name}\" перевищує ліміт {maxSize}MB",
+      "upload_failed_with_reason": "Завантаження не вдалося: {reason}",
+      "upload_failed": "Завантаження не вдалося",
+      "reference_alt": "Референсне зображення",
+      "status": {
+        "uploading": "Завантаження...",
+        "failed": "Помилка"
+      },
+      "button": {
+        "upload": "Завантажити"
+      },
+      "max_size": "Макс {maxSize}MB"
+    }
+  },
+  "locale_detector": {
+    "title": "Ми визначили, що мова вашого браузера — {locale}. Перемкнути?",
+    "switch_to": "Перемкнути на {locale}",
+    "dismiss_aria_label": "Закрити"
+  },
+  "locale_switcher": {
+    "aria_label": "Змінити мову"
+  }
+}

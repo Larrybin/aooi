@@ -51,5 +51,8 @@
     "buttons": {
       "submit": "更新"
     }
+  },
+  "errors": {
+    "not_found": "使用者不存在"
   }
 }

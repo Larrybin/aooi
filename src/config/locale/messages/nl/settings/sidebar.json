@@ -1,0 +1,46 @@
+{
+  "title": "Instellingen",
+  "nav": {
+    "items": [
+      {
+        "title": "Profiel",
+        "url": "/settings/profile",
+        "icon": "User"
+      },
+      {
+        "title": "Facturatie",
+        "url": "/settings/billing",
+        "icon": "CreditCard"
+      },
+      {
+        "title": "Betalingen",
+        "url": "/settings/payments",
+        "icon": "DollarSign"
+      },
+      {
+        "title": "Credits",
+        "url": "/settings/credits",
+        "icon": "Coins"
+      },
+      {
+        "title": "API-sleutels",
+        "url": "/settings/apikeys",
+        "icon": "RiKeyLine"
+      }
+    ]
+  },
+  "top_nav": {
+    "items": [
+      {
+        "title": "Activiteit",
+        "url": "/activity",
+        "icon": "Activity"
+      },
+      {
+        "title": "Instellingen",
+        "url": "/settings",
+        "icon": "Settings"
+      }
+    ]
+  }
+}

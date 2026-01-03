@@ -46,12 +46,12 @@ export default async function BillingPage({
     ? `/settings/billing?${cleanQuery.toString()}`
     : '/settings/billing';
 
+  const t = await getTranslations('settings.billing');
+
   const user = await getUserInfo();
   if (!user) {
-    return <Empty message="no auth" />;
+    return <Empty message={t('errors.no_auth')} />;
   }
-
-  const t = await getTranslations('settings.billing');
 
   const currentSubscription = await getCurrentSubscription(user.id);
 

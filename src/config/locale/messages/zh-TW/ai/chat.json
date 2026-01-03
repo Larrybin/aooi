@@ -101,7 +101,12 @@
   },
   "generator": {
     "title": "今天有什麼可以幫到你？",
-    "input_placeholder": "你可以問我任何問題"
+    "input_placeholder": "你可以問我任何問題",
+    "errors": {
+      "create_chat_failed": "建立對話失敗",
+      "request_failed": "請求失敗",
+      "model_required": "請選擇模型"
+    }
   },
   "history": {
     "title": "歷史對話",

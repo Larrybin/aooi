@@ -56,5 +56,8 @@
     "buttons": {
       "submit": "編輯文章"
     }
+  },
+  "errors": {
+    "not_found": "文章不存在"
   }
 }

@@ -48,5 +48,8 @@
     "buttons": {
       "submit": "Edit Category"
     }
+  },
+  "errors": {
+    "not_found": "Category not found"
   }
 }
