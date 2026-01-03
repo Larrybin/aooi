@@ -60,6 +60,10 @@ const ParamsSchema = z.object({
 const params = await parseParams(routeParams, ParamsSchema);
 ```
 
+Notes:
+
+- `parseJson()` enforces a default **1MB** request body limit and throws `PayloadTooLargeError` (HTTP 413) when exceeded.
+
 ### Response Helpers
 
 ```typescript
@@ -127,6 +131,7 @@ Notes:
 
 - This repo commonly uses `POST` for cookie-authenticated endpoints (even if read-only) so `requireUser()` can enforce same-origin checks for requests carrying cookies.
 - For endpoints returning user-specific data, set `Cache-Control: no-store`.
+- CSRF compares Origin/Referer host with `Host` (and the configured `APP_URL` host). When running behind a proxy/CDN, ensure forwarded headers are sanitized/owned by the edge.
 
 ## Available Endpoints
 
@@ -258,6 +263,10 @@ Contract exceptions (e.g. Better Auth) may return a different response shape.
 }
 // HTTP status code carries 4xx/5xx.
 ```
+
+Notes:
+
+- For 5xx upstream failures, prefer throwing `UpstreamError(502|503)` and keep client-facing messages generic (`bad gateway` / `service unavailable`). Use `x-request-id` + server logs for details.
 
 ## Request ID Tracking
 

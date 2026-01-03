@@ -19,6 +19,7 @@ import {
   isMissingRoleDeletedAtColumnError,
 } from '@/core/db/schema-check';
 import { permission, role, rolePermission, userRole } from '@/config/db/schema';
+import { BusinessError } from '@/shared/lib/errors';
 import { getUuid } from '@/shared/lib/hash';
 import { logger } from '@/shared/lib/logger.server';
 
@@ -29,10 +30,52 @@ export type RbacAuditContext = {
   route?: string;
 };
 
+type DbClient = ReturnType<typeof db>;
+type DbTransactionClient = Parameters<
+  Parameters<DbClient['transaction']>[0]
+>[0];
+type DbReadWriteClient = DbClient | DbTransactionClient;
+
 function getRbacAuditLogger(audit?: RbacAuditContext) {
   if (!audit) return logger;
   const { actorUserId, ...ctx } = audit;
   return logger.with({ ...ctx, actorUserId });
+}
+
+async function assertWildcardPermissionAssignmentAllowed(
+  tx: DbReadWriteClient,
+  roleId: string,
+  permissionIds: readonly string[],
+  audit?: RbacAuditContext
+): Promise<void> {
+  if (permissionIds.length === 0) return;
+
+  const [wildcard] = await tx
+    .select({ id: permission.id })
+    .from(permission)
+    .where(eq(permission.code, '*'));
+  const wildcardId = wildcard?.id;
+  if (!wildcardId) return;
+  if (!permissionIds.includes(wildcardId)) return;
+
+  const [roleRow] = await tx
+    .select({ name: role.name })
+    .from(role)
+    .where(and(eq(role.id, roleId), isNull(role.deletedAt)));
+  if (!roleRow) {
+    throw new BusinessError('role not found');
+  }
+
+  if (roleRow.name !== ROLES.SUPER_ADMIN) {
+    getRbacAuditLogger(audit).warn(
+      '[rbac] blocked wildcard permission assignment',
+      {
+        roleId,
+        roleName: roleRow.name,
+      }
+    );
+    throw new BusinessError('wildcard permission is reserved for super_admin');
+  }
 }
 
 // Types
@@ -170,6 +213,9 @@ export async function createRole(
   audit?: RbacAuditContext
 ): Promise<Role> {
   const [result] = await db().insert(role).values(newRole).returning();
+  if (!result) {
+    throw new Error('failed to create role');
+  }
   getRbacAuditLogger(audit).info('[rbac] role created', {
     roleId: result.id,
     roleName: result.name,
@@ -184,12 +230,19 @@ export async function updateRole(
   roleId: string,
   updates: UpdateRole,
   audit?: RbacAuditContext
-): Promise<Role> {
+): Promise<Role | undefined> {
   const [result] = await db()
     .update(role)
     .set(updates)
     .where(and(eq(role.id, roleId), isNull(role.deletedAt)))
     .returning();
+  if (!result) {
+    getRbacAuditLogger(audit).warn('[rbac] role update missed', {
+      roleId,
+      changes: Object.keys(updates),
+    });
+    return undefined;
+  }
   getRbacAuditLogger(audit).info('[rbac] role updated', {
     roleId: result.id,
     changes: Object.keys(updates),
@@ -257,6 +310,9 @@ export async function createPermission(
     .insert(permission)
     .values(newPermission)
     .returning();
+  if (!result) {
+    throw new Error('failed to create permission');
+  }
   return result;
 }
 
@@ -292,6 +348,12 @@ export async function assignPermissionToRole(
   permissionId: string,
   audit?: RbacAuditContext
 ): Promise<RolePermission> {
+  await assertWildcardPermissionAssignmentAllowed(
+    db(),
+    roleId,
+    [permissionId],
+    audit
+  );
   const [result] = await db()
     .insert(rolePermission)
     .values({
@@ -300,6 +362,9 @@ export async function assignPermissionToRole(
       permissionId,
     })
     .returning();
+  if (!result) {
+    throw new Error('failed to assign permission to role');
+  }
   getRbacAuditLogger(audit).info('[rbac] role permission assigned', {
     roleId,
     permissionId,
@@ -337,25 +402,34 @@ export async function assignPermissionsToRole(
   permissionIds: string[],
   audit?: RbacAuditContext
 ): Promise<void> {
-  // First, remove all existing permissions
-  await db().delete(rolePermission).where(eq(rolePermission.roleId, roleId));
+  const uniquePermissionIds = Array.from(new Set(permissionIds));
 
-  // Then, add new permissions
-  if (permissionIds.length > 0) {
-    await db()
-      .insert(rolePermission)
-      .values(
-        permissionIds.map((permissionId) => ({
+  await db().transaction(async (tx) => {
+    await assertWildcardPermissionAssignmentAllowed(
+      tx,
+      roleId,
+      uniquePermissionIds,
+      audit
+    );
+
+    // First, remove all existing permissions
+    await tx.delete(rolePermission).where(eq(rolePermission.roleId, roleId));
+
+    // Then, add new permissions
+    if (uniquePermissionIds.length > 0) {
+      await tx.insert(rolePermission).values(
+        uniquePermissionIds.map((permissionId) => ({
           id: getUuid(),
           roleId,
           permissionId,
         }))
       );
-  }
+    }
+  });
 
   getRbacAuditLogger(audit).info('[rbac] role permissions replaced', {
     roleId,
-    permissionCount: permissionIds.length,
+    permissionCount: uniquePermissionIds.length,
   });
 }
 
@@ -624,6 +698,9 @@ export async function assignRoleToUser(
       updatedAt,
     })
     .returning();
+  if (!result) {
+    throw new Error('failed to assign role to user');
+  }
   getRbacAuditLogger(audit).info('[rbac] user role assigned', {
     userId,
     roleId,

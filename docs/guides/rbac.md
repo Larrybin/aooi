@@ -47,6 +47,10 @@ The RBAC system uses four tables:
 | `editor`      | Content editor     | Posts, categories      |
 | `viewer`      | Read-only access   | View-only permissions  |
 
+Notes:
+
+- The wildcard permission `*` is reserved for `super_admin` only and is blocked at the RBAC service layer when assigning role permissions.
+
 ## Permission Code Format
 
 Permissions follow a hierarchical `resource.action` pattern:
