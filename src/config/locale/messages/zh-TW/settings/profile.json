@@ -1,8 +1,12 @@
 {
+  "no_auth": "請先登入",
   "fields": {
     "email": "電子郵件",
     "name": "名稱",
     "avatar": "頭像"
+  },
+  "validation": {
+    "name_required": "請輸入名稱"
   },
   "edit": {
     "title": "個人資料",
@@ -14,5 +18,8 @@
     "buttons": {
       "submit": "儲存"
     }
+  },
+  "messages": {
+    "updated": "個人資料已更新"
   }
 }

@@ -34,6 +34,8 @@
     "invalid_reset_token": "Invalid or expired reset link.",
     "missing_reset_token": "Missing reset token. Please use the link from your email.",
     "email_required": "Email is required",
+    "password_required": "Password is required",
+    "name_required": "Name is required",
     "back_to_sign_in": "Back to Sign In",
     "or": "Or",
     "continue": "Continue",
@@ -45,6 +47,10 @@
     "close_title": "Close",
     "cancel_title": "Cancel",
     "sign_out_title": "Sign Out",
+    "sign_in_failed": "Sign in failed",
+    "sign_up_failed": "Sign up failed",
+    "request_password_reset_failed": "Request password reset failed",
+    "reset_password_failed": "Reset password failed",
     "billing_title": "Billing",
     "name_title": "Name",
     "name_placeholder": "Input your name here",
@@ -54,7 +60,10 @@
   "payment": {
     "choose_payment_method": "Choose Payment Method",
     "choose_payment_method_description": "",
-    "cancel_title": "Cancel"
+    "cancel_title": "Cancel",
+    "payment_method_required": "Please select payment method",
+    "pricing_item_required": "Please select a pricing item",
+    "invalid_payment_method": "Invalid payment method"
   },
   "locale_detector": {
     "title": "We detected your browser language is {locale}. Switch to it?",

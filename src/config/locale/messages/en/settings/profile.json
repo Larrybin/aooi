@@ -1,8 +1,12 @@
 {
+  "no_auth": "Please sign in to continue",
   "fields": {
     "email": "Email",
     "name": "Name",
     "avatar": "Avatar"
+  },
+  "validation": {
+    "name_required": "Name is required"
   },
   "edit": {
     "title": "Profile",
@@ -14,5 +18,8 @@
     "buttons": {
       "submit": "Save"
     }
+  },
+  "messages": {
+    "updated": "Profile updated"
   }
 }
