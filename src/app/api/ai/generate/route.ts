@@ -14,9 +14,12 @@ import {
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
-import { createAITask, type NewAITask } from '@/shared/models/ai_task';
+import {
+  createAITask,
+  updateAITaskById,
+  type NewAITask,
+} from '@/shared/models/ai_task';
 import { getAllConfigs } from '@/shared/models/config';
-import { getRemainingCredits } from '@/shared/models/credit';
 import { AiGenerateBodySchema } from '@/shared/schemas/api/ai/generate';
 import { getAIManagerWithConfigs } from '@/shared/services/ai';
 
@@ -67,11 +70,6 @@ export const POST = withApi(async (request: Request) => {
     throw new BadRequestError('invalid mediaType');
   }
 
-  const remainingCredits = await getRemainingCredits(user.id);
-  if (remainingCredits < costCredits) {
-    throw new ForbiddenError('insufficient credits');
-  }
-
   const appUrl = resolveAppUrlOrigin(configs.app_url || envConfigs.app_url);
   const callbackUrl = `${appUrl}/api/ai/notify/${provider}`;
   const params: AIGenerateParams = {
@@ -81,17 +79,6 @@ export const POST = withApi(async (request: Request) => {
     callbackUrl,
     options,
   };
-
-  const result = await aiProvider.generate({ params });
-  if (!result?.taskId) {
-    log.error('ai: generate failed', {
-      provider,
-      mediaType,
-      model,
-      hasTaskId: Boolean(result?.taskId),
-    });
-    throw new UpstreamError(502, 'ai generate failed');
-  }
 
   const newAITask: NewAITask = {
     id: getUuid(),
@@ -104,11 +91,69 @@ export const POST = withApi(async (request: Request) => {
     options: options ? JSON.stringify(options) : null,
     status: AITaskStatus.PENDING,
     costCredits,
-    taskId: result.taskId,
-    taskInfo: result.taskInfo ? JSON.stringify(result.taskInfo) : null,
-    taskResult: result.taskResult ? JSON.stringify(result.taskResult) : null,
+    taskId: null,
+    taskInfo: null,
+    taskResult: null,
   };
 
-  await createAITask(newAITask);
-  return jsonOk(newAITask, { headers: { 'Cache-Control': 'no-store' } });
+  let task: Awaited<ReturnType<typeof createAITask>>;
+  try {
+    task = await createAITask(newAITask);
+  } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith('Insufficient credits')
+    ) {
+      throw new ForbiddenError('insufficient credits');
+    }
+    throw error;
+  }
+
+  let result: Awaited<ReturnType<typeof aiProvider.generate>>;
+  try {
+    result = await aiProvider.generate({ params });
+  } catch (error: unknown) {
+    log.error('ai: generate threw', {
+      provider,
+      mediaType,
+      model,
+      dbTaskId: task.id,
+      error,
+    });
+    await updateAITaskById(task.id, {
+      status: AITaskStatus.FAILED,
+      taskInfo: JSON.stringify({ errorMessage: 'ai generate failed' }),
+      creditId: task.creditId,
+    });
+    throw new UpstreamError(502, 'ai generate failed');
+  }
+
+  if (!result?.taskId) {
+    log.error('ai: generate returned invalid payload', {
+      provider,
+      mediaType,
+      model,
+      dbTaskId: task.id,
+      hasTaskId: Boolean(result?.taskId),
+    });
+    await updateAITaskById(task.id, {
+      status: AITaskStatus.FAILED,
+      taskInfo: JSON.stringify({ errorMessage: 'ai generate failed' }),
+      creditId: task.creditId,
+    });
+    throw new UpstreamError(502, 'ai generate failed');
+  }
+
+  const nextTaskInfo = result.taskInfo ? JSON.stringify(result.taskInfo) : null;
+  const nextTaskResult = result.taskResult
+    ? JSON.stringify(result.taskResult)
+    : null;
+
+  const updated = await updateAITaskById(task.id, {
+    taskId: result.taskId,
+    taskInfo: nextTaskInfo,
+    taskResult: nextTaskResult,
+  });
+
+  return jsonOk(updated, { headers: { 'Cache-Control': 'no-store' } });
 });

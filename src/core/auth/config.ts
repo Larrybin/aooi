@@ -13,85 +13,11 @@ import { isCloudflareWorkersRuntime } from '@/shared/lib/cloudflare-workers-env.
 import { getUuid } from '@/shared/lib/hash';
 import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
+import {
+  consumeResetPasswordQuota,
+  releaseResetPasswordQuota,
+} from '@/shared/models/reset_password_throttle';
 import { getEmailService } from '@/shared/services/email';
-
-type ResetPasswordThrottle = {
-  windowStartedAt: number;
-  count: number;
-  inflight: number;
-};
-
-const RESET_PASSWORD_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const RESET_PASSWORD_MAX_ATTEMPTS = 3;
-const RESET_PASSWORD_MAX_CONCURRENT = 1;
-const RESET_PASSWORD_MAX_ENTRIES = 5_000;
-let resetPasswordCleanupTick = 0;
-const resetPasswordThrottleByEmail = new Map<string, ResetPasswordThrottle>();
-
-function cleanupResetPasswordThrottle(now: number) {
-  for (const [email, state] of resetPasswordThrottleByEmail.entries()) {
-    if (now - state.windowStartedAt > RESET_PASSWORD_WINDOW_MS) {
-      resetPasswordThrottleByEmail.delete(email);
-    }
-  }
-
-  if (resetPasswordThrottleByEmail.size <= RESET_PASSWORD_MAX_ENTRIES) {
-    return;
-  }
-
-  let removed = 0;
-  const overflow =
-    resetPasswordThrottleByEmail.size - RESET_PASSWORD_MAX_ENTRIES;
-  for (const email of resetPasswordThrottleByEmail.keys()) {
-    resetPasswordThrottleByEmail.delete(email);
-    removed += 1;
-    if (removed >= overflow) break;
-  }
-}
-
-function consumeResetPasswordQuota(email: string): {
-  allowed: boolean;
-  reason?: string;
-} {
-  const now = Date.now();
-
-  if ((resetPasswordCleanupTick++ & 0xff) === 0) {
-    cleanupResetPasswordThrottle(now);
-  }
-
-  const existing = resetPasswordThrottleByEmail.get(email);
-  const state: ResetPasswordThrottle = existing
-    ? { ...existing }
-    : { windowStartedAt: now, count: 0, inflight: 0 };
-
-  if (now - state.windowStartedAt > RESET_PASSWORD_WINDOW_MS) {
-    state.windowStartedAt = now;
-    state.count = 0;
-    state.inflight = 0;
-  }
-
-  if (state.count >= RESET_PASSWORD_MAX_ATTEMPTS) {
-    return { allowed: false, reason: 'rate_limited' };
-  }
-
-  if (state.inflight >= RESET_PASSWORD_MAX_CONCURRENT) {
-    return { allowed: false, reason: 'concurrency_limit' };
-  }
-
-  state.count += 1;
-  state.inflight += 1;
-  resetPasswordThrottleByEmail.set(email, state);
-
-  return { allowed: true };
-}
-
-function releaseResetPasswordQuota(email: string) {
-  const state = resetPasswordThrottleByEmail.get(email);
-  if (!state) return;
-
-  state.inflight = Math.max(0, state.inflight - 1);
-  resetPasswordThrottleByEmail.set(email, state);
-}
 
 function normalizeOrigin(value: string, label: string): string {
   try {
@@ -207,7 +133,17 @@ export async function getAuthOptions() {
               return;
             }
 
-            const quota = consumeResetPasswordQuota(email);
+            let quota: Awaited<ReturnType<typeof consumeResetPasswordQuota>>;
+            try {
+              quota = await consumeResetPasswordQuota(email);
+            } catch (error: unknown) {
+              logger.error('[auth] sendResetPassword throttle check failed', {
+                userId: user.id,
+                error,
+              });
+              return;
+            }
+
             if (!quota.allowed) {
               logger.warn('[auth] sendResetPassword throttled', {
                 userId: user.id,
@@ -246,7 +182,17 @@ export async function getAuthOptions() {
                 error,
               });
             } finally {
-              releaseResetPasswordQuota(email);
+              await releaseResetPasswordQuota(quota.inflightId).catch(
+                (error: unknown) => {
+                  logger.error(
+                    '[auth] sendResetPassword throttle release failed',
+                    {
+                      userId: user.id,
+                      error,
+                    }
+                  );
+                }
+              );
             }
           },
         }

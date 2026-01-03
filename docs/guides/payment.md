@@ -274,7 +274,7 @@ if (
 }
 ```
 
-For subscription renewals, the handler also attempts to dedupe by `transactionId` or `invoiceId` when present.
+For subscription renewals, the handler dedupes by `transactionId` / `invoiceId` when present; when missing, it falls back to a stable key derived from `subscriptionId + currentPeriodStart + currentPeriodEnd`.
 
 ## Subscription Management
 

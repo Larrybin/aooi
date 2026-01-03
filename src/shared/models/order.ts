@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { credit, order, subscription } from '@/config/db/schema';
@@ -347,6 +347,18 @@ export async function updateSubscriptionInTransaction({
 
     // deal with order
     if (newOrder) {
+      const lockProvider = newOrder.paymentProvider?.trim();
+      const lockId = (
+        newOrder.transactionId ||
+        newOrder.invoiceId ||
+        ''
+      ).trim();
+      if (lockProvider && lockId) {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${lockProvider}), hashtext(${lockId}))`
+        );
+      }
+
       let existingOrder: Order | null = null;
       if (newOrder.transactionId && newOrder.paymentProvider) {
         // not create order with same payment transaction id and payment provider

@@ -207,6 +207,11 @@ Notes:
 | `POST` | `/api/ai/query`             | AI query                     |
 | `POST` | `/api/ai/notify/[provider]` | AI provider webhook callback |
 
+Notes:
+
+- `/api/chat` validates `model` against a server-side allowlist (see `src/shared/constants/chat-model-policy.ts`).
+- `/api/chat` consumes user credits per request; returns 403 when credits are insufficient.
+
 ### Configuration
 
 | Method     | Endpoint                  | Description        |
