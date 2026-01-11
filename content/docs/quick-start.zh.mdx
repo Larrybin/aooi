@@ -1,0 +1,185 @@
+---
+title: 快速开始
+description: 用最少配置把 YourAppName 跑起来（本地开发、数据库、管理员权限、上线）。
+---
+
+在开始之前，请确保你已准备好：
+
+- Node.js 18+
+- pnpm
+- PostgreSQL（如果你需要登录/管理后台/支付等功能）
+
+## 本地开发
+
+### 初始化项目
+
+如果你已经在仓库目录中，可以从「安装依赖」开始。
+
+1. 获取代码
+
+```bash
+git clone "https://github.com/Larrybin/aooi.git" "my-project"
+cd "my-project"
+```
+
+2. 安装依赖
+
+```bash
+pnpm install
+```
+
+3. 启动开发服务器
+
+```bash
+pnpm dev
+```
+
+默认端口为 `3000`：`http://localhost:3000`。自定义端口示例：
+
+```bash
+pnpm dev --port 8080
+```
+
+### 配置环境变量
+
+1. 创建本地开发环境变量文件
+
+```bash
+cp ".env.example" ".env.development"
+```
+
+2. 修改 `.env.development`
+
+必填项：
+
+- `NEXT_PUBLIC_APP_URL`：应用 Origin（例如 `http://localhost:3000`）
+- `NEXT_PUBLIC_APP_NAME`：应用名称（用于标题/SEO/邮件等）
+
+如果你需要登录/管理后台/支付：
+
+- `DATABASE_URL`：PostgreSQL 连接串
+- `AUTH_SECRET`：鉴权密钥（生产环境必填；本地建议也配置）
+
+示例（按需替换为你的值）：
+
+```bash
+# app
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="YourAppName"
+
+# theme
+NEXT_PUBLIC_THEME="default"
+
+# database
+DATABASE_URL="postgresql://user:password@127.0.0.1:5432/my_app"
+DATABASE_PROVIDER="postgresql"
+DB_SINGLETON_ENABLED="true"
+
+# auth secret
+# openssl rand -base64 32
+AUTH_SECRET="your-secret"
+```
+
+生成随机密钥：
+
+```bash
+openssl rand -base64 32
+```
+
+说明：
+
+- `DATABASE_PROVIDER` 当前仅支持 `postgresql`。
+- `DB_SINGLETON_ENABLED`：
+  - 传统 Node/容器部署：建议 `true`（连接池）
+  - Serverless Node（如 Vercel）：建议 `false`（单连接缓存，减少并发连接数）
+- 生产环境推荐使用 `BETTER_AUTH_SECRET`（优先级高于 `AUTH_SECRET`）；鉴权 Base URL 可通过 `BETTER_AUTH_URL/AUTH_URL` 覆盖（默认使用 `NEXT_PUBLIC_APP_URL`）。
+
+### 配置数据库
+
+如果你的项目需要用户登录/管理后台等功能，必须配置数据库。
+
+1. 创建 PostgreSQL 数据库，拿到连接串后写入 `DATABASE_URL`。
+
+2. 迁移数据表
+
+```bash
+pnpm db:migrate
+```
+
+可选：做一次 schema 自检（对齐迁移与表结构）
+
+```bash
+pnpm db:check
+```
+
+如果迁移命令卡住或超时，优先用 `psql` 验证连通性：
+
+```bash
+psql "postgresql://user:password@host:port/database"
+```
+
+### 配置管理后台访问
+
+管理后台路径为 `/admin`（也支持 `/<locale>/admin`）。首次访问会被重定向到 `/sign-in`。
+
+1. 初始化 RBAC（写入默认角色与权限）
+
+```bash
+pnpm rbac:init
+```
+
+2. 在网页注册一个账号（邮箱 + 密码），然后为该账号分配 `super_admin`：
+
+```bash
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```
+
+3. 再次访问 `/admin`，即可进入管理后台。
+
+### 品牌配置（推荐）
+
+登录管理后台后，在 `Admin -> Settings -> General -> Brand` 配置：
+
+- `App Name`：用于站点标题、文档/SEO、邮件标题等
+- `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
+- `Support Email`：用于法律页面与联系入口
+
+注意：生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致。
+
+## 自定义配置
+
+按「最小可上线」优先级，通常需要改这些：
+
+- 环境变量：`.env.development` / `.env.production`（或平台的环境变量面板）
+- 站点图标：`public/logo.png`、`public/favicon.ico`
+- 法律页面：`content/pages/privacy-policy*.mdx`、`content/pages/terms-of-service*.mdx`
+- 文案与落地页：`src/config/locale/messages/{locale}/common.json`、`src/config/locale/messages/{locale}/landing.json`
+- 主题样式：`src/config/style/theme.css`
+- 多语言：`src/config/locale/index.ts`
+- SEO：`src/app/sitemap.ts`、`src/app/robots.ts`
+
+## 发布上线
+
+上线前务必完成：
+
+- 配置生产环境变量（至少：`NEXT_PUBLIC_APP_URL`、`DATABASE_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`）
+- 对生产数据库执行迁移：`pnpm db:migrate`
+
+部署方式（按常见程度排序）：
+
+- Vercel/Node（推荐跑全功能：鉴权/支付/管理后台）
+- Docker（参考 `Dockerfile`，默认 `next start` 启动）
+- Cloudflare Workers（参考 `wrangler.toml.example` + `pnpm cf:deploy`；数据库需配置 Hyperdrive；Better Auth 路由目前标记为 `runtime="nodejs"`，不建议直接在 Workers/OpenNext 上跑全功能，建议先在 Node 平台验证全链路）
+
+## 功能配置
+
+项目发布上线后，通过 `/admin/settings/*` 进入管理后台按需开启与配置功能。多数第三方集成（支付/邮件/存储/AI/统计等）会写入 `config` 表，而不是放在环境变量里。
+
+常见配置入口：
+
+- 登录与三方 OAuth：`/admin/settings/auth`
+- 支付（Stripe/PayPal/Creem）：`/admin/settings/payment`
+- 文件存储（Cloudflare R2）：`/admin/settings/storage`
+- 邮件（Resend）：`/admin/settings/email`
+
+更详细的工程文档见：`docs/guides/*.md`。

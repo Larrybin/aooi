@@ -1,0 +1,185 @@
+---
+title: Quick Start
+description: Run YourAppName locally with minimal setup (dev, database, admin RBAC, deployment).
+---
+
+Before you start, make sure you have:
+
+- Node.js 18+
+- pnpm
+- PostgreSQL (required for auth/admin/payment features)
+
+## Local Development
+
+### Bootstrap
+
+If you are already in the repository, start from "Install dependencies".
+
+1. Get the code
+
+```bash
+git clone "https://github.com/Larrybin/aooi.git" "my-project"
+cd "my-project"
+```
+
+2. Install dependencies
+
+```bash
+pnpm install
+```
+
+3. Start the dev server
+
+```bash
+pnpm dev
+```
+
+Default port is `3000`: `http://localhost:3000`. Custom port example:
+
+```bash
+pnpm dev --port 8080
+```
+
+### Environment Variables
+
+1. Create a local env file
+
+```bash
+cp ".env.example" ".env.development"
+```
+
+2. Edit `.env.development`
+
+Required:
+
+- `NEXT_PUBLIC_APP_URL`: app origin (e.g. `http://localhost:3000`)
+- `NEXT_PUBLIC_APP_NAME`: app name (title/SEO/emails)
+
+If you need auth/admin/payment:
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `AUTH_SECRET`: auth secret (required in production; recommended locally too)
+
+Example (replace values as needed):
+
+```bash
+# app
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="YourAppName"
+
+# theme
+NEXT_PUBLIC_THEME="default"
+
+# database
+DATABASE_URL="postgresql://user:password@127.0.0.1:5432/my_app"
+DATABASE_PROVIDER="postgresql"
+DB_SINGLETON_ENABLED="true"
+
+# auth secret
+# openssl rand -base64 32
+AUTH_SECRET="your-secret"
+```
+
+Generate a random secret:
+
+```bash
+openssl rand -base64 32
+```
+
+Notes:
+
+- `DATABASE_PROVIDER` only supports `postgresql` for now.
+- `DB_SINGLETON_ENABLED`:
+  - Traditional Node/container deployments: `true` (pooling)
+  - Serverless Node (e.g. Vercel): `false` (cached single connection)
+- In production, prefer `BETTER_AUTH_SECRET` (overrides `AUTH_SECRET`). You can override auth base URL via `BETTER_AUTH_URL/AUTH_URL` (defaults to `NEXT_PUBLIC_APP_URL`).
+
+### Database
+
+If you need auth/admin features, you must configure the database.
+
+1. Create a PostgreSQL database and put the connection string into `DATABASE_URL`.
+
+2. Run migrations
+
+```bash
+pnpm db:migrate
+```
+
+Optional: run a schema check (validate migration vs schema expectations)
+
+```bash
+pnpm db:check
+```
+
+If migration hangs or times out, verify connectivity with `psql` first:
+
+```bash
+psql "postgresql://user:password@host:port/database"
+```
+
+### Admin Access (RBAC)
+
+Admin entry is `/admin` (also works with `/<locale>/admin`). Your first visit redirects to `/sign-in`.
+
+1. Seed default roles/permissions
+
+```bash
+pnpm rbac:init
+```
+
+2. Create a user in the UI (email + password), then grant `super_admin`:
+
+```bash
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```
+
+3. Refresh `/admin` to access the dashboard.
+
+### Branding (Recommended)
+
+After signing in, configure `Admin -> Settings -> General -> Brand`:
+
+- `App Name`
+- `App URL (Origin)`
+- `Support Email`
+
+Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it consistent with `App URL (Origin)`.
+
+## Customization
+
+Minimal "go-live" checklist:
+
+- Env vars: `.env.development` / `.env.production` (or your platform env settings)
+- Icons: `public/logo.png`, `public/favicon.ico`
+- Legal pages: `content/pages/privacy-policy*.mdx`, `content/pages/terms-of-service*.mdx`
+- Copy & landing: `src/config/locale/messages/{locale}/common.json`, `src/config/locale/messages/{locale}/landing.json`
+- Theme styles: `src/config/style/theme.css`
+- Locales: `src/config/locale/index.ts`
+- SEO: `src/app/sitemap.ts`, `src/app/robots.ts`
+
+## Deploy
+
+Before deploying:
+
+- Configure production env vars (at least `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`)
+- Apply migrations to the production database: `pnpm db:migrate`
+
+Deployment options:
+
+- Vercel/Node (recommended for full features: auth/payment/admin)
+- Docker (see `Dockerfile`; starts with `next start`)
+- Cloudflare Workers (see `wrangler.toml.example` + `pnpm cf:deploy`; requires Hyperdrive for database. The Better Auth route is currently marked as `runtime="nodejs"` and is not intended for Workers/OpenNext—validate the full flow on Node first.)
+
+## Feature Configuration
+
+After deploying, configure features in `/admin/settings/*`. Most third-party integration configs are stored in the `config` table (not environment variables).
+
+Common tabs:
+
+- Auth providers: `/admin/settings/auth`
+- Payments (Stripe/PayPal/Creem): `/admin/settings/payment`
+- Storage (Cloudflare R2): `/admin/settings/storage`
+- Email (Resend): `/admin/settings/email`
+
+For deeper engineering docs, see `docs/guides/*.md`.
