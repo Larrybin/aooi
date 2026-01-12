@@ -21,7 +21,10 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { useAppContext } from '@/shared/contexts/app';
-import { normalizeCallbackUrl } from '@/shared/lib/callback-url';
+import {
+  normalizeCallbackUrl,
+  withCallbackUrl,
+} from '@/shared/lib/callback-url';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem, UserNav } from '@/shared/types/blocks/common';
@@ -39,7 +42,8 @@ export function SignUser({
   userNav?: UserNav;
 }) {
   const t = useTranslations('common.sign');
-  const { isCheckSign, user, setIsShowSignModal, configs } = useAppContext();
+  const { isCheckSign, isShowSignModal, user, setIsShowSignModal, configs } =
+    useAppContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -49,14 +53,11 @@ export function SignUser({
   const callbackUrl = normalizeCallbackUrl(
     `${pathname}${search ? `?${search}` : ''}`
   );
+  const signInHref = withCallbackUrl('/sign-in', callbackUrl);
 
   return (
     <>
-      {isCheckSign ? (
-        <div>
-          <Loader2 className="size-4 animate-spin" />
-        </div>
-      ) : user ? (
+      {user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -163,9 +164,30 @@ export function SignUser({
               'border-foreground/10 ml-4 cursor-pointer ring-0',
               isScrolled && 'lg:hidden'
             )}
-            onClick={() => setIsShowSignModal(true)}
+            aria-expanded={isShowSignModal}
+            aria-haspopup="dialog"
+            onClick={(event) => {
+              if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.metaKey ||
+                event.altKey ||
+                event.ctrlKey ||
+                event.shiftKey
+              ) {
+                return;
+              }
+
+              event.preventDefault();
+              setIsShowSignModal(true);
+            }}
           >
-            <span>{t('sign_in_title')}</span>
+            <Link href={signInHref} prefetch={false}>
+              {isCheckSign ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              <span>{t('sign_in_title')}</span>
+            </Link>
           </Button>
           <SignModal callbackUrl={callbackUrl} />
         </div>

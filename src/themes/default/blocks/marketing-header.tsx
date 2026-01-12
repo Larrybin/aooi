@@ -3,6 +3,7 @@ import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
 import { LazyImage } from '@/shared/blocks/common';
+import { SignUser } from '@/shared/blocks/sign/sign-user';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
@@ -200,15 +201,7 @@ export function MarketingHeader({
             </Link>
           ))}
 
-          {header.show_sign ? (
-            <Link
-              href={withLocale('/sign-in', locale)}
-              prefetch={false}
-              className="text-muted-foreground hover:text-foreground text-sm font-medium"
-            >
-              Sign in
-            </Link>
-          ) : null}
+          {header.show_sign ? <SignUser userNav={header.user_nav} /> : null}
         </div>
       </div>
     </header>

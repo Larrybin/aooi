@@ -104,8 +104,17 @@ function isIgnorableOneTapError(error: unknown): boolean {
   return false;
 }
 
-export const AppContextProvider = ({ children }: { children: ReactNode }) => {
-  const [configs, setConfigs] = useState<Record<string, string>>({});
+export const AppContextProvider = ({
+  children,
+  initialConfigs,
+}: {
+  children: ReactNode;
+  initialConfigs?: Record<string, string>;
+}) => {
+  const [configs, setConfigs] = useState<Record<string, string>>(
+    () => initialConfigs ?? {}
+  );
+  const didFetchConfigs = useRef(false);
   const didToastConfigsError = useRef(false);
   const didToastUserInfoError = useRef(false);
   const didToastUserCreditsError = useRef(false);
@@ -127,7 +136,17 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   // show payment modal
   const [isShowPaymentModal, setIsShowPaymentModal] = useState(false);
 
-  const fetchConfigs = async function () {
+  const fetchConfigs = useCallback(async () => {
+    if (didFetchConfigs.current) {
+      return;
+    }
+
+    if (initialConfigs) {
+      return;
+    }
+
+    didFetchConfigs.current = true;
+
     try {
       const data = await fetchApiData<Record<string, string>>(
         '/api/config/get-configs',
@@ -148,7 +167,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         toastFetchError(e, 'Failed to load configs');
       }
     }
-  };
+  }, [initialConfigs]);
 
   const fetchUserCredits = async function () {
     try {
@@ -226,8 +245,14 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    fetchConfigs();
-  }, []);
+    if (initialConfigs) {
+      setConfigs(initialConfigs);
+    }
+  }, [initialConfigs]);
+
+  useEffect(() => {
+    void fetchConfigs();
+  }, [fetchConfigs]);
 
   useEffect(() => {
     if (session && session.user) {
