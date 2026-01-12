@@ -19,6 +19,11 @@ import {
 } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import {
+  normalizeCallbackUrl,
+  withCallbackUrl,
+} from '@/shared/lib/callback-url';
+import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
@@ -43,8 +48,9 @@ export function SignIn({
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
 
+  const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
-    callbackUrl,
+    callbackUrl: safeCallbackUrl,
     locale,
     defaultLocale,
   });
@@ -64,26 +70,31 @@ export function SignIn({
       return;
     }
 
-    await signIn.email(
-      {
-        email,
-        password,
-        callbackURL: localizedCallbackUrl,
-      },
-      {
-        onRequest: () => {
-          setLoading(true);
+    try {
+      await signIn.email(
+        {
+          email,
+          password,
+          callbackURL: localizedCallbackUrl,
         },
-        onResponse: () => {
-          setLoading(false);
-        },
-        onSuccess: () => {},
-        onError: (ctx: AuthErrorContext) => {
-          toast.error(ctx.error?.message || t('sign_in_failed'));
-          setLoading(false);
-        },
-      }
-    );
+        {
+          onRequest: () => {
+            setLoading(true);
+          },
+          onResponse: () => {
+            setLoading(false);
+          },
+          onSuccess: () => {},
+          onError: (ctx: AuthErrorContext) => {
+            toast.error(ctx.error?.message || t('sign_in_failed'));
+            setLoading(false);
+          },
+        }
+      );
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || t('sign_in_failed'));
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,17 +105,30 @@ export function SignIn({
         </CardTitle>
         <CardDescription className="text-xs md:text-sm">
           <h2>{t('sign_in_description')}</h2>
+          {safeCallbackUrl !== '/' ? (
+            <p className="text-muted-foreground mt-1 text-xs">
+              {t('return_to', { path: localizedCallbackUrl })}
+            </p>
+          ) : null}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
           {isEmailAuthEnabled && (
-            <>
+            <form
+              className="grid gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSignIn();
+              }}
+            >
               <div className="grid gap-2">
                 <Label htmlFor="email">{t('email_title')}</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   placeholder={t('email_placeholder')}
                   required
                   onChange={(e) => {
@@ -127,9 +151,10 @@ export function SignIn({
 
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder={t('password_placeholder')}
-                  autoComplete="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -145,19 +170,14 @@ export function SignIn({
             <Label htmlFor="remember">Remember me</Label>
           </div> */}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-                onClick={handleSignIn}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
                   <p> {t('sign_in_title')} </p>
                 )}
               </Button>
-            </>
+            </form>
           )}
 
           <SocialProviders
@@ -173,7 +193,10 @@ export function SignIn({
           <div className="flex w-full justify-center border-t py-4">
             <p className="text-center text-xs text-neutral-500">
               {t('no_account')}
-              <Link href="/sign-up" className="underline">
+              <Link
+                href={withCallbackUrl('/sign-up', safeCallbackUrl)}
+                className="underline"
+              >
                 <span className="cursor-pointer">{t('sign_up_title')}</span>
               </Link>
             </p>

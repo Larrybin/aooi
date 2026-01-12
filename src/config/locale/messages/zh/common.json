@@ -9,6 +9,7 @@
     "sign_in_description": "登录到您的账户",
     "sign_up_title": "注册",
     "sign_up_description": "创建一个新账户",
+    "return_to": "将跳转至：{path}",
     "email_title": "邮箱",
     "email_placeholder": "请输入您的邮箱",
     "password_title": "密码",

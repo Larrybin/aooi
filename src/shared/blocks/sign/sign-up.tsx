@@ -20,6 +20,11 @@ import {
 } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import {
+  normalizeCallbackUrl,
+  withCallbackUrl,
+} from '@/shared/lib/callback-url';
+import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
@@ -47,8 +52,9 @@ export function SignUp({
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
 
+  const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
-    callbackUrl,
+    callbackUrl: safeCallbackUrl,
     locale,
     defaultLocale,
   });
@@ -93,30 +99,35 @@ export function SignUp({
       return;
     }
 
-    await signUp.email(
-      {
-        email,
-        password,
-        name,
-      },
-      {
-        onRequest: () => {
-          setLoading(true);
+    try {
+      await signUp.email(
+        {
+          email,
+          password,
+          name,
         },
-        onResponse: () => {
-          setLoading(false);
-        },
-        onSuccess: () => {
-          // report affiliate
-          reportAffiliate({ userEmail: email });
-          router.push(localizedCallbackUrl);
-        },
-        onError: (ctx: AuthErrorContext) => {
-          toast.error(ctx.error?.message || t('sign_up_failed'));
-          setLoading(false);
-        },
-      }
-    );
+        {
+          onRequest: () => {
+            setLoading(true);
+          },
+          onResponse: () => {
+            setLoading(false);
+          },
+          onSuccess: () => {
+            // report affiliate
+            reportAffiliate({ userEmail: email });
+            router.push(localizedCallbackUrl);
+          },
+          onError: (ctx: AuthErrorContext) => {
+            toast.error(ctx.error?.message || t('sign_up_failed'));
+            setLoading(false);
+          },
+        }
+      );
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || t('sign_up_failed'));
+      setLoading(false);
+    }
   };
 
   return (
@@ -127,17 +138,30 @@ export function SignUp({
         </CardTitle>
         <CardDescription className="text-xs md:text-sm">
           <h2>{t('sign_up_description')}</h2>
+          {safeCallbackUrl !== '/' ? (
+            <p className="text-muted-foreground mt-1 text-xs">
+              {t('return_to', { path: localizedCallbackUrl })}
+            </p>
+          ) : null}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
           {isEmailAuthEnabled && (
-            <>
+            <form
+              className="grid gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSignUp();
+              }}
+            >
               <div className="grid gap-2">
                 <Label htmlFor="name">{t('name_title')}</Label>
                 <Input
                   id="name"
+                  name="name"
                   type="text"
+                  autoComplete="name"
                   placeholder={t('name_placeholder')}
                   required
                   onChange={(e) => {
@@ -151,7 +175,9 @@ export function SignUp({
                 <Label htmlFor="email">{t('email_title')}</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   placeholder={t('email_placeholder')}
                   required
                   onChange={(e) => {
@@ -165,27 +191,23 @@ export function SignUp({
                 <Label htmlFor="password">{t('password_title')}</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder={t('password_placeholder')}
-                  autoComplete="password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-                onClick={handleSignUp}
-              >
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
                   <p>{t('sign_up_title')}</p>
                 )}
               </Button>
-            </>
+            </form>
           )}
 
           <SocialProviders
@@ -201,7 +223,10 @@ export function SignUp({
           <div className="flex w-full justify-center border-t py-4">
             <p className="text-center text-xs text-neutral-500">
               {t('already_have_account')}
-              <Link href="/sign-in" className="underline">
+              <Link
+                href={withCallbackUrl('/sign-in', safeCallbackUrl)}
+                className="underline"
+              >
                 <span className="cursor-pointer">{t('sign_in_title')}</span>
               </Link>
             </p>

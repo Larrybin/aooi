@@ -1,11 +1,12 @@
 'use client';
 
 import { Fragment } from 'react/jsx-runtime';
+import { useSearchParams } from 'next/navigation';
 import { Coins, LayoutDashboard, Loader2, LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { signOut } from '@/core/auth/client';
-import { Link, useRouter } from '@/core/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
 import {
   Avatar,
   AvatarFallback,
@@ -20,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { useAppContext } from '@/shared/contexts/app';
+import { normalizeCallbackUrl } from '@/shared/lib/callback-url';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem, UserNav } from '@/shared/types/blocks/common';
@@ -39,7 +41,14 @@ export function SignUser({
   const t = useTranslations('common.sign');
   const { isCheckSign, user, setIsShowSignModal, configs } = useAppContext();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const userNavItems = filterLandingNavItems(userNav?.items, configs);
+
+  const search = searchParams.toString();
+  const callbackUrl = normalizeCallbackUrl(
+    `${pathname}${search ? `?${search}` : ''}`
+  );
 
   return (
     <>
@@ -158,7 +167,7 @@ export function SignUser({
           >
             <span>{t('sign_in_title')}</span>
           </Button>
-          <SignModal />
+          <SignModal callbackUrl={callbackUrl} />
         </div>
       )}
     </>

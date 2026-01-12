@@ -8,6 +8,7 @@ import { signIn } from '@/core/auth/client';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { useAppContext } from '@/shared/contexts/app';
+import { normalizeCallbackUrl } from '@/shared/lib/callback-url';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import { cn } from '@/shared/lib/utils';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
@@ -29,8 +30,9 @@ export function SocialProviders({
 
   const { setIsShowSignModal } = useAppContext();
 
+  const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
-    callbackUrl,
+    callbackUrl: safeCallbackUrl,
     locale,
     defaultLocale,
   });
@@ -47,9 +49,10 @@ export function SocialProviders({
         },
         onResponse: () => {
           setLoading(false);
+        },
+        onSuccess: () => {
           setIsShowSignModal(false);
         },
-        onSuccess: () => {},
         onError: (ctx: AuthErrorContext) => {
           toast.error(ctx.error?.message || t('sign_in_failed'));
           setLoading(false);
@@ -90,6 +93,7 @@ export function SocialProviders({
           key={provider.name}
           variant="outline"
           className={cn('w-full gap-2')}
+          type="button"
           disabled={loading}
           onClick={provider.onClick}
         >

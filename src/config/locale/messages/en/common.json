@@ -9,6 +9,7 @@
     "sign_in_description": "Sign in to your account",
     "sign_up_title": "Sign Up",
     "sign_up_description": "Create an account",
+    "return_to": "You'll be redirected to: {path}",
     "email_title": "Email",
     "email_placeholder": "Input your email here",
     "password_title": "Password",

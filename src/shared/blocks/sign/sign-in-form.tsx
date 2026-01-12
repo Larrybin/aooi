@@ -12,6 +12,10 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useAppContext } from '@/shared/contexts/app';
+import {
+  normalizeCallbackUrl,
+  withCallbackUrl,
+} from '@/shared/lib/callback-url';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
@@ -31,7 +35,7 @@ export function SignInForm({
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { configs } = useAppContext();
+  const { configs, setIsShowSignModal } = useAppContext();
 
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
   const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
@@ -39,8 +43,9 @@ export function SignInForm({
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled); // no social providers enabled, auto enable email auth
 
+  const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
-    callbackUrl,
+    callbackUrl: safeCallbackUrl,
     locale,
     defaultLocale,
   });
@@ -75,7 +80,9 @@ export function SignInForm({
           onResponse: () => {
             setLoading(false);
           },
-          onSuccess: () => {},
+          onSuccess: () => {
+            setIsShowSignModal(false);
+          },
           onError: (ctx: AuthErrorContext) => {
             toast.error(ctx.error?.message || t('sign_in_failed'));
             setLoading(false);
@@ -93,12 +100,25 @@ export function SignInForm({
     <div className={`w-full md:max-w-md ${className}`}>
       <div className="grid gap-4">
         {isEmailAuthEnabled && (
-          <>
+          <form
+            className="grid gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSignIn();
+            }}
+          >
+            {safeCallbackUrl !== '/' ? (
+              <p className="text-muted-foreground text-xs">
+                {t('return_to', { path: localizedCallbackUrl })}
+              </p>
+            ) : null}
             <div className="grid gap-2">
               <Label htmlFor="email">{t('email_title')}</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 placeholder={t('email_placeholder')}
                 required
                 onChange={(e) => {
@@ -121,9 +141,10 @@ export function SignInForm({
 
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder={t('password_placeholder')}
-                autoComplete="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -140,19 +161,14 @@ export function SignInForm({
             <Label htmlFor="remember">{t("remember_me_title")}</Label>
           </div> */}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-              onClick={handleSignIn}
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <p> {t('sign_in_title')} </p>
               )}
             </Button>
-          </>
+          </form>
         )}
 
         <SocialProviders
@@ -166,7 +182,10 @@ export function SignInForm({
         <div className="flex w-full justify-center border-t py-4">
           <p className="text-center text-xs text-neutral-500">
             {t('no_account')}
-            <Link href="/sign-up" className="underline">
+            <Link
+              href={withCallbackUrl('/sign-up', safeCallbackUrl)}
+              className="underline"
+            >
               <span className="cursor-pointer">{t('sign_up_title')}</span>
             </Link>
           </p>

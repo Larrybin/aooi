@@ -25,7 +25,10 @@ export default async function ChatPage({
 
   const user = await getUserInfo();
   if (!user) {
-    redirect(`/${locale}/sign-in`);
+    const callbackUrl = `/chat/${encodeURIComponent(chatId)}`;
+    redirect(
+      `/${locale}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    );
   }
 
   const chat = await findChatByIdForViewer({

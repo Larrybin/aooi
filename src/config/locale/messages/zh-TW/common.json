@@ -9,6 +9,7 @@
     "sign_in_description": "登入到你的帳戶",
     "sign_up_title": "註冊",
     "sign_up_description": "建立一個新帳戶",
+    "return_to": "將跳轉至：{path}",
     "email_title": "電子郵件",
     "email_placeholder": "請輸入你的電子郵件",
     "password_title": "密碼",
