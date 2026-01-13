@@ -100,7 +100,8 @@ Read `content/docs` to start your AI SaaS project.
 
 - Locale routing uses next-intl under `src/app/[locale]/**` + `src/request-proxy.ts`.
 - Supported locales are defined in `src/config/locale/index.ts`.
-- Message bundles live in `src/config/locale/messages/<locale>/**`; `en/zh` are provided, other locales fall back to `defaultLocale` until you add message files.
+- Message bundles live in `src/config/locale/messages/<locale>/**`; `en` is the complete base and other locales override partially (missing namespaces fall back to `en`).
+- Docs site UI/content translation scope excludes the `demo/*` and `admin/*` namespaces (we only maintain them for `en/zh/zh-TW`; other locales fall back to `en`).
 - Docs/local markdown (fumadocs pages/posts/docs) currently ship for `en/zh`; other locales fall back to `en`.
 - RTL locales (`ar`, `fa`, `he`, `ur`) set `<html dir="rtl">`.
 
