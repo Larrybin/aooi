@@ -34,6 +34,14 @@ type LogLike = {
   error(message: string, meta?: unknown): void;
 };
 
+type OrderFlowName = 'checkout success' | 'payment success';
+
+type ValidSubscription = Subscription & {
+  subscriptionNo: string;
+  amount: number;
+  currency: string;
+};
+
 function toOrderFlowLogMeta({
   order,
   session,
@@ -93,6 +101,72 @@ function isFinalOrderStatus(status: string) {
     status === OrderStatus.FAILED ||
     status === OrderStatus.COMPLETED
   );
+}
+
+function assertOrderNo(order: Order): string {
+  const orderNo = order.orderNo;
+  if (!orderNo) {
+    throw new Error('invalid order');
+  }
+  return orderNo;
+}
+
+function shouldIgnoreFinalOrder({
+  order,
+  session,
+  log,
+  flow,
+}: {
+  order: Order;
+  session: PaymentSession;
+  log?: LogLike;
+  flow: OrderFlowName;
+}): boolean {
+  if (!isFinalOrderStatus(order.status)) {
+    return false;
+  }
+
+  log?.debug(
+    `payment: ${flow} ignored finalized order`,
+    toOrderFlowLogMeta({ order, session })
+  );
+  return true;
+}
+
+function assertSubscriptionInfoForOrder({
+  order,
+  session,
+  log,
+  flow,
+}: {
+  order: Order;
+  session: PaymentSession;
+  log?: LogLike;
+  flow: OrderFlowName;
+}): void {
+  if (order.paymentType !== PaymentType.SUBSCRIPTION) return;
+
+  if (session.subscriptionId && session.subscriptionInfo) {
+    return;
+  }
+
+  log?.error(
+    `payment: ${flow} missing subscription info`,
+    toOrderFlowLogMeta({ order, session })
+  );
+  throw new Error('subscription id or subscription info not found');
+}
+
+function assertValidSubscriptionBasics(
+  subscription: Subscription
+): asserts subscription is ValidSubscription {
+  if (
+    !subscription.subscriptionNo ||
+    !subscription.amount ||
+    !subscription.currency
+  ) {
+    throw new Error('invalid subscription');
+  }
 }
 
 function assertPaidPaymentMatchesOrder({
@@ -187,7 +261,7 @@ async function processSuccessfulPayment({
   order: Order;
   session: PaymentSession;
   log?: LogLike;
-  flow: 'checkout success' | 'payment success';
+  flow: OrderFlowName;
 }) {
   try {
     assertPaidPaymentMatchesOrder({ order, session });
@@ -204,7 +278,7 @@ async function processSuccessfulPayment({
     subscriptionNo: '',
   };
 
-  let newSubscription: NewSubscription | undefined = undefined;
+  let newSubscription: NewSubscription | undefined;
   const subscriptionInfo = session.subscriptionInfo;
 
   if (subscriptionInfo) {
@@ -240,6 +314,57 @@ async function processSuccessfulPayment({
   });
 }
 
+function buildSubscriptionRenewalOrder({
+  subscription,
+  session,
+  orderNo,
+  currentTime,
+}: {
+  subscription: ValidSubscription;
+  session: PaymentSession;
+  orderNo: string;
+  currentTime: Date;
+}): NewOrder {
+  return {
+    id: getUuid(),
+    orderNo,
+    userId: subscription.userId,
+    userEmail: subscription.userEmail,
+    status: OrderStatus.PAID,
+    amount: subscription.amount,
+    currency: subscription.currency,
+    productId: subscription.productId,
+    paymentType: PaymentType.RENEW,
+    paymentInterval: subscription.interval,
+    paymentProvider: session.provider || subscription.paymentProvider,
+    checkoutInfo: '',
+    createdAt: currentTime,
+    productName: subscription.productName,
+    description: 'Subscription Renewal',
+    callbackUrl: '',
+    creditsAmount: subscription.creditsAmount,
+    creditsValidDays: subscription.creditsValidDays,
+    planName: subscription.planName || '',
+    paymentProductId: subscription.paymentProductId,
+    paymentResult: JSON.stringify(session.paymentResult),
+    paymentAmount: session.paymentInfo?.paymentAmount,
+    paymentCurrency: session.paymentInfo?.paymentCurrency,
+    discountAmount: session.paymentInfo?.discountAmount,
+    discountCurrency: session.paymentInfo?.discountCurrency,
+    discountCode: session.paymentInfo?.discountCode,
+    paymentEmail: session.paymentInfo?.paymentEmail,
+    paymentUserId: session.paymentInfo?.paymentUserId,
+    paidAt: session.paymentInfo?.paidAt,
+    invoiceId: session.paymentInfo?.invoiceId,
+    invoiceUrl: session.paymentInfo?.invoiceUrl,
+    subscriptionNo: subscription.subscriptionNo,
+    transactionId: session.paymentInfo?.transactionId,
+    paymentUserName: session.paymentInfo?.paymentUserName,
+    subscriptionId: session.subscriptionId,
+    subscriptionResult: JSON.stringify(session.subscriptionResult),
+  };
+}
+
 /**
  * Handle checkout success (one-time payment or subscription first payment)
  */
@@ -252,65 +377,43 @@ export async function handleCheckoutSuccess({
   session: PaymentSession; // payment session
   log?: LogLike;
 }) {
-  const orderNo = order.orderNo;
-  if (!orderNo) {
-    throw new Error('invalid order');
-  }
+  const orderNo = assertOrderNo(order);
 
   log?.debug(
     'payment: checkout success start',
     toOrderFlowLogMeta({ order, session })
   );
 
-  if (isFinalOrderStatus(order.status)) {
-    log?.debug(
-      'payment: checkout success ignored finalized order',
-      toOrderFlowLogMeta({ order, session })
-    );
-    return;
-  }
+  const flow: OrderFlowName = 'checkout success';
+  if (shouldIgnoreFinalOrder({ order, session, log, flow })) return;
+  assertSubscriptionInfoForOrder({ order, session, log, flow });
 
-  if (order.paymentType === PaymentType.SUBSCRIPTION) {
-    if (!session.subscriptionId || !session.subscriptionInfo) {
-      log?.error(
-        'payment: checkout success missing subscription info',
+  switch (session.paymentStatus) {
+    case PaymentStatus.SUCCESS:
+      await processSuccessfulPayment({ order, session, log, flow });
+      return;
+    case PaymentStatus.FAILED:
+    case PaymentStatus.CANCELED:
+      await updateOrderByOrderNo(orderNo, {
+        status: OrderStatus.FAILED,
+        paymentResult: JSON.stringify(session.paymentResult),
+      });
+      log?.info(
+        'payment: checkout success marked order failed',
         toOrderFlowLogMeta({ order, session })
       );
-      throw new Error('subscription id or subscription info not found');
-    }
-  }
-
-  if (session.paymentStatus === PaymentStatus.SUCCESS) {
-    await processSuccessfulPayment({
-      order,
-      session,
-      log,
-      flow: 'checkout success',
-    });
-  } else if (
-    session.paymentStatus === PaymentStatus.FAILED ||
-    session.paymentStatus === PaymentStatus.CANCELED
-  ) {
-    await updateOrderByOrderNo(orderNo, {
-      status: OrderStatus.FAILED,
-      paymentResult: JSON.stringify(session.paymentResult),
-    });
-
-    log?.info(
-      'payment: checkout success marked order failed',
-      toOrderFlowLogMeta({ order, session })
-    );
-  } else if (session.paymentStatus === PaymentStatus.PROCESSING) {
-    await updateOrderByOrderNo(orderNo, {
-      paymentResult: JSON.stringify(session.paymentResult),
-    });
-
-    log?.debug(
-      'payment: checkout success received processing payment',
-      toOrderFlowLogMeta({ order, session })
-    );
-  } else {
-    throw new Error('unknown payment status');
+      return;
+    case PaymentStatus.PROCESSING:
+      await updateOrderByOrderNo(orderNo, {
+        paymentResult: JSON.stringify(session.paymentResult),
+      });
+      log?.debug(
+        'payment: checkout success received processing payment',
+        toOrderFlowLogMeta({ order, session })
+      );
+      return;
+    default:
+      throw new Error('unknown payment status');
   }
 }
 
@@ -326,44 +429,21 @@ export async function handlePaymentSuccess({
   session: PaymentSession; // payment session
   log?: LogLike;
 }) {
-  const orderNo = order.orderNo;
-  if (!orderNo) {
-    throw new Error('invalid order');
-  }
+  assertOrderNo(order);
 
   log?.debug(
     'payment: payment success start',
     toOrderFlowLogMeta({ order, session })
   );
 
-  if (isFinalOrderStatus(order.status)) {
-    log?.debug(
-      'payment: payment success ignored finalized order',
-      toOrderFlowLogMeta({ order, session })
-    );
-    return;
-  }
+  const flow: OrderFlowName = 'payment success';
+  if (shouldIgnoreFinalOrder({ order, session, log, flow })) return;
+  assertSubscriptionInfoForOrder({ order, session, log, flow });
 
-  if (order.paymentType === PaymentType.SUBSCRIPTION) {
-    if (!session.subscriptionId || !session.subscriptionInfo) {
-      log?.error(
-        'payment: payment success missing subscription info',
-        toOrderFlowLogMeta({ order, session })
-      );
-      throw new Error('subscription id or subscription info not found');
-    }
-  }
-
-  if (session.paymentStatus === PaymentStatus.SUCCESS) {
-    await processSuccessfulPayment({
-      order,
-      session,
-      log,
-      flow: 'payment success',
-    });
-  } else {
+  if (session.paymentStatus !== PaymentStatus.SUCCESS) {
     throw new Error('unknown payment status');
   }
+  await processSuccessfulPayment({ order, session, log, flow });
 }
 
 export async function handleSubscriptionRenewal({
@@ -375,10 +455,8 @@ export async function handleSubscriptionRenewal({
   session: PaymentSession; // payment session
   log?: LogLike;
 }) {
+  assertValidSubscriptionBasics(subscription);
   const subscriptionNo = subscription.subscriptionNo;
-  if (!subscriptionNo || !subscription.amount || !subscription.currency) {
-    throw new Error('invalid subscription');
-  }
 
   log?.debug(
     'payment: subscription renewal start',
@@ -401,82 +479,49 @@ export async function handleSubscriptionRenewal({
     throw new Error('invalid subscription info');
   }
 
-  if (session.paymentStatus === PaymentStatus.SUCCESS) {
-    const updateSubscription: UpdateSubscription = {
-      currentPeriodStart: subscriptionInfo.currentPeriodStart,
-      currentPeriodEnd: subscriptionInfo.currentPeriodEnd,
-    };
-
-    const orderNo = getSnowId();
-    const currentTime = new Date();
-
-    const order: NewOrder = {
-      id: getUuid(),
-      orderNo: orderNo,
-      userId: subscription.userId,
-      userEmail: subscription.userEmail,
-      status: OrderStatus.PAID,
-      amount: subscription.amount,
-      currency: subscription.currency,
-      productId: subscription.productId,
-      paymentType: PaymentType.RENEW,
-      paymentInterval: subscription.interval,
-      paymentProvider: session.provider || subscription.paymentProvider,
-      checkoutInfo: '',
-      createdAt: currentTime,
-      productName: subscription.productName,
-      description: 'Subscription Renewal',
-      callbackUrl: '',
-      creditsAmount: subscription.creditsAmount,
-      creditsValidDays: subscription.creditsValidDays,
-      planName: subscription.planName || '',
-      paymentProductId: subscription.paymentProductId,
-      paymentResult: JSON.stringify(session.paymentResult),
-      paymentAmount: session.paymentInfo?.paymentAmount,
-      paymentCurrency: session.paymentInfo?.paymentCurrency,
-      discountAmount: session.paymentInfo?.discountAmount,
-      discountCurrency: session.paymentInfo?.discountCurrency,
-      discountCode: session.paymentInfo?.discountCode,
-      paymentEmail: session.paymentInfo?.paymentEmail,
-      paymentUserId: session.paymentInfo?.paymentUserId,
-      paidAt: session.paymentInfo?.paidAt,
-      invoiceId: session.paymentInfo?.invoiceId,
-      invoiceUrl: session.paymentInfo?.invoiceUrl,
-      subscriptionNo: subscription.subscriptionNo,
-      transactionId: session.paymentInfo?.transactionId,
-      paymentUserName: session.paymentInfo?.paymentUserName,
-      subscriptionId: session.subscriptionId,
-      subscriptionResult: JSON.stringify(session.subscriptionResult),
-    };
-
-    // NOTE: renewal credits must be tagged as `renewal` for audit/reporting.
-    const newCredit: NewCredit | undefined = buildGrantCreditForOrder({
-      order: {
-        userId: order.userId,
-        userEmail: order.userEmail,
-        orderNo: order.orderNo,
-        paymentType: PaymentType.RENEW,
-        creditsAmount: order.creditsAmount,
-        creditsValidDays: order.creditsValidDays,
-      },
-      subscriptionNo: subscription.subscriptionNo,
-      subscriptionInfo,
-    });
-
-    await updateSubscriptionInTransaction({
-      subscriptionNo,
-      updateSubscription,
-      newOrder: order,
-      newCredit,
-    });
-
-    log?.info(
-      'payment: subscription renewal processed',
-      toSubscriptionFlowLogMeta({ subscription, session, orderNo })
-    );
-  } else {
+  if (session.paymentStatus !== PaymentStatus.SUCCESS) {
     throw new Error('unknown payment status');
   }
+
+  const updateSubscription: UpdateSubscription = {
+    currentPeriodStart: subscriptionInfo.currentPeriodStart,
+    currentPeriodEnd: subscriptionInfo.currentPeriodEnd,
+  };
+
+  const orderNo = getSnowId();
+  const currentTime = new Date();
+  const order = buildSubscriptionRenewalOrder({
+    subscription,
+    session,
+    orderNo,
+    currentTime,
+  });
+
+  // NOTE: renewal credits must be tagged as `renewal` for audit/reporting.
+  const newCredit: NewCredit | undefined = buildGrantCreditForOrder({
+    order: {
+      userId: order.userId,
+      userEmail: order.userEmail,
+      orderNo: order.orderNo,
+      paymentType: PaymentType.RENEW,
+      creditsAmount: order.creditsAmount,
+      creditsValidDays: order.creditsValidDays,
+    },
+    subscriptionNo: subscription.subscriptionNo,
+    subscriptionInfo,
+  });
+
+  await updateSubscriptionInTransaction({
+    subscriptionNo,
+    updateSubscription,
+    newOrder: order,
+    newCredit,
+  });
+
+  log?.info(
+    'payment: subscription renewal processed',
+    toSubscriptionFlowLogMeta({ subscription, session, orderNo })
+  );
 }
 
 export async function handleSubscriptionUpdated({
@@ -488,10 +533,8 @@ export async function handleSubscriptionUpdated({
   session: PaymentSession; // payment session
   log?: LogLike;
 }) {
+  assertValidSubscriptionBasics(subscription);
   const subscriptionNo = subscription.subscriptionNo;
-  if (!subscriptionNo || !subscription.amount || !subscription.currency) {
-    throw new Error('invalid subscription');
-  }
 
   log?.debug(
     'payment: subscription updated start',
@@ -541,10 +584,8 @@ export async function handleSubscriptionCanceled({
   session: PaymentSession; // payment session
   log?: LogLike;
 }) {
+  assertValidSubscriptionBasics(subscription);
   const subscriptionNo = subscription.subscriptionNo;
-  if (!subscriptionNo || !subscription.amount || !subscription.currency) {
-    throw new Error('invalid subscription');
-  }
 
   log?.debug(
     'payment: subscription canceled start',

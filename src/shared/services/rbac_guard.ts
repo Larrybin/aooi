@@ -18,13 +18,41 @@ export class PermissionDeniedError extends Error {
   }
 }
 
+type RedirectContext = {
+  redirectUrl?: string;
+  locale?: string;
+};
+
+function redirectTo(href: string, locale?: string): void {
+  redirect({ href, locale: locale || '' });
+}
+
+function redirectIfProvided({ redirectUrl, locale }: RedirectContext): void {
+  if (!redirectUrl) return;
+  redirectTo(redirectUrl, locale);
+}
+
+function deny(
+  message: string,
+  { redirectUrl, locale }: RedirectContext
+): never {
+  redirectIfProvided({ redirectUrl, locale });
+  throw new PermissionDeniedError(message);
+}
+
+async function requireSignedInUser(ctx: RedirectContext) {
+  const user = await getSignUser();
+  if (!user) {
+    deny('User not authenticated', ctx);
+  }
+  return user;
+}
+
 /**
  * Check if user can access admin area
  */
 export async function canAccessAdmin(userId: string): Promise<boolean> {
-  return await getPermissionCheckerForRequest(userId).has(
-    PERMISSIONS.ADMIN_ACCESS
-  );
+  return getPermissionCheckerForRequest(userId).has(PERMISSIONS.ADMIN_ACCESS);
 }
 
 /**
@@ -39,22 +67,11 @@ export async function requirePermission({
   redirectUrl?: string;
   locale?: string;
 }): Promise<void> {
-  const user = await getSignUser();
-
-  if (!user) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError('User not authenticated');
-  }
-
+  const user = await requireSignedInUser({ redirectUrl, locale });
   const allowed = await getPermissionCheckerForRequest(user.id).has(code);
 
   if (!allowed) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError(`Permission required: ${code}`);
+    deny(`Permission required: ${code}`, { redirectUrl, locale });
   }
 }
 
@@ -70,24 +87,14 @@ export async function requireAnyPermission({
   redirectUrl?: string;
   locale?: string;
 }): Promise<void> {
-  const user = await getSignUser();
-
-  if (!user) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError('User not authenticated');
-  }
-
+  const user = await requireSignedInUser({ redirectUrl, locale });
   const allowed = await getPermissionCheckerForRequest(user.id).hasAny(codes);
 
   if (!allowed) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError(
-      `Any of these permissions required: ${codes.join(', ')}`
-    );
+    deny(`Any of these permissions required: ${codes.join(', ')}`, {
+      redirectUrl,
+      locale,
+    });
   }
 }
 
@@ -103,24 +110,14 @@ export async function requireAllPermissions({
   redirectUrl?: string;
   locale?: string;
 }): Promise<void> {
-  const user = await getSignUser();
-
-  if (!user) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError('User not authenticated');
-  }
-
+  const user = await requireSignedInUser({ redirectUrl, locale });
   const allowed = await getPermissionCheckerForRequest(user.id).hasAll(codes);
 
   if (!allowed) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError(
-      `All of these permissions required: ${codes.join(', ')}`
-    );
+    deny(`All of these permissions required: ${codes.join(', ')}`, {
+      redirectUrl,
+      locale,
+    });
   }
 }
 
@@ -136,22 +133,11 @@ export async function requireRole({
   redirectUrl?: string;
   locale?: string;
 }): Promise<void> {
-  const user = await getSignUser();
-
-  if (!user) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError('User not authenticated');
-  }
-
+  const user = await requireSignedInUser({ redirectUrl, locale });
   const allowed = await hasRole(user.id, roleName);
 
   if (!allowed) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError(`Role required: ${roleName}`);
+    deny(`Role required: ${roleName}`, { redirectUrl, locale });
   }
 }
 
@@ -167,24 +153,14 @@ export async function requireAnyRole({
   redirectUrl?: string;
   locale?: string;
 }): Promise<void> {
-  const user = await getSignUser();
-
-  if (!user) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError('User not authenticated');
-  }
-
+  const user = await requireSignedInUser({ redirectUrl, locale });
   const allowed = await hasAnyRole(user.id, roleNames);
 
   if (!allowed) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError(
-      `Any of these roles required: ${roleNames.join(', ')}`
-    );
+    deny(`Any of these roles required: ${roleNames.join(', ')}`, {
+      redirectUrl,
+      locale,
+    });
   }
 }
 
@@ -199,20 +175,16 @@ export async function requireAdminAccess({
   locale?: string;
 }): Promise<unknown> {
   const user = await getSignUser();
-
   if (!user) {
-    redirect({ href: '/sign-in', locale: locale || '' });
+    redirectTo('/sign-in', locale);
   }
 
   const allowed = await canAccessAdmin(user!.id);
-
   if (!allowed) {
-    if (redirectUrl) {
-      redirect({ href: redirectUrl, locale: locale || '' });
-    }
-    throw new PermissionDeniedError(
-      `Permission required: ${PERMISSIONS.ADMIN_ACCESS}`
-    );
+    deny(`Permission required: ${PERMISSIONS.ADMIN_ACCESS}`, {
+      redirectUrl,
+      locale,
+    });
   }
 
   return user;
@@ -250,7 +222,7 @@ export async function checkPageAccess({
   const user = await getSignUser();
   if (!user) return false;
 
-  return await getPermissionCheckerForRequest(user.id).hasAny(codes);
+  return getPermissionCheckerForRequest(user.id).hasAny(codes);
 }
 
 /**

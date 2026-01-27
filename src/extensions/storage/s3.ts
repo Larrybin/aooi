@@ -1,15 +1,16 @@
 import 'server-only';
 
-import { safeFetchFollowingRedirects } from '@/shared/lib/fetch/server';
-
 import {
-  toUint8Array,
   type StorageConfigs,
   type StorageDownloadUploadOptions,
   type StorageProvider,
   type StorageUploadOptions,
   type StorageUploadResult,
 } from '.';
+import {
+  downloadAndUploadFromUrl,
+  uploadFileToS3CompatibleStorage,
+} from './s3-compat';
 
 /**
  * S3 storage provider configs
@@ -39,115 +40,41 @@ export class S3Provider implements StorageProvider {
   async uploadFile(
     options: StorageUploadOptions
   ): Promise<StorageUploadResult> {
-    try {
-      const uploadBucket = options.bucket || this.configs.bucket;
-      if (!uploadBucket) {
-        return {
-          success: false,
-          error: 'Bucket is required',
-          provider: this.name,
-        };
-      }
-
-      const bodyArray = toUint8Array(options.body);
-      const bodyBytes = new Uint8Array(bodyArray);
-
-      const url = `${this.configs.endpoint}/${uploadBucket}/${options.key}`;
-
-      const { AwsClient } = await import('aws4fetch');
-
-      const client = new AwsClient({
-        accessKeyId: this.configs.accessKeyId,
-        secretAccessKey: this.configs.secretAccessKey,
-        region: this.configs.region,
-      });
-
-      const headers: Record<string, string> = {
-        'Content-Type': options.contentType || 'application/octet-stream',
-        'Content-Disposition': options.disposition || 'inline',
-        'Content-Length': bodyBytes.length.toString(),
-      };
-
-      const request = new Request(url, {
-        method: 'PUT',
-        headers,
-        body: new Blob([bodyBytes]),
-      });
-
-      const response = await client.fetch(request);
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `Upload failed: ${response.statusText}`,
-          provider: this.name,
-        };
-      }
-
-      const publicUrl = this.configs.publicDomain
-        ? `${this.configs.publicDomain}/${options.key}`
-        : url;
-
-      return {
-        success: true,
-        location: url,
-        bucket: uploadBucket,
-        key: options.key,
-        filename: options.key.split('/').pop(),
-        url: publicUrl,
-        provider: this.name,
-      };
-    } catch (error) {
+    const uploadBucket = options.bucket || this.configs.bucket;
+    if (!uploadBucket) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Bucket is required',
         provider: this.name,
       };
     }
+
+    const url = `${this.configs.endpoint}/${uploadBucket}/${options.key}`;
+    return await uploadFileToS3CompatibleStorage({
+      provider: this.name,
+      url,
+      bucket: uploadBucket,
+      key: options.key,
+      body: options.body,
+      contentType: options.contentType,
+      disposition: options.disposition,
+      publicDomain: this.configs.publicDomain,
+      aws: {
+        accessKeyId: this.configs.accessKeyId,
+        secretAccessKey: this.configs.secretAccessKey,
+        region: this.configs.region,
+      },
+    });
   }
 
   async downloadAndUpload(
     options: StorageDownloadUploadOptions
   ): Promise<StorageUploadResult> {
-    try {
-      const response = await safeFetchFollowingRedirects(
-        options.url,
-        { method: 'GET' },
-        { timeoutMs: 30000, cache: 'no-store', maxRedirects: 5 }
-      );
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `HTTP error! status: ${response.status}`,
-          provider: this.name,
-        };
-      }
-
-      if (!response.body) {
-        return {
-          success: false,
-          error: 'No body in response',
-          provider: this.name,
-        };
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const body = new Uint8Array(arrayBuffer);
-
-      return this.uploadFile({
-        body,
-        key: options.key,
-        bucket: options.bucket,
-        contentType: options.contentType,
-        disposition: options.disposition,
-      });
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        provider: this.name,
-      };
-    }
+    return await downloadAndUploadFromUrl({
+      provider: this.name,
+      options,
+      upload: (uploadOptions) => this.uploadFile(uploadOptions),
+    });
   }
 }
 

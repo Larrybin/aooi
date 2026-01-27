@@ -395,6 +395,23 @@ export class PaymentManager {
     toNameKey: trimmedProviderNameKey,
   });
 
+  private resolveProvider(provider?: string): PaymentProvider {
+    if (provider) {
+      const providerInstance = this.getProvider(provider);
+      if (!providerInstance) {
+        throw new BadRequestError(`Payment provider '${provider}' not found`);
+      }
+      return providerInstance;
+    }
+
+    const defaultProvider = this.getDefaultProvider();
+    if (!defaultProvider) {
+      throw new ServiceUnavailableError('No payment provider configured');
+    }
+
+    return defaultProvider;
+  }
+
   hasProvider(name: string): boolean {
     return this.registry.has(name);
   }
@@ -449,20 +466,7 @@ export class PaymentManager {
     order: PaymentOrder;
     provider?: string;
   }): Promise<CheckoutSession> {
-    if (provider) {
-      const providerInstance = this.getProvider(provider);
-      if (!providerInstance) {
-        throw new BadRequestError(`Payment provider '${provider}' not found`);
-      }
-      return providerInstance.createPayment({ order });
-    }
-
-    const defaultProvider = this.getDefaultProvider();
-    if (!defaultProvider) {
-      throw new ServiceUnavailableError('No payment provider configured');
-    }
-
-    return defaultProvider.createPayment({ order });
+    return this.resolveProvider(provider).createPayment({ order });
   }
 
   // get payment session using default provider
@@ -473,20 +477,7 @@ export class PaymentManager {
     sessionId: string;
     provider?: string;
   }): Promise<PaymentSession | null> {
-    if (provider) {
-      const providerInstance = this.getProvider(provider);
-      if (!providerInstance) {
-        throw new BadRequestError(`Payment provider '${provider}' not found`);
-      }
-      return providerInstance.getPaymentSession({ sessionId });
-    }
-
-    const defaultProvider = this.getDefaultProvider();
-    if (!defaultProvider) {
-      throw new ServiceUnavailableError('No payment provider configured');
-    }
-
-    return defaultProvider.getPaymentSession({ sessionId });
+    return this.resolveProvider(provider).getPaymentSession({ sessionId });
   }
 
   // handle webhook using specific provider
@@ -497,20 +488,7 @@ export class PaymentManager {
     req: Request;
     provider?: string;
   }): Promise<PaymentEvent> {
-    if (provider) {
-      const providerInstance = this.getProvider(provider);
-      if (!providerInstance) {
-        throw new BadRequestError(`Payment provider '${provider}' not found`);
-      }
-      return providerInstance.getPaymentEvent({ req });
-    }
-
-    const defaultProvider = this.getDefaultProvider();
-    if (!defaultProvider) {
-      throw new ServiceUnavailableError('No payment provider configured');
-    }
-
-    return defaultProvider.getPaymentEvent({ req });
+    return this.resolveProvider(provider).getPaymentEvent({ req });
   }
 }
 

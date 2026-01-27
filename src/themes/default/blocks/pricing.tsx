@@ -36,11 +36,9 @@ import type {
   Pricing as PricingType,
 } from '@/shared/types/blocks/pricing';
 
-// Helper function to get all available currencies from a pricing item
 function getCurrenciesFromItem(item: PricingItem | null): PricingCurrency[] {
   if (!item) return [];
 
-  // Always include the default currency first
   const defaultCurrency: PricingCurrency = {
     currency: item.currency,
     amount: item.amount,
@@ -48,34 +46,21 @@ function getCurrenciesFromItem(item: PricingItem | null): PricingCurrency[] {
     original_price: item.original_price || '',
   };
 
-  // Add additional currencies if available
-  if (item.currencies && item.currencies.length > 0) {
-    return [defaultCurrency, ...item.currencies];
-  }
-
-  return [defaultCurrency];
+  return item.currencies?.length
+    ? [defaultCurrency, ...item.currencies]
+    : [defaultCurrency];
 }
 
-// Helper function to select initial currency based on locale
 function getInitialCurrency(
   currencies: PricingCurrency[],
   locale: string,
   defaultCurrency: string
 ): string {
-  if (currencies.length === 0) return defaultCurrency;
-
-  // If locale is 'zh', prefer CNY
-  if (locale === 'zh') {
-    const cnyCurrency = currencies.find(
-      (c) => c.currency.toLowerCase() === 'cny'
-    );
-    if (cnyCurrency) {
-      return cnyCurrency.currency;
-    }
-  }
-
-  // Otherwise return default currency
-  return defaultCurrency;
+  if (!currencies.length || locale !== 'zh') return defaultCurrency;
+  return (
+    currencies.find((c) => c.currency.toLowerCase() === 'cny')?.currency ??
+    defaultCurrency
+  );
 }
 
 export function Pricing({

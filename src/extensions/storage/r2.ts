@@ -1,15 +1,16 @@
 import 'server-only';
 
-import { safeFetchFollowingRedirects } from '@/shared/lib/fetch/server';
-
 import {
-  toUint8Array,
   type StorageConfigs,
   type StorageDownloadUploadOptions,
   type StorageProvider,
   type StorageUploadOptions,
   type StorageUploadResult,
 } from '.';
+import {
+  downloadAndUploadFromUrl,
+  uploadFileToS3CompatibleStorage,
+} from './s3-compat';
 
 /**
  * R2 storage provider configs
@@ -40,121 +41,48 @@ export class R2Provider implements StorageProvider {
   async uploadFile(
     options: StorageUploadOptions
   ): Promise<StorageUploadResult> {
-    try {
-      const uploadBucket = options.bucket || this.configs.bucket;
-      if (!uploadBucket) {
-        return {
-          success: false,
-          error: 'Bucket is required',
-          provider: this.name,
-        };
-      }
-
-      const bodyArray = toUint8Array(options.body);
-      const bodyBytes = new Uint8Array(bodyArray);
-
-      // R2 endpoint format: https://<accountId>.r2.cloudflarestorage.com
-      // Use custom endpoint if provided, otherwise use default
-      const endpoint =
-        this.configs.endpoint ||
-        `https://${this.configs.accountId}.r2.cloudflarestorage.com`;
-      const url = `${endpoint}/${uploadBucket}/${options.key}`;
-
-      const { AwsClient } = await import('aws4fetch');
-
-      // R2 uses "auto" as region for S3 API compatibility
-      const client = new AwsClient({
-        accessKeyId: this.configs.accessKeyId,
-        secretAccessKey: this.configs.secretAccessKey,
-        region: this.configs.region || 'auto',
-      });
-
-      const headers: Record<string, string> = {
-        'Content-Type': options.contentType || 'application/octet-stream',
-        'Content-Disposition': options.disposition || 'inline',
-        'Content-Length': bodyBytes.length.toString(),
-      };
-
-      const request = new Request(url, {
-        method: 'PUT',
-        headers,
-        body: new Blob([bodyBytes]),
-      });
-
-      const response = await client.fetch(request);
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `Upload failed: ${response.statusText}`,
-          provider: this.name,
-        };
-      }
-
-      const publicUrl = this.configs.publicDomain
-        ? `${this.configs.publicDomain}/${options.key}`
-        : url;
-
-      return {
-        success: true,
-        location: url,
-        bucket: uploadBucket,
-        key: options.key,
-        filename: options.key.split('/').pop(),
-        url: publicUrl,
-        provider: this.name,
-      };
-    } catch (error) {
+    const uploadBucket = options.bucket || this.configs.bucket;
+    if (!uploadBucket) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Bucket is required',
         provider: this.name,
       };
     }
+
+    // R2 endpoint format: https://<accountId>.r2.cloudflarestorage.com
+    // Use custom endpoint if provided, otherwise use default
+    const endpoint =
+      this.configs.endpoint ||
+      `https://${this.configs.accountId}.r2.cloudflarestorage.com`;
+    const url = `${endpoint}/${uploadBucket}/${options.key}`;
+
+    // R2 uses "auto" as region for S3 API compatibility
+    return await uploadFileToS3CompatibleStorage({
+      provider: this.name,
+      url,
+      bucket: uploadBucket,
+      key: options.key,
+      body: options.body,
+      contentType: options.contentType,
+      disposition: options.disposition,
+      publicDomain: this.configs.publicDomain,
+      aws: {
+        accessKeyId: this.configs.accessKeyId,
+        secretAccessKey: this.configs.secretAccessKey,
+        region: this.configs.region || 'auto',
+      },
+    });
   }
 
   async downloadAndUpload(
     options: StorageDownloadUploadOptions
   ): Promise<StorageUploadResult> {
-    try {
-      const response = await safeFetchFollowingRedirects(
-        options.url,
-        { method: 'GET' },
-        { timeoutMs: 30000, cache: 'no-store', maxRedirects: 5 }
-      );
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `HTTP error! status: ${response.status}`,
-          provider: this.name,
-        };
-      }
-
-      if (!response.body) {
-        return {
-          success: false,
-          error: 'No body in response',
-          provider: this.name,
-        };
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const body = new Uint8Array(arrayBuffer);
-
-      return this.uploadFile({
-        body,
-        key: options.key,
-        bucket: options.bucket,
-        contentType: options.contentType,
-        disposition: options.disposition,
-      });
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        provider: this.name,
-      };
-    }
+    return await downloadAndUploadFromUrl({
+      provider: this.name,
+      options,
+      upload: (uploadOptions) => this.uploadFile(uploadOptions),
+    });
   }
 }
 

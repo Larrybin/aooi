@@ -152,12 +152,21 @@ const themeBlocks: Record<ThemeName, Record<ThemeBlockName, Loader>> = {
   },
 };
 
-/**
- * load theme page
- */
-export async function getThemePage(pageName: string, theme?: string) {
+async function loadThemeEntry({
+  kind,
+  name,
+  theme,
+  registry,
+  logKey,
+}: {
+  kind: 'page' | 'layout' | 'block';
+  name: string;
+  theme?: string;
+  registry: Record<ThemeName, object>;
+  logKey: string;
+}): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName = hasOwn(themePages, activeTheme)
+  const loadTheme: ThemeName = hasOwn(registry, activeTheme)
     ? (activeTheme as ThemeName)
     : defaultTheme;
 
@@ -165,28 +174,42 @@ export async function getThemePage(pageName: string, theme?: string) {
     logger.warn('theme: unknown theme, fallback to default', {
       requestedTheme: activeTheme,
       fallbackTheme: loadTheme,
-      pageName,
+      [logKey]: name,
     });
   }
 
   const loader =
-    getOwnLoader(themePages[loadTheme], pageName) ??
-    getOwnLoader(themePages[defaultTheme as ThemeName], pageName);
+    getOwnLoader(registry[loadTheme], name) ??
+    getOwnLoader(registry[defaultTheme as ThemeName], name);
 
   if (!loader) {
-    logger.error('theme: unknown page', {
-      pageName,
+    logger.error(`theme: unknown ${kind}`, {
+      [logKey]: name,
       theme: loadTheme,
       fallbackTheme: defaultTheme,
     });
-    throw new Error(`Unknown theme page: ${pageName}`);
+    throw new Error(`Unknown theme ${kind}: ${name}`);
   }
 
   const themeModule = (await loader()) as { default?: unknown };
   if (typeof themeModule.default !== 'function') {
-    throw new Error(`Invalid theme page module: ${pageName}`);
+    throw new Error(`Invalid theme ${kind} module: ${name}`);
   }
+
   return themeModule.default as AnyComponent;
+}
+
+/**
+ * load theme page
+ */
+export async function getThemePage(pageName: string, theme?: string) {
+  return await loadThemeEntry({
+    kind: 'page',
+    name: pageName,
+    theme,
+    registry: themePages,
+    logKey: 'pageName',
+  });
 }
 
 /**
@@ -196,37 +219,13 @@ export async function getThemeLayout(
   layoutName: string,
   theme?: string
 ): Promise<AnyComponent> {
-  const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName = hasOwn(themeLayouts, activeTheme)
-    ? (activeTheme as ThemeName)
-    : defaultTheme;
-
-  if (loadTheme !== activeTheme) {
-    logger.warn('theme: unknown theme, fallback to default', {
-      requestedTheme: activeTheme,
-      fallbackTheme: loadTheme,
-      layoutName,
-    });
-  }
-
-  const loader =
-    getOwnLoader(themeLayouts[loadTheme], layoutName) ??
-    getOwnLoader(themeLayouts[defaultTheme as ThemeName], layoutName);
-
-  if (!loader) {
-    logger.error('theme: unknown layout', {
-      layoutName,
-      theme: loadTheme,
-      fallbackTheme: defaultTheme,
-    });
-    throw new Error(`Unknown theme layout: ${layoutName}`);
-  }
-
-  const themeModule = (await loader()) as { default?: unknown };
-  if (typeof themeModule.default !== 'function') {
-    throw new Error(`Invalid theme layout module: ${layoutName}`);
-  }
-  return themeModule.default as AnyComponent;
+  return await loadThemeEntry({
+    kind: 'layout',
+    name: layoutName,
+    theme,
+    registry: themeLayouts,
+    logKey: 'layoutName',
+  });
 }
 
 /**
@@ -236,35 +235,11 @@ export async function getThemeBlock(
   blockName: string,
   theme?: string
 ): Promise<AnyComponent> {
-  const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName = hasOwn(themeBlocks, activeTheme)
-    ? (activeTheme as ThemeName)
-    : defaultTheme;
-
-  if (loadTheme !== activeTheme) {
-    logger.warn('theme: unknown theme, fallback to default', {
-      requestedTheme: activeTheme,
-      fallbackTheme: loadTheme,
-      blockName,
-    });
-  }
-
-  const loader =
-    getOwnLoader(themeBlocks[loadTheme], blockName) ??
-    getOwnLoader(themeBlocks[defaultTheme as ThemeName], blockName);
-
-  if (!loader) {
-    logger.error('theme: unknown block', {
-      blockName,
-      theme: loadTheme,
-      fallbackTheme: defaultTheme,
-    });
-    throw new Error(`Unknown theme block: ${blockName}`);
-  }
-
-  const themeModule = (await loader()) as { default?: unknown };
-  if (typeof themeModule.default !== 'function') {
-    throw new Error(`Invalid theme block module: ${blockName}`);
-  }
-  return themeModule.default as AnyComponent;
+  return await loadThemeEntry({
+    kind: 'block',
+    name: blockName,
+    theme,
+    registry: themeBlocks,
+    logKey: 'blockName',
+  });
 }

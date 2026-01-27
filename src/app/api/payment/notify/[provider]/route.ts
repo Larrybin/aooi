@@ -4,6 +4,8 @@ import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
+  type PaymentEvent,
+  type PaymentSession,
 } from '@/extensions/payment';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
@@ -54,6 +56,89 @@ function buildSubscriptionRenewalDedupeKey(input: {
   return `renewal:${input.provider}:${input.subscriptionId}:${start}:${end}`;
 }
 
+function requireOrderNoFromSession(session: PaymentSession): string {
+  const orderNoValue = session.metadata?.order_no;
+  const orderNo = typeof orderNoValue === 'string' ? orderNoValue.trim() : '';
+  if (!orderNo) {
+    throw new BadRequestError('order no not found');
+  }
+  return orderNo;
+}
+
+function hasSubscriptionContext(
+  session: PaymentSession
+): session is PaymentSession & {
+  subscriptionId: string;
+  subscriptionInfo: NonNullable<PaymentSession['subscriptionInfo']>;
+} {
+  return Boolean(session.subscriptionId && session.subscriptionInfo);
+}
+
+function requireSubscriptionContext(
+  session: PaymentSession
+): asserts session is PaymentSession & {
+  subscriptionId: string;
+  subscriptionInfo: NonNullable<PaymentSession['subscriptionInfo']>;
+} {
+  if (!hasSubscriptionContext(session)) {
+    throw new BadRequestError('subscription id or subscription info not found');
+  }
+}
+
+async function getPaymentEventOrThrow({
+  provider,
+  paymentProvider,
+  req,
+  log,
+}: {
+  provider: string;
+  paymentProvider: {
+    getPaymentEvent(args: { req: Request }): Promise<unknown>;
+  };
+  req: Request;
+  log: ReturnType<typeof createApiContext>['log'];
+}): Promise<PaymentEvent> {
+  try {
+    return (await paymentProvider.getPaymentEvent({ req })) as PaymentEvent;
+  } catch (err: unknown) {
+    if (err instanceof WebhookVerificationError) {
+      log.warn('payment: webhook verification failed', {
+        provider,
+        eventType: 'unknown',
+      });
+      throw new UnauthorizedError(err.message);
+    }
+    if (err instanceof WebhookPayloadError) {
+      log.warn('payment: webhook payload invalid', {
+        provider,
+        eventType: 'unknown',
+      });
+      throw new BadRequestError(err.message);
+    }
+    if (err instanceof WebhookConfigError) {
+      throw err;
+    }
+    throw err;
+  }
+}
+
+async function requireExistingSubscription({
+  provider,
+  subscriptionId,
+}: {
+  provider: string;
+  subscriptionId: string;
+}) {
+  const existingSubscription = await findSubscriptionByProviderSubscriptionId({
+    provider,
+    subscriptionId,
+  });
+  if (!existingSubscription) {
+    throw new NotFoundError('subscription not found');
+  }
+  return existingSubscription;
+}
+
 export const POST = withApi(
   async (
     req: Request,
@@ -72,268 +157,229 @@ export const POST = withApi(
       throw new NotFoundError('payment provider not found');
     }
 
-    let event;
-    try {
-      event = await paymentProvider.getPaymentEvent({ req });
-    } catch (err: unknown) {
-      if (err instanceof WebhookVerificationError) {
-        log.warn('payment: webhook verification failed', {
-          provider,
-          eventType: 'unknown',
-        });
-        throw new UnauthorizedError(err.message);
-      }
-      if (err instanceof WebhookPayloadError) {
-        log.warn('payment: webhook payload invalid', {
-          provider,
-          eventType: 'unknown',
-        });
-        throw new BadRequestError(err.message);
-      }
-      if (err instanceof WebhookConfigError) {
-        throw err;
-      }
-      throw err;
-    }
-    if (!event) {
-      throw new BadRequestError('payment event not found');
-    }
-
-    const eventType = event.eventType;
-    if (!eventType) {
-      throw new BadRequestError('event type not found');
-    }
-
-    // payment session
-    const session = event.paymentSession;
-    if (!session) {
+    const event = await getPaymentEventOrThrow({
+      provider,
+      paymentProvider,
+      req,
+      log,
+    });
+    if (!event) throw new BadRequestError('payment event not found');
+    if (!event.eventType) throw new BadRequestError('event type not found');
+    if (!event.paymentSession) {
       throw new BadRequestError('payment session not found');
     }
 
+    const eventType = event.eventType;
+    const session = event.paymentSession;
+
     // console.log('notify payment session', session);
 
-    if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-      const orderNoValue = session.metadata?.order_no;
-      const orderNo =
-        typeof orderNoValue === 'string' ? orderNoValue.trim() : '';
+    switch (eventType) {
+      case PaymentEventType.CHECKOUT_SUCCESS: {
+        const orderNo = requireOrderNoFromSession(session);
 
-      if (!orderNo) {
-        throw new BadRequestError('order no not found');
-      }
+        const order = await findOrderByOrderNo(orderNo);
+        if (!order) {
+          throw new NotFoundError('order not found');
+        }
 
-      const order = await findOrderByOrderNo(orderNo);
-      if (!order) {
-        throw new NotFoundError('order not found');
-      }
-
-      // Idempotency guard: if the order is already finalized, return success early.
-      if (
-        order.status === OrderStatus.PAID ||
-        order.status === OrderStatus.FAILED ||
-        order.status === OrderStatus.COMPLETED
-      ) {
-        return jsonOk({ message: 'already processed' });
-      }
-
-      await handleCheckoutSuccess({
-        order,
-        session,
-        log,
-      });
-    } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
-      // only handle subscription payment
-      if (session.subscriptionId && session.subscriptionInfo) {
+        // Idempotency guard: if the order is already finalized, return success early.
         if (
-          session.paymentInfo?.subscriptionCycleType ===
+          order.status === OrderStatus.PAID ||
+          order.status === OrderStatus.FAILED ||
+          order.status === OrderStatus.COMPLETED
+        ) {
+          return jsonOk({ message: 'already processed' });
+        }
+
+        await handleCheckoutSuccess({ order, session, log });
+        break;
+      }
+
+      case PaymentEventType.PAYMENT_SUCCESS: {
+        // Only handle subscription renewals here. One-time payments and first subscription payments are ignored.
+        if (!hasSubscriptionContext(session)) {
+          log.debug('payment: notify ignored one-time payment', {
+            provider,
+            eventType,
+          });
+          break;
+        }
+
+        if (
+          session.paymentInfo?.subscriptionCycleType !==
           SubscriptionCycleType.RENEWAL
         ) {
-          const rawTransactionId = session.paymentInfo?.transactionId?.trim();
-          const rawInvoiceId = session.paymentInfo?.invoiceId?.trim();
-
-          if (rawTransactionId) {
-            const existingOrder = await findOrderByTransactionId({
-              provider,
-              transactionId: rawTransactionId,
-            });
-            if (existingOrder) {
-              log.debug('payment: notify ignored duplicate renewal', {
-                provider,
-                eventType,
-                transactionId: rawTransactionId,
-              });
-              return jsonOk({ message: 'already processed' });
-            }
-          }
-
-          if (rawInvoiceId && rawInvoiceId !== rawTransactionId) {
-            const existingOrder = await findOrderByInvoiceId({
-              provider,
-              invoiceId: rawInvoiceId,
-            });
-            if (existingOrder) {
-              log.debug('payment: notify ignored duplicate renewal', {
-                provider,
-                eventType,
-                invoiceId: rawInvoiceId,
-              });
-              return jsonOk({ message: 'already processed' });
-            }
-          }
-
-          const dedupeTransactionId =
-            rawTransactionId ||
-            rawInvoiceId ||
-            buildSubscriptionRenewalDedupeKey({
-              provider,
-              subscriptionId: session.subscriptionId,
-              subscriptionInfo: session.subscriptionInfo,
-            });
-
-          if (!dedupeTransactionId) {
-            log.error('payment: renewal missing idempotency context, ignored', {
-              provider,
-              eventType,
-              subscriptionId: session.subscriptionId,
-            });
-            return jsonOk({ message: 'ignored' });
-          }
-
-          if (!rawTransactionId && !rawInvoiceId) {
-            const existingOrder = await findOrderByTransactionId({
-              provider,
-              transactionId: dedupeTransactionId,
-            });
-            if (existingOrder) {
-              log.debug('payment: notify ignored duplicate renewal', {
-                provider,
-                eventType,
-                transactionId: dedupeTransactionId,
-              });
-              return jsonOk({ message: 'already processed' });
-            }
-
-            log.warn(
-              'payment: renewal idempotency keys missing, using fallback',
-              {
-                provider,
-                eventType,
-                subscriptionId: session.subscriptionId,
-              }
-            );
-          }
-
-          const existingSubscription =
-            await findSubscriptionByProviderSubscriptionId({
-              provider: provider,
-              subscriptionId: session.subscriptionId,
-            });
-          if (!existingSubscription) {
-            throw new NotFoundError('subscription not found');
-          }
-
-          const paymentInfo = session.paymentInfo;
-          if (!paymentInfo) {
-            log.error('payment: renewal missing payment info, ignored', {
-              provider,
-              eventType,
-              subscriptionId: session.subscriptionId,
-            });
-            return jsonOk({ message: 'ignored' });
-          }
-
-          const sessionForRenewal = {
-            ...session,
-            paymentInfo: {
-              ...paymentInfo,
-              transactionId: dedupeTransactionId,
-              invoiceId: rawInvoiceId || paymentInfo.invoiceId,
-            },
-          };
-
-          await handleSubscriptionRenewal({
-            subscription: existingSubscription,
-            session: sessionForRenewal,
-            log,
-          });
-        } else {
           log.debug('payment: notify ignored subscription first payment', {
             provider,
             eventType,
           });
+          break;
         }
-      } else {
-        log.debug('payment: notify ignored one-time payment', {
+
+        const rawTransactionId = session.paymentInfo?.transactionId?.trim();
+        const rawInvoiceId = session.paymentInfo?.invoiceId?.trim();
+
+        if (rawTransactionId) {
+          const existingOrder = await findOrderByTransactionId({
+            provider,
+            transactionId: rawTransactionId,
+          });
+          if (existingOrder) {
+            log.debug('payment: notify ignored duplicate renewal', {
+              provider,
+              eventType,
+              transactionId: rawTransactionId,
+            });
+            return jsonOk({ message: 'already processed' });
+          }
+        }
+
+        if (rawInvoiceId && rawInvoiceId !== rawTransactionId) {
+          const existingOrder = await findOrderByInvoiceId({
+            provider,
+            invoiceId: rawInvoiceId,
+          });
+          if (existingOrder) {
+            log.debug('payment: notify ignored duplicate renewal', {
+              provider,
+              eventType,
+              invoiceId: rawInvoiceId,
+            });
+            return jsonOk({ message: 'already processed' });
+          }
+        }
+
+        const dedupeTransactionId =
+          rawTransactionId ||
+          rawInvoiceId ||
+          buildSubscriptionRenewalDedupeKey({
+            provider,
+            subscriptionId: session.subscriptionId,
+            subscriptionInfo: session.subscriptionInfo,
+          });
+
+        if (!dedupeTransactionId) {
+          log.error('payment: renewal missing idempotency context, ignored', {
+            provider,
+            eventType,
+            subscriptionId: session.subscriptionId,
+          });
+          return jsonOk({ message: 'ignored' });
+        }
+
+        if (!rawTransactionId && !rawInvoiceId) {
+          const existingOrder = await findOrderByTransactionId({
+            provider,
+            transactionId: dedupeTransactionId,
+          });
+          if (existingOrder) {
+            log.debug('payment: notify ignored duplicate renewal', {
+              provider,
+              eventType,
+              transactionId: dedupeTransactionId,
+            });
+            return jsonOk({ message: 'already processed' });
+          }
+
+          log.warn(
+            'payment: renewal idempotency keys missing, using fallback',
+            {
+              provider,
+              eventType,
+              subscriptionId: session.subscriptionId,
+            }
+          );
+        }
+
+        const existingSubscription = await requireExistingSubscription({
+          provider,
+          subscriptionId: session.subscriptionId,
+        });
+
+        const paymentInfo = session.paymentInfo;
+        if (!paymentInfo) {
+          log.error('payment: renewal missing payment info, ignored', {
+            provider,
+            eventType,
+            subscriptionId: session.subscriptionId,
+          });
+          return jsonOk({ message: 'ignored' });
+        }
+
+        const sessionForRenewal: PaymentSession = {
+          ...session,
+          paymentInfo: {
+            ...paymentInfo,
+            transactionId: dedupeTransactionId,
+            invoiceId: rawInvoiceId || paymentInfo.invoiceId,
+          },
+        };
+
+        await handleSubscriptionRenewal({
+          subscription: existingSubscription,
+          session: sessionForRenewal,
+          log,
+        });
+        break;
+      }
+
+      case PaymentEventType.SUBSCRIBE_UPDATED: {
+        requireSubscriptionContext(session);
+        const existingSubscription = await requireExistingSubscription({
+          provider,
+          subscriptionId: session.subscriptionId,
+        });
+
+        if (existingSubscription.status === SubscriptionStatus.CANCELED) {
+          log.debug('payment: notify ignored canceled subscription', {
+            provider,
+            eventType,
+            subscriptionId: session.subscriptionId,
+            subscriptionNo: existingSubscription.subscriptionNo,
+          });
+          return jsonOk({ message: 'already processed' });
+        }
+
+        await handleSubscriptionUpdated({
+          subscription: existingSubscription,
+          session,
+          log,
+        });
+        break;
+      }
+
+      case PaymentEventType.SUBSCRIBE_CANCELED: {
+        requireSubscriptionContext(session);
+        const existingSubscription = await requireExistingSubscription({
+          provider,
+          subscriptionId: session.subscriptionId,
+        });
+
+        if (existingSubscription.status === SubscriptionStatus.CANCELED) {
+          log.debug('payment: notify ignored canceled subscription', {
+            provider,
+            eventType,
+            subscriptionId: session.subscriptionId,
+            subscriptionNo: existingSubscription.subscriptionNo,
+          });
+          return jsonOk({ message: 'already processed' });
+        }
+
+        await handleSubscriptionCanceled({
+          subscription: existingSubscription,
+          session,
+          log,
+        });
+        break;
+      }
+
+      default:
+        log.debug('payment: notify ignored event type', {
           provider,
           eventType,
         });
-      }
-    } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
-      if (!session.subscriptionId || !session.subscriptionInfo) {
-        throw new BadRequestError(
-          'subscription id or subscription info not found'
-        );
-      }
-
-      const existingSubscription =
-        await findSubscriptionByProviderSubscriptionId({
-          provider: provider,
-          subscriptionId: session.subscriptionId,
-        });
-      if (!existingSubscription) {
-        throw new NotFoundError('subscription not found');
-      }
-
-      if (existingSubscription.status === SubscriptionStatus.CANCELED) {
-        log.debug('payment: notify ignored canceled subscription', {
-          provider,
-          eventType,
-          subscriptionId: session.subscriptionId,
-          subscriptionNo: existingSubscription.subscriptionNo,
-        });
-        return jsonOk({ message: 'already processed' });
-      }
-
-      await handleSubscriptionUpdated({
-        subscription: existingSubscription,
-        session,
-        log,
-      });
-    } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
-      if (!session.subscriptionId || !session.subscriptionInfo) {
-        throw new BadRequestError(
-          'subscription id or subscription info not found'
-        );
-      }
-
-      const existingSubscription =
-        await findSubscriptionByProviderSubscriptionId({
-          provider: provider,
-          subscriptionId: session.subscriptionId,
-        });
-      if (!existingSubscription) {
-        throw new NotFoundError('subscription not found');
-      }
-
-      if (existingSubscription.status === SubscriptionStatus.CANCELED) {
-        log.debug('payment: notify ignored canceled subscription', {
-          provider,
-          eventType,
-          subscriptionId: session.subscriptionId,
-          subscriptionNo: existingSubscription.subscriptionNo,
-        });
-        return jsonOk({ message: 'already processed' });
-      }
-
-      await handleSubscriptionCanceled({
-        subscription: existingSubscription,
-        session,
-        log,
-      });
-    } else {
-      log.debug('payment: notify ignored event type', {
-        provider,
-        eventType,
-      });
+        break;
     }
 
     return jsonOk({ message: 'success' });

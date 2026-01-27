@@ -78,8 +78,9 @@ export const localeNames = {
 
 export const rtlLocales = ['ar', 'fa', 'he', 'ur'] as const;
 
-export const isRtlLocale = (locale: string) =>
-  (rtlLocales as readonly string[]).includes(locale);
+const rtlLocaleSet: ReadonlySet<string> = new Set(rtlLocales);
+
+export const isRtlLocale = (locale: string) => rtlLocaleSet.has(locale);
 
 const fallbackLocale = locales[0];
 const envDefaultLocale = envConfigs.locale;
