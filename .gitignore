@@ -77,3 +77,4 @@ src/shared/types/cloudflare.d.ts
 
 .codex
 .codex/context.md
+.gstack/
