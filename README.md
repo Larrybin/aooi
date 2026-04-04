@@ -6,9 +6,10 @@ A production-ready AI SaaS template built with Next.js App Router, TypeScript, a
 
 ```
 src/
-├── app/           # Next.js routes, layouts, API handlers
-├── core/          # Domain logic (auth, database, i18n, theme)
-├── shared/        # Shared utilities, models, services, UI components
+├── app/           # Route-only: Next.js routes, layouts, route handlers
+├── features/      # Product surfaces: admin / web / docs
+├── core/          # Foundation: auth, database, i18n, docs source, theme
+├── shared/        # Cross-surface primitives, services, utilities, types
 ├── extensions/    # Third-party integrations (payment, AI, storage)
 ├── config/        # Configuration, DB schema, locale messages
 └── themes/        # UI themes
@@ -17,6 +18,16 @@ docs/              # Engineering documentation
 content/           # MDX content (docs, blog, legal pages)
 scripts/           # Maintenance and automation scripts
 ```
+
+### 当前分层原则
+
+- `src/app/**`：只保留路由入口、layout、route handler，不承载业务实现。
+- `src/features/admin/**`：管理后台面，固定为 `server/` + `schemas/`。
+- `src/features/web/**`：终端用户面，当前承载 `auth/`、`chat/`，各自再分 `components/` 与 `server/`。
+- `src/features/docs/**`：docs/blog 本地内容流水线与 docs 面逻辑，内容入口在 `server/content/**`。
+- `src/shared/**`：只保留跨面的 UI primitives、hooks/utils/constants/types、以及确认跨面复用的 shell。
+- `src/shared/services/payment/**`、`src/shared/services/settings/**`：继续作为跨面域服务保留在 shared。
+- `src/shared/content/**`：仅保留跨面的 server-only 内容资产（如邮件模板），不再承载 docs/blog 本地内容流水线。
 
 ## Quick Start
 

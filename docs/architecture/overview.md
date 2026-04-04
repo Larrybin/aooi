@@ -7,23 +7,31 @@ This document provides a high-level view of the application architecture.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         src/app/                                │
-│         (Routes, Layouts, API Handlers, Pages)                  │
-│                     ↓ imports from                              │
+│     (Route-only: Routes, Layouts, Route Handlers, Metadata)     │
+│                     ↓ composes from                             │
+├─────────────────────────────────────────────────────────────────┤
+│                       src/features/                             │
+│ ┌──────────────┐ ┌────────────────┐ ┌────────────────────────┐ │
+│ │ admin/       │ │ web/           │ │ docs/                  │ │
+│ │ server/      │ │ auth|chat/     │ │ server/content/        │ │
+│ │ schemas/     │ │ components/    │ │ components/ (optional) │ │
+│ └──────┬───────┘ │ server/        │ └────────────┬───────────┘ │
+│        │         └────────┬───────┘              │             │
+│        ↓                  ↓                      ↓             │
 ├─────────────────────────────────────────────────────────────────┤
 │                        src/shared/                              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
-│  │ models/  │ │services/ │ │  lib/    │ │ blocks/components│   │
-│  │ (DAL)    │ │(business)│ │(utility) │ │     (UI)         │   │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────────┬─────────┘   │
-│       │            │            │                │              │
-│       ↓            ↓            ↓                ↓              │
+│  Cross-surface primitives / utils / services / confirmed shell │
+│   - models/, services/, lib/, constants/, types/               │
+│   - blocks/components 仅保留真正跨面复用的 shell 与 primitives  │
+│   - content/ 仅保留跨面 server-only 内容资产（如 email）        │
+│                               ↓                                 │
 ├───────┴────────────┴────────────┴────────────────┴──────────────┤
 │                         src/core/                               │
-│       ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐           │
-│       │  auth  │  │   db   │  │  i18n  │  │ theme  │           │
-│       └───┬────┘  └───┬────┘  └───┬────┘  └───┬────┘           │
-│           │           │           │           │                 │
-│           ↓           ↓           ↓           ↓                 │
+│       ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐ ┌──────┐  │
+│       │  auth  │  │   db   │  │  i18n  │  │ theme  │ │ docs │  │
+│       └───┬────┘  └───┬────┘  └───┬────┘  └───┬────┘ └──┬───┘  │
+│           │           │           │           │         │       │
+│           ↓           ↓           ↓           ↓         ↓       │
 ├───────────┴───────────┴───────────┴───────────┴─────────────────┤
 │                        src/config/                              │
 │         (DB Schema, Locale Messages, Environment)               │
@@ -45,24 +53,36 @@ This document provides a high-level view of the application architecture.
 
 - **Routes**: Next.js App Router pages and layouts
 - **API Handlers**: Route Handlers (`route.ts`) for REST endpoints
-- **Responsibility**: Thin layer for routing and request/response handling
+- **Responsibility**: Route-only 入口层，只做组装、鉴权入口与 request/response handling
 - **Rules**:
   - Keep page/layout files thin
-  - Delegate logic to `shared/` services
+  - Prefer delegating product logic to `features/**`
+  - Use `shared/**` only for真正跨面能力
   - Route handlers prefer `withApi()` wrapper (contract exceptions like Better Auth may bypass it)
 
-### `src/shared/` - Business & UI Layer
+### `src/features/` - Product Surface Layer
 
-| Directory     | Responsibility               | Boundary          |
-| ------------- | ---------------------------- | ----------------- |
-| `models/`     | Data access layer (DAL)      | Server-only       |
-| `services/`   | Business logic orchestration | Server-only       |
-| `lib/`        | Cross-cutting utilities      | Mixed             |
-| `blocks/`     | Page-level UI compositions   | Client-safe       |
-| `components/` | Reusable UI components       | Client-safe       |
-| `contexts/`   | React contexts               | Client-only       |
-| `hooks/`      | React hooks                  | Client-only       |
-| `constants/`  | Shared constants             | Leaf (no imports) |
+| Directory                      | Responsibility                             | Boundary                  |
+| ------------------------------ | ------------------------------------------ | ------------------------- |
+| `features/admin/server`        | Admin 面 server orchestration / page setup | Server-only               |
+| `features/admin/schemas`       | Admin form/action schema                   | Shared-within-feature     |
+| `features/web/auth/components` | 用户端认证 UI                              | Client / RSC-safe by file |
+| `features/web/chat/components` | 用户端 chat UI                             | Client / RSC-safe by file |
+| `features/web/*/server`        | 用户端 server orchestration                | Server-only               |
+| `features/docs/server/content` | docs/blog 本地内容流水线                   | Server-only               |
+
+### `src/shared/` - Cross-Surface Layer
+
+| Directory     | Responsibility                                | Boundary    |
+| ------------- | --------------------------------------------- | ----------- |
+| `models/`     | Cross-surface DAL / Repo                      | Server-only |
+| `services/`   | Cross-surface domain orchestration            | Server-only |
+| `lib/`        | Cross-cutting utilities                       | Mixed       |
+| `blocks/`     | Confirmed cross-surface shell compositions    | Client-safe |
+| `components/` | Shared UI primitives                          | Client-safe |
+| `content/`    | Cross-surface server-only content assets only | Server-only |
+| `constants/`  | Shared constants                              | Leaf        |
+| `types/`      | Shared types                                  | Leaf-ish    |
 
 ### `src/core/` - Foundation Layer
 
@@ -101,7 +121,8 @@ Third-party service integrations with provider pattern:
 ### Allowed Imports
 
 ```
-app/ → shared/, core/, config/, extensions/
+app/ → features/, shared/, core/, config/, extensions/
+features/* → shared/, core/, config/, extensions/ (禁止 feature 之间直连)
 shared/models/ → core/, config/
 shared/services/ → core/, config/, extensions/, shared/models/
 shared/lib/ → core/, config/
@@ -117,8 +138,11 @@ The `eslint.config.mjs` enforces:
 
 1. **Client/Server boundary**: Client modules cannot import `server-only`, `next/headers`, `@/core/db/**`
 2. **DAL isolation**: `shared/models` cannot import UI or Next.js entry points
-3. **Constants as leaves**: `shared/constants` cannot import services/models/core
-4. **Route handler isolation**: `src/app/**/route.ts` cannot import UI components
+3. **Feature isolation**: `features/admin|web|docs` 之间禁止直接依赖
+4. **Shared narrowing**: `shared/**` 默认不得依赖 `features/**`
+5. **Feature server boundary**: `features/**/server/**` 禁止依赖 UI/client 层与 feature components
+6. **Constants as leaves**: `shared/constants` cannot import services/models/core
+7. **Route handler isolation**: `src/app/**/route.ts` cannot import UI components
 
 ## Request Flow
 

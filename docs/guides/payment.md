@@ -421,7 +421,7 @@ Pricing is defined in locale files (e.g., `src/config/locale/messages/en/pricing
 - `src/shared/services/payment/manager.ts` - Payment service assembly (configs → providers)
 - `src/shared/services/payment/checkout.ts` - Checkout orchestration
 - `src/shared/services/payment/flows.ts` - Order/subscription state transitions
-- `src/shared/lib/payment/pricing.ts` - Pricing resolution + allowed providers
+- `src/shared/services/payment/pricing.ts` - Pricing resolution + allowed providers
 - `src/shared/schemas/api/payment/*.ts` - API request/params schemas
 - `src/shared/blocks/payment/payment-callback.tsx` - Client-side callback finalization
 - `src/shared/services/settings/definitions/payment.ts` - Payment config keys/settings schema

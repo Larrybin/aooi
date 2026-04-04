@@ -22,6 +22,11 @@ const noThrowVanillaErrorCall = {
     '禁止直接 `throw Error(...)` 进入对外契约边界；请改为抛出 `ApiError/BusinessError/ExternalError/ActionError`（仅暴露安全的 publicMessage）。',
 };
 
+const noSharedToFeatureImportPattern = {
+  group: ['@/features/**'],
+  message: 'shared/** 禁止依赖 features/**；请由 src/app/** 负责编排。',
+};
+
 const noRuntimeDbConfigImportPattern = {
   regex:
     '(^@/core/db/config(\\.[cm]?[jt]s)?$)|(^\\.{1,2}/.*?/core/db/config(\\.[cm]?[jt]s)?$)',
@@ -431,6 +436,7 @@ const eslintConfig = [
         {
           ...baseNoRestrictedImports,
           patterns: [
+            noSharedToFeatureImportPattern,
             {
               group: ['@/core/**'],
               message:
@@ -476,6 +482,7 @@ const eslintConfig = [
               message:
                 '请避免在 shared/models 中依赖 next/**（建议将请求/headers/navigation 等边界下沉到 shared/lib 的 *.server 模块或由 services 编排）。',
             },
+            noSharedToFeatureImportPattern,
             {
               group: ['@/shared/blocks/**', '@/shared/components/**'],
               message:
@@ -502,6 +509,104 @@ const eslintConfig = [
     },
   },
   {
+    files: ['src/shared/lib/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          ...baseNoRestrictedImports,
+          patterns: [
+            ...(baseNoRestrictedImports.patterns || []),
+            noSharedToFeatureImportPattern,
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/admin/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/web/**', '@/features/docs/**'],
+              message:
+                'features/admin/** 禁止依赖其它 feature；请改为下沉到 shared/** 或上移到 src/app/** 编排。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/web/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/admin/**', '@/features/docs/**'],
+              message:
+                'features/web/** 禁止依赖其它 feature；请改为下沉到 shared/** 或上移到 src/app/** 编排。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/docs/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/admin/**', '@/features/web/**'],
+              message:
+                'features/docs/** 禁止依赖其它 feature；请改为下沉到 shared/** 或上移到 src/app/** 编排。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/features/**/server/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          ...serverEntryNoRestrictedClientOnlyImports,
+          patterns: [
+            ...(serverEntryNoRestrictedClientOnlyImports.patterns || []),
+            {
+              group: [
+                '@/shared/blocks/**',
+                '@/shared/components/**',
+                '@/shared/contexts/**',
+                '@/shared/hooks/**',
+                '@/themes/**',
+              ],
+              allowTypeImports: true,
+              message:
+                'features/**/server/** 禁止依赖 UI/client 层；请返回结构化数据并交给 app 或组件层渲染。',
+            },
+            {
+              group: ['@/features/**/components/**'],
+              allowTypeImports: true,
+              message:
+                'features/**/server/** 禁止依赖 feature components；请保持 server/components 边界清晰。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/shared/services/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
@@ -509,6 +614,7 @@ const eslintConfig = [
         {
           ...baseNoRestrictedImports,
           patterns: [
+            noSharedToFeatureImportPattern,
             {
               group: [
                 '@/shared/blocks/**',
@@ -538,6 +644,9 @@ const eslintConfig = [
         {
           ...baseNoRestrictedImports,
           patterns: [
+            {
+              ...noSharedToFeatureImportPattern,
+            },
             {
               group: ['@/shared/services/**'],
               allowTypeImports: true,
@@ -582,6 +691,7 @@ const eslintConfig = [
             },
           ],
           patterns: [
+            noSharedToFeatureImportPattern,
             {
               group: [
                 '@/shared/blocks/**',
@@ -628,6 +738,7 @@ const eslintConfig = [
               message:
                 "shared UI 层仅允许依赖 '@/core/i18n/navigation' 与 '@/core/auth/client'；其它 core 依赖会扩大耦合面。",
             },
+            noSharedToFeatureImportPattern,
             ...(clientSurfaceNoRestrictedImports.patterns || []),
           ],
         },

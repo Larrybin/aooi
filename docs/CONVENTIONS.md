@@ -33,18 +33,18 @@
 
 ## 单一事实来源（优先查这里）
 
-| 主题                         | 单一事实来源                                | 说明                                                                        |
-| ---------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- |
-| Server/Client 边界、依赖方向 | `eslint.config.mjs`                         | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。            |
-| `src/shared` 分层约定        | `docs/architecture/shared-layering.md`      | 规定 `shared/models`/`shared/content`/`shared/services`/UI 层边界与禁依赖。 |
-| Code Review 基线             | `docs/CODE_REVIEW.md`                       | PR 审查顺序与常见坑，含大量场景化示例。                                     |
-| 架构审计与关键约束说明       | `docs/ARCHITECTURE_REVIEW.md`               | 解释为什么这么分层/这么约束（便于理解“为什么”）。                           |
-| Logging 约定                 | `content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                     |
-| PR Checklist                 | `content/docs/code-review-checklist.zh.mdx` | 面向 PR 的快速清单。                                                        |
-| 认证                         | `docs/guides/auth.md`                       | Better Auth 使用方式与边界。                                                |
-| RBAC                         | `docs/guides/rbac.md`                       | 角色/权限建模与初始化脚本。                                                 |
-| 支付                         | `docs/guides/payment.md`                    | 支付接入、回调、幂等等关键路径。                                            |
-| 数据库                       | `docs/guides/database.md`                   | Drizzle schema 与迁移流程。                                                 |
+| 主题                                   | 单一事实来源                                | 说明                                                                                         |
+| -------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Server/Client 边界、依赖方向           | `eslint.config.mjs`                         | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。                             |
+| `src/shared` / `src/features` 分层约定 | `docs/architecture/shared-layering.md`      | 规定 `features/*`、`shared/models`、`shared/content`、`shared/services`、UI 层边界与禁依赖。 |
+| Code Review 基线                       | `docs/CODE_REVIEW.md`                       | PR 审查顺序与常见坑，含大量场景化示例。                                                      |
+| 架构审计与关键约束说明                 | `docs/ARCHITECTURE_REVIEW.md`               | 解释为什么这么分层/这么约束（便于理解“为什么”）。                                            |
+| Logging 约定                           | `content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                                      |
+| PR Checklist                           | `content/docs/code-review-checklist.zh.mdx` | 面向 PR 的快速清单。                                                                         |
+| 认证                                   | `docs/guides/auth.md`                       | Better Auth 使用方式与边界。                                                                 |
+| RBAC                                   | `docs/guides/rbac.md`                       | 角色/权限建模与初始化脚本。                                                                  |
+| 支付                                   | `docs/guides/payment.md`                    | 支付接入、回调、幂等等关键路径。                                                             |
+| 数据库                                 | `docs/guides/database.md`                   | Drizzle schema 与迁移流程。                                                                  |
 
 ## 模式样本索引（按主题找入口）
 
@@ -123,7 +123,8 @@
 - 纯工具/一致性逻辑：`src/shared/lib/**`（示例：`src/shared/lib/seo.ts`）
 - 叶子常量层：`src/shared/constants/**`（示例：`src/shared/constants/rbac-permissions.ts`）
 - DAL/Repo/Facade：`src/shared/models/**`
-- Content pipeline（server-only）：`src/shared/content/**`
+- Docs/blog content pipeline（server-only）：`src/features/docs/server/content/**`
+- Cross-surface content assets（server-only）：`src/shared/content/**`
 - 服务装配（server-only）：`src/shared/services/**`
 - UI 共享层：`src/shared/blocks/**`、`src/shared/components/**`、`src/shared/contexts/**`、`src/shared/hooks/**`
 
