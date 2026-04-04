@@ -1,16 +1,16 @@
 // data: admin session (RBAC) + role record (db) + Server Action write (soft-delete)
 // cache: no-store (request-bound auth/RBAC)
 // reason: destructive admin action; must not cache across admins
+import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
 import { and, eq, isNull } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 
 import { db } from '@/core/db';
 import { role } from '@/config/db/schema';
 import { Empty } from '@/shared/blocks/common';
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { deleteRoleAction } from '../../actions';

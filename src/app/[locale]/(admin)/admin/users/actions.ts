@@ -1,5 +1,7 @@
 'use server';
 
+import { AdminUserUpdateFormSchema } from '@/features/admin/schemas/user';
+import { validateAndParseForm } from '@/features/admin/server/action-utils';
 import { z } from 'zod';
 
 import { assignRolesToUser } from '@/core/rbac';
@@ -12,13 +14,11 @@ import {
 } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
 import {
   findUserById,
   updateUser,
   type UpdateUser,
 } from '@/shared/models/user';
-import { AdminUserUpdateFormSchema } from '@/shared/schemas/actions/admin-user';
 
 /**
  * Update user profile (name, image)

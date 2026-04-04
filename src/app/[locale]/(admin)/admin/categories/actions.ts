@@ -1,10 +1,12 @@
 'use server';
 
+import { AdminCategoryFormSchema } from '@/features/admin/schemas/category';
+import { validateAndParseForm } from '@/features/admin/server/action-utils';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { validateAndParseForm } from '@/shared/lib/admin/action-utils';
 import { getUuid } from '@/shared/lib/hash';
 import {
   addTaxonomy,
@@ -14,7 +16,6 @@ import {
   updateTaxonomy,
   type NewTaxonomy,
 } from '@/shared/models/taxonomy';
-import { AdminCategoryFormSchema } from '@/shared/schemas/actions/admin-category';
 
 /**
  * Create a new category

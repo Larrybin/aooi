@@ -1,5 +1,7 @@
+import { ChatMessagesBodySchema } from '@/features/web/chat/schemas/messages';
+import { requireOwnedChat } from '@/features/web/chat/server/guard';
+
 import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
-import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
@@ -8,7 +10,6 @@ import {
   getChatMessages,
   getChatMessagesCount,
 } from '@/shared/models/chat_message';
-import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
 
 export const POST = withApi(async (req: Request) => {
   await requireAiEnabled();

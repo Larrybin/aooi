@@ -8,7 +8,7 @@ import {
   SidebarFooter as SidebarFooterComponent,
 } from '@/shared/components/ui/sidebar';
 import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
-import { type Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
+import { type Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 import { Nav } from './nav';
 import { SidebarButtons } from './sidebar-buttons';

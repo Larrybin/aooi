@@ -3,11 +3,12 @@
 // reason: chat layout is user-specific; avoid caching across users
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
+import { SignModal } from '@/features/web/auth/components/sign-modal';
+import { ChatLibrary } from '@/features/web/chat/components/library';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { ChatLibrary } from '@/shared/blocks/chat/library';
 import { LocaleDetector } from '@/shared/blocks/common';
-import { DashboardLayout } from '@/shared/blocks/dashboard';
+import { WorkspaceLayout } from '@/shared/blocks/workspace';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { ChatContextProvider } from '@/shared/contexts/chat';
 import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
@@ -18,7 +19,7 @@ import {
 } from '@/shared/lib/brand-placeholders.server';
 import { isAiEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
-import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
+import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 export default async function ChatLayout({
   children,
@@ -49,10 +50,11 @@ export default async function ChatLayout({
   return (
     <AppContextProvider>
       <ChatContextProvider>
-        <DashboardLayout sidebar={sidebar} initialUser={initialUser}>
+        <WorkspaceLayout sidebar={sidebar} initialUser={initialUser}>
           <LocaleDetector />
           {children}
-        </DashboardLayout>
+        </WorkspaceLayout>
+        <SignModal callbackUrl={sidebar.user?.signin_callback || '/'} />
       </ChatContextProvider>
     </AppContextProvider>
   );

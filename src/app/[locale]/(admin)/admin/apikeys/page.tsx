@@ -3,8 +3,8 @@
 // reason: api keys are sensitive; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getApikeys,

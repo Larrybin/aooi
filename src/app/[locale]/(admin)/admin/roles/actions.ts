@@ -1,5 +1,10 @@
 'use server';
 
+import { AdminRoleUpdateFormSchema } from '@/features/admin/schemas/role';
+import {
+  validateAndParseForm,
+  validatePermission,
+} from '@/features/admin/server/action-utils';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -18,11 +23,6 @@ import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import {
-  validateAndParseForm,
-  validatePermission,
-} from '@/shared/lib/admin/action-utils';
-import { AdminRoleUpdateFormSchema } from '@/shared/schemas/actions/admin-role';
 
 /**
  * Update role title and description

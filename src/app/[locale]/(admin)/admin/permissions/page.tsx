@@ -4,8 +4,8 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getPermissions, type Permission } from '@/core/rbac';
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Crumb } from '@/shared/types/blocks/common';

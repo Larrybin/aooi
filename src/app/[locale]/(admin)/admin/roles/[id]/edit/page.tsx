@@ -1,14 +1,14 @@
 // data: admin session (RBAC) + role record (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: role metadata is permission-gated; avoid caching across admins
+import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
 import { getTranslations } from 'next-intl/server';
 
 import { getRoleById } from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common';
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateRoleAction } from '../../actions';

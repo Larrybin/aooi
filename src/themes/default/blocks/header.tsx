@@ -1,15 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { SignUser } from '@/features/web/auth/components/sign-user';
 import { Menu, X } from 'lucide-react';
 
 import { Link, usePathname } from '@/core/i18n/navigation';
-import {
-  BrandLogo,
-  LocaleSelector,
-  SignUser,
-  SmartIcon,
-} from '@/shared/blocks/common';
+import { BrandLogo, LocaleSelector, SmartIcon } from '@/shared/blocks/common';
 import {
   Accordion,
   AccordionContent,

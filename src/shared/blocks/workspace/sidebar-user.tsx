@@ -7,7 +7,6 @@ import { useTranslations } from 'next-intl';
 import { signOut, useSession } from '@/core/auth/client';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common';
-import { SignModal } from '@/shared/blocks/sign/sign-modal';
 import {
   Avatar,
   AvatarFallback,
@@ -32,7 +31,7 @@ import {
 import { useAppContext } from '@/shared/contexts/app';
 import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
 import type { NavItem } from '@/shared/types/blocks/common';
-import type { SidebarUser as SidebarUserType } from '@/shared/types/blocks/dashboard';
+import type { SidebarUser as SidebarUserType } from '@/shared/types/blocks/workspace';
 
 type SidebarUserProps = {
   user: SidebarUserType;
@@ -173,8 +172,6 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
       ) : (
         <SidebarMenu />
       )}
-
-      <SignModal callbackUrl={user.signin_callback || '/'} />
     </>
   );
 }

@@ -2,10 +2,11 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin area is user-specific; avoid caching across users/roles
 import type { ReactNode } from 'react';
+import { SignModal } from '@/features/web/auth/components/sign-modal';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { LocaleDetector } from '@/shared/blocks/common';
-import { DashboardLayout } from '@/shared/blocks/dashboard/layout';
+import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
@@ -16,7 +17,7 @@ import {
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { requireAdminAccess } from '@/shared/services/rbac_guard';
-import type { Sidebar as SidebarType } from '@/shared/types/blocks/dashboard';
+import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 /**
  * Admin layout to manage datas
@@ -87,10 +88,11 @@ export default async function AdminLayout({
 
   return (
     <AppContextProvider>
-      <DashboardLayout sidebar={filteredSidebar} initialUser={initialUser}>
+      <WorkspaceLayout sidebar={filteredSidebar} initialUser={initialUser}>
         <LocaleDetector />
         {children}
-      </DashboardLayout>
+      </WorkspaceLayout>
+      <SignModal callbackUrl={filteredSidebar.user?.signin_callback || '/'} />
     </AppContextProvider>
   );
 }

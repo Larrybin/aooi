@@ -1,3 +1,5 @@
+import { ChatStreamBodySchema } from '@/features/web/chat/schemas/stream';
+import { requireOwnedChat } from '@/features/web/chat/server/guard';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import {
   convertToModelMessages,
@@ -10,7 +12,6 @@ import {
 import { CHAT_MODEL_CREDIT_COST } from '@/shared/constants/chat-model-policy';
 import { CHAT_PROVIDER } from '@/shared/constants/chat-provider';
 import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
-import { requireOwnedChat } from '@/shared/lib/api/chat';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
@@ -31,7 +32,6 @@ import {
   consumeCredits,
   refundConsumedCreditById,
 } from '@/shared/models/credit';
-import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
 
 export const POST = withApi(async (req: Request) => {
   await requireAiEnabled();

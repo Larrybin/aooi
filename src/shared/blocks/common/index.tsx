@@ -18,6 +18,4 @@ export * from './empty';
 export * from './lazy-image';
 export * from './image-uploader';
 
-export * from '../sign/sign-user';
-
 export * from './audio-player';

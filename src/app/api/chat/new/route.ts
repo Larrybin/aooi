@@ -1,3 +1,4 @@
+import { ChatNewBodySchema } from '@/features/web/chat/schemas/new';
 import { generateId } from 'ai';
 
 import { CHAT_PROVIDER } from '@/shared/constants/chat-provider';
@@ -6,7 +7,6 @@ import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { ChatStatus, createChat, type NewChat } from '@/shared/models/chat';
-import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
 
 export const POST = withApi(async (req: Request) => {
   await requireAiEnabled();

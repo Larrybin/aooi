@@ -1,9 +1,10 @@
+import { ChatListBodySchema } from '@/features/web/chat/schemas/list';
+
 import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
 import { createApiContext } from '@/shared/lib/api/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { ChatStatus, getChats, getChatsCount } from '@/shared/models/chat';
-import { ChatListBodySchema } from '@/shared/schemas/api/chat/list';
 
 export const POST = withApi(async (req: Request) => {
   await requireAiEnabled();

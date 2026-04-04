@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { signOut } from '@/core/auth/client';
 import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Avatar,
   AvatarFallback,
@@ -29,7 +30,6 @@ import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem, UserNav } from '@/shared/types/blocks/common';
 
-import { SmartIcon } from '../common/smart-icon';
 import { SignModal } from './sign-modal';
 
 export function SignUser({

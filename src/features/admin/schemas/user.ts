@@ -3,7 +3,7 @@ import { z } from 'zod';
 import {
   nonEmptyTrimmedStringSchema,
   optionalTrimmedStringSchema,
-} from './common';
+} from '@/shared/schemas/actions/common';
 
 export const AdminUserUpdateFormSchema = z.object({
   name: nonEmptyTrimmedStringSchema,

@@ -1,7 +1,7 @@
 import { envConfigs } from '@/config';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import type { Sidebar } from '@/shared/types/blocks/dashboard';
 import type { Footer, Header } from '@/shared/types/blocks/landing';
+import type { Sidebar } from '@/shared/types/blocks/workspace';
 
 type BrandIdentity = {
   name: string;

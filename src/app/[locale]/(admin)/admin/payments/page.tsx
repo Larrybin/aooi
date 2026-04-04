@@ -4,8 +4,8 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type { PaymentType } from '@/extensions/payment';
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getOrders,

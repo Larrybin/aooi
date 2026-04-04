@@ -2,10 +2,10 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: user-specific chat content; must not cache across users/roles
 import { redirect } from 'next/navigation';
+import { ChatBox } from '@/features/web/chat/components/box';
 import type { UIMessage } from 'ai';
 
 import { buildHasPermissionCondition } from '@/core/rbac';
-import { ChatBox } from '@/shared/blocks/chat/box';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { safeJsonParse } from '@/shared/lib/json';
 import { findChatByIdForViewer } from '@/shared/models/chat';

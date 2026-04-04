@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { Brand, Button, Nav } from './common';
 
-export interface Dashboard {
+export interface Workspace {
   sidebar?: Sidebar;
 }
 

@@ -2,9 +2,8 @@ import 'server-only';
 
 import { setRequestLocale } from 'next-intl/server';
 
+import type { PermissionCode } from '@/shared/lib/action/guard';
 import { requirePermission } from '@/shared/services/rbac_guard';
-
-import type { PermissionCode } from '../action/guard';
 
 /**
  * Setup admin page with locale and permission check

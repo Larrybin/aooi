@@ -4,8 +4,8 @@
 import { getTranslations } from 'next-intl/server';
 
 import { getUserRoles } from '@/core/rbac';
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { TableCard } from '@/shared/blocks/table';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getRemainingCredits } from '@/shared/models/credit';

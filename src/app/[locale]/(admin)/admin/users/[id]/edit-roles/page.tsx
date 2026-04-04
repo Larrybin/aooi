@@ -1,14 +1,14 @@
 // data: admin session (RBAC) + user/roles/permissions (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: role assignment is sensitive and permission-gated; avoid caching across admins
+import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
 import { getTranslations } from 'next-intl/server';
 
 import { getRoles, getUserRoles } from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common';
-import { Header, Main, MainHeader } from '@/shared/blocks/dashboard';
 import { FormCard } from '@/shared/blocks/form';
+import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { buildAdminCrumbs, setupAdminPage } from '@/shared/lib/admin';
 import { findUserById } from '@/shared/models/user';
 import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import type { Form } from '@/shared/types/blocks/form';

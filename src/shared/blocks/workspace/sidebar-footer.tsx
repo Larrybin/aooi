@@ -5,7 +5,7 @@ import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Separator } from '@/shared/components/ui/separator';
 import { useSidebar } from '@/shared/components/ui/sidebar';
 import type { NavItem } from '@/shared/types/blocks/common';
-import type { SidebarFooter as SidebarFooterType } from '@/shared/types/blocks/dashboard';
+import type { SidebarFooter as SidebarFooterType } from '@/shared/types/blocks/workspace';
 
 import { GeneralSocialLinks, LocaleSelector } from '../common';
 

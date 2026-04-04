@@ -1,11 +1,11 @@
 // data: request locale (next-intl) + auth configs (unstable_cache tag=db-configs, revalidate=60s) + reset token/error (query)
 // cache: dynamic (request-based searchParams); configs cached via unstable_cache
 // reason: token-based reset flow is request-specific; avoid caching across tokens
+import { ResetPassword } from '@/features/web/auth/components/reset-password';
 import { getTranslations } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
 import { defaultLocale } from '@/config/locale';
-import { ResetPassword } from '@/shared/blocks/sign/reset-password';
 import { getConfigs } from '@/shared/models/config';
 
 export async function generateMetadata({

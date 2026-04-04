@@ -1,8 +1,7 @@
 import 'server-only';
 
+import { ForbiddenError, NotFoundError } from '@/shared/lib/api/errors';
 import { findChatById, type Chat } from '@/shared/models/chat';
-
-import { ForbiddenError, NotFoundError } from './errors';
 
 export async function requireOwnedChat(
   chatId: string,

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { nonEmptyTrimmedStringSchema } from './common';
+import { nonEmptyTrimmedStringSchema } from '@/shared/schemas/actions/common';
 
 export const AdminRoleUpdateFormSchema = z.object({
   title: nonEmptyTrimmedStringSchema,
