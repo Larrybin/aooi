@@ -54,6 +54,9 @@ Required:
 
 - `NEXT_PUBLIC_APP_URL`: app origin (e.g. `http://localhost:3000`)
 - `NEXT_PUBLIC_APP_NAME`: app name (title/SEO/emails)
+- `NEXT_PUBLIC_APP_LOGO`: brand logo asset path (e.g. `/logo.png`)
+- `NEXT_PUBLIC_APP_FAVICON`: favicon asset path (e.g. `/favicon.ico`)
+- `NEXT_PUBLIC_APP_PREVIEW_IMAGE`: social preview image path (e.g. `/logo.png`)
 
 If you need auth/admin/payment:
 
@@ -66,6 +69,9 @@ Example (replace values as needed):
 # app
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_NAME="YourAppName"
+NEXT_PUBLIC_APP_LOGO="/logo.png"
+NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
+NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
 
 # theme
 NEXT_PUBLIC_THEME="default"
@@ -143,6 +149,7 @@ After signing in, configure `Admin -> Settings -> General -> Brand`:
 - `App Name`
 - `App URL (Origin)`
 - `Support Email`
+- `App Logo` / `Favicon` / `Preview Image` (upload directly in admin; requires `Storage` to be configured first)
 
 Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it consistent with `App URL (Origin)`.
 
@@ -152,6 +159,7 @@ Minimal "go-live" checklist:
 
 - Env vars: `.env.development` / `.env.production` (or your platform env settings)
 - Icons: `public/logo.png`, `public/favicon.ico`
+- App info guide: `content/docs/customize-app-info*.mdx`
 - Legal pages: `content/pages/privacy-policy*.mdx`, `content/pages/terms-of-service*.mdx`
 - Copy & landing: `src/config/locale/messages/{locale}/common.json`, `src/config/locale/messages/{locale}/landing.json`
 - Theme styles: `src/config/style/theme.css`

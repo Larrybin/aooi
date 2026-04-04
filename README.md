@@ -65,6 +65,8 @@ Visit http://localhost:3000
 - `App Name`：用于站点标题、文档/SEO、邮件标题等
 - `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
 - `Support Email`：用于法律页面与联系入口
+- `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE`：用于品牌 Logo、favicon、社交分享预览图
+- 也可在 `Admin -> Settings -> General -> Brand` 直接上传 Logo / Favicon / Preview Image（需先配置 Storage）
 - 生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致
 
 ### Initialize RBAC (Optional)
@@ -104,6 +106,7 @@ Read `content/docs` to start your AI SaaS project.
 
 ### Docs Site
 
+- App info customization: `content/docs/customize-app-info.zh.mdx` (route: `/zh/docs/customize-app-info`)
 - PR checklist: `content/docs/code-review-checklist.zh.mdx` (route: `/zh/docs/code-review-checklist`)
 - Logging conventions: `content/docs/logging-conventions.zh.mdx` (route: `/zh/docs/logging-conventions`)
 

@@ -1,0 +1,150 @@
+---
+title: 自定义应用信息
+description: 在当前仓库里统一自定义品牌信息、SEO 元信息、法律页面与站点资源。
+---
+
+当前仓库已经可以实现一套与 ShipAny `customize/appinfo` 类似的能力。现在除了环境变量与内容文件外，也支持在后台直接上传品牌资源。
+
+这次整理后的结论是：**可以实现，而且当前库已经具备大部分能力；我额外补上了 Logo / Favicon / 社交预览图路径的可配置能力。**
+
+## 当前仓库支持哪些“应用信息”自定义
+
+| 项目              | 当前仓库是否支持 | 主要入口                                                                          |
+| ----------------- | ---------------- | --------------------------------------------------------------------------------- |
+| 应用名称          | 支持             | `NEXT_PUBLIC_APP_NAME` 或后台 `Admin -> Settings -> General -> Brand -> App Name` |
+| 应用域名 / Origin | 支持             | `NEXT_PUBLIC_APP_URL` 或后台 `App URL (Origin)`                                   |
+| 支持邮箱          | 支持             | 后台 `Support Email`                                                              |
+| Logo              | 支持             | 后台 `App Logo` 上传，或 `NEXT_PUBLIC_APP_LOGO` / `public/logo.png`               |
+| Favicon           | 支持             | 后台 `Favicon` 上传，或 `NEXT_PUBLIC_APP_FAVICON` / `public/favicon.ico`          |
+| 社交分享预览图    | 支持             | 后台 `Preview Image` 上传，或 `NEXT_PUBLIC_APP_PREVIEW_IMAGE`                     |
+| 隐私政策          | 支持             | `content/pages/privacy-policy*.mdx`                                               |
+| 服务条款          | 支持             | `content/pages/terms-of-service*.mdx`                                             |
+| Sitemap           | 支持             | `src/app/sitemap.ts`                                                              |
+| Robots            | 支持             | `src/app/robots.ts`                                                               |
+
+## 推荐的自定义顺序
+
+## 1. 先配置应用基础信息
+
+复制环境变量文件：
+
+```bash
+cp ".env.example" ".env.development"
+```
+
+至少配置这些值：
+
+```bash
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="YourAppName"
+NEXT_PUBLIC_APP_LOGO="/logo.png"
+NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
+NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
+```
+
+规则：
+
+- `NEXT_PUBLIC_APP_URL` 必须是纯 origin，例如 `https://example.com`
+- `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE` 必须是 **public 资源路径**，以 `/` 开头
+- 生产环境仍然必须配置 `NEXT_PUBLIC_APP_URL`，因为它会在 Next.js build 阶段被内联
+
+## 2. 再用后台覆盖品牌信息
+
+登录后台后进入：
+
+`/admin/settings/general`
+
+推荐优先配置：
+
+- `App Name`
+- `App URL (Origin)`
+- `Support Email`
+
+当前行为：
+
+- 数据库配置会覆盖环境变量中的 `app_name`、`app_url`
+- `App Logo`、`Favicon`、`Preview Image` 可直接在后台上传并保存到配置表
+- 上传依赖 Storage 已配置（例如 R2）
+
+## 3. 替换站点资源
+
+默认资源文件：
+
+- `public/logo.png`
+- `public/favicon.ico`
+
+如果你不想直接覆盖默认文件，而是希望走独立路径，可以：
+
+- 在后台上传 `App Logo` / `Favicon` / `Preview Image`
+- 或设置 `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE`
+
+这些资源会影响：
+
+- docs 顶部导航 Logo
+- 登录/注册页 Logo
+- 404 页面 Logo
+- landing / admin / chat 的品牌 Logo
+- 全局 SEO metadata 与 favicon
+
+## 4. 修改法律页面
+
+编辑以下文件：
+
+- `content/pages/privacy-policy.mdx`
+- `content/pages/privacy-policy.zh.mdx`
+- `content/pages/terms-of-service.mdx`
+- `content/pages/terms-of-service.zh.mdx`
+- `content/pages/terms-of-service.zh-TW.mdx`
+
+其中类似这些占位内容会在渲染时自动替换：
+
+- `YourAppName`
+- `your-domain.com`
+- `support@your-domain.com`
+
+## 5. 检查 SEO / 抓取配置
+
+核心文件：
+
+- `src/shared/lib/seo.ts`
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+
+当前默认行为：
+
+- favicon 来自 `NEXT_PUBLIC_APP_FAVICON`
+- Open Graph / Twitter 预览图默认来自 `NEXT_PUBLIC_APP_PREVIEW_IMAGE`
+- canonical 与 sitemap 使用 `app_url`
+
+## 当前仓库里，这些能力分别在哪里实现
+
+### 环境变量默认值
+
+- `src/config/index.ts`
+
+### 运行时品牌信息解析
+
+- `src/shared/lib/brand-placeholders.server.ts`
+- `src/shared/lib/brand-identity.ts`
+
+### Metadata / SEO
+
+- `src/shared/lib/seo.ts`
+- `src/app/[locale]/layout.tsx`
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+
+### 会使用品牌资源的页面
+
+- `src/app/[locale]/(docs)/layout.config.tsx`
+- `src/app/[locale]/(auth)/layout.tsx`
+- `src/app/not-found.tsx`
+
+## 和 ShipAny 那种文档相比，目前差异在哪里
+
+核心能力已经基本对齐：
+
+- **应用名 / 域名 / 支持邮箱**：支持后台配置
+- **Logo / Favicon / 预览图**：支持后台上传，也支持 env / `public/` 兜底
+
+当前唯一保留的简单约束是：上传依赖已配置的对象存储，而不是把文件直接存进数据库。

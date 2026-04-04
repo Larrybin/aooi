@@ -1,0 +1,144 @@
+---
+title: Customize App Info
+description: Customize brand identity, SEO metadata, legal pages, and site assets in the current repository.
+---
+
+This repository already supports a ShipAny-like “app info / brand info” flow. In addition to env/content-based customization, brand assets can now be uploaded directly from the admin settings UI.
+
+## What can be customized
+
+| Item                 | Current repo support | Main entry                                                                           |
+| -------------------- | -------------------- | ------------------------------------------------------------------------------------ |
+| App name             | Supported            | `NEXT_PUBLIC_APP_NAME` or `Admin -> Settings -> General -> Brand -> App Name`        |
+| App URL              | Supported            | `NEXT_PUBLIC_APP_URL` or `Admin -> Settings -> General -> Brand -> App URL (Origin)` |
+| Support email        | Supported            | `Admin -> Settings -> General -> Brand -> Support Email`                             |
+| Logo                 | Supported            | Upload `App Logo` in admin, or use `NEXT_PUBLIC_APP_LOGO` / `public/logo.png`        |
+| Favicon              | Supported            | Upload `Favicon` in admin, or use `NEXT_PUBLIC_APP_FAVICON` / `public/favicon.ico`   |
+| Social preview image | Supported            | Upload `Preview Image` in admin, or use `NEXT_PUBLIC_APP_PREVIEW_IMAGE`              |
+| Privacy policy       | Supported            | `content/pages/privacy-policy*.mdx`                                                  |
+| Terms of service     | Supported            | `content/pages/terms-of-service*.mdx`                                                |
+| Sitemap              | Supported            | `src/app/sitemap.ts`                                                                 |
+| Robots               | Supported            | `src/app/robots.ts`                                                                  |
+
+## Recommended customization order
+
+### 1. Configure app identity
+
+For local development:
+
+```bash
+cp ".env.example" ".env.development"
+```
+
+Then set:
+
+```bash
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="YourAppName"
+NEXT_PUBLIC_APP_LOGO="/logo.png"
+NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
+NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
+```
+
+Rules:
+
+- `NEXT_PUBLIC_APP_URL` must be a pure origin, e.g. `https://example.com`
+- `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE` must be **public asset paths** starting with `/`
+- In production, `NEXT_PUBLIC_APP_URL` is still required because Next.js inlines it at build time
+
+### 2. Override brand info in Admin settings
+
+After signing in to the admin panel, go to:
+
+`/admin/settings/general`
+
+Recommended fields:
+
+- `App Name`
+- `App URL (Origin)`
+- `Support Email`
+
+Current behavior:
+
+- DB settings override env values for `app_name` and `app_url`
+- `App Logo`, `Favicon`, and `Preview Image` can be uploaded in admin and saved into the config table
+- Uploads require Storage to be configured first (for example R2)
+
+### 3. Replace site assets
+
+Recommended defaults:
+
+- `public/logo.png`
+- `public/favicon.ico`
+
+If you want a different path without replacing the default files, you can either:
+
+- upload `App Logo` / `Favicon` / `Preview Image` in admin
+- or set `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE`
+
+These assets are reused by:
+
+- docs top nav
+- auth pages
+- not-found page
+- landing/admin/chat brand logo
+- global SEO metadata and favicon
+
+### 4. Update legal pages
+
+Edit:
+
+- `content/pages/privacy-policy.mdx`
+- `content/pages/privacy-policy.zh.mdx`
+- `content/pages/terms-of-service.mdx`
+- `content/pages/terms-of-service.zh.mdx`
+- `content/pages/terms-of-service.zh-TW.mdx`
+
+Brand placeholders such as `YourAppName`, `your-domain.com`, and `support@your-domain.com` are automatically replaced at render time.
+
+### 5. Review SEO behavior
+
+Main files:
+
+- `src/shared/lib/seo.ts`
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+
+Current defaults:
+
+- favicon comes from `NEXT_PUBLIC_APP_FAVICON`
+- Open Graph / Twitter image defaults to `NEXT_PUBLIC_APP_PREVIEW_IMAGE`
+- canonical and sitemap use `app_url`
+
+## Where each capability is implemented
+
+### Env defaults
+
+- `src/config/index.ts`
+
+### Runtime brand resolution
+
+- `src/shared/lib/brand-placeholders.server.ts`
+- `src/shared/lib/brand-identity.ts`
+
+### Metadata / SEO
+
+- `src/shared/lib/seo.ts`
+- `src/app/[locale]/layout.tsx`
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+
+### UI surfaces using brand assets
+
+- `src/app/[locale]/(docs)/layout.config.tsx`
+- `src/app/[locale]/(auth)/layout.tsx`
+- `src/app/not-found.tsx`
+
+## Current limitation vs. ShipAny-style docs
+
+The core customization capability is now mostly aligned:
+
+- **App name / URL / support email**: configurable in admin
+- **Logo / favicon / preview image**: uploadable in admin, with env/`public/` fallback
+
+The remaining intentional constraint is that uploaded assets are stored in object storage instead of the database itself.

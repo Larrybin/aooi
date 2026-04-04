@@ -54,6 +54,9 @@ cp ".env.example" ".env.development"
 
 - `NEXT_PUBLIC_APP_URL`：应用 Origin（例如 `http://localhost:3000`）
 - `NEXT_PUBLIC_APP_NAME`：应用名称（用于标题/SEO/邮件等）
+- `NEXT_PUBLIC_APP_LOGO`：品牌 Logo 资源路径（例如 `/logo.png`）
+- `NEXT_PUBLIC_APP_FAVICON`：站点 favicon 路径（例如 `/favicon.ico`）
+- `NEXT_PUBLIC_APP_PREVIEW_IMAGE`：社交分享预览图路径（例如 `/logo.png`）
 
 如果你需要登录/管理后台/支付：
 
@@ -66,6 +69,9 @@ cp ".env.example" ".env.development"
 # app
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_NAME="YourAppName"
+NEXT_PUBLIC_APP_LOGO="/logo.png"
+NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
+NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
 
 # theme
 NEXT_PUBLIC_THEME="default"
@@ -143,6 +149,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 - `App Name`：用于站点标题、文档/SEO、邮件标题等
 - `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
 - `Support Email`：用于法律页面与联系入口
+- `App Logo` / `Favicon` / `Preview Image`：可直接在后台上传（需先配置 `Storage`）
 
 注意：生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致。
 
@@ -152,6 +159,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 - 环境变量：`.env.development` / `.env.production`（或平台的环境变量面板）
 - 站点图标：`public/logo.png`、`public/favicon.ico`
+- 应用信息说明：`content/docs/customize-app-info*.mdx`
 - 法律页面：`content/pages/privacy-policy*.mdx`、`content/pages/terms-of-service*.mdx`
 - 文案与落地页：`src/config/locale/messages/{locale}/common.json`、`src/config/locale/messages/{locale}/landing.json`
 - 主题样式：`src/config/style/theme.css`
