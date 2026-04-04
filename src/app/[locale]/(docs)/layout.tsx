@@ -52,7 +52,10 @@ export default async function DocsRootLayout({
     ? requestedLocale
     : i18n.defaultLanguage;
   const brand = buildBrandPlaceholderValues(publicConfigs);
-  const options = baseOptions(lang, { appName: brand.appName });
+  const options = baseOptions(lang, {
+    appName: brand.appName,
+    appLogo: brand.appLogo,
+  });
 
   return (
     <RootProvider

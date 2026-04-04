@@ -46,6 +46,60 @@ export const generalSettings: Setting[] = [
     tab: 'general',
   },
   {
+    name: 'app_logo',
+    title: 'App Logo',
+    type: 'upload_image',
+    value: envConfigs.app_logo,
+    placeholder:
+      'Upload your brand logo (recommended square image). Requires Storage to be configured.',
+    tip: 'Used in docs nav, auth pages, admin/sidebar brand area, and 404 page.',
+    attributes: {
+      accept: 'image/*,.ico',
+    },
+    metadata: {
+      max: 1,
+      maxSizeMB: 5,
+    },
+    group: 'general_brand',
+    tab: 'general',
+  },
+  {
+    name: 'app_favicon',
+    title: 'Favicon',
+    type: 'upload_image',
+    value: envConfigs.app_favicon,
+    placeholder:
+      'Upload favicon image (.ico/.png recommended). Requires Storage to be configured.',
+    tip: 'Used as the global site icon in metadata.',
+    attributes: {
+      accept: 'image/*,.ico',
+    },
+    metadata: {
+      max: 1,
+      maxSizeMB: 2,
+    },
+    group: 'general_brand',
+    tab: 'general',
+  },
+  {
+    name: 'app_og_image',
+    title: 'Preview Image',
+    type: 'upload_image',
+    value: envConfigs.app_og_image,
+    placeholder:
+      'Upload social preview image (recommended 1200x630). Requires Storage to be configured.',
+    tip: 'Used for Open Graph and Twitter preview cards.',
+    attributes: {
+      accept: 'image/*,.ico',
+    },
+    metadata: {
+      max: 1,
+      maxSizeMB: 5,
+    },
+    group: 'general_brand',
+    tab: 'general',
+  },
+  {
     name: 'general_ai_enabled',
     title: 'AI Module Enabled',
     type: 'switch',

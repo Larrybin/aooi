@@ -5,6 +5,9 @@ import { envConfigs } from '@/config';
 export type BrandPlaceholderValues = {
   appName: string;
   appUrl: string;
+  appLogo: string;
+  appFavicon: string;
+  appOgImage: string;
   domain: string;
   supportEmail: string;
 };
@@ -39,6 +42,9 @@ export function buildBrandPlaceholderValues(
 ): BrandPlaceholderValues {
   const appUrl = safeTrim(configs?.app_url) || envConfigs.app_url;
   const appName = safeTrim(configs?.app_name) || envConfigs.app_name;
+  const appLogo = safeTrim(configs?.app_logo) || envConfigs.app_logo;
+  const appFavicon = safeTrim(configs?.app_favicon) || envConfigs.app_favicon;
+  const appOgImage = safeTrim(configs?.app_og_image) || envConfigs.app_og_image;
   const domain = tryGetDomainFromOrigin(appUrl);
   const supportEmail =
     safeTrim(configs?.general_support_email) || defaultSupportEmail(domain);
@@ -46,6 +52,9 @@ export function buildBrandPlaceholderValues(
   return {
     appName,
     appUrl,
+    appLogo,
+    appFavicon,
+    appOgImage,
     domain,
     supportEmail,
   };

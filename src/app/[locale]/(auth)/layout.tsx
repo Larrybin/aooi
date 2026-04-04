@@ -33,7 +33,7 @@ export default async function AuthLayout({
             brand={{
               title: appName,
               logo: {
-                src: '/logo.png',
+                src: brand.appLogo || envConfigs.app_logo,
                 alt: appName,
               },
               url: '/',

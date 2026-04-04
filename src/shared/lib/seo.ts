@@ -140,7 +140,7 @@ export function getMetadata(
       defaultMetadata.description;
 
     // image url
-    let imageUrl = options.imageUrl || '/logo.png';
+    let imageUrl = options.imageUrl || brand.appOgImage || '/logo.png';
     if (imageUrl.startsWith('http')) {
       imageUrl = imageUrl;
     } else {
@@ -170,6 +170,10 @@ export function getMetadata(
       alternates: {
         canonical: canonicalUrl,
         ...(languageAlternates ? { languages: languageAlternates } : {}),
+      },
+      icons: {
+        icon: brand.appFavicon,
+        shortcut: brand.appFavicon,
       },
 
       openGraph: {

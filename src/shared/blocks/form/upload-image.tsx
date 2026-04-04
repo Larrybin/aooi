@@ -30,6 +30,10 @@ export function UploadImage({
   const maxImages = metadata?.max || 1;
   const maxSizeMB = metadata?.maxSizeMB || 10;
   const allowMultiple = maxImages > 1;
+  const accept =
+    typeof field.attributes?.accept === 'string'
+      ? field.attributes.accept
+      : 'image/*,.ico';
 
   const previews = useMemo(() => {
     const value = formField.value;
@@ -66,6 +70,7 @@ export function UploadImage({
       allowMultiple={allowMultiple}
       maxImages={maxImages}
       maxSizeMB={maxSizeMB}
+      accept={accept}
       emptyHint={field.placeholder}
       defaultPreviews={previews}
       onChange={handleChange}

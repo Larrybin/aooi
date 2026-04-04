@@ -1,3 +1,5 @@
+import { readPublicAssetPath } from './public-asset-path';
+
 export type ConfigMap = Record<string, string>;
 
 const DEFAULT_APP_URL = 'http://localhost:3000';
@@ -54,6 +56,22 @@ function readAppUrl(): string {
 export const envConfigs = {
   app_url: readAppUrl(),
   app_name: process.env.NEXT_PUBLIC_APP_NAME ?? 'Roller Rabbit',
+  app_logo: readPublicAssetPath(
+    process.env.NEXT_PUBLIC_APP_LOGO,
+    '/logo.png',
+    'NEXT_PUBLIC_APP_LOGO'
+  ),
+  app_favicon: readPublicAssetPath(
+    process.env.NEXT_PUBLIC_APP_FAVICON,
+    '/favicon.ico',
+    'NEXT_PUBLIC_APP_FAVICON'
+  ),
+  app_og_image: readPublicAssetPath(
+    process.env.NEXT_PUBLIC_APP_PREVIEW_IMAGE ??
+      process.env.NEXT_PUBLIC_APP_OG_IMAGE,
+    '/logo.png',
+    'NEXT_PUBLIC_APP_PREVIEW_IMAGE'
+  ),
   theme: process.env.NEXT_PUBLIC_THEME ?? 'default',
   locale: process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en',
 };

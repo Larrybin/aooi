@@ -29,6 +29,7 @@ import {
   getSettings,
   getSettingTabs,
 } from '@/shared/services/settings';
+import { normalizeAssetSettingValue } from '@/shared/services/settings/validators/general';
 import {
   parseCreemProductIdsMappingConfig,
   parseStripePaymentMethodsConfig,
@@ -132,6 +133,36 @@ export default async function SettingsPage({
         normalizedSupportEmail = trimmed;
       }
 
+      let normalizedAppLogo: string | undefined;
+      const appLogo = values.app_logo;
+      if (typeof appLogo === 'string') {
+        const result = normalizeAssetSettingValue(appLogo, 'App Logo');
+        if (!result.ok) {
+          return actionErr(`Invalid App Logo. ${result.error}`);
+        }
+        normalizedAppLogo = result.value;
+      }
+
+      let normalizedAppFavicon: string | undefined;
+      const appFavicon = values.app_favicon;
+      if (typeof appFavicon === 'string') {
+        const result = normalizeAssetSettingValue(appFavicon, 'Favicon');
+        if (!result.ok) {
+          return actionErr(`Invalid Favicon. ${result.error}`);
+        }
+        normalizedAppFavicon = result.value;
+      }
+
+      let normalizedAppOgImage: string | undefined;
+      const appOgImage = values.app_og_image;
+      if (typeof appOgImage === 'string') {
+        const result = normalizeAssetSettingValue(appOgImage, 'Preview Image');
+        if (!result.ok) {
+          return actionErr(`Invalid Preview Image. ${result.error}`);
+        }
+        normalizedAppOgImage = result.value;
+      }
+
       let normalizedSocialLinks: string | undefined;
       const socialLinks = values.general_social_links;
       if (typeof socialLinks === 'string') {
@@ -197,6 +228,21 @@ export default async function SettingsPage({
 
         if (name === 'app_url' && normalizedAppUrl !== undefined) {
           configs[name] = normalizedAppUrl;
+          continue;
+        }
+
+        if (name === 'app_logo' && normalizedAppLogo !== undefined) {
+          configs[name] = normalizedAppLogo;
+          continue;
+        }
+
+        if (name === 'app_favicon' && normalizedAppFavicon !== undefined) {
+          configs[name] = normalizedAppFavicon;
+          continue;
+        }
+
+        if (name === 'app_og_image' && normalizedAppOgImage !== undefined) {
+          configs[name] = normalizedAppOgImage;
           continue;
         }
 

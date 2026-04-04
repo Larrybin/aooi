@@ -47,6 +47,7 @@ const IMAGE_EXT_BY_MIME = {
   'image/webp': 'webp',
   'image/gif': 'gif',
   'image/avif': 'avif',
+  'image/x-icon': 'ico',
 } as const;
 
 type AllowedImageMimeType = keyof typeof IMAGE_EXT_BY_MIME;
@@ -110,12 +111,17 @@ function isAvif(buffer: Buffer): boolean {
   return false;
 }
 
+function isIco(buffer: Buffer): boolean {
+  return hasBytesPrefix(buffer, [0x00, 0x00, 0x01, 0x00]);
+}
+
 function detectAllowedImageMime(buffer: Buffer): AllowedImageMimeType | null {
   if (isJpeg(buffer)) return 'image/jpeg';
   if (isPng(buffer)) return 'image/png';
   if (isWebp(buffer)) return 'image/webp';
   if (isGif(buffer)) return 'image/gif';
   if (isAvif(buffer)) return 'image/avif';
+  if (isIco(buffer)) return 'image/x-icon';
   return null;
 }
 

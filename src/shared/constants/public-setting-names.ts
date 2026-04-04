@@ -1,6 +1,9 @@
 export const PUBLIC_SETTING_NAMES = [
   'app_name',
   'app_url',
+  'app_logo',
+  'app_favicon',
+  'app_og_image',
   'general_ai_enabled',
   'general_blog_enabled',
   'general_docs_enabled',

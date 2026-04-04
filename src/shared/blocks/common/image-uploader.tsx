@@ -26,6 +26,7 @@ interface ImageUploaderProps {
   allowMultiple?: boolean;
   maxImages?: number;
   maxSizeMB?: number;
+  accept?: string;
   title?: string;
   emptyHint?: string;
   className?: string;
@@ -50,6 +51,7 @@ export function ImageUploader({
   allowMultiple = false,
   maxImages = 1,
   maxSizeMB = 10,
+  accept = 'image/*,.ico',
   title,
   emptyHint,
   className,
@@ -302,7 +304,7 @@ export function ImageUploader({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={accept}
         multiple={allowMultiple}
         onChange={handleSelect}
         className="hidden"

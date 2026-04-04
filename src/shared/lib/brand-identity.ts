@@ -6,6 +6,7 @@ import type { Sidebar } from '@/shared/types/blocks/workspace';
 type BrandIdentity = {
   name: string;
   url: string;
+  logoSrc: string;
 };
 
 function getBrandIdentity(configs?: Record<string, string>): BrandIdentity {
@@ -13,6 +14,7 @@ function getBrandIdentity(configs?: Record<string, string>): BrandIdentity {
   return {
     name: brand.appName || envConfigs.app_name || '',
     url: brand.appUrl || envConfigs.app_url || '',
+    logoSrc: brand.appLogo || envConfigs.app_logo || '/logo.png',
   };
 }
 
@@ -33,6 +35,7 @@ export function applyBrandToLandingHeaderFooter(params: {
           logo: params.header.brand.logo
             ? {
                 ...params.header.brand.logo,
+                src: brand.logoSrc || params.header.brand.logo.src,
                 alt: brand.name || params.header.brand.logo.alt,
               }
             : undefined,
@@ -50,6 +53,7 @@ export function applyBrandToLandingHeaderFooter(params: {
           logo: params.footer.brand.logo
             ? {
                 ...params.footer.brand.logo,
+                src: brand.logoSrc || params.footer.brand.logo.src,
                 alt: brand.name || params.footer.brand.logo.alt,
               }
             : undefined,
@@ -76,6 +80,7 @@ export function applyBrandToSidebar(
           logo: sidebar.header.brand.logo
             ? {
                 ...sidebar.header.brand.logo,
+                src: brand.logoSrc || sidebar.header.brand.logo.src,
                 alt: brand.name || sidebar.header.brand.logo.alt,
               }
             : undefined,
