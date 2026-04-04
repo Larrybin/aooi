@@ -26,6 +26,7 @@ import type {
   FormSubmit,
 } from '@/shared/types/blocks/form';
 
+import { BrandAssetsPreview } from './brand-assets-preview';
 import { Checkbox } from './checkbox';
 import { Input } from './input';
 import { Markdown } from './markdown';
@@ -252,6 +253,11 @@ export function Form<
     resolver: zodResolver(FormSchema),
     defaultValues,
   });
+  const watchedValues = form.watch() as Record<string, unknown>;
+  const showBrandPreview =
+    fields.some((field) => field.name === 'app_logo') &&
+    fields.some((field) => field.name === 'app_favicon') &&
+    fields.some((field) => field.name === 'app_og_image');
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     // console.log('=== Form Submit Start ===');
@@ -384,6 +390,15 @@ export function Form<
             );
           })}
         </div>
+        {showBrandPreview ? (
+          <BrandAssetsPreview
+            appName={String(watchedValues.app_name ?? '')}
+            appUrl={String(watchedValues.app_url ?? '')}
+            appLogo={String(watchedValues.app_logo ?? '')}
+            appFavicon={String(watchedValues.app_favicon ?? '')}
+            appPreviewImage={String(watchedValues.app_og_image ?? '')}
+          />
+        ) : null}
         {submit?.button && (
           <Button
             type="submit"

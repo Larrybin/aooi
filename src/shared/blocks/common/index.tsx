@@ -3,6 +3,7 @@ export * from './smart-icon';
 export * from './pagination';
 
 export * from './brand-logo';
+export * from './brand-image';
 
 export * from './locale-detector';
 export * from './locale-detector-lazy';

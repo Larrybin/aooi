@@ -1,6 +1,5 @@
-import Image from 'next/image';
-
 import { Link } from '@/core/i18n/navigation';
+import { BrandImage } from '@/shared/blocks/common';
 import {
   SidebarHeader as SidebarHeaderComponent,
   SidebarMenu,
@@ -25,7 +24,7 @@ export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
               {header.brand && (
                 <Link href={header.brand.url || ''}>
                   {header.brand.logo && (
-                    <Image
+                    <BrandImage
                       src={header.brand.logo.src}
                       alt={
                         header.brand.logo.alt ||
@@ -34,7 +33,6 @@ export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
                       }
                       width={32}
                       height={32}
-                      sizes="32px"
                       className="h-auto w-8 shrink-0"
                     />
                   )}

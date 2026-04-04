@@ -3,7 +3,7 @@ import { SignUser } from '@/features/web/auth/components/sign-user';
 import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
-import { LazyImage } from '@/shared/blocks/common';
+import { BrandImage } from '@/shared/blocks/common';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
@@ -103,14 +103,13 @@ export function MarketingHeader({
             className={`flex items-center gap-2 ${header.brand.className || ''}`}
           >
             {header.brand.logo ? (
-              <LazyImage
+              <BrandImage
                 src={header.brand.logo.src}
                 alt={
                   header.brand.logo.alt || header.brand.title || 'Brand logo'
                 }
                 width={40}
                 height={40}
-                sizes="40px"
                 className="h-10 w-10"
               />
             ) : null}

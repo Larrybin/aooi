@@ -1,13 +1,15 @@
-import Image from 'next/image';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 import { i18n } from '@/core/docs/source';
+import { envConfigs } from '@/config';
+import { BrandImage } from '@/shared/blocks/common';
 
 export function baseOptions(
   _locale: string,
-  brand?: { appName?: string }
+  brand?: { appName?: string; appLogo?: string }
 ): BaseLayoutProps {
   const appName = brand?.appName || '';
+  const appLogo = brand?.appLogo || envConfigs.app_logo;
   return {
     themeSwitch: {
       enabled: false,
@@ -16,8 +18,8 @@ export function baseOptions(
     nav: {
       title: (
         <>
-          <Image
-            src="/logo.png"
+          <BrandImage
+            src={appLogo}
             alt={appName}
             width={28}
             height={28}

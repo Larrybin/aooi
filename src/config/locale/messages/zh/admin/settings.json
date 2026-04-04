@@ -54,5 +54,39 @@
       "global_desc": "页面加载时出现意外错误，请稍后重试或联系管理员。",
       "retry": "重试"
     }
+  },
+  "brand_preview": {
+    "title": "实时预览",
+    "description": "上传完成后会立即反映在这里。保存后，前台品牌资源会按当前配置生效；若线上仍显示旧图，通常是缓存导致，刷新后即可看到。",
+    "logo": {
+      "alt": "Logo 预览"
+    },
+    "preview": {
+      "alt": "分享预览图"
+    },
+    "favicon": {
+      "title": "Favicon 预览",
+      "alt": "Favicon 预览"
+    },
+    "preview_card": {
+      "title": "分享卡片预览",
+      "headline": "更清晰地展示你的品牌形象",
+      "description": "这里模拟 Open Graph / Twitter 卡片的展示效果，用于预估分享时的标题、站点名与预览图观感。"
+    },
+    "size_guide": {
+      "title": "尺寸建议",
+      "logo": {
+        "title": "Logo",
+        "description": "建议使用 512×512 及以上的正方形图片，优先透明背景，避免过细文字。"
+      },
+      "favicon": {
+        "title": "Favicon",
+        "description": "建议使用 32×32、48×48 或 `.ico` 文件；图形尽量简洁，避免复杂细节。"
+      },
+      "preview": {
+        "title": "Preview Image",
+        "description": "建议使用 1200×630，关键信息放在中间安全区域，避免边缘被裁切。"
+      }
+    }
   }
 }

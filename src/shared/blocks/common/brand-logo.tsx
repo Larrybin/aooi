@@ -1,7 +1,7 @@
 import { Link } from '@/core/i18n/navigation';
 import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
-import { LazyImage } from './lazy-image';
+import { BrandImage } from './brand-image';
 
 export function BrandLogo({ brand }: { brand: BrandType }) {
   const displayHeight = 40;
@@ -20,12 +20,11 @@ export function BrandLogo({ brand }: { brand: BrandType }) {
       className={`flex items-center space-x-2 ${brand.className}`}
     >
       {brand.logo && (
-        <LazyImage
+        <BrandImage
           src={brand.logo.src}
           alt={brand.logo.alt || brand.title || 'Brand logo'}
           width={displayWidth}
           height={displayHeight}
-          sizes={`${displayWidth}px`}
           className="h-10 w-auto"
         />
       )}

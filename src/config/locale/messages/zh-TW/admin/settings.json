@@ -54,5 +54,39 @@
       "global_desc": "頁面載入時發生意外錯誤，請稍後重試或聯絡管理員。",
       "retry": "重試"
     }
+  },
+  "brand_preview": {
+    "title": "即時預覽",
+    "description": "上傳完成後會立即反映在這裡。儲存後，前台品牌資源會依目前設定生效；若線上仍顯示舊圖，通常是快取造成的。",
+    "logo": {
+      "alt": "Logo 預覽"
+    },
+    "preview": {
+      "alt": "分享預覽圖"
+    },
+    "favicon": {
+      "title": "Favicon 預覽",
+      "alt": "Favicon 預覽"
+    },
+    "preview_card": {
+      "title": "分享卡片預覽",
+      "headline": "更清楚地展示你的品牌形象",
+      "description": "這裡模擬 Open Graph / Twitter 卡片的展示效果，方便快速判斷標題、站點名稱與預覽圖的整體觀感。"
+    },
+    "size_guide": {
+      "title": "尺寸建議",
+      "logo": {
+        "title": "Logo",
+        "description": "建議使用 512×512 以上的正方形圖片，優先透明背景，避免過細文字。"
+      },
+      "favicon": {
+        "title": "Favicon",
+        "description": "建議使用 32×32、48×48 或 `.ico` 檔案；圖形盡量簡潔，避免複雜細節。"
+      },
+      "preview": {
+        "title": "Preview Image",
+        "description": "建議使用 1200×630，關鍵資訊放在中間安全區域，避免邊緣被裁切。"
+      }
+    }
   }
 }
