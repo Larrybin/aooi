@@ -235,7 +235,7 @@
 - 主题、文案与内容：
   - 不在代码中硬编码文案，统一通过 next-intl 文本资源；新增文案需同步对应 locale 文件，并保证 key 语义清晰（避免 `common.message1` 这类命名）。
   - 主题：当前仅浅色；样式应优先使用主题 token（`src/config/style/theme.css`），避免硬编码颜色造成风格漂移。
-  - MDX 文档与内容使用 fumadocs-\* / next-mdx-remote 等专用组件处理，避免在页面中直接硬写 HTML；代码块统一走 shiki 高亮，保证重要示例代码可复制可运行。
+  - MDX 文档与内容使用 fumadocs-\* 等专用组件处理，避免在页面中直接硬写 HTML；代码块统一走 shiki 高亮，保证重要示例代码可复制可运行。
 
 ### 5.3 结构一致性
 
