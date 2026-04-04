@@ -2,13 +2,13 @@
 // cache: default (static per slug/locale; no request-bound auth)
 // reason: public markdown pages; no user-specific data
 import { notFound } from 'next/navigation';
+import { getDocsPage } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
 import { envConfigs } from '@/config';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
-import { getLocalPage } from '@/shared/models/post';
 
 export async function generateMetadata({
   params,
@@ -28,7 +28,7 @@ export async function generateMetadata({
       ? `${appUrl}/${locale}/${slug}`
       : `${appUrl}/${slug}`;
 
-  const page = await getLocalPage({ slug, locale });
+  const page = await getDocsPage({ slug, locale });
   if (!page) {
     return {
       title: `${slug} | ${t('title')}`,
@@ -57,7 +57,7 @@ export default async function DynamicPage({
   setRequestLocale(locale);
 
   // Get the page from pagesSource
-  const page = await getLocalPage({ slug, locale });
+  const page = await getDocsPage({ slug, locale });
   if (!page) {
     return notFound();
   }

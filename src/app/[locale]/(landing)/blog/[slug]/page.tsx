@@ -2,6 +2,7 @@
 // cache: default (no explicit cache; slug-based dynamic route)
 // reason: public content page; keep SEO metadata aligned with content source
 import { notFound } from 'next/navigation';
+import { getBlogPost } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
@@ -12,7 +13,6 @@ import {
   buildCanonicalUrlWithAppUrl,
   buildLanguageAlternatesWithAppUrl,
 } from '@/shared/lib/seo';
-import { getPost } from '@/shared/models/post';
 
 export async function generateMetadata({
   params,
@@ -35,7 +35,7 @@ export async function generateMetadata({
     brand.appUrl
   );
 
-  const post = await getPost({ slug, locale });
+  const post = await getBlogPost({ slug, locale });
   if (!post) {
     return {
       title: `${slug} | ${t('title')}`,
@@ -67,7 +67,7 @@ export default async function BlogDetailPage({
   setRequestLocale(locale);
 
   // load blog data
-  const post = await getPost({ slug, locale });
+  const post = await getBlogPost({ slug, locale });
 
   if (!post) {
     notFound();

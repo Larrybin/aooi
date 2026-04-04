@@ -5,18 +5,17 @@ import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 
 import { i18n, pagesSource, postsSource } from '@/core/docs/source';
-import { generateTOC } from '@/core/docs/toc';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
 import { formatPostDate } from '@/shared/lib/post-date';
+import { buildPostTocFromMarkdown as buildMarkdownToc } from '@/shared/lib/post-toc';
 import { getAllConfigs } from '@/shared/models/config';
-import type {
-  Category as BlogCategoryType,
-  Post as BlogPostType,
-} from '@/shared/types/blocks/blog';
+import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
+
+import { toSortTimestamp, type BlogPostEntry } from './blog-feed';
 
 const supportedContentLocales = new Set(i18n.languages);
 
@@ -25,11 +24,10 @@ function resolveContentLocale(locale: string) {
 }
 
 /**
- * Content pipeline for local posts/pages and markdown-derived artifacts.
+ * Docs/blog 本地内容流水线。
  *
- * Why this lives under `src/shared/content/**` (instead of `shared/models/**`):
- * - It is allowed to depend on docs/mdx modules (`@/core/docs/**`, `@/mdx-components`)
- * - `shared/models/**` is intentionally restricted to avoid docs/mdx coupling
+ * 这里允许依赖 docs/mdx 体系，因此归属 `features/docs/server/content/**`，
+ * 而不是继续放在 shared/models 这类通用层。
  */
 type LocalPostFrontmatter = {
   created_at?: string;
@@ -158,13 +156,12 @@ export async function getLocalPage({
   };
 }
 
-export async function getLocalPostsAndCategories({
+export async function getLocalBlogPostEntries({
   locale,
   postPrefix = '/blog/',
 }: {
   locale: string;
   postPrefix?: string;
-  categoryPrefix?: string;
 }) {
   const requestedLocale = locale;
   const sourceLocale = resolveContentLocale(locale);
@@ -180,60 +177,46 @@ export async function getLocalPostsAndCategories({
   }
 
   if (!localPosts || localPosts.length === 0) {
-    return {
-      posts: [],
-      postsCount: 0,
-      categories: [],
-      categoriesCount: 0,
-    };
+    return [] satisfies BlogPostEntry[];
   }
 
   const configs = await getAllConfigs();
   const brand = buildBrandPlaceholderValues(configs);
 
-  const posts = localPosts.map((post) => {
+  return localPosts.map((post) => {
     const frontmatter = post.data as LocalPostFrontmatter;
     const slug = getPostSlugFromUrl({
       url: post.url,
       locale: contentLocale,
       prefix: postPrefix,
     });
+    const rawCreatedAt = frontmatter.created_at || '';
 
     return {
-      id: post.path,
-      slug,
-      title: replaceBrandPlaceholders(post.data.title || '', brand),
-      description: replaceBrandPlaceholders(post.data.description || '', brand),
-      author_name: frontmatter.author_name || '',
-      author_image: frontmatter.author_image || '',
-      created_at: frontmatter.created_at
-        ? formatPostDate(frontmatter.created_at, requestedLocale)
-        : '',
-      image: frontmatter.image || '',
-      url: `${postPrefix}${slug}`,
-    } satisfies BlogPostType;
+      post: {
+        id: post.path,
+        slug,
+        title: replaceBrandPlaceholders(post.data.title || '', brand),
+        description: replaceBrandPlaceholders(
+          post.data.description || '',
+          brand
+        ),
+        author_name: frontmatter.author_name || '',
+        author_image: frontmatter.author_image || '',
+        created_at: rawCreatedAt
+          ? formatPostDate(rawCreatedAt, requestedLocale)
+          : '',
+        image: frontmatter.image || '',
+        url: `${postPrefix}${slug}`,
+      } satisfies BlogPostType,
+      sortTimestamp: toSortTimestamp(rawCreatedAt),
+    } satisfies BlogPostEntry;
   });
-
-  // NOTE: local categories are not currently implemented; keep the existing behavior.
-  const categories: BlogCategoryType[] = [];
-
-  return {
-    posts,
-    postsCount: posts.length,
-    categories,
-    categoriesCount: categories.length,
-  };
 }
 
 export function buildPostTocFromMarkdown(content: string) {
-  return generateTOC(content);
+  return buildMarkdownToc(content);
 }
-
-/**
- * @deprecated Prefer `buildPostTocFromMarkdown`.
- * Kept as a compatibility alias for internal callers.
- */
-export const generatePostTocFromMarkdown = buildPostTocFromMarkdown;
 
 function getPostSlugFromUrl({
   url,

@@ -1,6 +1,7 @@
 // data: blog translations + posts/categories (content + db) + pagination (query)
 // cache: dynamic (request-based searchParams); no explicit cache for db reads
 // reason: public listing varies by page; avoid serving stale mixed pagination data
+import { getBlogPostsAndCategories } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getThemePage } from '@/core/theme';
@@ -11,7 +12,6 @@ import {
 import { logger } from '@/shared/lib/logger.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getMetadata } from '@/shared/lib/seo';
-import { getPostsAndCategories } from '@/shared/models/post';
 import type {
   Blog as BlogType,
   Category as CategoryType,
@@ -28,7 +28,10 @@ export default async function BlogPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ page?: number; pageSize?: number }>;
+  searchParams: Promise<{
+    page?: string | string[];
+    pageSize?: string | string[];
+  }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -48,15 +51,13 @@ export default async function BlogPage({
   };
 
   try {
-    const { page: pageNum, pageSize } = await searchParams;
-    const page = pageNum || 1;
-    const limit = pageSize || 30;
+    const { page, pageSize } = await searchParams;
 
     const { posts: allPosts, categories: allCategories } =
-      await getPostsAndCategories({
+      await getBlogPostsAndCategories({
         locale,
         page,
-        limit,
+        pageSize,
       });
 
     posts = allPosts;
