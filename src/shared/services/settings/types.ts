@@ -12,6 +12,7 @@ export interface Setting {
   group?: string;
   tab?: string;
   attributes?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SettingGroup {

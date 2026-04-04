@@ -311,6 +311,7 @@ export default async function SettingsPage({
           tip: setting.tip,
           value: setting.value,
           attributes: setting.attributes,
+          metadata: setting.metadata,
         })),
       passby: {
         provider: group.name,
