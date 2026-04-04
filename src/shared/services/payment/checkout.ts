@@ -16,7 +16,6 @@ import {
   UpstreamError,
 } from '@/shared/lib/api/errors';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
-import { resolveCheckoutPricingContext } from '@/shared/lib/payment/pricing';
 import type { Configs } from '@/shared/models/config';
 import {
   createOrder,
@@ -24,6 +23,7 @@ import {
   updateOrderByOrderNo,
   type NewOrder,
 } from '@/shared/models/order';
+import { resolveCheckoutPricingContext } from '@/shared/services/payment/pricing';
 import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
 

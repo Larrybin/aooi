@@ -4,10 +4,10 @@ import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { findPricingItemByProductId } from '@/shared/lib/payment/pricing';
 import { getAllConfigs } from '@/shared/models/config';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import { createPaymentCheckoutSession } from '@/shared/services/payment';
+import { findPricingItemByProductId } from '@/shared/services/payment/pricing';
 import type { Pricing } from '@/shared/types/blocks/pricing';
 
 export const POST = withApi(async (req: Request) => {
