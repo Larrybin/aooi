@@ -123,8 +123,23 @@ export async function getAllConfigs(): Promise<Configs> {
   return configs;
 }
 
+export async function getAllConfigsSafe(): Promise<{
+  configs: Configs;
+  error?: Error;
+}> {
+  const { configs: dbConfigs, error } = await getConfigsSafe();
+
+  return {
+    configs: {
+      ...envConfigs,
+      ...dbConfigs,
+    },
+    error,
+  };
+}
+
 export async function getPublicConfigs(): Promise<Configs> {
-  const allConfigs = await getAllConfigs();
+  const { configs: allConfigs } = await getAllConfigsSafe();
 
   const publicConfigs: Record<string, string> = {};
 

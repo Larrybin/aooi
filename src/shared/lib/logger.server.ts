@@ -105,7 +105,7 @@ function redactInternal(
   if (value instanceof Date) return value.toISOString();
 
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
-    return `[Buffer ${value.length} bytes]`;
+    return `[Buffer ${(value as Buffer).length} bytes]`;
   }
   if (value instanceof Uint8Array) {
     return `[Uint8Array ${value.byteLength} bytes]`;

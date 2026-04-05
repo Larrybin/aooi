@@ -2,6 +2,8 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import { createMDX } from 'fumadocs-mdx/next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
+import('@opennextjs/cloudflare').then((m) => m.initOpenNextCloudflareForDev());
+
 const withMDX = createMDX();
 
 const withBundleAnalyzer = bundleAnalyzer({

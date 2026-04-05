@@ -5,7 +5,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsSafe } from '@/shared/models/config';
 
 type MetadataFields = {
   title: string;
@@ -90,7 +90,7 @@ export function getMetadata(
     const { locale } = await params;
     setRequestLocale(locale);
 
-    const configs = await getAllConfigs();
+    const { configs } = await getAllConfigsSafe();
     const brand = buildBrandPlaceholderValues(configs);
 
     // passed metadata

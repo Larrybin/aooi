@@ -15,6 +15,16 @@ function formatConfigError(parts: string[]): Error {
   return new Error(parts.filter(Boolean).join(' '));
 }
 
+async function isOpenNextCloudflareRuntime(): Promise<boolean> {
+  try {
+    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+    const { env } = await getCloudflareContext({ async: true });
+    return !!env;
+  } catch {
+    return false;
+  }
+}
+
 async function assertRoleDeletedAtColumnExists(
   databaseUrl: string,
   logger: SchemaCheckLogger
@@ -64,6 +74,10 @@ export async function register() {
       'Auth config check failed in production: missing BETTER_AUTH_SECRET/AUTH_SECRET.',
       'Set one of these environment variables to a strong random value.',
     ]);
+  }
+
+  if (await isOpenNextCloudflareRuntime()) {
+    return;
   }
 
   const databaseUrl = process.env.DATABASE_URL;

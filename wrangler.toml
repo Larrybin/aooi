@@ -1,33 +1,27 @@
-name = "my-app"
+name = "roller-rabbit"
 main = ".open-next/worker.js"
 compatibility_date = "2025-03-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 [assets]
 binding = "ASSETS"
 directory = ".open-next/assets"
 
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "roller-rabbit"
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = ""
-localConnectionString = ""
+localConnectionString = "postgresql://postgres:postgres@127.0.0.1:5432/roller_rabbit"
 
 [observability]
 enabled = true
 
 [vars]
-# app
 NEXT_PUBLIC_APP_URL = "http://localhost:3000"
-NEXT_PUBLIC_APP_NAME = "Your App Name"
-
-# theme
+NEXT_PUBLIC_APP_NAME = "Roller Rabbit"
 NEXT_PUBLIC_THEME = "default"
-
-# database
-DATABASE_URL = ""
 DATABASE_PROVIDER = "postgresql"
 DB_SINGLETON_ENABLED = "true"
-
-# auth secret
-# openssl rand -base64 32
-AUTH_SECRET = ""

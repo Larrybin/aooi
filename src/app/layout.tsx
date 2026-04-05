@@ -6,7 +6,7 @@ import '@/config/style/global.css';
 import { getLocale, setRequestLocale } from 'next-intl/server';
 
 import { isRtlLocale } from '@/config/locale';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsSafe } from '@/shared/models/config';
 import { getAdsManagerWithConfigs } from '@/shared/services/ads';
 import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
 import { getAnalyticsManagerWithConfigs } from '@/shared/services/analytics';
@@ -44,7 +44,7 @@ export default async function RootLayout({
   let customerServiceBodyScripts = null;
 
   if (isProduction || isDebug) {
-    const configs = await getAllConfigs();
+    const { configs } = await getAllConfigsSafe();
 
     // get ads components
     const adsService = getAdsManagerWithConfigs(configs);
