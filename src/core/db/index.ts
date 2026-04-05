@@ -32,7 +32,6 @@ const serverlessCache = new Map<string, CachedDb>();
 const workersCache = new Map<string, CachedDb>();
 
 let hasLoggedEnvironment = false;
-
 function getOrCreateSchemaCheckPromise(
   sql: ReturnType<typeof postgres>,
   databaseUrl: string
@@ -229,7 +228,7 @@ export function db() {
         hint: 'configure [[hyperdrive]] binding = "HYPERDRIVE" in wrangler.toml',
       });
       throw new ServiceUnavailableError(
-        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml (see wrangler.toml.example) as: [[hyperdrive]] binding = "HYPERDRIVE".',
+        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.toml as: [[hyperdrive]] binding = "HYPERDRIVE".',
         undefined,
         { publicMessage: publicUnavailableMessage }
       );
