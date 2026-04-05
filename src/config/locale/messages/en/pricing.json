@@ -7,7 +7,7 @@
     "id": "pricing",
     "sr_only_title": "Roller Rabbit Pricing",
     "title": "Pricing",
-    "description": "Get all features of Roller Rabbit. Launch your AI SaaS faster.",
+    "description": "Choose how you want to buy Roller Rabbit. Every plan starts from the same working product surface, then adds more leverage.",
     "groups": [
       {
         "name": "one-time",
@@ -27,7 +27,7 @@
     "items": [
       {
         "title": "Starter",
-        "description": "Get started with your first SaaS startup.",
+        "description": "Best for validating the first version quickly.",
         "features_title": "Includes",
         "features": [
           "100 credits, valid for 1 month",
@@ -45,7 +45,7 @@
         "original_price": "$199",
         "unit": "",
         "is_featured": false,
-        "tip": "Pay once. Build unlimited projects!",
+        "tip": "One-time purchase. Good for solo builders who want the base layer done.",
         "button": {
           "title": "Get Roller Rabbit",
           "url": "/#pricing",
@@ -59,7 +59,7 @@
       },
       {
         "title": "Standard",
-        "description": "Launch fast with your SaaS startups.",
+        "description": "Best for teams that want more launch surface with less setup.",
         "label": "Popular",
         "features_title": "Everything in Starter, plus",
         "features": [
@@ -79,7 +79,7 @@
         "original_price": "$299",
         "unit": "",
         "is_featured": true,
-        "tip": "Pay once. Build unlimited projects!",
+        "tip": "One-time purchase with the most balanced feature set.",
         "button": {
           "title": "Get Roller Rabbit",
           "url": "/#pricing",
@@ -93,7 +93,7 @@
       },
       {
         "title": "Premium",
-        "description": "Launch AI SaaS startups.",
+        "description": "Best for heavier products with admin, API sales, and credits.",
         "features_title": "Everything in Standard, plus",
         "features": [
           "300 credits, valid for 1 year",
@@ -111,7 +111,7 @@
         "original_price": "$399",
         "unit": "",
         "is_featured": false,
-        "tip": "Pay once. Build unlimited projects!",
+        "tip": "One-time purchase for teams that want the whole stack up front.",
         "button": {
           "title": "Get Roller Rabbit",
           "url": "/#pricing",
@@ -125,7 +125,7 @@
       },
       {
         "title": "Starter",
-        "description": "Get started with your first SaaS startup.",
+        "description": "Best for trying Roller Rabbit without a bigger upfront spend.",
         "features_title": "Includes",
         "features": [
           "100 credits, valid for 1 month",
@@ -143,7 +143,7 @@
         "original_price": "$99",
         "unit": "/ month",
         "is_featured": false,
-        "tip": "Pay monthly. Build unlimited projects!",
+        "tip": "Monthly billing for teams that want to start lean.",
         "button": {
           "title": "Get Roller Rabbit",
           "url": "/#pricing",
@@ -158,7 +158,7 @@
       },
       {
         "title": "Standard",
-        "description": "Launch fast with your SaaS startups.",
+        "description": "A balanced monthly plan for teams already shipping.",
         "label": "Popular",
         "features_title": "Everything in Starter, plus",
         "features": [
@@ -178,7 +178,7 @@
         "original_price": "$199",
         "unit": "/ month",
         "is_featured": true,
-        "tip": "Pay monthly. Launch fast with your SaaS startups.",
+        "tip": "Monthly billing with the strongest value-to-speed ratio.",
         "button": {
           "title": "Get Roller Rabbit",
           "url": "/#pricing",
@@ -193,7 +193,7 @@
       },
       {
         "title": "Premium",
-        "description": "Launch AI SaaS startups.",
+        "description": "For products that need the full toolkit and ongoing support.",
         "features_title": "Everything in Standard, plus",
         "features": [
           "300 credits, valid for 1 month",
@@ -211,7 +211,7 @@
         "original_price": "$299",
         "unit": "/ month",
         "is_featured": false,
-        "tip": "Pay monthly. Launch AI SaaS startups.",
+        "tip": "Monthly billing for higher-volume product teams.",
         "button": {
           "title": "Get Roller Rabbit",
           "url": "/#pricing",
