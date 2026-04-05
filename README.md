@@ -122,6 +122,15 @@ Read `content/docs` to start your AI SaaS project.
 ## Deployment Notes
 
 - Docker builds now use the default `.next` output (not `.next/standalone`) and start with `next start` (see `Dockerfile`).
+- `wrangler.toml` and `open-next.config.ts` are the source of truth for the Cloudflare OpenNext build/deploy contract.
+- Cloudflare helper commands:
+  - `pnpm cf:build`
+  - `pnpm cf:preview`
+  - `pnpm cf:deploy`
+  - `pnpm cf:upload`
+- Cloudflare build/preview/deploy is now a first-class path, but auth/payment/upload parity work is still tracked separately. `/api/auth/**` remains Node-targeted for now.
+- `pnpm cf:preview` is a real preview path: it reads DB-backed public config via Hyperdrive and `wrangler.toml` `localConnectionString`, so config-driven pages follow your local `config` table state instead of hardcoded preview defaults.
+- Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id` plus a non-localhost `NEXT_PUBLIC_APP_URL`.
 
 ## Database Migrations (Required)
 

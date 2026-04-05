@@ -271,6 +271,15 @@ id = "hyperdrive-id"
 
 The `db()` function automatically detects and uses Hyperdrive.
 
+For local Cloudflare preview, `wrangler.toml` must also provide a non-empty `localConnectionString` that points to a migrated local database. Preview reads the real `config` table through Hyperdrive, so docs/landing/brand visibility matches actual local config state.
+
+Cloudflare helper commands:
+
+- `pnpm cf:build`
+- `pnpm cf:preview`
+- `pnpm cf:deploy`
+- `pnpm cf:upload`
+
 ### Vercel / AWS Lambda (Serverless)
 
 Default `DB_SINGLETON_ENABLED=false` caches a single client (max=1) per instance/`DATABASE_URL` to avoid per-call connection churn. Reuse the same `db()` result within a request when possible.

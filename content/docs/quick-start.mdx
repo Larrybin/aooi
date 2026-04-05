@@ -170,14 +170,14 @@ Minimal "go-live" checklist:
 
 Before deploying:
 
-- Configure production env vars (at least `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`)
-- Apply migrations to the production database: `pnpm db:migrate`
+- Vercel / Node / Docker: set `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, then run `pnpm db:migrate`
+- Cloudflare Workers: configure `wrangler.toml`, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`; local preview also requires `localConnectionString` and a migrated local database, while deploy/upload requires a real `hyperdrive.id`
 
 Deployment options:
 
 - Vercel/Node (recommended for full features: auth/payment/admin)
 - Docker (see `Dockerfile`; starts with `next start`)
-- Cloudflare Workers (see `wrangler.toml.example` + `pnpm cf:deploy`; requires Hyperdrive for database. The Better Auth route is currently marked as `runtime="nodejs"` and is not intended for Workers/OpenNext—validate the full flow on Node first.)
+- Cloudflare Workers (managed via `wrangler.toml`; use `pnpm cf:build`, `pnpm cf:preview`, `pnpm cf:deploy`; requires Hyperdrive for database. `pnpm cf:preview` is config-driven and reads your local `config` table via `localConnectionString`. The Better Auth route is currently marked as `runtime="nodejs"` and is not intended for Workers/OpenNext—validate the full flow on Node first.)
 
 ## Feature Configuration
 

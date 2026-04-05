@@ -170,14 +170,14 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 上线前务必完成：
 
-- 配置生产环境变量（至少：`NEXT_PUBLIC_APP_URL`、`DATABASE_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`）
-- 对生产数据库执行迁移：`pnpm db:migrate`
+- Vercel / Node / Docker：配置 `NEXT_PUBLIC_APP_URL`、`DATABASE_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`，然后执行 `pnpm db:migrate`
+- Cloudflare Workers：配置 `wrangler.toml`、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`；本地 preview 还要求 `localConnectionString` 指向已完成迁移的本地数据库，而 deploy/upload 还要求真实的 `hyperdrive.id`
 
 部署方式（按常见程度排序）：
 
 - Vercel/Node（推荐跑全功能：鉴权/支付/管理后台）
 - Docker（参考 `Dockerfile`，默认 `next start` 启动）
-- Cloudflare Workers（参考 `wrangler.toml.example` + `pnpm cf:deploy`；数据库需配置 Hyperdrive；Better Auth 路由目前标记为 `runtime="nodejs"`，不建议直接在 Workers/OpenNext 上跑全功能，建议先在 Node 平台验证全链路）
+- Cloudflare Workers（使用受管的 `wrangler.toml`；可执行 `pnpm cf:build`、`pnpm cf:preview`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。`pnpm cf:preview` 会通过 `localConnectionString` 读取本地 `config` 表，所以页面表现取决于你的真实本地配置。Better Auth 路由目前标记为 `runtime="nodejs"`，不建议直接在 Workers/OpenNext 上跑全功能，建议先在 Node 平台验证全链路）
 
 ## 功能配置
 

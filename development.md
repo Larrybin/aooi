@@ -54,7 +54,8 @@ DB_SINGLETON_ENABLED = "true"
 Notes:
 
 - `DATABASE_PROVIDER` currently supports `postgresql` only.
-- Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in `wrangler.toml` (see `wrangler.toml.example`).
+- Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in `wrangler.toml`.
+- `pnpm cf:preview` is not a fake public-page mode; it requires `[[hyperdrive]]` `localConnectionString` plus a migrated local database, and config-driven pages reflect the real `config` table state.
 - For details, see `docs/guides/database.md`.
 
 ```bash
