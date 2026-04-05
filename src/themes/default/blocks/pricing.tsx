@@ -251,42 +251,69 @@ export function Pricing({
   return (
     <section
       id={pricing.id}
-      className={cn('py-24 md:py-36', pricing.className, className)}
+      className={cn(
+        'relative overflow-hidden py-18 md:py-24',
+        pricing.className,
+        className
+      )}
     >
-      <div className="mx-auto mb-12 px-4 text-center md:px-8">
+      <div
+        aria-hidden
+        className="from-primary/10 absolute inset-x-0 top-0 h-64 bg-gradient-to-b via-transparent to-transparent"
+      />
+      <div
+        aria-hidden
+        className="bg-primary/8 absolute top-16 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full blur-3xl"
+      />
+
+      <div className="relative mx-auto mb-12 max-w-3xl px-4 text-center md:px-8">
         {pricing.sr_only_title && (
           <h1 className="sr-only">{pricing.sr_only_title}</h1>
         )}
-        <h2 className="mb-6 text-3xl font-bold text-pretty lg:text-4xl">
+        <p className="text-primary mb-4 text-xs font-semibold tracking-[0.24em] uppercase">
+          Choose your plan
+        </p>
+        <h2 className="mb-4 text-3xl font-semibold tracking-tight text-balance lg:text-5xl">
           {pricing.title}
         </h2>
-        <p className="text-muted-foreground mx-auto mb-4 max-w-xl lg:max-w-none lg:text-lg">
+        <p className="text-muted-foreground mx-auto max-w-2xl text-base leading-7 lg:text-lg">
           {pricing.description}
         </p>
       </div>
 
-      <div className="container">
+      <div className="relative container max-w-6xl">
         {pricing.groups && pricing.groups.length > 0 && (
-          <div className="mx-auto mt-8 mb-16 flex w-full justify-center md:max-w-lg">
+          <div className="mx-auto mt-8 mb-10 flex w-full flex-col items-center gap-4 md:max-w-2xl">
             <Tabs value={group} onValueChange={setGroup} className="">
-              <TabsList>
+              <TabsList className="border-border/80 bg-background/90 h-auto rounded-full border p-1.5 shadow-sm backdrop-blur">
                 {pricing.groups.map((item, i) => {
                   return (
-                    <TabsTrigger key={i} value={item.name || ''}>
+                    <TabsTrigger
+                      key={i}
+                      value={item.name || ''}
+                      className="rounded-full px-4 py-2.5 text-sm font-medium"
+                    >
                       {item.title}
                       {item.label && (
-                        <Badge className="ml-2">{item.label}</Badge>
+                        <Badge className="bg-primary/10 text-primary ml-2 rounded-full shadow-none">
+                          {item.label}
+                        </Badge>
                       )}
                     </TabsTrigger>
                   );
                 })}
               </TabsList>
             </Tabs>
+            <p className="text-muted-foreground text-center text-sm leading-6">
+              Every plan starts with the same product shell, auth, billing,
+              credits, and docs. You are choosing how much leverage you want up
+              front.
+            </p>
           </div>
         )}
 
         <div
-          className={`mt-0 grid w-full gap-6 md:grid-cols-${
+          className={`mt-0 grid w-full items-stretch gap-6 md:grid-cols-${
             pricing.items?.filter((item) => !item.group || item.group === group)
               ?.length
           }`}
@@ -312,26 +339,46 @@ export function Pricing({
             const currencies = getCurrenciesFromItem(item);
 
             return (
-              <Card key={idx} className="relative">
+              <Card
+                key={idx}
+                className={cn(
+                  'border-border/80 bg-card/96 relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border shadow-sm backdrop-blur',
+                  item.is_featured &&
+                    'border-primary/35 shadow-primary/10 shadow-xl md:-translate-y-2'
+                )}
+              >
+                <div
+                  aria-hidden
+                  className={cn(
+                    'from-primary/0 via-primary/20 to-primary/0 absolute inset-x-6 top-0 h-px bg-gradient-to-r',
+                    item.is_featured &&
+                      'from-primary/35 via-primary to-primary/35 inset-x-0 h-1'
+                  )}
+                />
                 {item.label && (
-                  <span className="absolute inset-x-0 -top-3 mx-auto flex h-6 w-fit items-center rounded-full bg-linear-to-br/increasing from-purple-400 to-amber-300 px-3 py-1 text-xs font-medium text-amber-950 ring-1 ring-white/20 ring-offset-1 ring-offset-gray-950/5 ring-inset">
+                  <span className="bg-primary/10 text-primary absolute top-4 right-4 flex h-7 items-center rounded-full px-3 text-xs font-semibold">
                     {item.label}
                   </span>
                 )}
 
-                <CardHeader>
+                <CardHeader className="space-y-5 p-7 pb-6">
+                  <div className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
+                    {item.is_featured ? 'Best value' : 'Plan'}
+                  </div>
                   <CardTitle className="font-medium">
-                    <h3 className="text-sm font-medium">{item.title}</h3>
+                    <h3 className="text-lg font-semibold">{item.title}</h3>
                   </CardTitle>
 
-                  <div className="my-3 flex items-baseline gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {displayedItem.original_price && (
-                      <span className="text-muted-foreground text-sm line-through">
+                      <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 text-xs line-through">
                         {displayedItem.original_price}
                       </span>
                     )}
+                  </div>
 
-                    <div className="my-3 block text-2xl font-semibold">
+                  <div className="flex items-end gap-2">
+                    <div className="block text-4xl font-semibold tracking-tight">
                       <span className="text-primary">
                         {displayedItem.price}
                       </span>{' '}
@@ -374,11 +421,11 @@ export function Pricing({
                     )}
                   </div>
 
-                  <CardDescription className="text-sm">
+                  <CardDescription className="min-h-[2.75rem] text-sm leading-6">
                     {item.description}
                   </CardDescription>
                   {item.tip && (
-                    <span className="text-muted-foreground text-sm">
+                    <span className="text-muted-foreground min-h-[3rem] text-sm leading-6">
                       {item.tip}
                     </span>
                   )}
@@ -386,7 +433,7 @@ export function Pricing({
                   {isCurrentPlan ? (
                     <Button
                       variant="outline"
-                      className="mt-4 h-9 w-full px-4 py-2"
+                      className="mt-2 h-11 w-full rounded-full px-4 py-2"
                       disabled
                     >
                       <span className="hidden text-sm md:block">
@@ -398,8 +445,8 @@ export function Pricing({
                       onClick={() => handlePayment(item)}
                       disabled={isLoading}
                       className={cn(
-                        'focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
-                        'mt-4 h-9 w-full px-4 py-2',
+                        'focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+                        'mt-2 h-11 w-full px-4 py-2',
                         'bg-primary text-primary-foreground hover:bg-primary/90 border-[0.5px] border-white/25 shadow-md shadow-black/20'
                       )}
                     >
@@ -423,16 +470,18 @@ export function Pricing({
                   )}
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                  <hr className="border-dashed" />
+                <CardContent className="flex flex-1 flex-col space-y-4 px-7 pb-7">
+                  <hr className="border-border/70" />
 
                   {item.features_title && (
-                    <p className="text-sm font-medium">{item.features_title}</p>
+                    <p className="text-sm font-semibold">
+                      {item.features_title}
+                    </p>
                   )}
-                  <ul className="list-outside space-y-3 text-sm">
+                  <ul className="list-outside space-y-3 text-sm leading-6">
                     {item.features?.map((item, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <Check className="size-3" />
+                      <li key={index} className="flex items-start gap-2">
+                        <Check className="text-primary mt-1 size-3.5 shrink-0" />
                         {item}
                       </li>
                     ))}

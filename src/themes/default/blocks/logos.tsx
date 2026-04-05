@@ -13,19 +13,21 @@ export function Logos({
   return (
     <section
       id={logos.id}
-      className={cn('py-16 md:py-24', logos.className, className)}
+      className={cn('py-10 md:py-14', logos.className, className)}
     >
-      <div className={`mx-auto max-w-5xl px-6`}>
-        <p className="text-md text-center font-medium">{logos.title}</p>
-        <div className="mx-auto mt-12 flex max-w-4xl flex-wrap items-center justify-center gap-x-12 gap-y-8 sm:gap-x-16 sm:gap-y-12">
+      <div className="mx-auto max-w-6xl px-6">
+        <p className="text-muted-foreground text-center text-xs font-semibold tracking-[0.24em] uppercase">
+          {logos.title}
+        </p>
+        <div className="mx-auto mt-8 flex max-w-5xl flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:gap-x-14">
           {logos.items?.map((item, idx) => (
             <Image
               key={idx}
-              className="h-8 w-fit"
+              className="h-10 w-fit opacity-70 saturate-0 transition-opacity duration-200 hover:opacity-100"
               src={item.image?.src ?? ''}
               alt={item.image?.alt || item.title || item.name || 'Logo'}
-              height={20}
-              width={120}
+              height={28}
+              width={140}
             />
           ))}
         </div>

@@ -92,7 +92,7 @@ export function MarketingHeader({
   return (
     <header
       id={header.id}
-      className={`bg-background/75 sticky top-0 z-50 border-b backdrop-blur ${header.className || ''}`}
+      className={`bg-background/88 border-border/70 sticky top-0 z-50 border-b backdrop-blur ${header.className || ''}`}
     >
       <div className="container flex items-center justify-between gap-4 py-4">
         {header.brand?.url ? (
@@ -114,7 +114,7 @@ export function MarketingHeader({
               />
             ) : null}
             {header.brand.title ? (
-              <span className="text-base font-medium">
+              <span className="text-base font-semibold tracking-tight">
                 {header.brand.title}
               </span>
             ) : null}
@@ -130,7 +130,7 @@ export function MarketingHeader({
         <div className="flex items-center gap-3">
           {navItems.length ? (
             <details className="relative md:hidden">
-              <summary className="hover:bg-muted inline-flex cursor-pointer list-none items-center justify-center rounded-md p-2">
+              <summary className="hover:bg-muted inline-flex cursor-pointer list-none items-center justify-center rounded-full p-2">
                 <Menu className="size-5" />
                 <span className="sr-only">Menu</span>
               </summary>
@@ -194,7 +194,7 @@ export function MarketingHeader({
               href={withLocale(button.url || '', locale)}
               target={button.target || '_self'}
               prefetch={false}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium"
             >
               {button.title || ''}
             </Link>

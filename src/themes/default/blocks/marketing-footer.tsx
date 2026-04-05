@@ -36,7 +36,7 @@ export function MarketingFooter({
   return (
     <footer
       id={footer.id}
-      className={`py-10 ${footer.className || ''} overflow-x-hidden`}
+      className={`overflow-x-hidden py-12 ${footer.className || ''}`}
     >
       <div className="container space-y-10 overflow-x-hidden">
         <div className="grid min-w-0 gap-10 md:grid-cols-5">
@@ -86,7 +86,7 @@ export function MarketingFooter({
                       href={withLocale(subItem.url || '', locale)}
                       target={subItem.target || '_self'}
                       prefetch={false}
-                      className="text-muted-foreground hover:text-primary block break-words duration-150"
+                      className="text-muted-foreground hover:text-primary block min-h-11 py-2 break-words duration-150"
                     >
                       {subItem.title || ''}
                     </Link>
@@ -118,7 +118,7 @@ export function MarketingFooter({
                   href={withLocale(item.url || '', locale)}
                   target={item.target || '_self'}
                   prefetch={false}
-                  className="text-muted-foreground hover:text-primary block text-xs break-words underline duration-150"
+                  className="text-muted-foreground hover:text-primary block min-h-11 py-2 text-xs break-words underline duration-150"
                 >
                   {item.title || ''}
                 </Link>

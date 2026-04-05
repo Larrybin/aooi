@@ -12,9 +12,9 @@ export function Features({
   return (
     <section
       id={features.id}
-      className={cn('py-16 md:py-24', features.className, className)}
+      className={cn('py-16 md:py-20', features.className, className)}
     >
-      <div className={`container space-y-8 md:space-y-16`}>
+      <div className="container space-y-8 md:space-y-12">
         <div className="mx-auto max-w-4xl text-center text-balance">
           <h2 className="text-foreground mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
             {features.title}
@@ -24,14 +24,21 @@ export function Features({
           </p>
         </div>
 
-        <div className="relative mx-auto grid divide-x divide-y border *:p-12 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.items?.map((item, idx) => (
-            <div className="space-y-3" key={idx}>
-              <div className="flex items-center gap-2">
-                <SmartIcon name={item.icon as string} size={24} />
-                <h3 className="text-sm font-medium">{item.title}</h3>
+            <div
+              className="bg-card border-border/80 rounded-[1.5rem] border p-6 shadow-sm"
+              key={idx}
+            >
+              <div className="text-primary mb-5">
+                <SmartIcon name={item.icon as string} size={20} />
               </div>
-              <p className="text-sm">{item.description}</p>
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold">{item.title}</h3>
+                <p className="text-muted-foreground text-sm leading-6">
+                  {item.description}
+                </p>
+              </div>
             </div>
           ))}
         </div>

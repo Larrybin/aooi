@@ -20,10 +20,23 @@ export default async function PricingPage({
   testimonials?: TestimonialsType;
 }) {
   return (
-    <>
-      <Pricing pricing={pricing} currentSubscription={currentSubscription} />
-      {faq && <FAQ faq={faq} />}
-      {testimonials && <Testimonials testimonials={testimonials} />}
-    </>
+    <div className="overflow-hidden">
+      <Pricing
+        pricing={pricing}
+        currentSubscription={currentSubscription}
+        className="pb-14 md:pb-16"
+      />
+      {faq && (
+        <div className="border-border/60 bg-muted/35 border-y">
+          <FAQ faq={faq} className="py-14 md:py-18" />
+        </div>
+      )}
+      {testimonials && (
+        <Testimonials
+          testimonials={testimonials}
+          className="pt-14 pb-18 md:pt-18 md:pb-24"
+        />
+      )}
+    </div>
   );
 }
