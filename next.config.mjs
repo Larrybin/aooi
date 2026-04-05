@@ -2,7 +2,11 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import { createMDX } from 'fumadocs-mdx/next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
-import('@opennextjs/cloudflare').then((m) => m.initOpenNextCloudflareForDev());
+if (process.env.NODE_ENV === 'development' && !process.env.VERCEL) {
+  import('@opennextjs/cloudflare').then((m) =>
+    m.initOpenNextCloudflareForDev()
+  );
+}
 
 const withMDX = createMDX();
 
