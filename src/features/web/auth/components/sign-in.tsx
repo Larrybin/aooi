@@ -98,12 +98,12 @@ export function SignIn({
   };
 
   return (
-    <Card className="mx-auto w-full md:max-w-md">
+    <Card className="border-border/80 bg-card/95 mx-auto w-full shadow-xl shadow-slate-900/8 md:max-w-md">
       <CardHeader>
-        <CardTitle className="text-lg md:text-xl">
+        <CardTitle className="text-2xl md:text-3xl">
           <h1>{t('sign_in_title')}</h1>
         </CardTitle>
-        <CardDescription className="text-xs md:text-sm">
+        <CardDescription className="text-sm md:text-base">
           <h2>{t('sign_in_description')}</h2>
           {safeCallbackUrl !== '/' ? (
             <p className="text-muted-foreground mt-1 text-xs">
@@ -143,7 +143,7 @@ export function SignIn({
                   <Label htmlFor="password">{t('password_title')}</Label>
                   <Link
                     href="/forgot-password"
-                    className="ml-auto inline-block text-sm underline"
+                    className="ml-auto inline-block text-sm underline underline-offset-4"
                   >
                     {t('forgot_password')}
                   </Link>
@@ -170,7 +170,11 @@ export function SignIn({
             <Label htmlFor="remember">Remember me</Label>
           </div> */}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="submit"
+                className="h-11 w-full rounded-full"
+                disabled={loading}
+              >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
@@ -195,7 +199,7 @@ export function SignIn({
               {t('no_account')}
               <Link
                 href={withCallbackUrl('/sign-up', safeCallbackUrl)}
-                className="underline"
+                className="underline underline-offset-4"
               >
                 <span className="cursor-pointer">{t('sign_up_title')}</span>
               </Link>
