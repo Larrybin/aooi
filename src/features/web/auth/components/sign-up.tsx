@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -28,6 +27,7 @@ import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
+import { reportSignUpAffiliate } from '../lib/report-sign-up-affiliate';
 import { SocialProviders } from './social-providers';
 
 export function SignUp({
@@ -37,7 +37,6 @@ export function SignUp({
   configs: Record<string, string>;
   callbackUrl: string;
 }) {
-  const router = useRouter();
   const t = useTranslations('common.sign');
   const locale = useLocale();
 
@@ -58,26 +57,6 @@ export function SignUp({
     locale,
     defaultLocale,
   });
-
-  const reportAffiliate = ({
-    userEmail,
-    stripeCustomerId,
-  }: {
-    userEmail: string;
-    stripeCustomerId?: string;
-  }) => {
-    if (typeof window === 'undefined' || !configs) {
-      return;
-    }
-
-    if (configs.affonso_enabled === 'true' && window.Affonso) {
-      window.Affonso.signup(userEmail);
-    }
-
-    if (configs.promotekit_enabled === 'true' && window.promotekit) {
-      window.promotekit.refer(userEmail, stripeCustomerId);
-    }
-  };
 
   const handleSignUp = async () => {
     if (loading) {
@@ -114,9 +93,14 @@ export function SignUp({
             setLoading(false);
           },
           onSuccess: () => {
-            // report affiliate
-            reportAffiliate({ userEmail: email });
-            router.push(localizedCallbackUrl);
+            reportSignUpAffiliate({
+              configs,
+              userEmail: email,
+            });
+
+            if (typeof window !== 'undefined') {
+              window.location.assign(localizedCallbackUrl);
+            }
           },
           onError: (ctx: AuthErrorContext) => {
             toast.error(ctx.error?.message || t('sign_up_failed'));
@@ -150,6 +134,7 @@ export function SignUp({
           {isEmailAuthEnabled && (
             <form
               className="grid gap-4"
+              data-testid="auth-sign-up-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 void handleSignUp();
@@ -200,7 +185,12 @@ export function SignUp({
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                data-testid="auth-sign-up-submit"
+              >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (

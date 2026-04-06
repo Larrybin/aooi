@@ -117,6 +117,7 @@ export function SignIn({
           {isEmailAuthEnabled && (
             <form
               className="grid gap-4"
+              data-testid="auth-sign-in-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 void handleSignIn();
@@ -174,6 +175,7 @@ export function SignIn({
                 type="submit"
                 className="h-11 w-full rounded-full"
                 disabled={loading}
+                data-testid="auth-sign-in-submit"
               >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />

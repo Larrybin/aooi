@@ -63,6 +63,7 @@ export function SignUser({
             <Button
               variant="ghost"
               className="relative h-10 w-10 rounded-full p-0"
+              data-testid="auth-user-menu-trigger"
             >
               <Avatar>
                 <AvatarImage src={user.image || ''} alt={user.name || ''} />
@@ -139,6 +140,7 @@ export function SignUser({
             {userNav?.show_sign_out && (
               <DropdownMenuItem
                 className="w-full cursor-pointer"
+                data-testid="auth-sign-out-trigger"
                 onClick={() =>
                   signOut({
                     fetchOptions: {

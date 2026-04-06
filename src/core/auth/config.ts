@@ -34,6 +34,12 @@ function normalizeOrigin(value: string, label: string): string {
 function buildTrustedOrigins(appUrl: string): string[] {
   const origins = new Set<string>();
   origins.add(normalizeOrigin(appUrl, 'NEXT_PUBLIC_APP_URL'));
+
+  if (isCloudflareWorkersRuntime()) {
+    origins.add('http://127.0.0.1:8787');
+    origins.add('http://localhost:8787');
+  }
+
   origins.add('https://accounts.google.com');
   return [...origins];
 }

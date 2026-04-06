@@ -85,7 +85,7 @@ export default async function ProfilePage() {
   } satisfies FormType;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid="settings-profile-page">
       <FormCard
         title={t('edit.title')}
         description={t('edit.description')}

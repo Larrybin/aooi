@@ -73,6 +73,7 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                data-testid="auth-user-menu-trigger"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
@@ -140,6 +141,7 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
                 ))}
                 <DropdownMenuItem
                   className="cursor-pointer"
+                  data-testid="auth-sign-out-trigger"
                   onClick={handleSignOut}
                 >
                   <LogOut />

@@ -29,21 +29,21 @@ let singletonClient: ReturnType<typeof postgres> | null = null;
 
 const schemaCheckStateByUrl = new Map<string, SchemaCheckState>();
 const serverlessCache = new Map<string, CachedDb>();
-const workersCache = new Map<string, CachedDb>();
 
 let hasLoggedEnvironment = false;
+
+function createSchemaCheckState(): SchemaCheckState {
+  return {
+    promise: null,
+    lastError: null,
+    lastFailureAt: null,
+  };
+}
+
 function getOrCreateSchemaCheckPromise(
   sql: ReturnType<typeof postgres>,
-  databaseUrl: string
+  state: SchemaCheckState
 ) {
-  const state =
-    schemaCheckStateByUrl.get(databaseUrl) ??
-    ({
-      promise: null,
-      lastError: null,
-      lastFailureAt: null,
-    } as SchemaCheckState);
-
   if (state.promise) {
     return state.promise;
   }
@@ -78,9 +78,25 @@ function getOrCreateSchemaCheckPromise(
     });
 
   state.promise = promise;
-  schemaCheckStateByUrl.set(databaseUrl, state);
   state.promise.catch(() => undefined);
   return state.promise;
+}
+
+function getOrCreateSharedSchemaCheckPromise(
+  sql: ReturnType<typeof postgres>,
+  databaseUrl: string
+) {
+  const state =
+    schemaCheckStateByUrl.get(databaseUrl) ?? createSchemaCheckState();
+  schemaCheckStateByUrl.set(databaseUrl, state);
+  return getOrCreateSchemaCheckPromise(sql, state);
+}
+
+function createRequestScopedSchemaReady(
+  sql: ReturnType<typeof postgres>
+): () => Promise<void> {
+  const state = createSchemaCheckState();
+  return () => getOrCreateSchemaCheckPromise(sql, state);
 }
 
 function createSchemaCheckedClient(
@@ -192,11 +208,23 @@ function getOrCreateCachedDb(
 
   const rawClient = postgres(databaseUrl, options);
   const checkedClient = createSchemaCheckedClient(rawClient, () =>
-    getOrCreateSchemaCheckPromise(rawClient, databaseUrl)
+    getOrCreateSharedSchemaCheckPromise(rawClient, databaseUrl)
   );
   const drizzleClient = drizzle(checkedClient);
   cache.set(databaseUrl, { drizzle: drizzleClient, client: rawClient });
   return drizzleClient;
+}
+
+function createWorkersDb(
+  databaseUrl: string,
+  options: Parameters<typeof postgres>[1]
+): ReturnType<typeof drizzle> {
+  const rawClient = postgres(databaseUrl, options);
+  const checkedClient = createSchemaCheckedClient(
+    rawClient,
+    createRequestScopedSchemaReady(rawClient)
+  );
+  return drizzle(checkedClient);
 }
 
 export function db() {
@@ -244,17 +272,17 @@ export function db() {
     });
   }
 
-  // Cloudflare Workers: reuse cached single-connection client per binding
+  // Cloudflare Workers: create a fresh client per request.
+  // Reusing a postgres/Hyperdrive client across requests can hang in Workers.
   if (runningInCloudflareWorkers) {
-    return getOrCreateCachedDb(
+    return createWorkersDb(
       databaseUrl,
       {
         prepare: false,
         max: 1, // Limit to 1 connection in Workers
         idle_timeout: 10, // Shorter timeout for Workers
         connect_timeout: 5,
-      },
-      workersCache
+      }
     );
   }
 
@@ -274,7 +302,7 @@ export function db() {
     });
 
     const checkedClient = createSchemaCheckedClient(client, () =>
-      getOrCreateSchemaCheckPromise(client, databaseUrl)
+      getOrCreateSharedSchemaCheckPromise(client, databaseUrl)
     );
     dbInstance = drizzle(checkedClient);
     singletonClient = client;
@@ -314,6 +342,5 @@ export async function closeDb() {
   }
 
   await closeCachedClients(serverlessCache);
-  await closeCachedClients(workersCache);
   schemaCheckStateByUrl.clear();
 }

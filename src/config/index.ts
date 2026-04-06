@@ -4,6 +4,13 @@ export type ConfigMap = Record<string, string>;
 
 const DEFAULT_APP_URL = 'http://localhost:3000';
 
+type ResolveAppUrlOptions = {
+  rawAppUrl?: string | null;
+  nodeEnv?: string | null;
+  buildTime?: boolean;
+  browserOrigin?: string | null;
+};
+
 function isBuildTime(): boolean {
   const lifecycleEvent = process.env.npm_lifecycle_event;
   if (lifecycleEvent?.startsWith('build')) return true;
@@ -38,19 +45,44 @@ function normalizeAppUrl(value: string): string {
   return url.origin;
 }
 
-function readAppUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_APP_URL;
-  if (raw && raw.trim()) {
-    return normalizeAppUrl(raw);
+function readBrowserOrigin(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
   }
 
-  if (process.env.NODE_ENV === 'production' && !isBuildTime()) {
+  return window.location.origin;
+}
+
+export function resolveAppUrl({
+  rawAppUrl,
+  nodeEnv,
+  buildTime,
+  browserOrigin,
+}: ResolveAppUrlOptions = {}): string {
+  if (rawAppUrl && rawAppUrl.trim()) {
+    return normalizeAppUrl(rawAppUrl);
+  }
+
+  if (browserOrigin && browserOrigin.trim()) {
+    return normalizeAppUrl(browserOrigin);
+  }
+
+  if ((nodeEnv ?? process.env.NODE_ENV) === 'production' && !buildTime) {
     throw new Error(
       'NEXT_PUBLIC_APP_URL is required in production; refusing to fall back to localhost.'
     );
   }
 
   return DEFAULT_APP_URL;
+}
+
+function readAppUrl(): string {
+  return resolveAppUrl({
+    rawAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+    nodeEnv: process.env.NODE_ENV,
+    buildTime: isBuildTime(),
+    browserOrigin: readBrowserOrigin(),
+  });
 }
 
 export const envConfigs = {
