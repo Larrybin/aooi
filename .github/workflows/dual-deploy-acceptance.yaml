@@ -1,0 +1,55 @@
+name: Dual Deploy Acceptance
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  acceptance:
+    name: Auth + Creem + R2 acceptance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Create CI-only Wrangler secrets
+        run: |
+          cat > .dev.vars <<'EOF'
+          AUTH_SECRET=ci-auth-secret-not-for-production
+          BETTER_AUTH_SECRET=ci-auth-secret-not-for-production
+          EOF
+
+      - name: Run unit and contract tests
+        run: pnpm test
+
+      - name: Run Cloudflare build gate
+        run: pnpm cf:build
+
+      - name: Run Creem webhook gate
+        run: pnpm test:creem-webhook-spike
+
+      - name: Run R2 upload gate
+        run: pnpm test:r2-upload-spike
