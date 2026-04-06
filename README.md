@@ -126,15 +126,21 @@ Read `content/docs` to start your AI SaaS project.
 - Cloudflare helper commands:
   - `pnpm cf:build`
   - `pnpm cf:preview`
+  - `pnpm test:local-auth-spike`
   - `pnpm test:cf-auth-spike`
+  - `pnpm test:creem-webhook-spike`
+  - `pnpm test:r2-upload-spike`
   - `pnpm test:cf-preview-smoke`
   - `pnpm cf:deploy`
   - `pnpm cf:upload`
-- GitHub Actions now runs `pnpm test:cf-preview-smoke` on `main` pushes and pull requests, so repeated-request regressions in Workers preview fail CI instead of hiding until manual QA.
-- Cloudflare build/preview/deploy is now a first-class path, but auth/payment/upload parity work is still tracked separately. `/api/auth/**` remains Node-targeted for now.
+- GitHub Actions now gates `pnpm test`, `pnpm cf:build`, `pnpm test:creem-webhook-spike`, and `pnpm test:r2-upload-spike` on `main` pushes and pull requests, so Cloudflare build regressions plus Creem/R2 contract regressions fail CI instead of hiding until manual QA.
+- Cloudflare build/preview/deploy is now a first-class path. Payment/upload acceptance is formally gated around Creem webhook and R2 upload. The local dual-surface auth spike remains the acceptance script, but its current repo-local status is **BLOCKED** unless `wrangler.toml` `localConnectionString` points to a reachable migrated Postgres instance.
 - `pnpm cf:preview` is a real preview path: it reads DB-backed public config via Hyperdrive and `wrangler.toml` `localConnectionString`, so config-driven pages follow your local `config` table state instead of hardcoded preview defaults.
+- `pnpm test:local-auth-spike` boots a local Node surface and a local Cloudflare preview surface, then runs the shared dual-runtime auth harness against both. The script now fails fast when either child process exits early so blocked local DB / preview bootstrap failures surface immediately.
 - `pnpm test:cf-preview-smoke` is the regression gate for the Workers DB hang fix. It checks `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice in a row against Cloudflare preview so “first request works, second request hangs” gets caught automatically.
 - `pnpm test:cf-auth-spike` runs the full Cloudflare preview auth spike on one local Worker surface: fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out. It auto-generates a unique email alias per run and writes Markdown/JSON reports plus Playwright failure screenshots.
+- `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
+- `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
 - Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id` plus a non-localhost `NEXT_PUBLIC_APP_URL`.
 
 ## Database Migrations (Required)

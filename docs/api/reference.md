@@ -145,7 +145,8 @@ Notes:
 
 - `/api/auth/[...all]` is a passthrough to Better Auth and does not use `withApi()`; response shape and errors are defined by Better Auth.
 - Treat `/api/auth/**` as sensitive: do not cache it at the edge. The route sets `Cache-Control: no-store`.
-- `/api/auth/**` currently targets Node.js runtimes (e.g. Vercel/Node) and is not intended to run on Cloudflare/OpenNext deployments.
+- `/api/auth/**` is validated by the shared local dual-runtime auth spike (`pnpm test:local-auth-spike`) and the single-surface Cloudflare auth spike (`pnpm test:cf-auth-spike`).
+- Current status: `pnpm test:local-auth-spike` is **BLOCKED** until local Hyperdrive preview can connect to the Postgres instance pointed to by `[[hyperdrive]].localConnectionString`; it is documented, not promoted to required CI yet.
 
 ### User
 
@@ -173,6 +174,10 @@ Notes:
 | `GET`  | `/api/payment/callback`          | Legacy: redirect-only checkout callback   |
 | `POST` | `/api/payment/callback`          | Finalize checkout (requires login + CSRF) |
 | `POST` | `/api/payment/notify/[provider]` | Webhook notifications                     |
+
+Notes:
+
+- Current Cloudflare contract coverage is intentionally narrow: first-class webhook acceptance is gated around **Creem** signature verification plus duplicate-renewal idempotency (`pnpm test:creem-webhook-spike`).
 
 #### Checkout Request
 
@@ -228,6 +233,10 @@ Notes:
 | Method | Endpoint                    | Description                      |
 | ------ | --------------------------- | -------------------------------- |
 | `POST` | `/api/storage/upload-image` | Upload image to storage provider |
+
+Notes:
+
+- Current Cloudflare contract coverage is intentionally narrow: first-class upload acceptance is gated around the **R2** path (`pnpm test:r2-upload-spike`).
 
 ### Email
 

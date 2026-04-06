@@ -48,8 +48,9 @@ The auth API is exposed via a catch-all route at `/api/auth/[...all]`:
 Notes:
 
 - This endpoint is a contract exception: it bypasses `withApi()` and does not return the standard `{code,message,data}` envelope (Better Auth controls redirects/cookies/status codes).
-- The route is explicitly `nodejs` + `force-dynamic`, and responses are marked `Cache-Control: no-store`.
-- This route currently targets Node.js runtimes (e.g. Vercel/Node) and is not intended to run on Cloudflare/OpenNext deployments.
+- The route is `force-dynamic`, and responses are marked `Cache-Control: no-store`.
+- This route is exercised by the shared dual-runtime auth spike (`pnpm test:local-auth-spike`) plus the Cloudflare-only auth spike (`pnpm test:cf-auth-spike`).
+- Current acceptance status: the Cloudflare-only spike is runnable, while the local dual-runtime spike is **BLOCKED** until `wrangler.toml` `localConnectionString` can reach a migrated Postgres instance for Hyperdrive-backed preview.
 
 ```typescript
 // src/app/api/auth/[...all]/route.ts
@@ -58,7 +59,6 @@ import { toNextJsHandler } from 'better-auth/next-js';
 import { getAuth } from '@/core/auth';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 
-export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function withNoStore(response: Response): Response {
@@ -175,6 +175,7 @@ Notes:
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
+- 本地双端 auth 验收默认使用 `wrangler.toml` 的 `localConnectionString` 作为 Cloudflare 侧数据库，同时给本地 Node 面注入同一条 `DATABASE_URL`，确保两个 surface 跑的是同一份数据。
 
 ### Optional
 

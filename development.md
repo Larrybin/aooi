@@ -56,9 +56,13 @@ Notes:
 - `DATABASE_PROVIDER` currently supports `postgresql` only.
 - Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in `wrangler.toml`.
 - `pnpm cf:preview` is not a fake public-page mode; it requires `[[hyperdrive]]` `localConnectionString` plus a migrated local database, and config-driven pages reflect the real `config` table state.
+- `pnpm test:local-auth-spike` is the local dual-runtime auth acceptance script. It boots local Node plus Cloudflare preview, then runs one shared auth spike across both surfaces. Current repo-local status is **BLOCKED** when `[[hyperdrive]].localConnectionString` does not reach a migrated Postgres instance; the script now fails fast instead of hanging when Node/preview bootstrap exits early.
 - `pnpm test:cf-preview-smoke` is the fast regression gate for DB-backed auth shell rendering in Workers preview. It hits `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice to catch cross-request DB client reuse bugs.
 - `pnpm test:cf-auth-spike` builds on that and runs the full Cloudflare preview auth path: fresh sign-up, sign-in, protected profile read, invalid-session redirect, and sign-out, all against one local Worker surface.
+- `pnpm test:creem-webhook-spike` covers Creem webhook signature verification and duplicate renewal idempotency.
+- `pnpm test:r2-upload-spike` covers R2 upload success/failure semantics (valid image, invalid MIME, provider init failure, upload failure).
 - `.github/workflows/cloudflare-preview-smoke.yaml` runs that same command on `main` pushes and pull requests. CI writes a temporary `.dev.vars` with a CI-only auth secret so Wrangler preview can boot without local secrets.
+- `.github/workflows/dual-deploy-acceptance.yaml` gates `pnpm test`, `pnpm cf:build`, `pnpm test:creem-webhook-spike`, and `pnpm test:r2-upload-spike`. Auth dual-surface parity is intentionally documented as blocked until local Hyperdrive/Postgres bootstrap is repeatably green.
 - For details, see `docs/guides/database.md`.
 
 ```bash
