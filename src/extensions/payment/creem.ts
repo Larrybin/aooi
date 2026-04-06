@@ -2,11 +2,9 @@ import { z } from 'zod';
 
 import {
   BadRequestError,
-  ServiceUnavailableError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
 import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
-import { tryJsonParse } from '@/shared/lib/json';
 
 import {
   PaymentEventType,
@@ -27,6 +25,7 @@ import {
   type RawPaymentSession,
   type SubscriptionInfo,
 } from '.';
+import { verifyAndParseCreemWebhookEvent } from './creem-webhook';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -50,26 +49,6 @@ const parseOrThrow = <Schema extends z.ZodTypeAny>(
   }
   return parsed.data;
 };
-
-const creemSignaturePattern = /^[0-9a-f]{64}$/;
-
-const constantTimeEqual = (a: string, b: string): boolean => {
-  if (a.length !== b.length) return false;
-
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-
-  return mismatch === 0;
-};
-
-const creemWebhookEventSchema = z
-  .object({
-    eventType: z.string().min(1),
-    object: z.unknown(),
-  })
-  .passthrough();
 
 const creemCheckoutSessionSchema = z
   .object({
@@ -280,41 +259,11 @@ export class CreemProvider implements PaymentProviderDriver {
 
   async getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent> {
     const rawBody = await req.text();
-    const signatureHeader = req.headers.get('creem-signature');
-
-    if (!rawBody || !signatureHeader) {
-      throw new WebhookVerificationError('invalid webhook request');
-    }
-
-    const signature = signatureHeader.trim().toLowerCase();
-    if (!signature || !creemSignaturePattern.test(signature)) {
-      throw new WebhookVerificationError('invalid webhook signature');
-    }
-
-    if (!this.configs.signingSecret) {
-      throw new WebhookConfigError('signing secret not configured');
-    }
-
-    const computedSignature = await this.generateSignature(
+    const webhookEvent = await verifyAndParseCreemWebhookEvent({
       rawBody,
-      this.configs.signingSecret
-    );
-
-    if (!constantTimeEqual(computedSignature, signature)) {
-      throw new WebhookVerificationError('invalid webhook signature');
-    }
-
-    const parsedEvent = tryJsonParse<unknown>(rawBody);
-    if (!parsedEvent.ok) {
-      throw new WebhookPayloadError('invalid webhook payload');
-    }
-    const event = parsedEvent.value;
-
-    const parsedWebhookEvent = creemWebhookEventSchema.safeParse(event);
-    if (!parsedWebhookEvent.success) {
-      throw new WebhookPayloadError('invalid webhook payload');
-    }
-    const webhookEvent = parsedWebhookEvent.data;
+      signatureHeader: req.headers.get('creem-signature'),
+      signingSecret: this.configs.signingSecret,
+    });
 
     const eventType = this.mapCreemEventType(webhookEvent.eventType);
 
@@ -387,34 +336,6 @@ export class CreemProvider implements PaymentProviderDriver {
     }
 
     return await this.buildPaymentSessionFromSubscription(subscription);
-  }
-
-  private async generateSignature(
-    payload: string,
-    secret: string
-  ): Promise<string> {
-    try {
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(secret);
-      const messageData = encoder.encode(payload);
-
-      const key = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-
-      const signature = await crypto.subtle.sign('HMAC', key, messageData);
-
-      const signatureArray = new Uint8Array(signature);
-      return Array.from(signatureArray)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-    } catch (_error: unknown) {
-      throw new ServiceUnavailableError('failed to generate signature');
-    }
   }
 
   private async makeRequest<TSchema extends z.ZodTypeAny>(
