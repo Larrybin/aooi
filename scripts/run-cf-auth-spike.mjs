@@ -1,0 +1,234 @@
+import { execFileSync } from 'node:child_process';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import * as authSpikeSharedModule from '../tests/smoke/auth-spike.shared.ts';
+import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
+import {
+  createPreviewManager,
+  normalizePreviewBaseUrl,
+  runCloudflarePreviewSmoke,
+  waitForPreviewReady,
+} from './run-cf-preview-smoke.mjs';
+
+const authSpikeShared = authSpikeSharedModule.default ?? authSpikeSharedModule;
+const authSpikeBrowser = authSpikeBrowserModule.default ?? authSpikeBrowserModule;
+
+const rootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..'
+);
+
+const timestamp = new Date()
+  .toISOString()
+  .replace(/[-:]/g, '')
+  .replace(/\..+/, '');
+const reportDir = path.resolve(rootDir, '.gstack/projects/Larrybin-aooi');
+const reportBaseName = `cf-auth-spike-report-${timestamp}`;
+const reportJsonPath = path.resolve(reportDir, `${reportBaseName}.json`);
+const reportMarkdownPath = path.resolve(reportDir, `${reportBaseName}.md`);
+const latestJsonPath = path.resolve(reportDir, 'cf-auth-spike-report.latest.json');
+const latestMarkdownPath = path.resolve(
+  reportDir,
+  'cf-auth-spike-report.latest.md'
+);
+const artifactDir = path.resolve(
+  rootDir,
+  'output/playwright/cf-auth-spike',
+  timestamp
+);
+
+function readCommitShaSafely() {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+function normalizeCallbackPath(pathname) {
+  const raw = pathname?.trim() || '/settings/profile';
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function renderResponseSummary(title, responses) {
+  if (!responses?.length) {
+    return `- ${title}: none`;
+  }
+
+  const formatCookies = (response) =>
+    response.cookies?.length
+      ? response.cookies
+          .map(
+            (cookie) =>
+              `${cookie.name}{clear=${cookie.clearsCookie ? 'yes' : 'no'},httpOnly=${cookie.httpOnly ? 'yes' : 'no'},secure=${cookie.secure ? 'yes' : 'no'},sameSite=${cookie.sameSite || 'none'}}`
+          )
+          .join(', ')
+      : 'none';
+
+  return [
+    `- ${title}:`,
+    ...responses.map(
+      (response) =>
+        `  - ${response.status} ${response.url} cache-control=${response.cacheControl || 'n/a'} content-type=${response.contentType || 'n/a'} set-cookie=${response.setCookiePresent ? 'yes' : 'no'} set-cookie-count=${response.setCookieHeaderCount || 0} clear-cookie=${response.clearsCookie ? 'yes' : 'no'} cookies=${formatCookies(response)}`
+    ),
+  ].join('\n');
+}
+
+function renderMarkdown(report) {
+  const surface = report.surfaces[0];
+  const caseRows = surface?.cases
+    ?.map(
+      (item) =>
+        `| ${item.name} | ${item.status} | ${String(item.detail).replace(/\|/g, '\\|').replace(/\n/g, '<br>')} | ${item.screenshotPath || '-'} |`
+    )
+    .join('\n');
+  const preflightRows = report.preflight
+    ?.map(
+      (check) =>
+        `| ${check.surface} | ${check.name} | ${check.status} | ${String(check.detail).replace(/\|/g, '\\|').replace(/\n/g, '<br>')} |`
+    )
+    .join('\n');
+
+  return `# Cloudflare Preview Auth Spike Report
+
+- Generated at: ${report.generatedAt}
+- Commit SHA: ${report.commitSha}
+- Run ID: ${report.runId}
+- Callback path: ${report.callbackPath}
+- Harness status: ${report.harnessStatus}
+- Raw conclusion: ${report.rawConclusion}
+- Cloudflare URL: ${surface?.url || 'n/a'}
+- Email used: ${surface?.emailUsed || 'n/a'}
+
+## Preflight
+
+| Surface | Check | Status | Detail |
+| --- | --- | --- | --- |
+${preflightRows || '| - | - | - | no preflight checks |'}
+
+## Case Results
+
+| Case | Status | Detail | Screenshot |
+| --- | --- | --- | --- |
+${caseRows || '| - | - | no cases | - |'}
+
+## Failure Summary
+
+${report.failureSummary?.length ? report.failureSummary.map((item) => `- ${item}`).join('\n') : '- none'}
+
+## Auth Responses
+
+${renderResponseSummary('sign-up auth responses', surface?.signUpResponses)}
+${surface ? '\n' : ''}${renderResponseSummary('sign-in auth responses', surface?.signInResponses)}
+${surface ? '\n' : ''}${renderResponseSummary('sign-out auth responses', surface?.signOutResponses)}
+`;
+}
+
+async function writeReports(report) {
+  await mkdir(reportDir, { recursive: true });
+  const markdown = renderMarkdown(report);
+  await writeFile(reportJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  await writeFile(reportMarkdownPath, markdown, 'utf8');
+  await writeFile(latestJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  await writeFile(latestMarkdownPath, markdown, 'utf8');
+}
+
+async function main() {
+  const baseUrl = normalizePreviewBaseUrl(
+    process.env.CF_AUTH_SPIKE_URL || process.env.CF_PREVIEW_URL
+  );
+  const callbackPath = normalizeCallbackPath(
+    process.env.CF_AUTH_SPIKE_CALLBACK_PATH ||
+      process.env.AUTH_SPIKE_CALLBACK_PATH
+  );
+  const runId = process.env.CF_AUTH_SPIKE_RUN_ID?.trim() || timestamp;
+  const baseEmail =
+    process.env.CF_AUTH_SPIKE_EMAIL?.trim() ||
+    process.env.AUTH_SPIKE_EMAIL?.trim() ||
+    'auth-spike@example.com';
+  const password =
+    process.env.CF_AUTH_SPIKE_PASSWORD?.trim() ||
+    process.env.AUTH_SPIKE_PASSWORD?.trim() ||
+    'AuthSpike123!auth';
+  const userName =
+    process.env.CF_AUTH_SPIKE_USER_NAME?.trim() ||
+    process.env.AUTH_SPIKE_USER_NAME?.trim() ||
+    'Auth Spike User';
+  const emails = authSpikeShared.buildSurfaceRunEmails(baseEmail, runId);
+  const emailUsed = emails.cloudflare;
+  const reuseServer = process.env.CF_PREVIEW_REUSE_SERVER === 'true';
+
+  const report = authSpikeShared.createEmptyReport({
+    callbackPath,
+    commitSha: readCommitShaSafely(),
+    emails,
+    runId,
+  });
+
+  const preview = reuseServer ? null : createPreviewManager({});
+
+  try {
+    if (preview) {
+      await waitForPreviewReady({ baseUrl });
+    }
+
+    await runCloudflarePreviewSmoke({ baseUrl });
+    report.preflight.push({
+      name: 'cf-preview-db-smoke',
+      status: 'passed',
+      detail: 'config-api/sign-up/sign-in repeated requests passed',
+      surface: 'cloudflare',
+    });
+
+    report.surfaces.push(
+      await authSpikeBrowser.runAuthSurface({
+        surfaceName: 'cloudflare',
+        baseUrl,
+        emailUsed,
+        password,
+        callbackPath,
+        userName,
+        artifactDir,
+      })
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    report.failureSummary.push(`fatal:${message}`);
+    throw error;
+  } finally {
+    const conclusion = authSpikeShared.deriveConclusion(report);
+    report.rawConclusion = conclusion.rawConclusion;
+    report.harnessStatus = conclusion.harnessStatus;
+    report.failureSummary = Array.from(
+      new Set([...report.failureSummary, ...conclusion.failureSummary])
+    );
+    await writeReports(report);
+
+    if (preview) {
+      await preview.stop();
+    }
+  }
+
+  process.stdout.write(
+    [
+      `[cf-auth-spike] report: ${path.relative(rootDir, reportMarkdownPath)}`,
+      `[cf-auth-spike] harness: ${report.harnessStatus}`,
+      `[cf-auth-spike] raw conclusion: ${report.rawConclusion}`,
+      `[cf-auth-spike] email: ${emailUsed}`,
+    ].join('\n') + '\n'
+  );
+
+  process.exit(report.harnessStatus === 'PASS' ? 0 : 1);
+}
+
+main().catch((error) => {
+  process.stderr.write(
+    `${error instanceof Error ? error.stack || error.message : String(error)}\n`
+  );
+  process.exit(1);
+});

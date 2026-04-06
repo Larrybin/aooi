@@ -1,0 +1,81 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  renderMarkdown,
+  resolveHarnessExitCode,
+  runPreflightChecks,
+} from '../../scripts/run-auth-spike.mjs';
+import { buildSurfaceRunEmails, createEmptyReport } from './auth-spike.shared';
+
+test('runPreflightChecks 分类相同 surface URL 与页面不可达', async () => {
+  const fetchCalls: string[] = [];
+  const fakeFetch: typeof fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    fetchCalls.push(url);
+
+    if (url.endsWith('/sign-up')) {
+      return new Response('missing', { status: 404 });
+    }
+
+    return new Response('ok', { status: 200 });
+  }) as typeof fetch;
+
+  const result = await runPreflightChecks(
+    {
+      vercelUrl: 'https://app.example.com',
+      cloudflareUrl: 'https://app.example.com',
+      callbackPathInput: '/settings/profile',
+    },
+    fakeFetch
+  );
+
+  assert.equal(result.normalizedCallbackPath, '/settings/profile');
+  assert.equal(
+    result.checks.some(
+      (check) =>
+        check.surface === 'global' &&
+        check.name === 'distinct-surfaces' &&
+        check.status === 'failed'
+    ),
+    true
+  );
+  assert.equal(
+    result.checks.some(
+      (check) =>
+        check.name === 'sign-up-page' &&
+        check.surface === 'vercel' &&
+        check.status === 'failed'
+    ),
+    true
+  );
+  assert.equal(fetchCalls.length >= 6, true);
+});
+
+test('resolveHarnessExitCode 只在 harness PASS 且子进程成功时返回 0', () => {
+  assert.equal(resolveHarnessExitCode({ harnessStatus: 'PASS' }, 0), 0);
+  assert.equal(resolveHarnessExitCode({ harnessStatus: 'FAIL' }, 0), 1);
+  assert.equal(resolveHarnessExitCode({ harnessStatus: 'PASS' }, 7), 7);
+});
+
+test('renderMarkdown 输出 harness 语义和 preflight 信息', () => {
+  const report = createEmptyReport({
+    callbackPath: '/settings/profile',
+    commitSha: 'test-sha',
+    emails: buildSurfaceRunEmails('auth-spike@example.com', 'render-1'),
+    runId: 'render-1',
+  });
+  report.preflight.push({
+    name: 'distinct-surfaces',
+    status: 'passed',
+    detail: 'surface URLs are distinct',
+    surface: 'global',
+  });
+
+  const markdown = renderMarkdown(report);
+
+  assert.match(markdown, /# Auth Spike Feasibility Report/);
+  assert.match(markdown, /Harness status: FAIL/);
+  assert.match(markdown, /Preflight/);
+  assert.match(markdown, /auth-spike\+vercel-render-1@example.com/);
+});

@@ -1,0 +1,42 @@
+name: Cloudflare Preview Smoke
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Cloudflare preview repeated-request smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create CI-only Wrangler secrets
+        run: |
+          cat > .dev.vars <<'EOF'
+          AUTH_SECRET=ci-auth-secret-not-for-production
+          EOF
+
+      - name: Run Cloudflare preview smoke
+        run: pnpm test:cf-preview-smoke
