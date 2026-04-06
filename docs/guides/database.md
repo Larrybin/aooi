@@ -29,7 +29,7 @@ const users = await db().select().from(user);
 
 | Environment        | Mode                       | Description                                                   |
 | ------------------ | -------------------------- | ------------------------------------------------------------- |
-| Cloudflare Workers | Hyperdrive (cached client) | Uses `HYPERDRIVE` binding; caches a single client per binding |
+| Cloudflare Workers | Hyperdrive (per-request)   | Uses `HYPERDRIVE` binding; creates a fresh client per request |
 | Traditional Server | Singleton                  | Reuses connection pool across requests                        |
 | Serverless         | Instance-cached client     | Caches one client (max=1) per instance/`DATABASE_URL`         |
 
@@ -44,7 +44,9 @@ const users = await db().select().from(user);
 Notes:
 
 - In Cloudflare Workers runtime, `db()` ignores `DATABASE_URL` and uses `HYPERDRIVE.connectionString` from bindings (`[[hyperdrive]] binding = "HYPERDRIVE"`). Missing bindings fail with a `ServiceUnavailableError` and a generic public message.
+- In Cloudflare Workers runtime, `db()` does **not** reuse a postgres/Hyperdrive client across requests. It creates a fresh client per request and keeps schema-check state request-scoped to avoid Worker hangs caused by cross-request I/O reuse.
 - This also enables DB-backed settings/configs (the `config` table, `getAllConfigs()`/`getConfigs()`) at runtime in Workers even when `DATABASE_URL` is empty.
+- `DB_SINGLETON_ENABLED` only applies to non-Workers Node runtimes. Workers always use the Hyperdrive request-scoped path above.
 - Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
 
 ## Schema Definition
@@ -277,8 +279,12 @@ Cloudflare helper commands:
 
 - `pnpm cf:build`
 - `pnpm cf:preview`
+- `pnpm test:cf-auth-spike`
+- `pnpm test:cf-preview-smoke`
 - `pnpm cf:deploy`
 - `pnpm cf:upload`
+
+`pnpm test:cf-auth-spike` is the full local Workers auth harness. It builds and boots Cloudflare preview, verifies the DB-backed auth shell still renders, then exercises fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out against the same Worker surface.
 
 ### Vercel / AWS Lambda (Serverless)
 

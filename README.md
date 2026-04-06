@@ -126,10 +126,15 @@ Read `content/docs` to start your AI SaaS project.
 - Cloudflare helper commands:
   - `pnpm cf:build`
   - `pnpm cf:preview`
+  - `pnpm test:cf-auth-spike`
+  - `pnpm test:cf-preview-smoke`
   - `pnpm cf:deploy`
   - `pnpm cf:upload`
+- GitHub Actions now runs `pnpm test:cf-preview-smoke` on `main` pushes and pull requests, so repeated-request regressions in Workers preview fail CI instead of hiding until manual QA.
 - Cloudflare build/preview/deploy is now a first-class path, but auth/payment/upload parity work is still tracked separately. `/api/auth/**` remains Node-targeted for now.
 - `pnpm cf:preview` is a real preview path: it reads DB-backed public config via Hyperdrive and `wrangler.toml` `localConnectionString`, so config-driven pages follow your local `config` table state instead of hardcoded preview defaults.
+- `pnpm test:cf-preview-smoke` is the regression gate for the Workers DB hang fix. It checks `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice in a row against Cloudflare preview so “first request works, second request hangs” gets caught automatically.
+- `pnpm test:cf-auth-spike` runs the full Cloudflare preview auth spike on one local Worker surface: fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out. It auto-generates a unique email alias per run and writes Markdown/JSON reports plus Playwright failure screenshots.
 - Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id` plus a non-localhost `NEXT_PUBLIC_APP_URL`.
 
 ## Database Migrations (Required)
@@ -140,6 +145,24 @@ Read `content/docs` to start your AI SaaS project.
 ## Auth Secret (Production Required)
 
 - In production you must set `BETTER_AUTH_SECRET` (preferred) or `AUTH_SECRET` to a strong random value.
+
+## Auth Spike Feasibility Harness
+
+- Command: `pnpm test:auth-spike`
+- Required env vars:
+  - `AUTH_SPIKE_VERCEL_URL`
+  - `AUTH_SPIKE_CF_URL`
+  - `AUTH_SPIKE_EMAIL`
+  - `AUTH_SPIKE_PASSWORD`
+  - `AUTH_SPIKE_CALLBACK_PATH`
+- Optional env vars:
+  - `AUTH_SPIKE_USER_NAME` (default: `Auth Spike User`)
+- The command writes:
+  - Markdown/JSON reports to `.gstack/projects/Larrybin-aooi/`
+  - Failure screenshots to `output/playwright/auth-spike/`
+- Harness rule: only `PASS` exits successfully; `BLOCKED` / `需要 adapter` / `需要替代路线` all exit non-zero.
+- Each run generates surface-specific emails for `vercel` and `cloudflare`, so fresh sign-up stays real even when both deployments share one database.
+- The report now records targeted preflight results before browser automation and uses `harnessStatus`, not gate wording.
 
 ## Admin Settings (General)
 

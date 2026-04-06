@@ -56,6 +56,9 @@ Notes:
 - `DATABASE_PROVIDER` currently supports `postgresql` only.
 - Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in `wrangler.toml`.
 - `pnpm cf:preview` is not a fake public-page mode; it requires `[[hyperdrive]]` `localConnectionString` plus a migrated local database, and config-driven pages reflect the real `config` table state.
+- `pnpm test:cf-preview-smoke` is the fast regression gate for DB-backed auth shell rendering in Workers preview. It hits `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice to catch cross-request DB client reuse bugs.
+- `pnpm test:cf-auth-spike` builds on that and runs the full Cloudflare preview auth path: fresh sign-up, sign-in, protected profile read, invalid-session redirect, and sign-out, all against one local Worker surface.
+- `.github/workflows/cloudflare-preview-smoke.yaml` runs that same command on `main` pushes and pull requests. CI writes a temporary `.dev.vars` with a CI-only auth secret so Wrangler preview can boot without local secrets.
 - For details, see `docs/guides/database.md`.
 
 ```bash
@@ -339,6 +342,34 @@ Configuration steps in Vercel Dashboard:
 3. Configure DNS (CNAME or A record) at domain registrar
 4. Paste environment variables in Settings → Environment Variables
 5. Redeploy project after configuration changes
+
+## Auth Spike Feasibility Harness
+
+用于双部署认证 Spike 的最小执行入口：
+
+```bash
+pnpm test:auth-spike
+```
+
+执行前需要配置：
+
+```bash
+AUTH_SPIKE_VERCEL_URL="https://your-vercel-auth-sandbox.example.com"
+AUTH_SPIKE_CF_URL="https://your-cloudflare-auth-sandbox.example.com"
+AUTH_SPIKE_EMAIL="auth-spike@example.com"
+AUTH_SPIKE_PASSWORD="change-me-please"
+AUTH_SPIKE_CALLBACK_PATH="/settings/profile"
+# Optional
+AUTH_SPIKE_USER_NAME="Auth Spike User"
+```
+
+说明：
+
+- 这套 harness 只覆盖 email/password 闭环，不覆盖 OAuth。
+- 命令会先做 targeted preflight，再对两端真实部署面执行注册、登录、受保护页访问、无效 cookie、sign-out 与契约比对。
+- 结果会输出到 `.gstack/projects/Larrybin-aooi/`，失败截图输出到 `output/playwright/auth-spike/`。
+- 每次运行会为 `vercel` / `cloudflare` 分别生成唯一邮箱别名，避免共享数据库时把第二个 surface 误测成“已有账号登录”。
+- 只有 `PASS` 返回 0；其他原始结论都会返回非 0，用于 harness 决策。
 
 ## Admin Dashboard Configuration
 
