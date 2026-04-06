@@ -13,6 +13,46 @@ type OneTapPlugin = NonNullable<
 const makeOneTapPlugin = (options: GoogleOneTapOptions): OneTapPlugin =>
   oneTapClient(options) as OneTapPlugin;
 
+function shouldSerializeAuthBody(body: unknown): body is Record<string, unknown> {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    !(body instanceof FormData) &&
+    !(body instanceof URLSearchParams) &&
+    !(body instanceof Blob) &&
+    !(body instanceof ArrayBuffer)
+  );
+}
+
+type AuthRequestContext = {
+  body: unknown;
+  headers: Headers;
+};
+
+type AuthJsonRequestOptions = Record<string, unknown> & {
+  onRequest?: (context: AuthRequestContext) => unknown | Promise<unknown>;
+};
+
+export function withAuthJsonRequest<T extends AuthJsonRequestOptions>(options: T): T {
+  const currentOnRequest = options.onRequest;
+
+  return {
+    ...options,
+    async onRequest(context: AuthRequestContext) {
+      if (shouldSerializeAuthBody(context.body)) {
+        context.headers.set('content-type', 'application/json');
+        context.body = JSON.stringify(context.body);
+      }
+
+      if (typeof currentOnRequest === 'function') {
+        await currentOnRequest(context);
+      }
+
+      return context;
+    },
+  } as T;
+}
+
 // auth client for client-side use
 export const authClient = createAuthClient({
   baseURL: envConfigs.app_url,

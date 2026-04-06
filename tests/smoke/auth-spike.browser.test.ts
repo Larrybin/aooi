@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildAuthFailureDetail,
   buildResponseSummary,
   splitSetCookieHeader,
 } from './auth-spike.browser';
+import { hasSecureCookieFlags } from './auth-spike.shared';
 
 test('splitSetCookieHeader 能拆分包含 Expires 与换行的多 cookie 头', () => {
   const header = [
@@ -55,4 +57,62 @@ test('buildResponseSummary 以 cookie 粒度输出报告字段', () => {
       clearsCookie: true,
     },
   ]);
+});
+
+test('hasSecureCookieFlags 允许本地 http 验收使用非 secure cookie', () => {
+  const summary = buildResponseSummary({
+    url: 'http://127.0.0.1:8787/api/auth/sign-up/email',
+    status: 200,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/json',
+    },
+    setCookieHeaders: [
+      'better-auth.session_token=token; Path=/; HttpOnly; SameSite=Lax',
+    ],
+  });
+
+  assert.equal(hasSecureCookieFlags([summary]), true);
+});
+
+test('hasSecureCookieFlags 仍要求非本地 origin 带 secure cookie', () => {
+  const summary = buildResponseSummary({
+    url: 'https://example.com/api/auth/sign-up/email',
+    status: 200,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/json',
+    },
+    setCookieHeaders: [
+      'better-auth.session_token=token; Path=/; HttpOnly; SameSite=Lax',
+    ],
+  });
+
+  assert.equal(hasSecureCookieFlags([summary]), false);
+});
+
+test('buildAuthFailureDetail 在失败时保留 auth 响应与当前 URL', () => {
+  const summary = buildResponseSummary({
+    url: 'http://127.0.0.1:3100/api/auth/sign-up/email',
+    status: 500,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/json',
+    },
+    setCookieHeaders: [],
+  });
+
+  const detail = buildAuthFailureDetail({
+    flow: 'sign-up',
+    error: new Error('request failed'),
+    currentUrl: '/sign-up?callbackUrl=%2Fsettings%2Fprofile',
+    responses: [summary],
+  });
+
+  assert.match(detail, /request failed/);
+  assert.match(detail, /sign-up auth responses: 500 \/api\/auth\/sign-up\/email/);
+  assert.match(
+    detail,
+    /sign-up final URL: \/sign-up\?callbackUrl=%2Fsettings%2Fprofile/
+  );
 });

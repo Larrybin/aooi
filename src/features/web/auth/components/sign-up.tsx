@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { signUp } from '@/core/auth/client';
+import { signUp, withAuthJsonRequest } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -43,6 +43,7 @@ export function SignUp({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
@@ -57,6 +58,10 @@ export function SignUp({
     locale,
     defaultLocale,
   });
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const handleSignUp = async () => {
     if (loading) {
@@ -85,7 +90,7 @@ export function SignUp({
           password,
           name,
         },
-        {
+        withAuthJsonRequest({
           onRequest: () => {
             setLoading(true);
           },
@@ -106,7 +111,7 @@ export function SignUp({
             toast.error(ctx.error?.message || t('sign_up_failed'));
             setLoading(false);
           },
-        }
+        })
       );
     } catch (e: unknown) {
       toast.error(toErrorMessage(e) || t('sign_up_failed'));
@@ -134,6 +139,7 @@ export function SignUp({
           {isEmailAuthEnabled && (
             <form
               className="grid gap-4"
+              data-auth-client-ready={clientReady ? 'true' : 'false'}
               data-testid="auth-sign-up-form"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -188,7 +194,7 @@ export function SignUp({
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loading}
+                disabled={!clientReady || loading}
                 data-testid="auth-sign-up-submit"
               >
                 {loading ? (

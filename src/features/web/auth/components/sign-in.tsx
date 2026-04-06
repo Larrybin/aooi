@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { signIn } from '@/core/auth/client';
+import { signIn, withAuthJsonRequest } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -40,6 +40,7 @@ export function SignIn({
   const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
@@ -54,6 +55,10 @@ export function SignIn({
     locale,
     defaultLocale,
   });
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const handleSignIn = async () => {
     if (loading) {
@@ -77,7 +82,7 @@ export function SignIn({
           password,
           callbackURL: localizedCallbackUrl,
         },
-        {
+        withAuthJsonRequest({
           onRequest: () => {
             setLoading(true);
           },
@@ -89,7 +94,7 @@ export function SignIn({
             toast.error(ctx.error?.message || t('sign_in_failed'));
             setLoading(false);
           },
-        }
+        })
       );
     } catch (e: unknown) {
       toast.error(toErrorMessage(e) || t('sign_in_failed'));
@@ -117,6 +122,7 @@ export function SignIn({
           {isEmailAuthEnabled && (
             <form
               className="grid gap-4"
+              data-auth-client-ready={clientReady ? 'true' : 'false'}
               data-testid="auth-sign-in-form"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -174,7 +180,7 @@ export function SignIn({
               <Button
                 type="submit"
                 className="h-11 w-full rounded-full"
-                disabled={loading}
+                disabled={!clientReady || loading}
                 data-testid="auth-sign-in-submit"
               >
                 {loading ? (

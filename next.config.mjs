@@ -22,6 +22,7 @@ const withNextIntl = createNextIntlPlugin({
 const nextConfig = {
   output: undefined,
   reactStrictMode: true,
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
   images: {
     unoptimized: true,

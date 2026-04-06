@@ -144,12 +144,27 @@ export function clearsCookie(responses: ResponseSummary[]): boolean {
 }
 
 export function hasSecureCookieFlags(responses: ResponseSummary[]): boolean {
+  const shouldRequireSecure = (urlValue: string): boolean => {
+    try {
+      const url = new URL(urlValue);
+      const isLocalHttp =
+        url.protocol === 'http:' &&
+        (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+      return !isLocalHttp;
+    } catch {
+      return true;
+    }
+  };
+
   return responses.some(
     (response) =>
       response.setCookiePresent &&
       response.cookies.length > 0 &&
       response.cookies.every(
-        (cookie) => cookie.httpOnly && cookie.secure && cookie.sameSite !== null
+        (cookie) =>
+          cookie.httpOnly &&
+          cookie.sameSite !== null &&
+          (cookie.secure || !shouldRequireSecure(response.url))
       )
   );
 }

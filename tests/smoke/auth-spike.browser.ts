@@ -32,11 +32,44 @@ export function toFailureDetail(error: unknown): string {
   return String(error);
 }
 
+export function buildAuthFailureDetail(params: {
+  flow: 'sign-up' | 'sign-in';
+  error: unknown;
+  currentUrl: string;
+  responses: ResponseSummary[];
+}): string {
+  const { flow, error, currentUrl, responses } = params;
+  const authResponses =
+    responses.length === 0
+      ? 'none'
+      : responses
+          .map((response) => {
+            const url = stripOrigin(response.url);
+            return `${response.status} ${url}`;
+          })
+          .join(', ');
+
+  return [
+    toFailureDetail(error),
+    `${flow} auth responses: ${authResponses}`,
+    `${flow} final URL: ${currentUrl || 'n/a'}`,
+  ].join('\n');
+}
+
 function isInsecureLocalPreviewOrigin(baseUrl: string): boolean {
   const url = new URL(baseUrl);
   return (
     url.protocol === 'http:' &&
     (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+  );
+}
+
+function isLocalNodeDevOrigin(baseUrl: string): boolean {
+  const url = new URL(baseUrl);
+  return (
+    url.protocol === 'http:' &&
+    (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+    url.port === '3100'
   );
 }
 
@@ -203,6 +236,13 @@ async function captureFailure(
 
 async function summarizeResponse(response: Response): Promise<ResponseSummary> {
   let setCookieHeaders: string[] = [];
+  let headers: Record<string, string> = {};
+
+  try {
+    headers = await response.allHeaders();
+  } catch {
+    headers = response.headers();
+  }
 
   setCookieHeaders = await getSetCookieHeaders(response);
 
@@ -270,6 +310,30 @@ async function waitForSignInPage(page: Page) {
   );
 }
 
+async function waitForLocalNodeFormHydration(
+  page: Page,
+  baseUrl: string,
+  formTestId: string
+) {
+  await page.locator(`[data-testid="${formTestId}"]`).waitFor({
+    state: 'visible',
+    timeout: 20_000,
+  });
+
+  if (!isLocalNodeDevOrigin(baseUrl)) {
+    return;
+  }
+
+  await page
+    .locator(
+      `[data-testid="${formTestId}"][data-auth-client-ready="true"]`
+    )
+    .waitFor({
+      state: 'visible',
+      timeout: 20_000,
+    });
+}
+
 async function signUpFreshAccount(
   page: Page,
   context: BrowserContext,
@@ -287,10 +351,7 @@ async function signUpFreshAccount(
     `${origin}/sign-up?callbackUrl=${encodeURIComponent(callbackPathname)}`,
     { waitUntil: 'domcontentloaded' }
   );
-  await page.locator('[data-testid="auth-sign-up-form"]').waitFor({
-    state: 'visible',
-    timeout: 20_000,
-  });
+  await waitForLocalNodeFormHydration(page, baseUrl, 'auth-sign-up-form');
   await page.locator('input[name="name"]').fill(name);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
@@ -330,10 +391,7 @@ async function signInExistingAccount(
     `${origin}/sign-in?callbackUrl=${encodeURIComponent(callbackPathname)}`,
     { waitUntil: 'domcontentloaded' }
   );
-  await page.locator('[data-testid="auth-sign-in-form"]').waitFor({
-    state: 'visible',
-    timeout: 20_000,
-  });
+  await waitForLocalNodeFormHydration(page, baseUrl, 'auth-sign-in-form');
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   recorder.start();
@@ -540,17 +598,30 @@ export async function runAuthSurface(params: {
       'sign_up_fresh_account',
       params.artifactDir,
       async () => {
-        surfaceResult.signUpResponses = await signUpFreshAccount(
-          page,
-          context,
-          cdpSession,
-          callbackPath,
-          baseUrl,
-          userName,
-          emailUsed,
-          password,
-          recorder
-        );
+        try {
+          surfaceResult.signUpResponses = await signUpFreshAccount(
+            page,
+            context,
+            cdpSession,
+            callbackPath,
+            baseUrl,
+            userName,
+            emailUsed,
+            password,
+            recorder
+          );
+        } catch (error) {
+          surfaceResult.signUpResponses = await recorder.stop();
+          throw new Error(
+            buildAuthFailureDetail({
+              flow: 'sign-up',
+              error,
+              currentUrl: stripOrigin(page.url()),
+              responses: surfaceResult.signUpResponses,
+            }),
+            { cause: error instanceof Error ? error : undefined }
+          );
+        }
         surfaceResult.finalUrlAfterSignUp = stripOrigin(page.url());
 
         assert.equal(
@@ -580,16 +651,29 @@ export async function runAuthSurface(params: {
       params.artifactDir,
       async () => {
         await context.clearCookies();
-        surfaceResult.signInResponses = await signInExistingAccount(
-          page,
-          context,
-          cdpSession,
-          callbackPath,
-          baseUrl,
-          emailUsed,
-          password,
-          recorder
-        );
+        try {
+          surfaceResult.signInResponses = await signInExistingAccount(
+            page,
+            context,
+            cdpSession,
+            callbackPath,
+            baseUrl,
+            emailUsed,
+            password,
+            recorder
+          );
+        } catch (error) {
+          surfaceResult.signInResponses = await recorder.stop();
+          throw new Error(
+            buildAuthFailureDetail({
+              flow: 'sign-in',
+              error,
+              currentUrl: stripOrigin(page.url()),
+              responses: surfaceResult.signInResponses,
+            }),
+            { cause: error instanceof Error ? error : undefined }
+          );
+        }
         surfaceResult.finalUrlAfterSignIn = stripOrigin(page.url());
 
         assert.equal(

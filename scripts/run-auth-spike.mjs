@@ -29,6 +29,14 @@ const artifactDir = path.resolve(
   'output/playwright/auth-spike',
   timestamp
 );
+const PREFLIGHT_CHECK_RETRY_ATTEMPTS = Number.parseInt(
+  process.env.AUTH_SPIKE_PREFLIGHT_RETRY_ATTEMPTS || '8',
+  10
+);
+const PREFLIGHT_CHECK_RETRY_DELAY_MS = Number.parseInt(
+  process.env.AUTH_SPIKE_PREFLIGHT_RETRY_DELAY_MS || '1000',
+  10
+);
 
 function readCommitShaSafely() {
   try {
@@ -58,6 +66,10 @@ function renderCaseRows(surface) {
 
 function escapeTable(value) {
   return String(value).replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function renderResponseSummary(title, responses) {
@@ -181,21 +193,47 @@ async function writeReports(report) {
   );
 }
 
-async function fetchSurfaceCheck(fetchImpl, url) {
-  const response = await fetchImpl(url, {
-    method: 'GET',
-    redirect: 'manual',
-  });
+async function fetchSurfaceCheck(
+  fetchImpl,
+  url,
+  {
+    attempts = PREFLIGHT_CHECK_RETRY_ATTEMPTS,
+    retryDelayMs = PREFLIGHT_CHECK_RETRY_DELAY_MS,
+  } = {}
+) {
+  let lastFailure = 'unknown error';
 
-  return response.status < 400
-    ? {
-        status: 'passed',
-        detail: `reachable (${response.status})`,
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetchImpl(url, {
+        method: 'GET',
+        redirect: 'manual',
+      });
+
+      if (response.status < 400) {
+        return {
+          status: 'passed',
+          detail:
+            attempt === 1
+              ? `reachable (${response.status})`
+              : `reachable (${response.status}) after retry ${attempt}/${attempts}`,
+        };
       }
-    : {
-        status: 'failed',
-        detail: `unreachable (${response.status})`,
-      };
+
+      lastFailure = `unreachable (${response.status})`;
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error);
+    }
+
+    if (attempt < attempts) {
+      await sleep(retryDelayMs);
+    }
+  }
+
+  return {
+    status: 'failed',
+    detail: lastFailure,
+  };
 }
 
 export async function runPreflightChecks(

@@ -52,6 +52,41 @@ test('runPreflightChecks 分类相同 surface URL 与页面不可达', async () 
   assert.equal(fetchCalls.length >= 6, true);
 });
 
+test('runPreflightChecks 对瞬时 fetch failed 做重试而不是直接抛错', async () => {
+  const attempts = new Map<string, number>();
+  const fakeFetch: typeof fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    const attempt = (attempts.get(url) || 0) + 1;
+    attempts.set(url, attempt);
+
+    if (url === 'https://cf.example.com/sign-in' && attempt === 1) {
+      throw new TypeError('fetch failed');
+    }
+
+    return new Response('ok', { status: 200 });
+  }) as typeof fetch;
+
+  const result = await runPreflightChecks(
+    {
+      vercelUrl: 'https://vercel.example.com',
+      cloudflareUrl: 'https://cf.example.com',
+      callbackPathInput: '/settings/profile',
+    },
+    fakeFetch
+  );
+
+  assert.equal(
+    result.checks.some(
+      (check) =>
+        check.surface === 'cloudflare' &&
+        check.name === 'sign-in-page' &&
+        check.status === 'passed' &&
+        /after retry/i.test(check.detail)
+    ),
+    true
+  );
+});
+
 test('resolveHarnessExitCode 只在 harness PASS 且子进程成功时返回 0', () => {
   assert.equal(resolveHarnessExitCode({ harnessStatus: 'PASS' }, 0), 0);
   assert.equal(resolveHarnessExitCode({ harnessStatus: 'FAIL' }, 0), 1);

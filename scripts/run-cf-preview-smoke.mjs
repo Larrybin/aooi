@@ -18,6 +18,10 @@ const REQUEST_TIMEOUT_MS = Number.parseInt(
   10
 );
 const POLL_INTERVAL_MS = 1000;
+const PREVIEW_READY_CONSECUTIVE_SUCCESSES = Number.parseInt(
+  process.env.CF_PREVIEW_READY_CONSECUTIVE_SUCCESSES || '2',
+  10
+);
 
 export function normalizePreviewBaseUrl(input) {
   const raw = input?.trim() || 'http://localhost:8787';
@@ -122,6 +126,8 @@ export async function waitForPreviewReady({
 }) {
   const startedAt = Date.now();
   let lastError = null;
+  let consecutiveSuccesses = 0;
+  const [configCheck] = getCloudflarePreviewSmokeChecks();
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
@@ -130,14 +136,23 @@ export async function waitForPreviewReady({
         redirect: 'follow',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
+      const body = await response.text();
 
-      if (response.status === 200) {
-        logger.log(`✓ Cloudflare preview ready: ${baseUrl}`);
+      validateSmokeResponse(configCheck, response, body);
+      consecutiveSuccesses += 1;
+
+      if (consecutiveSuccesses >= PREVIEW_READY_CONSECUTIVE_SUCCESSES) {
+        logger.log(
+          `✓ Cloudflare preview ready: ${baseUrl} (${consecutiveSuccesses} consecutive checks)`
+        );
         return;
       }
 
-      lastError = new Error(`readiness returned ${response.status}`);
+      lastError = new Error(
+        `preview not stable yet (${consecutiveSuccesses}/${PREVIEW_READY_CONSECUTIVE_SUCCESSES})`
+      );
     } catch (error) {
+      consecutiveSuccesses = 0;
       lastError = error instanceof Error ? error : new Error(String(error));
     }
 
@@ -151,11 +166,12 @@ export async function waitForPreviewReady({
 
 export function createPreviewManager({
   cwd = rootDir,
+  env = process.env,
   logger = console,
 }) {
   const child = spawn('pnpm', ['cf:preview'], {
     cwd,
-    env: process.env,
+    env,
     detached: process.platform !== 'win32',
     stdio: ['pipe', 'pipe', 'pipe'],
   });

@@ -9,9 +9,15 @@ export async function middleware(request: NextRequest) {
 
   // Keep /api logic minimal: only inject requestId.
   if (request.nextUrl.pathname.startsWith('/api')) {
-    const response = NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-request-id', requestId);
+
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
     response.headers.set('x-request-id', requestId);
-    upsertMiddlewareRequestHeader(response.headers, 'x-request-id', requestId);
     return response;
   }
 

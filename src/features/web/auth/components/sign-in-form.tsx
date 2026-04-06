@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { signIn } from '@/core/auth/client';
+import { signIn, withAuthJsonRequest } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -33,6 +33,7 @@ export function SignInForm({
   const locale = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { configs, setIsShowSignModal } = useAppContext();
@@ -49,6 +50,10 @@ export function SignInForm({
     locale,
     defaultLocale,
   });
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   const handleSignIn = async () => {
     if (loading) {
@@ -73,7 +78,7 @@ export function SignInForm({
           password,
           callbackURL: localizedCallbackUrl,
         },
-        {
+        withAuthJsonRequest({
           onRequest: () => {
             setLoading(true);
           },
@@ -87,7 +92,7 @@ export function SignInForm({
             toast.error(ctx.error?.message || t('sign_in_failed'));
             setLoading(false);
           },
-        }
+        })
       );
     } catch (e: unknown) {
       toast.error(toErrorMessage(e) || t('sign_in_failed'));
@@ -102,6 +107,7 @@ export function SignInForm({
         {isEmailAuthEnabled && (
           <form
             className="grid gap-4"
+            data-auth-client-ready={clientReady ? 'true' : 'false'}
             onSubmit={(e) => {
               e.preventDefault();
               void handleSignIn();
@@ -161,7 +167,11 @@ export function SignInForm({
             <Label htmlFor="remember">{t("remember_me_title")}</Label>
           </div> */}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!clientReady || loading}
+            >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (

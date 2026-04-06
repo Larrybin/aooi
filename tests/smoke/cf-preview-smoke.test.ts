@@ -5,6 +5,7 @@ import {
   getCloudflarePreviewSmokeChecks,
   normalizePreviewBaseUrl,
   runRepeatedRequestCheck,
+  waitForPreviewReady,
   validateSmokeResponse,
 } from '../../scripts/run-cf-preview-smoke.mjs';
 
@@ -78,4 +79,35 @@ test('runRepeatedRequestCheck 连续验证两次请求', async () => {
     'http://127.0.0.1:8787/sign-up',
     'http://127.0.0.1:8787/sign-up',
   ]);
+});
+
+test('waitForPreviewReady 需要有效 config-api 响应连续成功后才通过', async () => {
+  let attempt = 0;
+  const fakeFetch: typeof fetch = (async () => {
+    attempt += 1;
+
+    if (attempt === 1) {
+      return new Response('warming', {
+        status: 200,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    return new Response(
+      '{"code":0,"message":"ok","data":{"app_name":"Roller Rabbit"}}',
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      }
+    );
+  }) as typeof fetch;
+
+  await waitForPreviewReady({
+    baseUrl: 'http://127.0.0.1:8787',
+    fetchImpl: fakeFetch,
+    timeoutMs: 5000,
+    logger: { log: () => undefined },
+  });
+
+  assert.equal(attempt >= 3, true);
 });
