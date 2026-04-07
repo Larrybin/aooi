@@ -27,11 +27,11 @@ const users = await db().select().from(user);
 
 ### Connection Modes
 
-| Environment        | Mode                       | Description                                                   |
-| ------------------ | -------------------------- | ------------------------------------------------------------- |
-| Cloudflare Workers | Hyperdrive (per-request)   | Uses `HYPERDRIVE` binding; creates a fresh client per request |
-| Traditional Server | Singleton                  | Reuses connection pool across requests                        |
-| Serverless         | Instance-cached client     | Caches one client (max=1) per instance/`DATABASE_URL`         |
+| Environment        | Mode                     | Description                                                   |
+| ------------------ | ------------------------ | ------------------------------------------------------------- |
+| Cloudflare Workers | Hyperdrive (per-request) | Uses `HYPERDRIVE` binding; creates a fresh client per request |
+| Traditional Server | Singleton                | Reuses connection pool across requests                        |
+| Serverless         | Instance-cached client   | Caches one client (max=1) per instance/`DATABASE_URL`         |
 
 ### Configuration
 
@@ -45,9 +45,12 @@ Notes:
 
 - In Cloudflare Workers runtime, `db()` ignores `DATABASE_URL` and uses `HYPERDRIVE.connectionString` from bindings (`[[hyperdrive]] binding = "HYPERDRIVE"`). Missing bindings fail with a `ServiceUnavailableError` and a generic public message.
 - In Cloudflare Workers runtime, `db()` does **not** reuse a postgres/Hyperdrive client across requests. It creates a fresh client per request and keeps schema-check state request-scoped to avoid Worker hangs caused by cross-request I/O reuse.
+- Cloudflare bindings are now read only through `src/shared/lib/runtime/env.server.ts`. Business code should not touch Workers detection or bindings directly.
 - This also enables DB-backed settings/configs (the `config` table, `getAllConfigs()`/`getConfigs()`) at runtime in Workers even when `DATABASE_URL` is empty.
 - `DB_SINGLETON_ENABLED` only applies to non-Workers Node runtimes. Workers always use the Hyperdrive request-scoped path above.
 - Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
+- Cloudflare free is no longer a full-app runtime target. The Worker only serves the public shell; non-public surfaces redirect to `CF_FALLBACK_ORIGIN`, which must be a separate full-app origin and is not used for Worker DB access.
+- CI preview/app smoke now create a temporary Wrangler config that rewrites both `[[hyperdrive]].localConnectionString` and `CF_FALLBACK_ORIGIN`, so database-backed preview checks run against the service-container Postgres without mutating the tracked production config.
 
 ## Schema Definition
 
@@ -281,10 +284,19 @@ Cloudflare helper commands:
 - `pnpm cf:preview`
 - `pnpm test:cf-auth-spike`
 - `pnpm test:cf-preview-smoke`
+- `pnpm test:cf-app-smoke`
 - `pnpm cf:deploy`
 - `pnpm cf:upload`
 
 `pnpm test:cf-auth-spike` is the full local Workers auth harness. It builds and boots Cloudflare preview, verifies the DB-backed auth shell still renders, then exercises fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out against the same Worker surface.
+
+`pnpm test:cf-app-smoke` is the Cloudflare public-shell smoke: landing, sign-in, sign-up, public config API, sitemap, and robots, plus redirect fallback checks for `/docs`, `/ai-chatbot`, and `/admin/settings/auth`.
+
+The smoke is read-only. It must not upsert public config values or mutate the `config` table in preview or production.
+
+The governed dual-deploy posture is now fully landed: Vercel remains the full-app origin, and Cloudflare free is the first-class public-shell runtime backed by preview smoke, app smoke, and deploy validation.
+
+`Dual Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so preview uses the CI database instead of the tracked local DSN in `wrangler.toml`.
 
 ### Vercel / AWS Lambda (Serverless)
 

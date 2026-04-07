@@ -85,3 +85,4 @@
 
 - 目标：保持 handler 仅做编排（鉴权/校验/调用 services/返回响应），避免引入 UI 依赖图。
 - 禁止依赖：`shared/blocks|components|contexts`、`themes` 以及任何 client-only 模块（如 `*.client.*`、`**/client/**`、`client-only`）。
+- 运行时边界补充：平台分叉（Workers vs Node）只能落在 `src/shared/lib/runtime/**`。详见 `docs/architecture/runtime-boundary.md`。

@@ -123,25 +123,37 @@ Read `content/docs` to start your AI SaaS project.
 
 - Docker builds now use the default `.next` output (not `.next/standalone`) and start with `next start` (see `Dockerfile`).
 - `wrangler.toml` and `open-next.config.ts` are the source of truth for the Cloudflare OpenNext build/deploy contract.
+- Production `next build` is explicitly pinned to Webpack through [scripts/next-build.mjs](/Users/bin/Desktop/project/aooi/scripts/next-build.mjs) to avoid the current Turbopack/OpenNext Worker runtime incompatibility (`require_turbopack_runtime(...) is not a function`) on Cloudflare.
 - Cloudflare helper commands:
   - `pnpm cf:build`
   - `pnpm cf:preview`
   - `pnpm test:local-auth-spike`
   - `pnpm test:cf-auth-spike`
+  - `pnpm test:cf-app-smoke`
   - `pnpm test:creem-webhook-spike`
   - `pnpm test:r2-upload-spike`
   - `pnpm test:cf-preview-smoke`
   - `pnpm cf:deploy`
   - `pnpm cf:upload`
-- GitHub Actions now gates `pnpm test`, `pnpm cf:build`, `pnpm test:creem-webhook-spike`, and `pnpm test:r2-upload-spike` on `main` pushes and pull requests, so Cloudflare build regressions plus Creem/R2 contract regressions fail CI instead of hiding until manual QA.
-- Cloudflare build/preview/deploy is now a first-class path. Payment/upload acceptance is formally gated around Creem webhook and R2 upload. The local dual-surface auth spike remains the acceptance script, but its current repo-local status is **BLOCKED** unless `wrangler.toml` `localConnectionString` points to a reachable migrated Postgres instance.
+- `.github/workflows/cloudflare-preview-smoke.yaml` remains the fast repeated-request regression gate.
+- `.github/workflows/dual-deploy-acceptance.yaml` now provisions a Postgres service container, generates a temporary Wrangler config for preview, and gates `pnpm test`, `pnpm cf:build`, `pnpm test:creem-webhook-spike`, `pnpm test:r2-upload-spike`, `pnpm test:local-auth-spike`, and `pnpm test:cf-app-smoke`.
+- Cloudflare status is governed by `first-class` / `preview-only` / `blocked`; see `docs/architecture/dual-deploy-governance.md`.
+- Current deploy posture is first-class on both surfaces: Vercel is the full-app origin, and Cloudflare free is the governed public-shell origin with redirect fallback for non-public routes.
+- Cloudflare free deploy now targets a reduced public shell only: `/`, `/sign-in`, `/sign-up`, `/api/config/get-configs`, `/sitemap.xml`, `/robots.txt`. Non-public surfaces are expected to stay off the free Worker path.
+- Cloudflare free topology is now fixed as `public shell + redirect fallback`: the Worker serves only the public shell, while docs/chat/admin/billing/AI and other heavy surfaces must live on a separate full-app origin.
+- `NEXT_PUBLIC_APP_URL` is the user-visible canonical origin for the Cloudflare public shell. `CF_FALLBACK_ORIGIN` is the separate full-app origin used only for `307` fallback redirects, and it must not equal `NEXT_PUBLIC_APP_URL`.
+- Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `pnpm cf:preview` is a real preview path: it reads DB-backed public config via Hyperdrive and `wrangler.toml` `localConnectionString`, so config-driven pages follow your local `config` table state instead of hardcoded preview defaults.
-- `pnpm test:local-auth-spike` boots a local Node surface and a local Cloudflare preview surface, then runs the shared dual-runtime auth harness against both. The script now fails fast when either child process exits early so blocked local DB / preview bootstrap failures surface immediately.
+- `pnpm test:local-auth-spike` boots a local Node surface and a local Cloudflare preview surface, then runs the shared dual-runtime auth harness against both. It now prefers reusing a healthy same-repo Node dev server from `.next/dev/lock`; otherwise it starts a clean local Node surface and still fails fast when Node/preview bootstrap exits early.
 - `pnpm test:cf-preview-smoke` is the regression gate for the Workers DB hang fix. It checks `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice in a row against Cloudflare preview so “first request works, second request hangs” gets caught automatically.
+- `pnpm test:cf-preview-smoke` now prefers the real Wrangler `Ready on http://...` URL instead of assuming port `8787`, and only falls back to `CF_PREVIEW_URL` / `CF_PREVIEW_APP_URL` if log parsing fails.
+- `pnpm test:cf-app-smoke` is the Cloudflare public-shell smoke. It validates `200` on the public shell routes above, plus `307 + Location` fallback redirects for `/docs`, `/ai-chatbot`, and `/admin/settings/auth`.
+- `pnpm test:cf-app-smoke` is now read-only. It no longer upserts `app_url`, `general_docs_enabled`, or `general_ai_enabled`, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing preview server.
 - `pnpm test:cf-auth-spike` runs the full Cloudflare preview auth spike on one local Worker surface: fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out. It auto-generates a unique email alias per run and writes Markdown/JSON reports plus Playwright failure screenshots.
 - `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
-- Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id` plus a non-localhost `NEXT_PUBLIC_APP_URL`.
+- Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id`, a non-localhost `NEXT_PUBLIC_APP_URL`, and a non-localhost pure-origin `CF_FALLBACK_ORIGIN` that differs from `NEXT_PUBLIC_APP_URL`.
+- Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 
 ## Database Migrations (Required)
 

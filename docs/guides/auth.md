@@ -50,7 +50,8 @@ Notes:
 - This endpoint is a contract exception: it bypasses `withApi()` and does not return the standard `{code,message,data}` envelope (Better Auth controls redirects/cookies/status codes).
 - The route is `force-dynamic`, and responses are marked `Cache-Control: no-store`.
 - This route is exercised by the shared dual-runtime auth spike (`pnpm test:local-auth-spike`) plus the Cloudflare-only auth spike (`pnpm test:cf-auth-spike`).
-- Current acceptance status: the Cloudflare-only spike is runnable, while the local dual-runtime spike is **BLOCKED** until `wrangler.toml` `localConnectionString` can reach a migrated Postgres instance for Hyperdrive-backed preview.
+- Runtime parity now uses a fixed diff/whitelist helper: `status`, `cache-control`, `content-type` MIME, same-origin `location` path+query, `set-cookie` presence/count, and cookie security semantics must match; only `date`, `x-request-id`, `x-vercel-id`, and `cf-ray` are ignored.
+- The local dual-runtime harness still depends on `wrangler.toml` `localConnectionString` reaching a migrated Postgres instance. In CI, `Dual Deploy Acceptance` generates a temporary Wrangler config and points preview at the service-container Postgres instead of using the tracked local DSN.
 
 ```typescript
 // src/app/api/auth/[...all]/route.ts
@@ -176,6 +177,7 @@ Notes:
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
 - 本地双端 auth 验收默认使用 `wrangler.toml` 的 `localConnectionString` 作为 Cloudflare 侧数据库，同时给本地 Node 面注入同一条 `DATABASE_URL`，确保两个 surface 跑的是同一份数据。
+- CI 中的 `Dual Deploy Acceptance` 不会直接读取仓库里的 `wrangler.toml` 本地连接串；它会生成一份临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container，这样 Node 与 Cloudflare preview 共用同一份测试数据库。
 
 ### Optional
 

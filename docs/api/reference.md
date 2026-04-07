@@ -146,7 +146,7 @@ Notes:
 - `/api/auth/[...all]` is a passthrough to Better Auth and does not use `withApi()`; response shape and errors are defined by Better Auth.
 - Treat `/api/auth/**` as sensitive: do not cache it at the edge. The route sets `Cache-Control: no-store`.
 - `/api/auth/**` is validated by the shared local dual-runtime auth spike (`pnpm test:local-auth-spike`) and the single-surface Cloudflare auth spike (`pnpm test:cf-auth-spike`).
-- Current status: `pnpm test:local-auth-spike` is **BLOCKED** until local Hyperdrive preview can connect to the Postgres instance pointed to by `[[hyperdrive]].localConnectionString`; it is documented, not promoted to required CI yet.
+- Auth parity now uses a fixed diff/whitelist helper; only `date`, `x-request-id`, `x-vercel-id`, and `cf-ray` are ignored.
 
 ### User
 
@@ -221,6 +221,7 @@ Notes:
 
 - `/api/chat` validates `model` against a server-side allowlist (see `src/shared/constants/chat-model-policy.ts`).
 - `/api/chat` consumes user credits per request; returns 403 when credits are insufficient; credits are refunded when the completion fails.
+- `/api/ai/notify/[provider]` is covered by Cloudflare app smoke through `POST /api/ai/notify/test-provider`, which must return `{ code: 0, message: "ok", data: { ok: true } }`.
 
 ### Configuration
 

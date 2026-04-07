@@ -62,6 +62,7 @@ Admin pages are guarded in two layers:
 1. `/<locale?>/admin/**` requires `admin.access` via `src/app/[locale]/(admin)/layout.tsx` (`requireAdminAccess()`).
 2. Admin Settings additionally require **both** `admin.settings.read` and `admin.settings.write` in
    `src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx` (`requireAllPermissions()` and `requireActionPermissions()`).
+3. The default `admin` role seeded by `scripts/init-rbac.ts` includes both settings permissions, which is the contract used by Cloudflare app smoke for `/admin/settings/auth`.
 
 ### Config Storage & Validation
 
