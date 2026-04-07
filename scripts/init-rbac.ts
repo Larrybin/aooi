@@ -14,7 +14,6 @@ import '@/config/load-dotenv';
 
 import { and, eq } from 'drizzle-orm';
 
-import { db } from '@/core/db';
 import {
   permission,
   role,
@@ -23,6 +22,7 @@ import {
   userRole,
 } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
+import { createCliDb } from './lib/cli-db';
 
 // Default permissions
 const defaultPermissions = [
@@ -291,6 +291,7 @@ const defaultRoles = [
       'admin.credits.*',
       'admin.apikeys.*',
       'admin.settings.read',
+      'admin.settings.write',
       'admin.email.*',
       'admin.ai-tasks.*',
     ],
@@ -329,6 +330,7 @@ const defaultRoles = [
 
 async function initializeRBAC() {
   console.log('🚀 Starting RBAC initialization...\n');
+  const { db, close } = createCliDb();
 
   try {
     // 1. Create permissions
@@ -337,7 +339,7 @@ async function initializeRBAC() {
 
     for (const perm of defaultPermissions) {
       // Check if permission already exists
-      const [existing] = await db()
+      const [existing] = await db
         .select()
         .from(permission)
         .where(eq(permission.code, perm.code));
@@ -346,7 +348,7 @@ async function initializeRBAC() {
         console.log(`   ✓ Permission already exists: ${perm.code}`);
         createdPermissions[perm.code] = existing.id;
       } else {
-        const [created] = await db()
+        const [created] = await db
           .insert(permission)
           .values({
             id: getUuid(),
@@ -368,7 +370,7 @@ async function initializeRBAC() {
 
     for (const roleData of defaultRoles) {
       // Check if role already exists
-      const [existingRole] = await db()
+      const [existingRole] = await db
         .select()
         .from(role)
         .where(eq(role.name, roleData.name));
@@ -379,7 +381,7 @@ async function initializeRBAC() {
         console.log(`   ✓ Role already exists: ${roleData.name}`);
         roleId = existingRole.id;
       } else {
-        const [created] = await db()
+        const [created] = await db
           .insert(role)
           .values({
             id: getUuid(),
@@ -397,7 +399,7 @@ async function initializeRBAC() {
       createdRoles[roleData.name] = roleId;
 
       // Clear existing permissions for this role
-      await db()
+      await db
         .delete(rolePermission)
         .where(eq(rolePermission.roleId, roleId));
 
@@ -411,7 +413,7 @@ async function initializeRBAC() {
             .map(([, id]) => id);
 
           for (const permId of matchingPerms) {
-            await db().insert(rolePermission).values({
+            await db.insert(rolePermission).values({
               id: getUuid(),
               roleId,
               permissionId: permId,
@@ -420,7 +422,7 @@ async function initializeRBAC() {
         } else {
           const permId = createdPermissions[permCode];
           if (permId) {
-            await db().insert(rolePermission).values({
+            await db.insert(rolePermission).values({
               id: getUuid(),
               roleId,
               permissionId: permId,
@@ -444,7 +446,7 @@ async function initializeRBAC() {
       const adminEmail = adminEmailArg.split('=')[1];
       console.log(`👤 Assigning super_admin role to ${adminEmail}...`);
 
-      const [adminUser] = await db()
+      const [adminUser] = await db
         .select()
         .from(user)
         .where(eq(user.email, adminEmail));
@@ -453,7 +455,7 @@ async function initializeRBAC() {
         const superAdminRoleId = createdRoles['super_admin'];
 
         // Check if user already has the role
-        const [existingUserRole] = await db()
+        const [existingUserRole] = await db
           .select()
           .from(userRole)
           .where(
@@ -464,7 +466,7 @@ async function initializeRBAC() {
           );
 
         if (!existingUserRole) {
-          await db().insert(userRole).values({
+          await db.insert(userRole).values({
             id: getUuid(),
             userId: adminUser.id,
             roleId: superAdminRoleId,
@@ -494,6 +496,8 @@ async function initializeRBAC() {
   } catch (error) {
     console.error('\n❌ Error during RBAC initialization:', error);
     process.exit(1);
+  } finally {
+    await close();
   }
 }
 

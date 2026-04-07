@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { spawn } from 'node:child_process';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,6 +18,12 @@ const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.CF_PREVIEW_REQUEST_TIMEOUT_MS || '30000',
   10
 );
+const READY_URL_TIMEOUT_MS = Number.parseInt(
+  process.env.CF_PREVIEW_READY_URL_TIMEOUT_MS ||
+    process.env.CF_PREVIEW_READY_TIMEOUT_MS ||
+    '180000',
+  10
+);
 const POLL_INTERVAL_MS = 1000;
 const PREVIEW_READY_CONSECUTIVE_SUCCESSES = Number.parseInt(
   process.env.CF_PREVIEW_READY_CONSECUTIVE_SUCCESSES || '2',
@@ -30,6 +37,30 @@ export function normalizePreviewBaseUrl(input) {
   url.search = '';
   url.hash = '';
   return url.toString().replace(/\/$/, '');
+}
+
+export function resolveConfiguredPreviewBaseUrl(...candidates) {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed) {
+      return normalizePreviewBaseUrl(trimmed);
+    }
+  }
+
+  return normalizePreviewBaseUrl(undefined);
+}
+
+function stripAnsi(value) {
+  return value.replace(/\u001B\[[0-9;]*m/g, '');
+}
+
+export function parsePreviewReadyUrlFromLogs(value) {
+  const match = stripAnsi(value).match(/\bReady on (https?:\/\/[^\s]+)/i);
+  if (!match?.[1]) {
+    return null;
+  }
+
+  return normalizePreviewBaseUrl(match[1]);
 }
 
 export function getCloudflarePreviewSmokeChecks() {
@@ -164,12 +195,52 @@ export async function waitForPreviewReady({
   );
 }
 
+export async function resolvePreviewBaseUrl({
+  preview,
+  fallbackBaseUrl,
+  timeoutMs = READY_URL_TIMEOUT_MS,
+  logger = console,
+}) {
+  if (!preview?.readyUrlPromise) {
+    return normalizePreviewBaseUrl(fallbackBaseUrl);
+  }
+
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('timed out waiting for Wrangler ready URL'));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([preview.readyUrlPromise, timeoutPromise]);
+  } catch (error) {
+    const normalizedFallback = normalizePreviewBaseUrl(fallbackBaseUrl);
+    logger.warn?.(
+      `Falling back to configured preview URL ${normalizedFallback}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return normalizedFallback;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 export function createPreviewManager({
   cwd = rootDir,
   env = process.env,
   logger = console,
+  wranglerConfigPath,
 }) {
-  const child = spawn('pnpm', ['cf:preview'], {
+  const args = ['cf:preview'];
+  if (wranglerConfigPath) {
+    args.push('--', '--config', wranglerConfigPath);
+  }
+
+  const child = spawn('pnpm', args, {
     cwd,
     env,
     detached: process.platform !== 'win32',
@@ -177,7 +248,15 @@ export function createPreviewManager({
   });
 
   const recentLogs = [];
+  let logBuffer = '';
   let stopping = false;
+  let readyUrl = null;
+  let resolveReadyUrl;
+  let rejectReadyUrl;
+  const readyUrlPromise = new Promise((resolve, reject) => {
+    resolveReadyUrl = resolve;
+    rejectReadyUrl = reject;
+  });
 
   function appendLog(chunk) {
     const text = chunk.toString();
@@ -188,12 +267,34 @@ export function createPreviewManager({
     if (recentLogs.length > 120) {
       recentLogs.shift();
     }
+
+    if (readyUrl) {
+      return;
+    }
+
+    logBuffer = `${logBuffer}${text}`.slice(-16_384);
+    const nextReadyUrl = parsePreviewReadyUrlFromLogs(logBuffer);
+    if (!nextReadyUrl) {
+      return;
+    }
+
+    readyUrl = nextReadyUrl;
+    resolveReadyUrl(nextReadyUrl);
+    logger.log(`Detected Cloudflare preview ready URL: ${nextReadyUrl}`);
   }
 
   child.stdout?.on('data', appendLog);
   child.stderr?.on('data', appendLog);
 
   child.on('exit', (code, signal) => {
+    if (!readyUrl) {
+      rejectReadyUrl(
+        new Error(
+          `Cloudflare preview exited before emitting a ready URL (code=${code ?? 'null'}, signal=${signal ?? 'null'})`
+        )
+      );
+    }
+
     if (stopping) {
       return;
     }
@@ -208,6 +309,7 @@ export function createPreviewManager({
   return {
     child,
     recentLogs,
+    readyUrlPromise,
     async stop() {
       if (child.exitCode !== null) {
         return;
@@ -275,18 +377,89 @@ function killPreviewProcess(child, signal) {
   child.kill(signal);
 }
 
+export function resolveAuthSecret() {
+  return (
+    process.env.BETTER_AUTH_SECRET?.trim() ||
+    process.env.AUTH_SECRET?.trim() ||
+    'ci-auth-secret-not-for-production'
+  );
+}
+
+export async function ensureCiDevVars({
+  authSecret,
+  devVarsPath = path.resolve(rootDir, '.dev.vars'),
+}) {
+  let originalContent = null;
+
+  try {
+    originalContent = await readFile(devVarsPath, 'utf8');
+  } catch {
+    originalContent = null;
+  }
+
+  const existingContent = originalContent || '';
+  const existingAuthSecret = readDevVar(existingContent, 'AUTH_SECRET');
+  const existingBetterAuthSecret = readDevVar(
+    existingContent,
+    'BETTER_AUTH_SECRET'
+  );
+  const nextAuthSecret =
+    existingAuthSecret || existingBetterAuthSecret || authSecret;
+
+  let nextContent = existingContent;
+  nextContent = upsertDevVar(nextContent, 'AUTH_SECRET', nextAuthSecret);
+  nextContent = upsertDevVar(
+    nextContent,
+    'BETTER_AUTH_SECRET',
+    existingBetterAuthSecret || existingAuthSecret || authSecret
+  );
+
+  const created = originalContent === null;
+  const updated = nextContent !== existingContent;
+
+  if (created || updated) {
+    await writeFile(devVarsPath, nextContent, 'utf8');
+  }
+
+  return {
+    created,
+    updated,
+    devVarsPath,
+    async cleanup() {
+      if (created) {
+        await rm(devVarsPath, { force: true });
+        return;
+      }
+
+      if (updated && originalContent !== null) {
+        await writeFile(devVarsPath, originalContent, 'utf8');
+      }
+    },
+  };
+}
+
 async function main() {
-  const baseUrl = normalizePreviewBaseUrl(process.env.CF_PREVIEW_URL);
+  const fallbackBaseUrl = resolveConfiguredPreviewBaseUrl(
+    process.env.CF_PREVIEW_URL,
+    process.env.CF_PREVIEW_APP_URL
+  );
   const reuseServer = process.env.CF_PREVIEW_REUSE_SERVER === 'true';
 
   if (reuseServer) {
-    console.log(`Reusing Cloudflare preview server: ${baseUrl}`);
-    await runCloudflarePreviewSmoke({ baseUrl });
+    console.log(`Reusing Cloudflare preview server: ${fallbackBaseUrl}`);
+    await waitForPreviewReady({ baseUrl: fallbackBaseUrl });
+    await runCloudflarePreviewSmoke({ baseUrl: fallbackBaseUrl });
     console.log('Cloudflare preview DB smoke passed');
     return;
   }
 
+  const authSecret = resolveAuthSecret();
+  const devVars = await ensureCiDevVars({ authSecret });
   const preview = createPreviewManager({});
+  const baseUrl = await resolvePreviewBaseUrl({
+    preview,
+    fallbackBaseUrl,
+  });
 
   try {
     await waitForPreviewReady({ baseUrl });
@@ -305,6 +478,7 @@ async function main() {
     process.exitCode = 1;
   } finally {
     await preview.stop();
+    await devVars.cleanup();
   }
 }
 
@@ -314,4 +488,25 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.error(message);
     process.exitCode = 1;
   });
+}
+
+function readDevVar(content, name) {
+  const match = content.match(new RegExp(`^${name}=([^\\n]*)$`, 'm'));
+  const value = match?.[1]?.trim();
+  return value || null;
+}
+
+function upsertDevVar(content, name, value) {
+  const line = `${name}=${value}`;
+  const pattern = new RegExp(`^${name}=.*$`, 'm');
+
+  if (pattern.test(content)) {
+    return content.replace(pattern, line);
+  }
+
+  if (!content) {
+    return `${line}\n`;
+  }
+
+  return content.endsWith('\n') ? `${content}${line}\n` : `${content}\n${line}\n`;
 }

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 
+import { compareRuntimeResponseContracts } from './runtime-parity';
+
 export const AUTH_SPIKE_REQUIRED_ENV_NAMES = [
   'AUTH_SPIKE_VERCEL_URL',
   'AUTH_SPIKE_CF_URL',
@@ -36,6 +38,7 @@ export type ResponseSummary = {
   cacheControl: string | null;
   contentType: string | null;
   location: string | null;
+  headers: Record<string, string>;
   setCookieHeaderCount: number;
   cookies: ResponseCookieSummary[];
   setCookiePresent: boolean;
@@ -135,14 +138,6 @@ export function hasNoStoreHeader(responses: ResponseSummary[]): boolean {
   );
 }
 
-export function hasSetCookie(responses: ResponseSummary[]): boolean {
-  return responses.some((response) => response.setCookiePresent);
-}
-
-export function clearsCookie(responses: ResponseSummary[]): boolean {
-  return responses.some((response) => response.clearsCookie);
-}
-
 export function hasSecureCookieFlags(responses: ResponseSummary[]): boolean {
   const shouldRequireSecure = (urlValue: string): boolean => {
     try {
@@ -167,47 +162,6 @@ export function hasSecureCookieFlags(responses: ResponseSummary[]): boolean {
           (cookie.secure || !shouldRequireSecure(response.url))
       )
   );
-}
-
-export function contentTypeFingerprint(
-  responses: ResponseSummary[]
-): string | null {
-  return (
-    responses
-      .find((response) => response.contentType)
-      ?.contentType?.split(';')[0] || null
-  );
-}
-
-export function cacheControlFingerprint(
-  responses: ResponseSummary[]
-): string | null {
-  return (
-    responses.find((response) => response.cacheControl)?.cacheControl || null
-  );
-}
-
-export function cookieSecurityFingerprint(
-  responses: ResponseSummary[]
-): string | null {
-  const response = responses.find((item) => item.cookies.length > 0);
-
-  if (!response) {
-    return null;
-  }
-
-  return response.cookies
-    .map((cookie) =>
-      [
-        cookie.name,
-        `httpOnly=${cookie.httpOnly ? 'yes' : 'no'}`,
-        `secure=${cookie.secure ? 'yes' : 'no'}`,
-        `sameSite=${cookie.sameSite || 'none'}`,
-        `clear=${cookie.clearsCookie ? 'yes' : 'no'}`,
-      ].join(' ')
-    )
-    .sort()
-    .join(' | ');
 }
 
 export function createEmptyReport({
@@ -318,47 +272,33 @@ export function deriveParityResult(report: Report): ParityResult {
     );
   }
 
-  if (
-    cacheControlFingerprint(vercel.signInResponses) !==
-    cacheControlFingerprint(cloudflare.signInResponses)
-  ) {
-    mismatches.push('sign-in auth response cache-control 不一致');
-  }
+  const signUpParity = compareRuntimeResponseContracts({
+    label: 'sign-up auth response',
+    baselineName: 'vercel',
+    candidateName: 'cloudflare',
+    baselineResponses: vercel.signUpResponses,
+    candidateResponses: cloudflare.signUpResponses,
+  });
+  const signInParity = compareRuntimeResponseContracts({
+    label: 'sign-in auth response',
+    baselineName: 'vercel',
+    candidateName: 'cloudflare',
+    baselineResponses: vercel.signInResponses,
+    candidateResponses: cloudflare.signInResponses,
+  });
+  const signOutParity = compareRuntimeResponseContracts({
+    label: 'sign-out auth response',
+    baselineName: 'vercel',
+    candidateName: 'cloudflare',
+    baselineResponses: vercel.signOutResponses,
+    candidateResponses: cloudflare.signOutResponses,
+  });
 
-  if (
-    contentTypeFingerprint(vercel.signInResponses) !==
-    contentTypeFingerprint(cloudflare.signInResponses)
-  ) {
-    mismatches.push('sign-in auth response content-type 不一致');
-  }
-
-  if (
-    hasSetCookie(vercel.signInResponses) !==
-    hasSetCookie(cloudflare.signInResponses)
-  ) {
-    mismatches.push('sign-in auth response set-cookie 语义不一致');
-  }
-
-  if (
-    cookieSecurityFingerprint(vercel.signInResponses) !==
-    cookieSecurityFingerprint(cloudflare.signInResponses)
-  ) {
-    mismatches.push('sign-in cookie 安全属性不一致');
-  }
-
-  if (
-    cookieSecurityFingerprint(vercel.signUpResponses) !==
-    cookieSecurityFingerprint(cloudflare.signUpResponses)
-  ) {
-    mismatches.push('sign-up cookie 安全属性不一致');
-  }
-
-  if (
-    clearsCookie(vercel.signOutResponses) !==
-    clearsCookie(cloudflare.signOutResponses)
-  ) {
-    mismatches.push('sign-out 清 cookie 语义不一致');
-  }
+  mismatches.push(
+    ...signUpParity.mismatches,
+    ...signInParity.mismatches,
+    ...signOutParity.mismatches
+  );
 
   if (
     vercel.finalUrlAfterInvalidCookie !== cloudflare.finalUrlAfterInvalidCookie
@@ -372,7 +312,7 @@ export function deriveParityResult(report: Report): ParityResult {
     return {
       status: 'passed',
       detail:
-        'contract parity matched on sign-up, sign-in, headers, cookie security, and failure behavior',
+        'contract parity matched on sign-up, sign-in, sign-out, headers, cookie security, and failure behavior',
     };
   }
 

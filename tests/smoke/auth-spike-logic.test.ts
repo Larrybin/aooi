@@ -21,6 +21,10 @@ function responseSummary(
     cacheControl: 'no-store',
     contentType: 'application/json',
     location: null,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/json',
+    },
     setCookieHeaderCount: 1,
     cookies: [
       {
@@ -162,6 +166,44 @@ test('deriveConclusion 对纯 parity 失败返回 需要 adapter', () => {
   assert.equal(conclusion.rawConclusion, '需要 adapter');
   assert.equal(conclusion.harnessStatus, 'FAIL');
   assert.match(conclusion.failureSummary.join('\n'), /parity:/);
+});
+
+test('deriveParityResult 忽略固定 whitelist 头差异', () => {
+  const report = passingReport();
+  const vercel = report.surfaces.find((surface) => surface.surface === 'vercel');
+  const cloudflare = report.surfaces.find(
+    (surface) => surface.surface === 'cloudflare'
+  );
+
+  assert(vercel);
+  assert(cloudflare);
+
+  vercel.signInResponses = [
+    responseSummary({
+      headers: {
+        'cache-control': 'no-store',
+        'content-type': 'application/json; charset=utf-8',
+        date: 'Mon, 07 Apr 2026 10:00:00 GMT',
+        'x-request-id': 'vercel-request',
+        'x-vercel-id': 'iad1::vercel',
+      },
+    }),
+  ];
+  cloudflare.signInResponses = [
+    responseSummary({
+      headers: {
+        'cache-control': 'no-store',
+        'content-type': 'application/json',
+        date: 'Mon, 07 Apr 2026 10:00:01 GMT',
+        'x-request-id': 'cloudflare-request',
+        'cf-ray': '12345',
+      },
+    }),
+  ];
+
+  const parity = deriveParityResult(report);
+
+  assert.equal(parity.status, 'passed');
 });
 
 test('deriveConclusion 对 cloudflare auth 不可用返回 需要替代路线', () => {

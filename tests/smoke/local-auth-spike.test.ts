@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   buildNodeAuthSpikeEnv,
+  detectReusableNodeServer,
+  readNextDevLockBaseUrl,
   readWranglerLocalConnectionString,
   waitForNodeReady,
 } from '../../scripts/run-local-auth-spike.mjs';
@@ -56,6 +58,31 @@ test('buildNodeAuthSpikeEnv 默认使用满足 Better Auth 长度要求的 secre
   assert.ok((env.AUTH_SECRET || '').length >= 32);
 });
 
+test('readNextDevLockBaseUrl 优先读取 lock 中的 appUrl', () => {
+  const baseUrl = readNextDevLockBaseUrl(
+    JSON.stringify({
+      pid: 388,
+      port: 3100,
+      hostname: 'localhost',
+      appUrl: 'http://localhost:3100',
+    })
+  );
+
+  assert.equal(baseUrl, 'http://localhost:3100');
+});
+
+test('readNextDevLockBaseUrl 在缺少 appUrl 时回退端口', () => {
+  const baseUrl = readNextDevLockBaseUrl(
+    JSON.stringify({
+      pid: 388,
+      port: 3100,
+      hostname: 'localhost',
+    })
+  );
+
+  assert.equal(baseUrl, 'http://127.0.0.1:3100');
+});
+
 test('waitForNodeReady 在 sign-in 页面可达时完成', async () => {
   const fetchCalls: string[] = [];
   const fakeFetch: typeof fetch = (async (input: string | URL | Request) => {
@@ -71,4 +98,31 @@ test('waitForNodeReady 在 sign-in 页面可达时完成', async () => {
   });
 
   assert.deepEqual(fetchCalls, ['http://127.0.0.1:3000/sign-in']);
+});
+
+test('detectReusableNodeServer 在目标地址已就绪时返回 true', async () => {
+  const reusable = await detectReusableNodeServer({
+    baseUrl: 'http://127.0.0.1:3000',
+    fetchImpl: (async () =>
+      new Response('<html>ok</html>', {
+        status: 200,
+      })) as typeof fetch,
+    logger: { log: () => undefined },
+    timeoutMs: 100,
+  });
+
+  assert.equal(reusable, true);
+});
+
+test('detectReusableNodeServer 在目标地址未就绪时返回 false', async () => {
+  const reusable = await detectReusableNodeServer({
+    baseUrl: 'http://127.0.0.1:3000',
+    fetchImpl: (async () => {
+      throw new Error('connect ECONNREFUSED');
+    }) as typeof fetch,
+    logger: { log: () => undefined },
+    timeoutMs: 50,
+  });
+
+  assert.equal(reusable, false);
 });

@@ -183,6 +183,7 @@ export function buildResponseSummary({
     cacheControl: headers['cache-control'] ?? null,
     contentType: headers['content-type'] ?? null,
     location: headers.location ?? null,
+    headers,
     setCookieHeaderCount: setCookieHeaders.length,
     cookies,
     setCookiePresent: cookies.length > 0,
@@ -345,7 +346,7 @@ async function signUpFreshAccount(
   password: string,
   recorder: ReturnType<typeof createAuthResponseRecorder>
 ) {
-  const origin = new URL(page.url()).origin;
+  const origin = new URL(baseUrl).origin;
 
   await page.goto(
     `${origin}/sign-up?callbackUrl=${encodeURIComponent(callbackPathname)}`,
@@ -385,7 +386,7 @@ async function signInExistingAccount(
   password: string,
   recorder: ReturnType<typeof createAuthResponseRecorder>
 ) {
-  const origin = new URL(page.url()).origin;
+  const origin = new URL(baseUrl).origin;
 
   await page.goto(
     `${origin}/sign-in?callbackUrl=${encodeURIComponent(callbackPathname)}`,
@@ -571,6 +572,90 @@ async function recordCase(
   }
 }
 
+export type AuthBrowserHarness = {
+  browser: Awaited<ReturnType<typeof chromium.launch>>;
+  context: BrowserContext;
+  page: Page;
+  cdpSession: CDPSession;
+  recorder: ReturnType<typeof createAuthResponseRecorder>;
+};
+
+export async function createAuthBrowserHarness(): Promise<AuthBrowserHarness> {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const cdpSession = await context.newCDPSession(page);
+  const recorder = createAuthResponseRecorder(page);
+
+  return {
+    browser,
+    context,
+    page,
+    cdpSession,
+    recorder,
+  };
+}
+
+export async function closeAuthBrowserHarness(
+  harness: AuthBrowserHarness
+): Promise<void> {
+  harness.recorder.dispose();
+  await harness.context.close();
+  await harness.browser.close();
+}
+
+export async function signUpWithAuthBrowserHarness(params: {
+  harness: AuthBrowserHarness;
+  baseUrl: string;
+  email: string;
+  password: string;
+  callbackPath: string;
+  userName: string;
+}): Promise<{ responses: ResponseSummary[]; finalUrl: string }> {
+  const { harness, baseUrl, email, password, callbackPath, userName } = params;
+  const responses = await signUpFreshAccount(
+    harness.page,
+    harness.context,
+    harness.cdpSession,
+    callbackPath,
+    baseUrl,
+    userName,
+    email,
+    password,
+    harness.recorder
+  );
+
+  return {
+    responses,
+    finalUrl: stripOrigin(harness.page.url()),
+  };
+}
+
+export async function signInWithAuthBrowserHarness(params: {
+  harness: AuthBrowserHarness;
+  baseUrl: string;
+  email: string;
+  password: string;
+  callbackPath: string;
+}): Promise<{ responses: ResponseSummary[]; finalUrl: string }> {
+  const { harness, baseUrl, email, password, callbackPath } = params;
+  const responses = await signInExistingAccount(
+    harness.page,
+    harness.context,
+    harness.cdpSession,
+    callbackPath,
+    baseUrl,
+    email,
+    password,
+    harness.recorder
+  );
+
+  return {
+    responses,
+    finalUrl: stripOrigin(harness.page.url()),
+  };
+}
+
 export async function runAuthSurface(params: {
   surfaceName: SurfaceName;
   baseUrl: string;
@@ -582,11 +667,8 @@ export async function runAuthSurface(params: {
 }) {
   const { surfaceName, baseUrl, emailUsed, password, callbackPath, userName } =
     params;
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  const cdpSession = await context.newCDPSession(page);
-  const recorder = createAuthResponseRecorder(page);
+  const harness = await createAuthBrowserHarness();
+  const { context, page, cdpSession, recorder } = harness;
   const surfaceResult = createSurfaceResult(surfaceName, baseUrl, emailUsed);
 
   try {
@@ -806,9 +888,7 @@ export async function runAuthSurface(params: {
     summarizeFailureKinds(surfaceResult);
   } finally {
     summarizeFailureKinds(surfaceResult);
-    recorder.dispose();
-    await context.close();
-    await browser.close();
+    await closeAuthBrowserHarness(harness);
   }
 
   return surfaceResult;

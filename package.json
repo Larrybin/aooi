@@ -24,6 +24,7 @@
     "test:local-auth-spike": "node --import tsx scripts/run-local-auth-spike.mjs",
     "test:cf-auth-spike": "node --import tsx scripts/run-cf-auth-spike.mjs",
     "test:cf-preview-smoke": "node scripts/run-cf-preview-smoke.mjs",
+    "test:cf-app-smoke": "node --import tsx scripts/run-cf-app-smoke.mjs",
     "test:creem-webhook-spike": "node --test --import tsx \"src/extensions/payment/creem.test.ts\" \"tests/contract/payment-notify.test.ts\"",
     "test:r2-upload-spike": "node --test --import tsx \"src/app/api/storage/upload-image/route.test.ts\"",
     "test:coverage": "node scripts/run-tests.mjs --coverage",

@@ -26,6 +26,10 @@ const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.AUTH_SPIKE_REQUEST_TIMEOUT_MS || '30000',
   10
 );
+const NODE_REUSE_READY_TIMEOUT_MS = Number.parseInt(
+  process.env.AUTH_SPIKE_REUSE_READY_TIMEOUT_MS || '3000',
+  10
+);
 const POLL_INTERVAL_MS = 1000;
 
 export function readWranglerLocalConnectionString(content) {
@@ -38,6 +42,25 @@ export function readWranglerLocalConnectionString(content) {
     );
   }
   return match[1].trim();
+}
+
+export function readNextDevLockBaseUrl(content) {
+  const parsed = JSON.parse(content);
+  const appUrl =
+    typeof parsed?.appUrl === 'string' ? parsed.appUrl.trim() : '';
+  if (appUrl) {
+    return appUrl;
+  }
+
+  const port =
+    typeof parsed?.port === 'number'
+      ? parsed.port
+      : Number.parseInt(String(parsed?.port || ''), 10);
+  if (Number.isFinite(port) && port > 0) {
+    return `http://127.0.0.1:${port}`;
+  }
+
+  return null;
 }
 
 export function buildNodeAuthSpikeEnv(baseEnv, options) {
@@ -123,6 +146,25 @@ export async function waitForNodeReady({
   throw new Error(
     `Local Node auth surface not ready within ${timeoutMs}ms: ${lastError?.message || 'unknown error'}`
   );
+}
+
+export async function detectReusableNodeServer({
+  baseUrl = DEFAULT_NODE_BASE_URL,
+  fetchImpl = fetch,
+  logger = console,
+  timeoutMs = NODE_REUSE_READY_TIMEOUT_MS,
+}) {
+  try {
+    await waitForNodeReady({
+      baseUrl,
+      fetchImpl,
+      logger,
+      timeoutMs,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createNodeDevManager({
@@ -221,9 +263,22 @@ async function ensureCiDevVars(authSecret) {
   }
 }
 
+async function readLockedNodeBaseUrl() {
+  const lockPath = path.resolve(rootDir, '.next/dev/lock');
+  try {
+    const content = await readFile(lockPath, 'utf8');
+    return readNextDevLockBaseUrl(content);
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
+  const wranglerConfigPath =
+    process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
+    path.resolve(rootDir, 'wrangler.toml');
   const wranglerContent = await readFile(
-    path.resolve(rootDir, 'wrangler.toml'),
+    wranglerConfigPath,
     'utf8'
   );
   const databaseUrl =
@@ -234,36 +289,62 @@ async function main() {
     process.env.BETTER_AUTH_SECRET?.trim() ||
     process.env.AUTH_SECRET?.trim() ||
     DEFAULT_AUTH_SPIKE_SECRET;
-  const nodeBaseUrl =
-    process.env.AUTH_SPIKE_LOCAL_VERCEL_URL?.trim() || DEFAULT_NODE_BASE_URL;
+  const explicitNodeBaseUrl =
+    process.env.AUTH_SPIKE_LOCAL_VERCEL_URL?.trim() || null;
+  const lockedNodeBaseUrl = explicitNodeBaseUrl
+    ? null
+    : await readLockedNodeBaseUrl();
+  const preferredNodeBaseUrl =
+    explicitNodeBaseUrl || lockedNodeBaseUrl || DEFAULT_NODE_BASE_URL;
   const cloudflareBaseUrl =
     process.env.AUTH_SPIKE_LOCAL_CF_URL?.trim() || DEFAULT_CF_BASE_URL;
+
+  const devVars = await ensureCiDevVars(authSecret);
+  const reuseExistingNodeServer =
+    process.env.AUTH_SPIKE_REUSE_NODE_SERVER !== 'false' &&
+    (await detectReusableNodeServer({
+      baseUrl: preferredNodeBaseUrl,
+      logger: { log: () => undefined },
+    }));
+  const nodeBaseUrl = reuseExistingNodeServer
+    ? preferredNodeBaseUrl
+    : explicitNodeBaseUrl || DEFAULT_NODE_BASE_URL;
   const nodePort =
     Number.parseInt(new URL(nodeBaseUrl).port || '3000', 10) || 3000;
-
   const nodeEnv = buildNodeAuthSpikeEnv(process.env, {
     databaseUrl,
     authSecret,
     appUrl: nodeBaseUrl,
   });
-
-  const devVars = await ensureCiDevVars(authSecret);
-  const nodeManager = createNodeDevManager({ env: nodeEnv, port: nodePort });
-  const previewManager = createPreviewManager({ env: process.env });
+  const nodeManager = reuseExistingNodeServer
+    ? null
+    : createNodeDevManager({ env: nodeEnv, port: nodePort });
+  const previewManager = createPreviewManager({
+    env: process.env,
+    wranglerConfigPath,
+  });
 
   try {
-    await Promise.all([
-      waitForManagerReady({
-        label: 'Local Node auth surface',
-        manager: nodeManager,
-        ready: () => waitForNodeReady({ baseUrl: nodeBaseUrl }),
-      }),
-      waitForManagerReady({
-        label: 'Cloudflare preview',
-        manager: previewManager,
-        ready: () => waitForPreviewReady({ baseUrl: cloudflareBaseUrl }),
-      }),
-    ]);
+    if (reuseExistingNodeServer) {
+      console.log(`Reusing local Node auth surface: ${nodeBaseUrl}`);
+    }
+
+    await Promise.all(
+      [
+        reuseExistingNodeServer
+          ? waitForNodeReady({ baseUrl: nodeBaseUrl })
+          : waitForManagerReady({
+              label: 'Local Node auth surface',
+              manager: nodeManager,
+              ready: () => waitForNodeReady({ baseUrl: nodeBaseUrl }),
+            }),
+        waitForManagerReady({
+          label: 'Cloudflare preview',
+          manager: previewManager,
+          ready: () => waitForPreviewReady({ baseUrl: cloudflareBaseUrl }),
+        }),
+      ].filter(Boolean)
+    );
 
     const child = spawn(
       process.execPath,
@@ -292,7 +373,10 @@ async function main() {
 
     process.exit(typeof exitCode === 'number' ? exitCode : 1);
   } finally {
-    await Promise.allSettled([previewManager.stop(), nodeManager.stop()]);
+    await Promise.allSettled([
+      previewManager.stop(),
+      ...(nodeManager ? [nodeManager.stop()] : []),
+    ]);
 
     if (devVars.created) {
       await rm(devVars.devVarsPath, { force: true });

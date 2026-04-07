@@ -11,17 +11,14 @@
 
 import '@/config/load-dotenv';
 
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
-import { db } from '@/core/db';
-import { user } from '@/config/db/schema';
-import {
-  assignRoleToUser,
-  getRoleByName,
-  getUserRoles,
-} from '@/shared/services/rbac';
+import { role, user, userRole } from '@/config/db/schema';
+import { getUuid } from '@/shared/lib/hash';
+import { createCliDb } from './lib/cli-db';
 
 async function assignRole() {
+  const { db, close } = createCliDb();
   const args = process.argv.slice(2);
   const emailArg = args.find((arg) => arg.startsWith('--email='));
   const userIdArg = args.find((arg) => arg.startsWith('--user-id='));
@@ -56,7 +53,7 @@ async function assignRole() {
       const email = emailArg.split('=')[1];
       console.log(`🔍 Looking up user by email: ${email}`);
 
-      const [foundUser] = await db()
+      const [foundUser] = await db
         .select()
         .from(user)
         .where(eq(user.email, email));
@@ -66,7 +63,7 @@ async function assignRole() {
       const userId = userIdArg.split('=')[1];
       console.log(`🔍 Looking up user by ID: ${userId}`);
 
-      const [foundUser] = await db()
+      const [foundUser] = await db
         .select()
         .from(user)
         .where(eq(user.id, userId));
@@ -85,9 +82,12 @@ async function assignRole() {
     const roleName = roleArg.split('=')[1];
     console.log(`🔍 Looking up role: ${roleName}`);
 
-    const role = await getRoleByName(roleName);
+    const [targetRole] = await db
+      .select()
+      .from(role)
+      .where(and(eq(role.name, roleName), isNull(role.deletedAt)));
 
-    if (!role) {
+    if (!targetRole) {
       console.error(`❌ Role not found: ${roleName}`);
       console.log('\nAvailable roles:');
       console.log('  - super_admin');
@@ -100,11 +100,14 @@ async function assignRole() {
       process.exit(1);
     }
 
-    console.log(`✓ Found role: ${role.title}\n`);
+    console.log(`✓ Found role: ${targetRole.title}\n`);
 
     // Check if user already has this role
-    const existingRoles = await getUserRoles(targetUser.id);
-    const hasRole = existingRoles.some((r) => r.id === role.id);
+    const existingRoles = await db
+      .select({ roleId: userRole.roleId })
+      .from(userRole)
+      .where(eq(userRole.userId, targetUser.id));
+    const hasRole = existingRoles.some((r) => r.roleId === targetRole.id);
 
     if (hasRole) {
       console.log(`ℹ️  User already has role: ${role.title}`);
@@ -123,12 +126,17 @@ async function assignRole() {
 
     // Assign role
     console.log(`🔄 Assigning role to user...`);
-    await assignRoleToUser(targetUser.id, role.id, expiresAt);
+    await db.insert(userRole).values({
+      id: getUuid(),
+      userId: targetUser.id,
+      roleId: targetRole.id,
+      expiresAt,
+    });
 
     console.log(`\n✅ Successfully assigned role!`);
     console.log(`\n📊 Summary:`);
     console.log(`   User: ${targetUser.name} (${targetUser.email})`);
-    console.log(`   Role: ${role.title} (${role.name})`);
+    console.log(`   Role: ${targetRole.title} (${targetRole.name})`);
     if (expiresAt) {
       console.log(`   Expires: ${expiresAt.toISOString()}`);
     } else {
@@ -146,6 +154,8 @@ async function assignRole() {
   } catch (error) {
     console.error('\n❌ Error assigning role:', error);
     process.exit(1);
+  } finally {
+    await close();
   }
 }
 
