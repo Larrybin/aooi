@@ -342,13 +342,14 @@ export default async function SettingsPage({
         )}
         <MainHeader title={t('edit.title')} tabs={tabs} />
         {forms.map((form) => (
-          <FormCard
-            key={form.title}
-            title={form.title}
-            description={form.description}
-            form={form}
-            className="mb-8 md:max-w-xl"
-          />
+          <div key={form.title} data-testid="admin-settings-form-shell">
+            <FormCard
+              title={form.title}
+              description={form.description}
+              form={form}
+              className="mb-8 md:max-w-xl"
+            />
+          </div>
         ))}
       </Main>
     </>

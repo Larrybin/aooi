@@ -78,6 +78,28 @@ function isLocalhostUrl(value) {
   }
 }
 
+function parseHttpOrigin(value, label, { requirePureOrigin = false } = {}) {
+  let url;
+
+  try {
+    url = new URL(value);
+  } catch {
+    fail(`${label} must be a valid http/https origin`);
+  }
+
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    fail(`${label} must use http/https`);
+  }
+
+  if (requirePureOrigin) {
+    if (url.pathname !== '/' || url.search || url.hash) {
+      fail(`${label} must be a pure origin without path/query/hash`);
+    }
+  }
+
+  return url.origin;
+}
+
 const content = readConfigFile();
 
 const workerName = readQuotedValue(
@@ -91,17 +113,35 @@ const compatibilityDate = readQuotedValue(
   /^\s*compatibility_date\s*=\s*"([^"\n]+)"/m
 );
 const main = readQuotedValue(content, 'main', /^\s*main\s*=\s*"([^"\n]+)"/m);
+const workersDev = readBooleanValue(
+  content,
+  'workers_dev',
+  /^\s*workers_dev\s*=\s*(true|false)/m
+);
+const previewUrls = readBooleanValue(
+  content,
+  'preview_urls',
+  /^\s*preview_urls\s*=\s*(true|false)/m
+);
 
 if (workerName !== 'roller-rabbit') {
   fail(`unexpected worker name: ${workerName}`);
 }
 
-if (main !== '.open-next/worker.js') {
+if (main !== 'cloudflare/public-shell-worker.mjs') {
   fail(`unexpected main: ${main}`);
 }
 
 if (compatibilityDate !== '2025-03-01') {
   fail(`unexpected compatibility_date: ${compatibilityDate}`);
+}
+
+if (workersDev !== 'false') {
+  fail('workers_dev must be false');
+}
+
+if (previewUrls !== 'false') {
+  fail('preview_urls must be false');
 }
 
 if (!includesFlag(content, 'nodejs_compat')) {
@@ -184,10 +224,15 @@ if (observabilityEnabled !== 'true') {
 }
 
 const varsSection = readSection(content, 'vars');
-readQuotedValue(
+const appUrl = readQuotedValue(
   varsSection,
   'vars.NEXT_PUBLIC_APP_URL',
   /^\s*NEXT_PUBLIC_APP_URL\s*=\s*"([^"\n]+)"/m
+);
+readQuotedValue(
+  varsSection,
+  'vars.CF_FALLBACK_ORIGIN',
+  /^\s*CF_FALLBACK_ORIGIN\s*=\s*"([^"\n]+)"/m
 );
 readQuotedValue(
   varsSection,
@@ -210,6 +255,21 @@ readQuotedValue(
   /^\s*DB_SINGLETON_ENABLED\s*=\s*"([^"\n]+)"/m
 );
 
+const appOrigin = parseHttpOrigin(appUrl, 'vars.NEXT_PUBLIC_APP_URL');
+const appHostname = new URL(appOrigin).hostname;
+const routeTables = readArrayTable(content, 'routes');
+const customDomainRoute = routeTables.find((table) => {
+  const pattern = table.match(/^\s*pattern\s*=\s*"([^"\n]+)"/m)?.[1]?.trim();
+  const customDomain = table.match(/^\s*custom_domain\s*=\s*(true|false)/m)?.[1];
+  return pattern === appHostname && customDomain === 'true';
+});
+
+if (!customDomainRoute) {
+  fail(
+    `missing [[routes]] custom domain route for ${appHostname}`
+  );
+}
+
 if (!isDeployCheck) {
   console.log('[cf:check] wrangler.toml structure looks good');
   process.exit(0);
@@ -229,15 +289,33 @@ if (!hyperdriveId) {
   fail('hyperdrive.id must be set for deploy/upload');
 }
 
-const appUrl = readQuotedValue(
+const fallbackOrigin = readQuotedValue(
   varsSection,
-  'vars.NEXT_PUBLIC_APP_URL',
-  /^\s*NEXT_PUBLIC_APP_URL\s*=\s*"([^"\n]+)"/m
+  'vars.CF_FALLBACK_ORIGIN',
+  /^\s*CF_FALLBACK_ORIGIN\s*=\s*"([^"\n]+)"/m
 );
 
 if (isLocalhostUrl(appUrl)) {
   fail(
     'vars.NEXT_PUBLIC_APP_URL must not point to localhost for deploy/upload'
+  );
+}
+
+const fallbackUrlOrigin = parseHttpOrigin(
+  fallbackOrigin,
+  'vars.CF_FALLBACK_ORIGIN',
+  { requirePureOrigin: true }
+);
+
+if (isLocalhostUrl(fallbackOrigin)) {
+  fail(
+    'vars.CF_FALLBACK_ORIGIN must not point to localhost for deploy/upload'
+  );
+}
+
+if (fallbackUrlOrigin === appOrigin) {
+  fail(
+    'vars.CF_FALLBACK_ORIGIN must not equal vars.NEXT_PUBLIC_APP_URL for deploy/upload'
   );
 }
 

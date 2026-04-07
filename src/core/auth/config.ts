@@ -9,10 +9,10 @@ import { envConfigs } from '@/config';
 import * as schema from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
-import { isCloudflareWorkersRuntime } from '@/shared/lib/cloudflare-workers-env.server';
 import { getUuid } from '@/shared/lib/hash';
 import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
+import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
 import {
   consumeResetPasswordQuota,
   releaseResetPasswordQuota,

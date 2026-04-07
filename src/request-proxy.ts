@@ -21,6 +21,8 @@ export async function proxy(request: NextRequest) {
   const isAdminPath =
     pathWithoutLocale === ADMIN_PATH ||
     pathWithoutLocale.startsWith(`${ADMIN_PATH}/`);
+  const shouldRewriteDocsIndex =
+    pathWithoutLocale === '/docs' || pathWithoutLocale === '/docs/';
 
   // Handle internationalization first
   let response = intlMiddleware(request);
@@ -56,7 +58,15 @@ export async function proxy(request: NextRequest) {
   // When `localeDetection=false`, unprefixed routes (e.g. /pricing) don't carry locale information.
   // Our app routes are rooted under `app/[locale]`, so we internally rewrite to the default locale
   // while keeping the URL unchanged for the user.
-  if (!isValidLocale) {
+  if (shouldRewriteDocsIndex) {
+    const rewriteTo = request.nextUrl.clone();
+    rewriteTo.pathname = isValidLocale
+      ? `/${localeSegment}/docs/index`
+      : `/${defaultLocale}/docs/index`;
+
+    response = NextResponse.rewrite(rewriteTo, { headers: response.headers });
+    response.headers.set('x-rewrite-to', rewriteTo.pathname);
+  } else if (!isValidLocale) {
     const rewriteTo = request.nextUrl.clone();
     rewriteTo.pathname =
       pathname === '/' ? `/${defaultLocale}` : `/${defaultLocale}${pathname}`;

@@ -1,7 +1,13 @@
 name = "roller-rabbit"
-main = ".open-next/worker.js"
+main = "cloudflare/public-shell-worker.mjs"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = false
+preview_urls = false
+
+[[routes]]
+pattern = "mamamiya.pdfreprinting.net"
+custom_domain = true
 
 [assets]
 binding = "ASSETS"
@@ -13,14 +19,15 @@ service = "roller-rabbit"
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = ""
-localConnectionString = "postgresql://postgres:postgres@127.0.0.1:5432/roller_rabbit"
+id = "d208cd72765b46a7b0849fc687e2fb61"
+localConnectionString = "postgresql://postgres.kylrqpbouoyxnkoubbum:5jU*&RFTv&HQMYB@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
 
 [observability]
 enabled = true
 
 [vars]
-NEXT_PUBLIC_APP_URL = "http://localhost:3000"
+NEXT_PUBLIC_APP_URL = "https://mamamiya.pdfreprinting.net/"
+CF_FALLBACK_ORIGIN = "https://assist.pdfreprinting.net/"
 NEXT_PUBLIC_APP_NAME = "Roller Rabbit"
 NEXT_PUBLIC_THEME = "default"
 DATABASE_PROVIDER = "postgresql"

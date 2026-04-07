@@ -6,9 +6,11 @@ import postgres from 'postgres';
 import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
 import { serverEnv } from '@/config/server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
-import { tryGetCloudflareWorkersEnv } from '@/shared/lib/cloudflare-workers-env.server';
-import { isCloudflareWorker } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
+import {
+  getCloudflareBindings,
+  isCloudflareWorkersRuntime,
+} from '@/shared/lib/runtime/env.server';
 
 const SCHEMA_CHECK_RETRY_COOLDOWN_MS = 1000;
 
@@ -230,10 +232,9 @@ function createWorkersDb(
 export function db() {
   let databaseUrl = serverEnv.databaseUrl;
 
-  const cloudflareEnv = tryGetCloudflareWorkersEnv();
+  const cloudflareEnv = getCloudflareBindings();
   const hasCloudflareWorkersEnv = cloudflareEnv !== null;
-  const runningInCloudflareWorkers =
-    hasCloudflareWorkersEnv || isCloudflareWorker;
+  const runningInCloudflareWorkers = isCloudflareWorkersRuntime();
   const publicUnavailableMessage = 'database temporarily unavailable';
 
   if (runningInCloudflareWorkers) {

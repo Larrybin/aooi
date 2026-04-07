@@ -17,7 +17,7 @@ const nodeOptions = hasDnsOption
 
 const child = spawn(
   process.execPath,
-  [...process.argv.slice(2), nextBin, 'build'],
+  [...process.argv.slice(2), nextBin, 'build', '--webpack'],
   {
     stdio: 'inherit',
     env: {

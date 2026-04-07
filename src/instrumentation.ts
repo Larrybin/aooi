@@ -29,7 +29,12 @@ async function assertRoleDeletedAtColumnExists(
   databaseUrl: string,
   logger: SchemaCheckLogger
 ) {
-  const postgres = (await import('postgres')).default;
+  const postgres = (
+    await Function(
+      'specifier',
+      'return import(specifier)'
+    )('postgres')
+  ).default;
   const { assertRoleDeletedAtColumnExists } =
     await import('./core/db/schema-check');
 

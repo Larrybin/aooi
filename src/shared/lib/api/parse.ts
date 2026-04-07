@@ -11,9 +11,9 @@ import type { z } from 'zod';
 
 import { tryJsonParse } from '@/shared/lib/json';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { readRequestTextWithLimit } from '@/shared/lib/runtime/request-body';
 
 import { BadRequestError, PayloadTooLargeError } from './errors';
-import { readRequestTextWithLimit } from './request-body';
 
 function isAbortError(error: unknown): boolean {
   if (

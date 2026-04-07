@@ -34,7 +34,7 @@ export default async function DocsContentPage(props: {
 }) {
   const params = await props.params;
   const docsLocale = resolveDocsLocale(params.locale);
-  const page = source.getPage(params.slug, docsLocale);
+  const page = source.getPage(params.slug ?? [], docsLocale);
 
   if (!page) notFound();
 
@@ -85,7 +85,7 @@ export async function generateMetadata(props: {
 }) {
   const params = await props.params;
   const docsLocale = resolveDocsLocale(params.locale);
-  const page = source.getPage(params.slug, docsLocale);
+  const page = source.getPage(params.slug ?? [], docsLocale);
   if (!page) notFound();
 
   const publicConfigs = await getPublicConfigsCached();

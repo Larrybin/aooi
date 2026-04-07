@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { tryJsonParse } from '@/shared/lib/json';
+import { signHmacSha256Hex } from '@/shared/lib/runtime/crypto';
 
 import {
   WebhookConfigError,
@@ -49,24 +50,7 @@ export async function generateCreemWebhookSignature(
   subtleCrypto: CreemSubtleCrypto = crypto.subtle
 ): Promise<string> {
   try {
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(secret);
-    const messageData = encoder.encode(payload);
-
-    const key = await subtleCrypto.importKey(
-      'raw',
-      keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-
-    const signature = await subtleCrypto.sign('HMAC', key, messageData);
-
-    const signatureArray = new Uint8Array(signature);
-    return Array.from(signatureArray)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+    return await signHmacSha256Hex(payload, secret, subtleCrypto);
   } catch (_error: unknown) {
     throw new ServiceUnavailableError('failed to generate signature');
   }

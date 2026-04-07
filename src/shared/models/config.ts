@@ -7,9 +7,9 @@ import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { PUBLIC_SETTING_NAMES } from '@/shared/constants/public-setting-names';
-import { isCloudflareWorkersRuntime } from '@/shared/lib/cloudflare-workers-env.server';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
+import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;

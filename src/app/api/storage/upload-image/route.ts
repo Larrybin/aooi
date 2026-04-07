@@ -2,9 +2,10 @@ import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
+import { readUploadRequestInput } from '@/shared/lib/runtime/upload';
 import { getStorageService } from '@/shared/services/storage';
 
-import { isFileValue, uploadImageFiles } from './upload-image-files';
+import { uploadImageFiles } from './upload-image-files';
 
 const MAX_CONCURRENT_UPLOADS_GLOBAL = 4;
 const MAX_CONCURRENT_UPLOADS_PER_USER = 2;
@@ -42,13 +43,18 @@ export const POST = withApi(async (req: Request) => {
   }
 
   try {
-    const formData = await req.formData();
-    const entries = formData.getAll('files');
-    const files = entries.filter(isFileValue);
+    const { entries, files, runtimePlatform } = await readUploadRequestInput(
+      req
+    );
 
     if (files.length !== entries.length) {
       throw new BadRequestError('invalid files');
     }
+
+    log.debug('storage: upload request accepted', {
+      runtimePlatform,
+      fileCount: files.length,
+    });
 
     const uploadResults = await uploadImageFiles({
       files,
