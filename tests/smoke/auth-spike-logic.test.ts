@@ -10,6 +10,7 @@ import {
   normalizeCallbackPath,
   type Report,
   type ResponseSummary,
+  type SessionObservation,
 } from './auth-spike.shared';
 
 function responseSummary(
@@ -43,6 +44,23 @@ function responseSummary(
   };
 }
 
+function sessionObservation(
+  overrides: Partial<SessionObservation> = {}
+): SessionObservation {
+  return {
+    url: 'https://example.com/api/auth/get-session',
+    status: 200,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/json',
+    },
+    bodySnippet: '{"session":{"id":"sess"},"user":{"id":"user"}}',
+    sessionPresent: true,
+    userPresent: true,
+    ...overrides,
+  };
+}
+
 function passingReport(): Report {
   const report = createEmptyReport({
     callbackPath: '/settings/profile',
@@ -66,6 +84,13 @@ function passingReport(): Report {
     surface.signUpResponses = [responseSummary()];
     surface.signInResponses = [responseSummary()];
     surface.signOutResponses = [responseSummary({ clearsCookie: true })];
+    surface.sessionAfterSignUp = sessionObservation();
+    surface.sessionAfterSignIn = sessionObservation();
+    surface.sessionAfterSignOut = sessionObservation({
+      bodySnippet: 'null',
+      sessionPresent: false,
+      userPresent: false,
+    });
     surface.finalUrlAfterSignUp = '/settings/profile';
     surface.finalUrlAfterSignIn = '/settings/profile';
     surface.finalUrlAfterInvalidCookie =
@@ -123,6 +148,13 @@ test('deriveConclusion 对单面 cloudflare preview auth spike 全绿仍返回 P
   cloudflare.signUpResponses = [responseSummary()];
   cloudflare.signInResponses = [responseSummary()];
   cloudflare.signOutResponses = [responseSummary({ clearsCookie: true })];
+  cloudflare.sessionAfterSignUp = sessionObservation();
+  cloudflare.sessionAfterSignIn = sessionObservation();
+  cloudflare.sessionAfterSignOut = sessionObservation({
+    bodySnippet: 'null',
+    sessionPresent: false,
+    userPresent: false,
+  });
   cloudflare.finalUrlAfterSignUp = '/settings/profile';
   cloudflare.finalUrlAfterSignIn = '/settings/profile';
   cloudflare.finalUrlAfterInvalidCookie =
@@ -144,21 +176,11 @@ test('deriveConclusion 对纯 parity 失败返回 需要 adapter', () => {
 
   assert(cloudflare);
 
-  cloudflare.signInResponses = [
-    responseSummary({
-      cookies: [
-        {
-          name: 'session',
-          domain: 'example.com',
-          path: '/',
-          httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
-          clearsCookie: false,
-        },
-      ],
-    }),
-  ];
+  cloudflare.sessionAfterSignIn = sessionObservation({
+    bodySnippet: 'null',
+    sessionPresent: false,
+    userPresent: false,
+  });
   report.parity = deriveParityResult(report);
 
   const conclusion = deriveConclusion(report);

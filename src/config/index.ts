@@ -59,6 +59,9 @@ export function resolveAppUrl({
   buildTime,
   browserOrigin,
 }: ResolveAppUrlOptions = {}): string {
+  const effectiveNodeEnv = nodeEnv ?? process.env.NODE_ENV;
+  const effectiveBuildTime = buildTime ?? isBuildTime();
+
   if (rawAppUrl && rawAppUrl.trim()) {
     return normalizeAppUrl(rawAppUrl);
   }
@@ -67,7 +70,7 @@ export function resolveAppUrl({
     return normalizeAppUrl(browserOrigin);
   }
 
-  if ((nodeEnv ?? process.env.NODE_ENV) === 'production' && !buildTime) {
+  if (effectiveNodeEnv === 'production' && !effectiveBuildTime) {
     throw new Error(
       'NEXT_PUBLIC_APP_URL is required in production; refusing to fall back to localhost.'
     );

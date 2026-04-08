@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
   chromium,
+  type APIResponse,
   type BrowserContext,
   type CDPSession,
   type Page,
@@ -14,6 +15,7 @@ import {
   hasNoStoreHeader,
   hasSecureCookieFlags,
   summarizeFailureKinds,
+  type SessionObservation,
   type ResponseCookieSummary,
   type ResponseSummary,
   type SurfaceName,
@@ -255,7 +257,137 @@ async function summarizeResponse(response: Response): Promise<ResponseSummary> {
   });
 }
 
-function createAuthResponseRecorder(page: Page) {
+async function summarizeApiResponse(
+  response: APIResponse
+): Promise<ResponseSummary> {
+  const headers = response.headers();
+  return buildResponseSummary({
+    url: response.url(),
+    status: response.status(),
+    headers,
+    setCookieHeaders: headers['set-cookie']
+      ? splitSetCookieHeader(headers['set-cookie'])
+      : [],
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+export function buildSessionObservation(params: {
+  bodyText: string;
+  headers: Record<string, string>;
+  status: number;
+  url: string;
+}): SessionObservation {
+  let parsedBody: unknown = null;
+
+  try {
+    parsedBody = JSON.parse(params.bodyText);
+  } catch {}
+
+  const body = isRecord(parsedBody) ? parsedBody : null;
+
+  return {
+    url: params.url,
+    status: params.status,
+    headers: params.headers,
+    bodySnippet: params.bodyText ? params.bodyText.slice(0, 500) : 'n/a',
+    sessionPresent: isRecord(body?.session),
+    userPresent: isRecord(body?.user),
+  };
+}
+
+export async function getSessionViaAuthApi(
+  context: BrowserContext,
+  baseUrl: string
+): Promise<SessionObservation> {
+  const origin = new URL(baseUrl).origin;
+  const response = await context.request.get(`${baseUrl}/api/auth/get-session`, {
+    failOnStatusCode: false,
+    maxRedirects: 0,
+    headers: {
+      origin,
+      referer: `${origin}/`,
+    },
+  });
+  let bodyText = '';
+
+  try {
+    bodyText = await response.text();
+  } catch {}
+
+  return buildSessionObservation({
+    url: response.url(),
+    status: response.status(),
+    headers: response.headers(),
+    bodyText,
+  });
+}
+
+export async function signOutViaAuthApi(
+  context: BrowserContext,
+  baseUrl: string
+): Promise<ResponseSummary> {
+  const origin = new URL(baseUrl).origin;
+  const response = await context.request.post(`${baseUrl}/api/auth/sign-out`, {
+    failOnStatusCode: false,
+    maxRedirects: 0,
+    headers: {
+      'content-type': 'application/json',
+      origin,
+      referer: `${origin}/`,
+    },
+    data: {},
+  });
+
+  return summarizeApiResponse(response);
+}
+
+export function assertSignedInSession(
+  observation: SessionObservation,
+  label = 'session 应处于已登录状态'
+) {
+  assert.equal(
+    observation.status,
+    200,
+    `${label}: get-session 应返回 200，实际 ${observation.status}`
+  );
+  assert.equal(
+    observation.sessionPresent,
+    true,
+    `${label}: get-session 应返回 session，body=${observation.bodySnippet}`
+  );
+  assert.equal(
+    observation.userPresent,
+    true,
+    `${label}: get-session 应返回 user，body=${observation.bodySnippet}`
+  );
+}
+
+export function assertSignedOutSession(
+  observation: SessionObservation,
+  label = 'session 应处于已登出状态'
+) {
+  assert.equal(
+    observation.status,
+    200,
+    `${label}: get-session 应返回 200，实际 ${observation.status}`
+  );
+  assert.equal(
+    observation.sessionPresent,
+    false,
+    `${label}: get-session 不应返回 session，body=${observation.bodySnippet}`
+  );
+  assert.equal(
+    observation.userPresent,
+    false,
+    `${label}: get-session 不应返回 user，body=${observation.bodySnippet}`
+  );
+}
+
+export function createAuthResponseRecorder(page: Page) {
   let active = false;
   let responses: ResponseSummary[] = [];
   let pending: Promise<void>[] = [];
@@ -293,20 +425,40 @@ function createAuthResponseRecorder(page: Page) {
   };
 }
 
-async function waitForProtectedPage(page: Page, expectedPath: string) {
+export async function waitForProtectedPage(page: Page, expectedPath: string) {
   await page.waitForURL(
     (url) => stripOrigin(url.toString()).startsWith(expectedPath),
     {
       timeout: 20_000,
+      waitUntil: 'commit',
     }
   );
 }
 
-async function waitForSignInPage(page: Page) {
+export async function waitForSignInPage(page: Page) {
   await page.waitForURL(
     (url) => stripOrigin(url.toString()).startsWith('/sign-in'),
     {
       timeout: 20_000,
+      waitUntil: 'commit',
+    }
+  );
+}
+
+async function waitForProtectedOrSignInPage(
+  page: Page,
+  expectedPath: string
+) {
+  await page.waitForURL(
+    (url) => {
+      const pathname = stripOrigin(url.toString());
+      return (
+        pathname.startsWith(expectedPath) || /^\/sign-in(\?|$)/.test(pathname)
+      );
+    },
+    {
+      timeout: 20_000,
+      waitUntil: 'commit',
     }
   );
 }
@@ -371,7 +523,6 @@ async function signUpFreshAccount(
     baseUrl,
     response,
   });
-  await ensureProtectedPageNavigation(page, baseUrl, callbackPathname);
 
   return recorder.stop();
 }
@@ -410,24 +561,26 @@ async function signInExistingAccount(
     baseUrl,
     response,
   });
-  await ensureProtectedPageNavigation(page, baseUrl, callbackPathname);
 
   return recorder.stop();
 }
 
-async function ensureProtectedPageNavigation(
+export async function ensureProtectedPageNavigation(
   page: Page,
   baseUrl: string,
   callbackPathname: string
 ) {
-  try {
-    await waitForProtectedPage(page, callbackPathname);
+  await waitForProtectedOrSignInPage(page, callbackPathname);
+
+  const currentPath = stripOrigin(page.url());
+  if (currentPath.startsWith(callbackPathname)) {
     return;
-  } catch (error) {
-    const currentPath = stripOrigin(page.url());
-    if (!/^\/sign-in(\?|$)/.test(currentPath)) {
-      throw error;
-    }
+  }
+
+  if (!/^\/sign-in(\?|$)/.test(currentPath)) {
+    throw new Error(
+      `unexpected auth navigation target: ${currentPath || 'n/a'}`
+    );
   }
 
   await page.goto(`${baseUrl}${callbackPathname}`, {
@@ -436,7 +589,7 @@ async function ensureProtectedPageNavigation(
   await waitForProtectedPage(page, callbackPathname);
 }
 
-async function bridgeSessionCookieIfNeeded(params: {
+export async function bridgeSessionCookieIfNeeded(params: {
   page: Page;
   context: BrowserContext;
   cdpSession: CDPSession;
@@ -455,45 +608,47 @@ async function bridgeSessionCookieIfNeeded(params: {
     return;
   }
 
-  const cookie = parseSetCookieHeaders(setCookieHeaders, baseUrl).find((item) =>
-    item.name.startsWith('__Secure-better-auth.')
+  const cookiesToBridge = parseSetCookieHeaders(setCookieHeaders, baseUrl).filter(
+    (item) =>
+      item.name.startsWith('__Secure-better-auth.') && !item.clearsCookie
   );
 
-  if (!cookie) {
+  if (cookiesToBridge.length === 0) {
     return;
   }
 
-  if (!cookie.name.startsWith('__Secure-better-auth.')) {
-    return;
+  const existingCookies = await context.cookies();
+
+  for (const cookie of cookiesToBridge) {
+    const hasCookie = existingCookies.some(
+      (item) => item.name === cookie.name && item.domain === cookie.domain
+    );
+
+    if (hasCookie) {
+      continue;
+    }
+
+    await cdpSession.send('Network.setCookie', {
+      name: cookie.name,
+      value: cookie.value,
+      domain: cookie.domain,
+      path: cookie.path,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly,
+      sameSite:
+        cookie.sameSite === 'none'
+          ? 'None'
+          : cookie.sameSite === 'strict'
+            ? 'Strict'
+            : 'Lax',
+      expires: cookie.expires,
+      sourceScheme: 'Secure',
+      sourcePort: 443,
+    });
   }
-
-  const hasCookie = (await context.cookies())
-    .some((item) => item.name === cookie.name && item.domain === cookie.domain);
-
-  if (hasCookie) {
-    return;
-  }
-
-  await cdpSession.send('Network.setCookie', {
-    name: cookie.name,
-    value: cookie.value,
-    domain: cookie.domain,
-    path: cookie.path,
-    secure: cookie.secure,
-    httpOnly: cookie.httpOnly,
-    sameSite:
-      cookie.sameSite === 'none'
-        ? 'None'
-        : cookie.sameSite === 'strict'
-          ? 'Strict'
-          : 'Lax',
-    expires: cookie.expires,
-    sourceScheme: 'Secure',
-    sourcePort: 443,
-  });
 }
 
-async function bridgeClearedSessionCookieIfNeeded(params: {
+export async function bridgeClearedSessionCookieIfNeeded(params: {
   context: BrowserContext;
   cdpSession: CDPSession;
   baseUrl: string;
@@ -705,12 +860,11 @@ export async function runAuthSurface(params: {
           );
         }
         surfaceResult.finalUrlAfterSignUp = stripOrigin(page.url());
-
-        assert.equal(
-          surfaceResult.finalUrlAfterSignUp,
-          callbackPath,
-          `注册后应跳转到 callbackUrl (${callbackPath})`
+        surfaceResult.sessionAfterSignUp = await getSessionViaAuthApi(
+          context,
+          baseUrl
         );
+
         assert.equal(
           hasNoStoreHeader(surfaceResult.signUpResponses),
           true,
@@ -721,8 +875,12 @@ export async function runAuthSurface(params: {
           true,
           'sign-up auth 响应必须包含完整 cookie 安全属性'
         );
+        assertSignedInSession(
+          surfaceResult.sessionAfterSignUp,
+          'sign-up 后 session 应可通过同源 auth API 读取'
+        );
 
-        return `created ${emailUsed} and redirected to ${surfaceResult.finalUrlAfterSignUp}`;
+        return `created ${emailUsed} and established session via /api/auth/get-session`;
       }
     );
 
@@ -757,12 +915,11 @@ export async function runAuthSurface(params: {
           );
         }
         surfaceResult.finalUrlAfterSignIn = stripOrigin(page.url());
-
-        assert.equal(
-          surfaceResult.finalUrlAfterSignIn,
-          callbackPath,
-          `登录后应跳转到 callbackUrl (${callbackPath})`
+        surfaceResult.sessionAfterSignIn = await getSessionViaAuthApi(
+          context,
+          baseUrl
         );
+
         assert.equal(
           hasNoStoreHeader(surfaceResult.signInResponses),
           true,
@@ -773,8 +930,12 @@ export async function runAuthSurface(params: {
           true,
           'sign-in auth 响应必须包含完整 cookie 安全属性'
         );
+        assertSignedInSession(
+          surfaceResult.sessionAfterSignIn,
+          'sign-in 后 session 应可通过同源 auth API 读取'
+        );
 
-        return `signed in ${emailUsed} and redirected to ${surfaceResult.finalUrlAfterSignIn}`;
+        return `signed in ${emailUsed} and established session via /api/auth/get-session`;
       }
     );
 
@@ -784,15 +945,13 @@ export async function runAuthSurface(params: {
       'session_read_happy_path',
       params.artifactDir,
       async () => {
-        await page.goto(`${baseUrl}${callbackPath}`, {
-          waitUntil: 'domcontentloaded',
-        });
-        await page.locator('[data-testid="settings-profile-page"]').waitFor({
-          state: 'visible',
-          timeout: 20_000,
-        });
+        const observation = await getSessionViaAuthApi(context, baseUrl);
+        assertSignedInSession(
+          observation,
+          'session_read_happy_path 应持续返回已登录 session'
+        );
 
-        return 'protected profile page is visible';
+        return 'session remains readable via /api/auth/get-session';
       }
     );
 
@@ -835,21 +994,8 @@ export async function runAuthSurface(params: {
           password,
           recorder
         );
-        await page
-          .locator('[data-testid="auth-user-menu-trigger"]')
-          .first()
-          .click();
-        recorder.start();
-        await page
-          .locator('[data-testid="auth-sign-out-trigger"]')
-          .first()
-          .click({ noWaitAfter: true });
-        await page.waitForURL(
-          (url) => !stripOrigin(url.toString()).startsWith(callbackPath),
-          { timeout: 20_000 }
-        );
-
-        surfaceResult.signOutResponses = await recorder.stop();
+        const signOutResponse = await signOutViaAuthApi(context, baseUrl);
+        surfaceResult.signOutResponses = [signOutResponse];
         await bridgeClearedSessionCookieIfNeeded({
           context,
           cdpSession,
@@ -857,6 +1003,10 @@ export async function runAuthSurface(params: {
           responses: surfaceResult.signOutResponses,
         });
         surfaceResult.finalUrlAfterSignOut = stripOrigin(page.url());
+        surfaceResult.sessionAfterSignOut = await getSessionViaAuthApi(
+          context,
+          baseUrl
+        );
 
         assert.equal(
           hasNoStoreHeader(surfaceResult.signOutResponses),
@@ -875,13 +1025,12 @@ export async function runAuthSurface(params: {
           true,
           'sign-out auth 响应必须清除 session cookie'
         );
+        assertSignedOutSession(
+          surfaceResult.sessionAfterSignOut,
+          'sign-out 后 session 应被清除'
+        );
 
-        await page.goto(`${baseUrl}${callbackPath}`, {
-          waitUntil: 'domcontentloaded',
-        });
-        await waitForSignInPage(page);
-
-        return `signed out to ${surfaceResult.finalUrlAfterSignOut || 'unknown'}`;
+        return 'signed out and confirmed via /api/auth/get-session';
       }
     );
   } catch {

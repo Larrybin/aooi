@@ -64,11 +64,13 @@ Notes:
 - `pnpm test:cf-app-smoke` is the Cloudflare public-shell smoke. It covers `200` checks for `/`, `/sign-in`, `/sign-up`, `/api/config/get-configs`, `/sitemap.xml`, and `/robots.txt`, plus `307 + Location` fallback checks for `/docs`, `/ai-chatbot`, and `/admin/settings/auth`.
 - `pnpm test:cf-app-smoke` is read-only by design. It must never rewrite public config rows such as `app_url`, `general_docs_enabled`, or `general_ai_enabled`.
 - `pnpm test:cf-auth-spike` builds on that and runs the full Cloudflare preview auth path: fresh sign-up, sign-in, protected profile read, invalid-session redirect, and sign-out, all against one local Worker surface.
+- `pnpm test:cf-oauth-spike` is the dedicated OAuth follow-up harness. It boots Cloudflare preview, injects deterministic Google + GitHub auth config under `AUTH_SPIKE_OAUTH_MOCK=true`, drives the real `/sign-in` social buttons in Playwright, and mocks only provider authorize/token/userinfo responses. The harness does not write or restore local `config` rows.
 - `pnpm test:creem-webhook-spike` covers Creem webhook signature verification and duplicate renewal idempotency.
 - `pnpm test:r2-upload-spike` covers R2 upload success/failure semantics (valid image, invalid MIME, provider init failure, upload failure).
 - `.github/workflows/cloudflare-preview-smoke.yaml` now provisions a Postgres service container, runs migrations, generates a temporary Wrangler config, and uses a CI-only `CF_FALLBACK_ORIGIN` to keep preview smoke aligned with the production public-shell topology.
 - `.github/workflows/dual-deploy-acceptance.yaml` now provisions a Postgres service container, migrates it, generates a temporary Wrangler config that points preview at that CI database, injects `CF_FALLBACK_ORIGIN`, and runs `pnpm test`, `pnpm cf:build`, `pnpm test:creem-webhook-spike`, `pnpm test:r2-upload-spike`, `pnpm test:local-auth-spike`, and `pnpm test:cf-app-smoke`.
 - Cloudflare state is governed as `first-class` / `preview-only` / `blocked`; see `docs/architecture/dual-deploy-governance.md`.
+- Auth spike raw conclusions now have explicit governance actions; use the decision table in `docs/architecture/dual-deploy-governance.md` instead of inferring policy from exit codes.
 - Current repo status is `first-class`: Vercel is the governed full-app surface, and Cloudflare free is the governed public-shell surface with redirect fallback for non-public routes.
 - Cloudflare free topology is fixed: `NEXT_PUBLIC_APP_URL` is the public shell origin, `CF_FALLBACK_ORIGIN` is the separate full-app origin used only for `307` fallback redirects, and the two origins must not match.
 - Production Cloudflare routing is also fixed in `wrangler.toml`: `workers_dev = false`, `preview_urls = false`, and `mamamiya.pdfreprinting.net` is bound through `[[routes]]` as the custom domain.
@@ -380,10 +382,27 @@ AUTH_SPIKE_USER_NAME="Auth Spike User"
 说明：
 
 - 这套 harness 只覆盖 email/password 闭环，不覆盖 OAuth。
+- `PASS` / `需要 adapter` / `需要替代路线` / `BLOCKED` 对治理动作的映射，见 `docs/architecture/dual-deploy-governance.md` 的 auth spike decision table。
 - 命令会先做 targeted preflight，再对两端真实部署面执行注册、登录、受保护页访问、无效 cookie、sign-out 与契约比对。
 - 结果会输出到 `.gstack/projects/Larrybin-aooi/`，失败截图输出到 `output/playwright/auth-spike/`。
 - 每次运行会为 `vercel` / `cloudflare` 分别生成唯一邮箱别名，避免共享数据库时把第二个 surface 误测成“已有账号登录”。
 - 只有 `PASS` 返回 0；其他原始结论都会返回非 0，用于 harness 决策。
+- OAuth 后续工作已经单独规划在 `docs/architecture/cloudflare-oauth-auth-spike-plan.md`，不要把 OAuth case 塞回当前 email/password harness。
+
+OAuth follow-up harness:
+
+```bash
+pnpm test:cf-oauth-spike
+```
+
+说明：
+
+- 该命令只跑 Cloudflare preview 的 OAuth follow-up，不覆盖 email/password。
+- 该命令通过 `AUTH_SPIKE_OAUTH_MOCK=true` 注入内存内的 Google / GitHub OAuth 测试配置，不写入也不恢复本地 `config` 表，因此开箱可跑且不会持久污染本地 auth 设置。
+- 该命令只 mock provider 的 authorize/token/userinfo，不依赖真实 Google/GitHub 凭证和外部账号交互。
+- 浏览器侧会从 `/sign-in` 页面真实点击 social button，Worker 侧仍真实经过 Better Auth 的 social sign-in、`/api/auth/callback/:provider`、state 校验、session 建立与 sign-out。
+- 该命令是单实例执行；若已有另一个 `pnpm test:cf-oauth-spike` 在跑，会直接失败退出。
+- 报告输出到 `.gstack/projects/Larrybin-aooi/`，失败截图输出到 `output/playwright/cf-oauth-spike/`。
 
 ## Admin Dashboard Configuration
 

@@ -20,7 +20,7 @@ async function getAuthPromiseForRequest(
     return cached;
   }
 
-  const promise = getAuthOptions()
+  const promise = getAuthOptions(request)
     .then((options) => betterAuth(options))
     .catch((error) => {
       authByRequest.delete(request);

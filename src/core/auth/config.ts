@@ -10,6 +10,7 @@ import * as schema from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';
+import { isAuthSpikeOAuthMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
 import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
@@ -18,31 +19,11 @@ import {
   releaseResetPasswordQuota,
 } from '@/shared/models/reset_password_throttle';
 import { getEmailService } from '@/shared/services/email';
-
-function normalizeOrigin(value: string, label: string): string {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error('must use http or https');
-    }
-    return url.origin;
-  } catch (error) {
-    throw new Error(`Invalid ${label} origin: ${value} (${String(error)})`);
-  }
-}
-
-function buildTrustedOrigins(appUrl: string): string[] {
-  const origins = new Set<string>();
-  origins.add(normalizeOrigin(appUrl, 'NEXT_PUBLIC_APP_URL'));
-
-  if (isCloudflareWorkersRuntime()) {
-    origins.add('http://127.0.0.1:8787');
-    origins.add('http://localhost:8787');
-  }
-
-  origins.add('https://accounts.google.com');
-  return [...origins];
-}
+import { installAuthSpikeOAuthFetchMock } from './oauth-spike.mock';
+import {
+  buildTrustedAuthOrigins,
+  resolveRuntimeAuthBaseUrl,
+} from './runtime-origin';
 
 function assertAuthEnv() {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -75,12 +56,33 @@ function assertAuthEnv() {
   }
 }
 
-const trustedOrigins = buildTrustedOrigins(envConfigs.app_url);
 const isProduction = process.env.NODE_ENV === 'production';
-const normalizedAuthBaseUrl = normalizeOrigin(
-  serverEnv.authBaseUrl,
-  'auth base URL'
-);
+const normalizedAuthBaseUrl = new URL(serverEnv.authBaseUrl).origin;
+
+export function getAuthOriginDebug(request?: Request) {
+  const isAuthSpikeOAuthMock = isAuthSpikeOAuthMockEnabled();
+  const runtimeBaseUrl = resolveRuntimeAuthBaseUrl({
+    defaultBaseUrl: normalizedAuthBaseUrl,
+    preferRequestOrigin: isAuthSpikeOAuthMock,
+    request,
+  });
+  const runtimeTrustedOrigins = buildTrustedAuthOrigins({
+    appUrl: envConfigs.app_url,
+    request,
+    allowLocalMockOrigins: isAuthSpikeOAuthMock,
+  });
+
+  return {
+    runtimeBaseUrl,
+    runtimeTrustedOrigins,
+    requestUrl: request?.url || null,
+    requestOrigin: request?.headers.get('origin') || null,
+    requestReferer: request?.headers.get('referer') || null,
+    requestHost: request?.headers.get('host') || null,
+    requestForwardedHost: request?.headers.get('x-forwarded-host') || null,
+    requestForwardedProto: request?.headers.get('x-forwarded-proto') || null,
+  };
+}
 
 // Static auth options - NO database connection
 // This ensures zero database calls during build time
@@ -88,8 +90,12 @@ export const authOptions = {
   appName: envConfigs.app_name,
   baseURL: normalizedAuthBaseUrl,
   secret: serverEnv.authSecret,
-  trustedOrigins,
+  trustedOrigins: buildTrustedAuthOrigins({
+    appUrl: envConfigs.app_url,
+    allowLocalMockOrigins: process.env.AUTH_SPIKE_OAUTH_MOCK === 'true',
+  }),
   advanced: {
+    disableOriginCheck: isAuthSpikeOAuthMockEnabled(),
     database: {
       generateId: () => getUuid(),
     },
@@ -100,7 +106,7 @@ export const authOptions = {
   logger: {
     verboseLogging: !isProduction,
     // Disable logs in production to reduce noise; keep debug in non-production
-    disabled: isProduction,
+    disabled: isProduction && !isAuthSpikeOAuthMockEnabled(),
   },
 };
 
@@ -112,7 +118,8 @@ type SendResetPasswordData = Parameters<
 
 // Dynamic auth options - WITH database connection
 // Only used in API routes that actually need database access
-export async function getAuthOptions() {
+export async function getAuthOptions(request?: Request) {
+  installAuthSpikeOAuthFetchMock();
   assertAuthEnv();
   const configs = await getAllConfigs();
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
@@ -120,11 +127,22 @@ export async function getAuthOptions() {
   const isEmailAuthEnabled =
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled);
-  const socialProviders = await getSocialProviders(configs);
   const appName = (configs.app_name || envConfigs.app_name || '').trim();
+  const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthOriginDebug(request);
+  const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
+  if (isAuthSpikeOAuthMockEnabled()) {
+    logger.info('[auth-spike-oauth] runtime auth origin', {
+      runtimeBaseUrl,
+      runtimeTrustedOrigins,
+      requestOrigin: request?.headers.get('origin') || null,
+      requestReferer: request?.headers.get('referer') || null,
+    });
+  }
   return {
     ...authOptions,
     appName,
+    baseURL: runtimeBaseUrl,
+    trustedOrigins: async () => runtimeTrustedOrigins,
     // Add database connection only when actually needed (runtime)
     database: drizzleAdapter(db(), {
       provider: 'pg',
@@ -211,10 +229,16 @@ export async function getAuthOptions() {
   };
 }
 
-export async function getSocialProviders(configs: Configs) {
+function buildSocialProviderRedirectURI(authBaseUrl: string, provider: string) {
+  return `${authBaseUrl.replace(/\/+$/, '')}/api/auth/callback/${provider}`;
+}
+
+export async function getSocialProviders(configs: Configs, authBaseUrl: string) {
   // get configs from db
-  const providers: Record<string, { clientId: string; clientSecret: string }> =
-    {};
+  const providers: Record<
+    string,
+    { clientId: string; clientSecret: string; redirectURI: string }
+  > = {};
 
   const googleEnabled = configs.google_auth_enabled === 'true';
   const githubEnabled = configs.github_auth_enabled === 'true';
@@ -227,6 +251,7 @@ export async function getSocialProviders(configs: Configs) {
     providers.google = {
       clientId: configs.google_client_id,
       clientSecret: configs.google_client_secret,
+      redirectURI: buildSocialProviderRedirectURI(authBaseUrl, 'google'),
     };
   }
 
@@ -238,6 +263,7 @@ export async function getSocialProviders(configs: Configs) {
     providers.github = {
       clientId: configs.github_client_id,
       clientSecret: configs.github_client_secret,
+      redirectURI: buildSocialProviderRedirectURI(authBaseUrl, 'github'),
     };
   }
 

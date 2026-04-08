@@ -96,6 +96,14 @@ function renderResponseSummary(title, responses) {
   ].join('\n');
 }
 
+function renderSessionObservation(title, observation) {
+  if (!observation) {
+    return `- ${title}: none`;
+  }
+
+  return `- ${title}: ${observation.status} ${observation.url} session=${observation.sessionPresent ? 'present' : 'missing'} user=${observation.userPresent ? 'present' : 'missing'} body=${observation.bodySnippet || 'n/a'}`;
+}
+
 export function renderMarkdown(report) {
   const caseRows = report.surfaces
     .map(renderCaseRows)
@@ -113,10 +121,22 @@ export function renderMarkdown(report) {
         `### ${surface.surface}`,
         `- URL: ${surface.url}`,
         `- Email used: ${surface.emailUsed || 'n/a'}`,
-        `- sign-up final URL: ${surface.finalUrlAfterSignUp || 'n/a'}`,
-        `- sign-in final URL: ${surface.finalUrlAfterSignIn || 'n/a'}`,
+        `- sign-up final URL (diagnostic): ${surface.finalUrlAfterSignUp || 'n/a'}`,
+        `- sign-in final URL (diagnostic): ${surface.finalUrlAfterSignIn || 'n/a'}`,
         `- invalid cookie final URL: ${surface.finalUrlAfterInvalidCookie || 'n/a'}`,
-        `- sign-out final URL: ${surface.finalUrlAfterSignOut || 'n/a'}`,
+        `- sign-out final URL (diagnostic): ${surface.finalUrlAfterSignOut || 'n/a'}`,
+        renderSessionObservation(
+          'session after sign-up',
+          surface.sessionAfterSignUp
+        ),
+        renderSessionObservation(
+          'session after sign-in',
+          surface.sessionAfterSignIn
+        ),
+        renderSessionObservation(
+          'session after sign-out',
+          surface.sessionAfterSignOut
+        ),
         renderResponseSummary(
           'sign-up auth responses',
           surface.signUpResponses

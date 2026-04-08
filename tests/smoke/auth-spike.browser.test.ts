@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assertSignedInSession,
+  assertSignedOutSession,
   buildAuthFailureDetail,
+  buildSessionObservation,
   buildResponseSummary,
   splitSetCookieHeader,
 } from './auth-spike.browser';
@@ -115,4 +118,37 @@ test('buildAuthFailureDetail 在失败时保留 auth 响应与当前 URL', () =>
     detail,
     /sign-up final URL: \/sign-up\?callbackUrl=%2Fsettings%2Fprofile/
   );
+});
+
+test('buildSessionObservation 能识别已登录 session body', () => {
+  const observation = buildSessionObservation({
+    url: 'https://example.com/api/auth/get-session',
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+    bodyText: JSON.stringify({
+      session: { id: 'sess-1' },
+      user: { id: 'user-1' },
+    }),
+  });
+
+  assert.equal(observation.sessionPresent, true);
+  assert.equal(observation.userPresent, true);
+  assert.doesNotThrow(() => assertSignedInSession(observation));
+});
+
+test('buildSessionObservation 能识别已登出 null body', () => {
+  const observation = buildSessionObservation({
+    url: 'https://example.com/api/auth/get-session',
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+    },
+    bodyText: 'null',
+  });
+
+  assert.equal(observation.sessionPresent, false);
+  assert.equal(observation.userPresent, false);
+  assert.doesNotThrow(() => assertSignedOutSession(observation));
 });

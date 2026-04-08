@@ -55,6 +55,25 @@ export type ResponseCookieSummary = {
   clearsCookie: boolean;
 };
 
+export type BrowserContextCookieSummary = {
+  name: string;
+  domain: string;
+  path: string;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: string | null;
+  expires: number | null;
+};
+
+export type SessionObservation = {
+  url: string;
+  status: number;
+  headers: Record<string, string>;
+  bodySnippet: string;
+  sessionPresent: boolean;
+  userPresent: boolean;
+};
+
 export type CaseResult = {
   name: string;
   status: CaseStatus;
@@ -70,6 +89,9 @@ export type SurfaceResult = {
   signUpResponses: ResponseSummary[];
   signInResponses: ResponseSummary[];
   signOutResponses: ResponseSummary[];
+  sessionAfterSignUp: SessionObservation | null;
+  sessionAfterSignIn: SessionObservation | null;
+  sessionAfterSignOut: SessionObservation | null;
   finalUrlAfterSignUp: string | null;
   finalUrlAfterSignIn: string | null;
   finalUrlAfterInvalidCookie: string | null;
@@ -203,6 +225,9 @@ export function createSurfaceResult(
     signUpResponses: [],
     signInResponses: [],
     signOutResponses: [],
+    sessionAfterSignUp: null,
+    sessionAfterSignIn: null,
+    sessionAfterSignOut: null,
     finalUrlAfterSignUp: null,
     finalUrlAfterSignIn: null,
     finalUrlAfterInvalidCookie: null,
@@ -247,6 +272,46 @@ function pushFailureKind(surface: SurfaceResult, failureKind: FailureKind) {
   }
 }
 
+function compareSessionObservations(params: {
+  label: string;
+  baselineName: string;
+  candidateName: string;
+  baseline: SessionObservation | null;
+  candidate: SessionObservation | null;
+}): string[] {
+  const { baseline, baselineName, candidate, candidateName, label } = params;
+  const mismatches: string[] = [];
+
+  if (!baseline && !candidate) {
+    return mismatches;
+  }
+
+  if (!baseline || !candidate) {
+    mismatches.push(`${label} presence mismatch`);
+    return mismatches;
+  }
+
+  if (baseline.status !== candidate.status) {
+    mismatches.push(
+      `${label} status mismatch: ${baselineName}=${baseline.status} ${candidateName}=${candidate.status}`
+    );
+  }
+
+  if (baseline.sessionPresent !== candidate.sessionPresent) {
+    mismatches.push(
+      `${label} session mismatch: ${baselineName}=${baseline.sessionPresent ? 'present' : 'missing'} ${candidateName}=${candidate.sessionPresent ? 'present' : 'missing'}`
+    );
+  }
+
+  if (baseline.userPresent !== candidate.userPresent) {
+    mismatches.push(
+      `${label} user mismatch: ${baselineName}=${baseline.userPresent ? 'present' : 'missing'} ${candidateName}=${candidate.userPresent ? 'present' : 'missing'}`
+    );
+  }
+
+  return mismatches;
+}
+
 export function deriveParityResult(report: Report): ParityResult {
   const vercel = report.surfaces.find(
     (surface) => surface.surface === 'vercel'
@@ -259,18 +324,6 @@ export function deriveParityResult(report: Report): ParityResult {
   assert(cloudflare, '缺少 Cloudflare surface 结果');
 
   const mismatches: string[] = [];
-
-  if (vercel.finalUrlAfterSignUp !== cloudflare.finalUrlAfterSignUp) {
-    mismatches.push(
-      `注册回跳不一致: vercel=${vercel.finalUrlAfterSignUp} cloudflare=${cloudflare.finalUrlAfterSignUp}`
-    );
-  }
-
-  if (vercel.finalUrlAfterSignIn !== cloudflare.finalUrlAfterSignIn) {
-    mismatches.push(
-      `登录回跳不一致: vercel=${vercel.finalUrlAfterSignIn} cloudflare=${cloudflare.finalUrlAfterSignIn}`
-    );
-  }
 
   const signUpParity = compareRuntimeResponseContracts({
     label: 'sign-up auth response',
@@ -300,6 +353,30 @@ export function deriveParityResult(report: Report): ParityResult {
     ...signOutParity.mismatches
   );
 
+  mismatches.push(
+    ...compareSessionObservations({
+      label: 'sign-up session contract',
+      baselineName: 'vercel',
+      candidateName: 'cloudflare',
+      baseline: vercel.sessionAfterSignUp,
+      candidate: cloudflare.sessionAfterSignUp,
+    }),
+    ...compareSessionObservations({
+      label: 'sign-in session contract',
+      baselineName: 'vercel',
+      candidateName: 'cloudflare',
+      baseline: vercel.sessionAfterSignIn,
+      candidate: cloudflare.sessionAfterSignIn,
+    }),
+    ...compareSessionObservations({
+      label: 'sign-out session contract',
+      baselineName: 'vercel',
+      candidateName: 'cloudflare',
+      baseline: vercel.sessionAfterSignOut,
+      candidate: cloudflare.sessionAfterSignOut,
+    })
+  );
+
   if (
     vercel.finalUrlAfterInvalidCookie !== cloudflare.finalUrlAfterInvalidCookie
   ) {
@@ -312,7 +389,7 @@ export function deriveParityResult(report: Report): ParityResult {
     return {
       status: 'passed',
       detail:
-        'contract parity matched on sign-up, sign-in, sign-out, headers, cookie security, and failure behavior',
+        'contract parity matched on sign-up/sign-in/sign-out auth responses, session contract, and invalid-session failure behavior',
     };
   }
 

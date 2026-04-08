@@ -49,8 +49,8 @@ Notes:
 - This also enables DB-backed settings/configs (the `config` table, `getAllConfigs()`/`getConfigs()`) at runtime in Workers even when `DATABASE_URL` is empty.
 - `DB_SINGLETON_ENABLED` only applies to non-Workers Node runtimes. Workers always use the Hyperdrive request-scoped path above.
 - Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
-- Cloudflare free is no longer a full-app runtime target. The Worker only serves the public shell; non-public surfaces redirect to `CF_FALLBACK_ORIGIN`, which must be a separate full-app origin and is not used for Worker DB access.
-- CI preview/app smoke now create a temporary Wrangler config that rewrites both `[[hyperdrive]].localConnectionString` and `CF_FALLBACK_ORIGIN`, so database-backed preview checks run against the service-container Postgres without mutating the tracked production config.
+- Cloudflare is now treated as a full-app runtime target. The Worker serves public, auth, and protected routes from one origin, and cross-origin cookie auth topologies are not supported.
+- CI preview/app smoke now create a temporary Wrangler config that rewrites `[[hyperdrive]].localConnectionString`, so database-backed preview checks run against the service-container Postgres without mutating the tracked production config.
 
 ## Schema Definition
 
@@ -266,7 +266,7 @@ Notes:
 
 ### Cloudflare Workers + Hyperdrive
 
-Configure in `wrangler.toml`:
+Configure in `wrangler.cloudflare.toml`:
 
 ```toml
 [[hyperdrive]]
@@ -276,7 +276,7 @@ id = "hyperdrive-id"
 
 The `db()` function automatically detects and uses Hyperdrive.
 
-For local Cloudflare preview, `wrangler.toml` must also provide a non-empty `localConnectionString` that points to a migrated local database. Preview reads the real `config` table through Hyperdrive, so docs/landing/brand visibility matches actual local config state.
+For local Cloudflare preview, `wrangler.cloudflare.toml` must also provide a non-empty `localConnectionString` that points to a migrated local database. Preview reads the real `config` table through Hyperdrive, so docs/landing/brand visibility matches actual local config state.
 
 Cloudflare helper commands:
 
@@ -290,13 +290,13 @@ Cloudflare helper commands:
 
 `pnpm test:cf-auth-spike` is the full local Workers auth harness. It builds and boots Cloudflare preview, verifies the DB-backed auth shell still renders, then exercises fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out against the same Worker surface.
 
-`pnpm test:cf-app-smoke` is the Cloudflare public-shell smoke: landing, sign-in, sign-up, public config API, sitemap, and robots, plus redirect fallback checks for `/docs`, `/ai-chatbot`, and `/admin/settings/auth`.
+`pnpm test:cf-app-smoke` is the Cloudflare full-app smoke: landing, sign-in, sign-up, docs, public config API, sitemap, robots, and same-origin protected-route redirects back to `/sign-in`.
 
 The smoke is read-only. It must not upsert public config values or mutate the `config` table in preview or production.
 
-The governed dual-deploy posture is now fully landed: Vercel remains the full-app origin, and Cloudflare free is the first-class public-shell runtime backed by preview smoke, app smoke, and deploy validation.
+The governed deployment posture is now single-origin per target: Vercel and Cloudflare are both supported full-app targets, but each deployment must choose exactly one origin/runtime.
 
-`Dual Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so preview uses the CI database instead of the tracked local DSN in `wrangler.toml`.
+`Dual Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so preview uses the CI database instead of the tracked local DSN in `wrangler.cloudflare.toml`.
 
 ### Vercel / AWS Lambda (Serverless)
 
@@ -364,7 +364,7 @@ Run `pnpm db:migrate` to apply pending migrations.
 Cloudflare Workers requires Hyperdrive binding
 ```
 
-Configure `HYPERDRIVE` binding in `wrangler.toml`.
+Configure `HYPERDRIVE` binding in `wrangler.cloudflare.toml`.
 
 ## Related Files
 

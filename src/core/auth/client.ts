@@ -4,14 +4,16 @@ import {
 } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
-import { envConfigs } from '@/config';
-
 type OneTapPlugin = NonNullable<
   Exclude<Parameters<typeof createAuthClient>[0], undefined>['plugins']
 >[number];
 
 const makeOneTapPlugin = (options: GoogleOneTapOptions): OneTapPlugin =>
   oneTapClient(options) as OneTapPlugin;
+
+function getRuntimeAuthClientBaseURL(): string | undefined {
+  return typeof window === 'undefined' ? undefined : window.location.origin;
+}
 
 function shouldSerializeAuthBody(body: unknown): body is Record<string, unknown> {
   return (
@@ -55,7 +57,7 @@ export function withAuthJsonRequest<T extends AuthJsonRequestOptions>(options: T
 
 // auth client for client-side use
 export const authClient = createAuthClient({
-  baseURL: envConfigs.app_url,
+  baseURL: getRuntimeAuthClientBaseURL(),
 });
 
 // export auth client methods
@@ -71,7 +73,6 @@ export const {
 // get auth client with configs
 export function getAuthClient(configs: Record<string, string>) {
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const baseURL = envConfigs.app_url;
   const plugins =
     isGoogleAuthEnabled &&
     configs.google_client_id &&
@@ -96,7 +97,7 @@ export function getAuthClient(configs: Record<string, string>) {
       : [];
 
   const authClient = createAuthClient({
-    baseURL,
+    baseURL: getRuntimeAuthClientBaseURL(),
     plugins,
   });
 
