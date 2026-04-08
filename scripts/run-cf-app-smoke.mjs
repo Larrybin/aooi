@@ -10,6 +10,7 @@ import {
   resolvePreviewBaseUrl,
   waitForPreviewReady,
 } from './run-cf-preview-smoke.mjs';
+
 const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.CF_APP_SMOKE_REQUEST_TIMEOUT_MS || '30000',
   10
@@ -31,7 +32,7 @@ export function getCloudflareAppSmokePublicChecks() {
       path: '/sign-in',
       expectedStatus: 200,
       expectedContentType: /text\/html/i,
-      expectedTexts: ['<html'],
+      expectedTexts: ['auth-sign-in-form'],
     },
     {
       name: 'sign-up-page',
@@ -39,7 +40,7 @@ export function getCloudflareAppSmokePublicChecks() {
       path: '/sign-up',
       expectedStatus: 200,
       expectedContentType: /text\/html/i,
-      expectedTexts: ['<html'],
+      expectedTexts: ['auth-sign-up-form'],
     },
     {
       name: 'public-config-api',
@@ -50,6 +51,14 @@ export function getCloudflareAppSmokePublicChecks() {
       expectedJsonShape: {
         code: 0,
       },
+    },
+    {
+      name: 'docs-page',
+      method: 'GET',
+      path: '/docs',
+      expectedStatus: 200,
+      expectedContentType: /text\/html/i,
+      expectedTexts: ['<html'],
     },
     {
       name: 'sitemap',
@@ -70,35 +79,32 @@ export function getCloudflareAppSmokePublicChecks() {
   ];
 }
 
-export function getCloudflareAppSmokeFallbackChecks({
-  fallbackOrigin,
+export function getCloudflareAppSmokeProtectedChecks({
+  baseUrlOrigin,
 } = {}) {
   return [
     {
-      name: 'docs-fallback',
+      name: 'settings-profile-protected',
       method: 'GET',
-      path: '/docs',
+      path: '/settings/profile',
       expectedStatus: 307,
-      expectedLocationOrigin: fallbackOrigin,
-      expectedLocationPath: '/docs',
+      expectedLocationOrigin: baseUrlOrigin,
+      expectedLocationPath: '/sign-in',
+      expectedLocationSearchParams: {
+        callbackUrl: '/settings/profile',
+      },
       redirect: 'manual',
     },
     {
-      name: 'ai-chatbot-fallback',
-      method: 'GET',
-      path: '/ai-chatbot',
-      expectedStatus: 307,
-      expectedLocationOrigin: fallbackOrigin,
-      expectedLocationPath: '/ai-chatbot',
-      redirect: 'manual',
-    },
-    {
-      name: 'admin-settings-auth-fallback',
+      name: 'admin-settings-auth-protected',
       method: 'GET',
       path: '/admin/settings/auth',
       expectedStatus: 307,
-      expectedLocationOrigin: fallbackOrigin,
-      expectedLocationPath: '/admin/settings/auth',
+      expectedLocationOrigin: baseUrlOrigin,
+      expectedLocationPath: '/sign-in',
+      expectedLocationSearchParams: {
+        callbackUrl: '/admin/settings/auth',
+      },
       redirect: 'manual',
     },
   ];
@@ -107,7 +113,7 @@ export function getCloudflareAppSmokeFallbackChecks({
 export function getCloudflareAppSmokeChecks(options = {}) {
   return [
     ...getCloudflareAppSmokePublicChecks(),
-    ...getCloudflareAppSmokeFallbackChecks(options),
+    ...getCloudflareAppSmokeProtectedChecks(options),
   ];
 }
 
@@ -131,7 +137,11 @@ export async function validateCloudflareAppSmokeResponse(
     );
   }
 
-  if (check.expectedLocationOrigin || check.expectedLocationPath) {
+  if (
+    check.expectedLocationOrigin ||
+    check.expectedLocationPath ||
+    check.expectedLocationSearchParams
+  ) {
     const location = response.headers.get('location') || '';
     assert.ok(location, `[${check.name}] missing Location header`);
 
@@ -150,6 +160,18 @@ export async function validateCloudflareAppSmokeResponse(
         check.expectedLocationPath,
         `[${check.name}] unexpected Location path`
       );
+    }
+
+    if (check.expectedLocationSearchParams) {
+      for (const [key, expectedValue] of Object.entries(
+        check.expectedLocationSearchParams
+      )) {
+        assert.equal(
+          url.searchParams.get(key),
+          expectedValue,
+          `[${check.name}] unexpected Location search param ${key}`
+        );
+      }
     }
   }
 
@@ -186,11 +208,12 @@ export async function validateCloudflareAppSmokeResponse(
 
 export async function runCloudflareAppSmoke({
   baseUrl,
-  fallbackOrigin,
   fetchImpl = fetch,
   logger = console,
 }) {
-  for (const check of getCloudflareAppSmokeChecks({ fallbackOrigin })) {
+  const baseUrlOrigin = new URL(baseUrl).origin;
+
+  for (const check of getCloudflareAppSmokeChecks({ baseUrlOrigin })) {
     const response = await fetchImpl(`${baseUrl}${check.path}`, {
       method: check.method,
       headers: check.headers,
@@ -230,13 +253,14 @@ export async function main() {
   );
   const wranglerConfigPath =
     process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim();
-  const fallbackOrigin = normalizeOrigin(
-    process.env.CF_FALLBACK_ORIGIN,
-    'CF_FALLBACK_ORIGIN'
-  );
   const authSecret = resolveAuthSecret();
   const reuseServer = process.env.CF_PREVIEW_REUSE_SERVER === 'true';
-  const devVars = await ensureCiDevVars({ authSecret });
+  const devVars = await ensureCiDevVars({
+    authSecret,
+    extraVars: {
+      DEPLOY_TARGET: 'cloudflare',
+    },
+  });
 
   const preview = reuseServer
     ? null
@@ -248,11 +272,11 @@ export async function main() {
         preview,
         fallbackBaseUrl: configuredBaseUrl,
       })
-    : configuredBaseUrl;
+    : normalizeOrigin(configuredBaseUrl, 'CF_APP_SMOKE_URL');
 
   try {
     await waitForPreviewReady({ baseUrl });
-    await runCloudflareAppSmoke({ baseUrl, fallbackOrigin });
+    await runCloudflareAppSmoke({ baseUrl });
   } finally {
     if (preview) {
       await preview.stop();

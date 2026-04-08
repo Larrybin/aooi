@@ -20,7 +20,7 @@ export function buildCiWranglerConfig({
   template,
   databaseUrl,
   appUrl,
-  fallbackOrigin,
+  deployTarget = 'cloudflare',
 }) {
   let nextContent = replaceQuotedValue(
     template,
@@ -38,9 +38,9 @@ export function buildCiWranglerConfig({
 
   nextContent = replaceQuotedValue(
     nextContent,
-    /(^\s*CF_FALLBACK_ORIGIN\s*=\s*")([^"\n]*)(")/m,
-    fallbackOrigin,
-    'vars.CF_FALLBACK_ORIGIN'
+    /(^\s*DEPLOY_TARGET\s*=\s*")([^"\n]*)(")/m,
+    deployTarget,
+    'vars.DEPLOY_TARGET'
   );
 
   return nextContent;
@@ -52,14 +52,16 @@ async function main() {
   const templateArg = args.find((arg) => arg.startsWith('--template='));
   const databaseUrlArg = args.find((arg) => arg.startsWith('--database-url='));
   const appUrlArg = args.find((arg) => arg.startsWith('--app-url='));
-  const fallbackOriginArg = args.find((arg) =>
-    arg.startsWith('--fallback-origin=')
+  const deployTargetArg = args.find((arg) =>
+    arg.startsWith('--deploy-target=')
   );
 
   const outputPath =
-    outArg?.split('=')[1] || path.resolve(rootDir, '.tmp/wrangler.ci.toml');
+    outArg?.split('=')[1] ||
+    path.resolve(rootDir, '.tmp/wrangler.cloudflare.ci.toml');
   const templatePath =
-    templateArg?.split('=')[1] || path.resolve(rootDir, 'wrangler.toml');
+    templateArg?.split('=')[1] ||
+    path.resolve(rootDir, 'wrangler.cloudflare.toml');
   const databaseUrl =
     databaseUrlArg?.split('=')[1] ||
     process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
@@ -68,10 +70,10 @@ async function main() {
     appUrlArg?.split('=')[1] ||
     process.env.CF_PREVIEW_APP_URL?.trim() ||
     'http://127.0.0.1:8787';
-  const fallbackOrigin =
-    fallbackOriginArg?.split('=')[1] ||
-    process.env.CF_FALLBACK_ORIGIN?.trim() ||
-    'https://full-app.example.test';
+  const deployTarget =
+    deployTargetArg?.split('=')[1] ||
+    process.env.DEPLOY_TARGET?.trim() ||
+    'cloudflare';
 
   if (!databaseUrl) {
     throw new Error(
@@ -84,7 +86,7 @@ async function main() {
     template,
     databaseUrl,
     appUrl,
-    fallbackOrigin,
+    deployTarget,
   });
 
   await mkdir(path.dirname(outputPath), { recursive: true });

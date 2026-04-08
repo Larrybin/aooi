@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const isDeployCheck = process.argv.includes('--deploy');
-const configPath = path.resolve(process.cwd(), 'wrangler.toml');
+const configPath = path.resolve(process.cwd(), 'wrangler.cloudflare.toml');
 
 function fail(message) {
   console.error(`[cf:check] ${message}`);
@@ -11,7 +11,7 @@ function fail(message) {
 
 function readConfigFile() {
   if (!fs.existsSync(configPath)) {
-    fail('missing wrangler.toml');
+    fail('missing wrangler.cloudflare.toml');
   }
 
   return fs.readFileSync(configPath, 'utf8');
@@ -102,6 +102,10 @@ function parseHttpOrigin(value, label, { requirePureOrigin = false } = {}) {
 
 const content = readConfigFile();
 
+if (/\bCF_FALLBACK_ORIGIN\b/.test(content)) {
+  fail('CF_FALLBACK_ORIGIN is not supported in single-origin Cloudflare mode');
+}
+
 const workerName = readQuotedValue(
   content,
   'name',
@@ -128,7 +132,7 @@ if (workerName !== 'roller-rabbit') {
   fail(`unexpected worker name: ${workerName}`);
 }
 
-if (main !== 'cloudflare/public-shell-worker.mjs') {
+if (main !== '.open-next/worker.js') {
   fail(`unexpected main: ${main}`);
 }
 
@@ -224,15 +228,15 @@ if (observabilityEnabled !== 'true') {
 }
 
 const varsSection = readSection(content, 'vars');
+const deployTarget = readQuotedValue(
+  varsSection,
+  'vars.DEPLOY_TARGET',
+  /^\s*DEPLOY_TARGET\s*=\s*"([^"\n]+)"/m
+);
 const appUrl = readQuotedValue(
   varsSection,
   'vars.NEXT_PUBLIC_APP_URL',
   /^\s*NEXT_PUBLIC_APP_URL\s*=\s*"([^"\n]+)"/m
-);
-readQuotedValue(
-  varsSection,
-  'vars.CF_FALLBACK_ORIGIN',
-  /^\s*CF_FALLBACK_ORIGIN\s*=\s*"([^"\n]+)"/m
 );
 readQuotedValue(
   varsSection,
@@ -255,6 +259,10 @@ readQuotedValue(
   /^\s*DB_SINGLETON_ENABLED\s*=\s*"([^"\n]+)"/m
 );
 
+if (deployTarget !== 'cloudflare') {
+  fail(`vars.DEPLOY_TARGET must equal "cloudflare", got ${deployTarget}`);
+}
+
 const appOrigin = parseHttpOrigin(appUrl, 'vars.NEXT_PUBLIC_APP_URL');
 const appHostname = new URL(appOrigin).hostname;
 const routeTables = readArrayTable(content, 'routes');
@@ -265,13 +273,11 @@ const customDomainRoute = routeTables.find((table) => {
 });
 
 if (!customDomainRoute) {
-  fail(
-    `missing [[routes]] custom domain route for ${appHostname}`
-  );
+  fail(`missing [[routes]] custom domain route for ${appHostname}`);
 }
 
 if (!isDeployCheck) {
-  console.log('[cf:check] wrangler.toml structure looks good');
+  console.log('[cf:check] wrangler.cloudflare.toml structure looks good');
   process.exit(0);
 }
 
@@ -289,34 +295,14 @@ if (!hyperdriveId) {
   fail('hyperdrive.id must be set for deploy/upload');
 }
 
-const fallbackOrigin = readQuotedValue(
-  varsSection,
-  'vars.CF_FALLBACK_ORIGIN',
-  /^\s*CF_FALLBACK_ORIGIN\s*=\s*"([^"\n]+)"/m
-);
-
 if (isLocalhostUrl(appUrl)) {
   fail(
     'vars.NEXT_PUBLIC_APP_URL must not point to localhost for deploy/upload'
   );
 }
 
-const fallbackUrlOrigin = parseHttpOrigin(
-  fallbackOrigin,
-  'vars.CF_FALLBACK_ORIGIN',
-  { requirePureOrigin: true }
-);
-
-if (isLocalhostUrl(fallbackOrigin)) {
-  fail(
-    'vars.CF_FALLBACK_ORIGIN must not point to localhost for deploy/upload'
-  );
-}
-
-if (fallbackUrlOrigin === appOrigin) {
-  fail(
-    'vars.CF_FALLBACK_ORIGIN must not equal vars.NEXT_PUBLIC_APP_URL for deploy/upload'
-  );
-}
+parseHttpOrigin(appUrl, 'vars.NEXT_PUBLIC_APP_URL', {
+  requirePureOrigin: true,
+});
 
 console.log('[cf:check] deploy configuration looks good');

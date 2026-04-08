@@ -28,13 +28,13 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      DEPLOY_TARGET: cloudflare
       DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       AUTH_SPIKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
       AUTH_SECRET: ci-auth-secret-not-for-production
       CF_PREVIEW_APP_URL: http://127.0.0.1:8787
-      CF_FALLBACK_ORIGIN: https://full-app.example.test
 
     steps:
       - name: Checkout repository
@@ -59,6 +59,7 @@ jobs:
           cat > .dev.vars <<'EOF'
           AUTH_SECRET=ci-auth-secret-not-for-production
           BETTER_AUTH_SECRET=ci-auth-secret-not-for-production
+          DEPLOY_TARGET=cloudflare
           EOF
 
       - name: Run database migrations
@@ -66,7 +67,7 @@ jobs:
 
       - name: Create CI preview Wrangler config
         run: |
-          CONFIG_PATH="$(node scripts/create-ci-wrangler-config.mjs --out=.tmp/wrangler.ci.toml --database-url="$DATABASE_URL" --app-url="$CF_PREVIEW_APP_URL" --fallback-origin="$CF_FALLBACK_ORIGIN")"
+          CONFIG_PATH="$(node scripts/create-ci-wrangler-config.mjs --out=.tmp/wrangler.cloudflare.ci.toml --database-url="$DATABASE_URL" --app-url="$CF_PREVIEW_APP_URL" --deploy-target=cloudflare)"
           echo "CF_PREVIEW_WRANGLER_CONFIG_PATH=$CONFIG_PATH" >> "$GITHUB_ENV"
 
       - name: Run Cloudflare preview smoke

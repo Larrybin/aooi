@@ -200,6 +200,7 @@ export async function resolvePreviewBaseUrl({
   fallbackBaseUrl,
   timeoutMs = READY_URL_TIMEOUT_MS,
   logger = console,
+  allowFallback = true,
 }) {
   if (!preview?.readyUrlPromise) {
     return normalizePreviewBaseUrl(fallbackBaseUrl);
@@ -215,6 +216,10 @@ export async function resolvePreviewBaseUrl({
   try {
     return await Promise.race([preview.readyUrlPromise, timeoutPromise]);
   } catch (error) {
+    if (!allowFallback) {
+      throw error;
+    }
+
     const normalizedFallback = normalizePreviewBaseUrl(fallbackBaseUrl);
     logger.warn?.(
       `Falling back to configured preview URL ${normalizedFallback}: ${
@@ -387,6 +392,7 @@ export function resolveAuthSecret() {
 
 export async function ensureCiDevVars({
   authSecret,
+  extraVars = {},
   devVarsPath = path.resolve(rootDir, '.dev.vars'),
 }) {
   let originalContent = null;
@@ -413,6 +419,9 @@ export async function ensureCiDevVars({
     'BETTER_AUTH_SECRET',
     existingBetterAuthSecret || existingAuthSecret || authSecret
   );
+  for (const [name, value] of Object.entries(extraVars)) {
+    nextContent = upsertDevVar(nextContent, name, value);
+  }
 
   const created = originalContent === null;
   const updated = nextContent !== existingContent;
@@ -454,7 +463,12 @@ async function main() {
   }
 
   const authSecret = resolveAuthSecret();
-  const devVars = await ensureCiDevVars({ authSecret });
+  const devVars = await ensureCiDevVars({
+    authSecret,
+    extraVars: {
+      DEPLOY_TARGET: 'cloudflare',
+    },
+  });
   const preview = createPreviewManager({});
   const baseUrl = await resolvePreviewBaseUrl({
     preview,

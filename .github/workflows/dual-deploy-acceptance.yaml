@@ -1,4 +1,4 @@
-name: Dual Deploy Acceptance
+name: Single Origin Deploy Acceptance
 
 on:
   push:
@@ -9,10 +9,14 @@ on:
 
 jobs:
   acceptance:
-    name: Cloudflare dual deploy gates
+    name: ${{ matrix.deploy_target }} acceptance
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        deploy_target: [vercel, cloudflare]
     services:
       postgres:
         image: postgres:16
@@ -28,13 +32,13 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      DEPLOY_TARGET: ${{ matrix.deploy_target }}
       DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       AUTH_SPIKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
       AUTH_SECRET: ci-auth-secret-not-for-production
       CF_PREVIEW_APP_URL: http://127.0.0.1:8787
-      CF_FALLBACK_ORIGIN: https://full-app.example.test
 
     steps:
       - name: Checkout repository
@@ -62,6 +66,7 @@ jobs:
           cat > .dev.vars <<'EOF'
           AUTH_SECRET=ci-auth-secret-not-for-production
           BETTER_AUTH_SECRET=ci-auth-secret-not-for-production
+          DEPLOY_TARGET=cloudflare
           EOF
 
       - name: Run database migrations
@@ -69,23 +74,28 @@ jobs:
 
       - name: Create CI preview Wrangler config
         run: |
-          CONFIG_PATH="$(node scripts/create-ci-wrangler-config.mjs --out=.tmp/wrangler.ci.toml --database-url="$DATABASE_URL" --app-url="$CF_PREVIEW_APP_URL" --fallback-origin="$CF_FALLBACK_ORIGIN")"
+          CONFIG_PATH="$(node scripts/create-ci-wrangler-config.mjs --out=.tmp/wrangler.cloudflare.ci.toml --database-url="$DATABASE_URL" --app-url="$CF_PREVIEW_APP_URL" --deploy-target=cloudflare)"
           echo "CF_PREVIEW_WRANGLER_CONFIG_PATH=$CONFIG_PATH" >> "$GITHUB_ENV"
 
       - name: Run unit and contract tests
         run: pnpm test
 
-      - name: Run Cloudflare build gate
-        run: pnpm cf:build
-
-      - name: Run Creem webhook gate
-        run: pnpm test:creem-webhook-spike
-
-      - name: Run R2 upload gate
-        run: pnpm test:r2-upload-spike
-
-      - name: Run auth dual-runtime gate
+      - name: Run Vercel-mode auth parity gate
+        if: matrix.deploy_target == 'vercel'
         run: pnpm test:local-auth-spike
 
-      - name: Run Cloudflare app smoke gate
+      - name: Run Cloudflare build gate
+        if: matrix.deploy_target == 'cloudflare'
+        run: pnpm cf:build
+
+      - name: Run Cloudflare auth spike
+        if: matrix.deploy_target == 'cloudflare'
+        run: pnpm test:cf-auth-spike
+
+      - name: Run Cloudflare OAuth spike
+        if: matrix.deploy_target == 'cloudflare'
+        run: pnpm test:cf-oauth-spike
+
+      - name: Run Cloudflare full-app smoke gate
+        if: matrix.deploy_target == 'cloudflare'
         run: pnpm test:cf-app-smoke

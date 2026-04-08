@@ -3,13 +3,13 @@ import test from 'node:test';
 
 import {
   getCloudflareAppSmokeChecks,
-  getCloudflareAppSmokeFallbackChecks,
+  getCloudflareAppSmokeProtectedChecks,
   validateCloudflareAppSmokeResponse,
 } from '../../scripts/run-cf-app-smoke.mjs';
 
-test('getCloudflareAppSmokeChecks 包含 public shell 与 fallback redirect', () => {
+test('getCloudflareAppSmokeChecks 包含 full-app public 与 protected contract', () => {
   const checks = getCloudflareAppSmokeChecks({
-    fallbackOrigin: 'https://full-app.example.test',
+    baseUrlOrigin: 'http://127.0.0.1:8787',
   }).map((check) => check.name);
 
   assert.deepEqual(checks, [
@@ -17,11 +17,11 @@ test('getCloudflareAppSmokeChecks 包含 public shell 与 fallback redirect', ()
     'sign-in-page',
     'sign-up-page',
     'public-config-api',
+    'docs-page',
     'sitemap',
     'robots',
-    'docs-fallback',
-    'ai-chatbot-fallback',
-    'admin-settings-auth-fallback',
+    'settings-profile-protected',
+    'admin-settings-auth-protected',
   ]);
 });
 
@@ -50,15 +50,18 @@ test('validateCloudflareAppSmokeResponse 校验 public config api 结构', async
   );
 });
 
-test('validateCloudflareAppSmokeResponse 校验 fallback redirect 的状态码和 Location', async () => {
-  const check = getCloudflareAppSmokeFallbackChecks({
-    fallbackOrigin: 'https://full-app.example.test',
-  }).find((item) => item.name === 'docs-fallback');
+test('validateCloudflareAppSmokeResponse 校验 protected route 的同源重定向', async () => {
+  const check = getCloudflareAppSmokeProtectedChecks({
+    baseUrlOrigin: 'http://127.0.0.1:8787',
+  }).find((item) => item.name === 'settings-profile-protected');
   assert(check);
 
   const response = new Response(null, {
     status: 307,
-    headers: { location: 'https://full-app.example.test/docs?from=cf' },
+    headers: {
+      location:
+        'http://127.0.0.1:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile',
+    },
   });
 
   await validateCloudflareAppSmokeResponse(check, response, '');
@@ -88,7 +91,6 @@ test('main 在无 DATABASE_URL 时仍可完成只读 smoke', async () => {
     CF_APP_SMOKE_URL: process.env.CF_APP_SMOKE_URL,
     CF_PREVIEW_URL: process.env.CF_PREVIEW_URL,
     CF_PREVIEW_APP_URL: process.env.CF_PREVIEW_APP_URL,
-    CF_FALLBACK_ORIGIN: process.env.CF_FALLBACK_ORIGIN,
     CF_APP_SMOKE_REQUEST_TIMEOUT_MS: process.env.CF_APP_SMOKE_REQUEST_TIMEOUT_MS,
     CF_PREVIEW_REQUEST_TIMEOUT_MS: process.env.CF_PREVIEW_REQUEST_TIMEOUT_MS,
     CF_PREVIEW_READY_TIMEOUT_MS: process.env.CF_PREVIEW_READY_TIMEOUT_MS,
@@ -105,7 +107,6 @@ test('main 在无 DATABASE_URL 时仍可完成只读 smoke', async () => {
   process.env.CF_APP_SMOKE_URL = '';
   process.env.CF_PREVIEW_URL = '';
   process.env.CF_PREVIEW_APP_URL = 'http://127.0.0.1:8787';
-  process.env.CF_FALLBACK_ORIGIN = 'https://full-app.example.test';
   process.env.CF_APP_SMOKE_REQUEST_TIMEOUT_MS = '1';
   process.env.CF_PREVIEW_REQUEST_TIMEOUT_MS = '1';
   process.env.CF_PREVIEW_READY_TIMEOUT_MS = '10';
@@ -153,6 +154,11 @@ test('main 在无 DATABASE_URL 时仍可完成只读 smoke', async () => {
             headers: { 'content-type': 'application/json; charset=utf-8' },
           }
         );
+      case '/docs':
+        return new Response('<html><body>docs</body></html>', {
+          status: 200,
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+        });
       case '/sitemap.xml':
         return new Response('<urlset></urlset>', {
           status: 200,
@@ -163,13 +169,14 @@ test('main 在无 DATABASE_URL 时仍可完成只读 smoke', async () => {
           status: 200,
           headers: { 'content-type': 'text/plain; charset=utf-8' },
         });
-      case '/docs':
-      case '/ai-chatbot':
+      case '/settings/profile':
       case '/admin/settings/auth':
         return new Response(null, {
           status: 307,
           headers: {
-            location: `https://full-app.example.test${requestUrl.pathname}`,
+            location: `http://127.0.0.1:8787/sign-in?callbackUrl=${encodeURIComponent(
+              requestUrl.pathname
+            )}`,
           },
         });
       default:

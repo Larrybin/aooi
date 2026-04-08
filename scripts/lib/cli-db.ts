@@ -1,13 +1,48 @@
 import '@/config/load-dotenv';
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-export function createCliDb() {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required');
+function readWranglerLocalConnectionString(content: string) {
+  const match = content.match(
+    /\[\[hyperdrive\]\][\s\S]*?^\s*localConnectionString\s*=\s*"([^"\n]+)"/m
+  );
+  return match?.[1]?.trim() || null;
+}
+
+function resolveCliDatabaseUrl() {
+  const explicitDatabaseUrl =
+    process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
+    process.env.DATABASE_URL?.trim();
+  if (explicitDatabaseUrl) {
+    return explicitDatabaseUrl;
   }
+
+  const wranglerConfigPath =
+    process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
+    path.resolve(process.cwd(), 'wrangler.cloudflare.toml');
+
+  try {
+    const wranglerContent = readFileSync(wranglerConfigPath, 'utf8');
+    const localConnectionString =
+      readWranglerLocalConnectionString(wranglerContent);
+    if (localConnectionString) {
+      return localConnectionString;
+    }
+  } catch {
+    // fall through to the canonical error below
+  }
+
+  throw new Error(
+    'DATABASE_URL is required; if you rely on Cloudflare preview local DB wiring, ensure wrangler.cloudflare.toml contains [[hyperdrive]].localConnectionString'
+  );
+}
+
+export function createCliDb() {
+  const databaseUrl = resolveCliDatabaseUrl();
 
   const client = postgres(databaseUrl, {
     prepare: false,

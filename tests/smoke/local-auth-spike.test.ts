@@ -36,6 +36,7 @@ test('buildNodeAuthSpikeEnv 为本地 Node 面注入 auth/database 关键环境�
   );
 
   assert.equal(env.DATABASE_URL, 'postgresql://demo:demo@127.0.0.1:5432/demo');
+  assert.equal(env.DEPLOY_TARGET, 'vercel');
   assert.equal(env.NEXT_PUBLIC_APP_URL, 'http://127.0.0.1:3000');
   assert.equal(env.BETTER_AUTH_URL, 'http://127.0.0.1:3000');
   assert.equal(env.AUTH_SECRET, 'secret_123');

@@ -38,7 +38,7 @@ export function readWranglerLocalConnectionString(content) {
   );
   if (!match?.[1]?.trim()) {
     throw new Error(
-      'wrangler.toml 缺少 [[hyperdrive]].localConnectionString，无法为本地 Node auth spike 提供 DATABASE_URL'
+      'wrangler.cloudflare.toml 缺少 [[hyperdrive]].localConnectionString，无法为本地 Node auth spike 提供 DATABASE_URL'
     );
   }
   return match[1].trim();
@@ -69,6 +69,7 @@ export function buildNodeAuthSpikeEnv(baseEnv, options) {
 
   return {
     ...baseEnv,
+    DEPLOY_TARGET: 'vercel',
     VERCEL: '1',
     DATABASE_URL: options.databaseUrl,
     DB_SINGLETON_ENABLED: 'false',
@@ -276,7 +277,7 @@ async function readLockedNodeBaseUrl() {
 async function main() {
   const wranglerConfigPath =
     process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(rootDir, 'wrangler.toml');
+    path.resolve(rootDir, 'wrangler.cloudflare.toml');
   const wranglerContent = await readFile(
     wranglerConfigPath,
     'utf8'

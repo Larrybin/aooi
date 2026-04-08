@@ -1,5 +1,5 @@
 name = "roller-rabbit"
-main = "cloudflare/public-shell-worker.mjs"
+main = ".open-next/worker.js"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 workers_dev = false
@@ -26,8 +26,8 @@ localConnectionString = "postgresql://postgres.kylrqpbouoyxnkoubbum:5jU*&RFTv&HQ
 enabled = true
 
 [vars]
+DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://mamamiya.pdfreprinting.net/"
-CF_FALLBACK_ORIGIN = "https://assist.pdfreprinting.net/"
 NEXT_PUBLIC_APP_NAME = "Roller Rabbit"
 NEXT_PUBLIC_THEME = "default"
 DATABASE_PROVIDER = "postgresql"

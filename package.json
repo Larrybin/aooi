@@ -44,11 +44,11 @@
     "postinstall": "fumadocs-mdx",
     "cf:check": "node scripts/check-cloudflare-config.mjs",
     "cf:check:deploy": "node scripts/check-cloudflare-config.mjs --deploy",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "pnpm cf:check && pnpm cf:build && opennextjs-cloudflare preview",
-    "cf:deploy": "pnpm cf:check && pnpm cf:check:deploy && pnpm cf:build && opennextjs-cloudflare deploy",
-    "cf:upload": "pnpm cf:check && pnpm cf:check:deploy && pnpm cf:build && opennextjs-cloudflare upload",
-    "cf:typegen": "wrangler types --env-interface CloudflareEnv src/shared/types/cloudflare.d.ts"
+    "cf:build": "opennextjs-cloudflare build --config wrangler.cloudflare.toml",
+    "cf:preview": "pnpm cf:check && pnpm cf:build && opennextjs-cloudflare preview --config wrangler.cloudflare.toml",
+    "cf:deploy": "pnpm cf:check && pnpm cf:check:deploy && pnpm cf:build && opennextjs-cloudflare deploy --config wrangler.cloudflare.toml",
+    "cf:upload": "pnpm cf:check && pnpm cf:check:deploy && pnpm cf:build && opennextjs-cloudflare upload --config wrangler.cloudflare.toml",
+    "cf:typegen": "wrangler types --config wrangler.cloudflare.toml --env-interface CloudflareEnv src/shared/types/cloudflare.d.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.89",

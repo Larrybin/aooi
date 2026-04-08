@@ -1,6 +1,6 @@
 // data: landing translations (header/footer) + theme layout
 // cache: default (no explicit fetch)
-// reason: shared public shell; keep data loading in leaf pages
+// reason: shared landing shell; keep data loading in leaf pages
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 

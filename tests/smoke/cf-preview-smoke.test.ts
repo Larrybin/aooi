@@ -115,6 +115,34 @@ test('ensureCiDevVars 会补齐已存在但缺失的 auth secret，并在 cleanu
   assert.equal(restoredContent, originalContent);
 });
 
+test('ensureCiDevVars 能临时写入额外 Worker 变量并在 cleanup 后恢复', async () => {
+  const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'cf-preview-smoke-'));
+  const devVarsPath = path.join(tmpDir, '.dev.vars');
+  const originalContent = 'FOO=bar\nAUTH_SECRET=existing-secret\n';
+
+  await writeFile(devVarsPath, originalContent, 'utf8');
+
+  const prepared = await ensureCiDevVars({
+    authSecret: 'preview-secret',
+    devVarsPath,
+    extraVars: {
+      AUTH_SPIKE_OAUTH_MOCK: 'true',
+    },
+  });
+  assert.equal(prepared.created, false);
+  assert.equal(prepared.updated, true);
+
+  const nextContent = await readFile(devVarsPath, 'utf8');
+  assert.equal(
+    nextContent,
+    'FOO=bar\nAUTH_SECRET=existing-secret\nBETTER_AUTH_SECRET=existing-secret\nAUTH_SPIKE_OAUTH_MOCK=true\n'
+  );
+
+  await prepared.cleanup();
+  const restoredContent = await readFile(devVarsPath, 'utf8');
+  assert.equal(restoredContent, originalContent);
+});
+
 test('validateSmokeResponse 校验 JSON 接口响应', () => {
   const [configApiCheck] = getCloudflarePreviewSmokeChecks();
   const response = new Response(
