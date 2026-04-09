@@ -31,6 +31,24 @@
 - `pnpm test:cf-oauth-spike` validates Cloudflare full-app OAuth, same-origin callback, denied/tamper failure paths, and sign-out.
 - `pnpm test:cf-app-smoke` validates Cloudflare full-app public routes plus same-origin protected-route redirects.
 
+## Raw Conclusion Governance
+
+- Automation exit codes only express `harnessStatus`.
+- Governance decisions must read `rawConclusion`.
+- A non-zero exit code does not tell you whether the next action is adapter work, replacement work, or simply rerunning after setup repair.
+
+| `rawConclusion` | Meaning | Governance action | Allowed / forbidden |
+| --- | --- | --- | --- |
+| `PASS` | The path is trustworthy within the tested scope. | Treat the path as currently governed and first-class for the tested capability. | Allowed: update product/docs language to reflect verified evidence. |
+| `需要 adapter` | The path is viable, but the current contract still needs bounded normalization on the same implementation path. | Continue only with scoped contract-fix work on the current provider/runtime path. | Forbidden: do not start provider replacement; do not describe the path as fully verified. |
+| `需要替代路线` | The current implementation path should not remain the governed default for that capability. | Stop adapter work and move to replacement-path or capability-reduction decision making. | Forbidden: do not keep presenting the current path as governed/validated by default. |
+| `BLOCKED` | The run does not provide decision-quality evidence because setup or test trust is broken. | Fix environment, prerequisites, or harness trust first, then rerun. | Forbidden: do not make product or architecture conclusions from this run. |
+
+Current semantic sources:
+
+- `tests/smoke/auth-spike.shared.ts`
+- `tests/smoke/oauth-spike.shared.ts`
+
 ## Fallback Inventory
 
 The removed `originFallbackRoutes` inventory is preserved here for migration tracking:

@@ -17,8 +17,8 @@ Use it to answer three questions:
 | Billing | `mainline` | `partial` | `payment` | [Billing guide](modules/billing.md) |
 | Admin Settings | `mainline` | `verified` | surface-only | [Admin Settings](#admin-settings) |
 | Deploy Contract | `mainline` | `partial` | surface-only | [Deploy Contract](#deploy-contract) |
-| Docs | `optional` | `partial` | — | [Docs + Blog guide](modules/docs-blog.md) |
-| Blog | `optional` | `partial` | — | [Docs + Blog guide](modules/docs-blog.md) |
+| Docs | `optional` | `partial` | `content` | [Docs + Blog guide](modules/docs-blog.md) |
+| Blog | `optional` | `partial` | `content` | [Docs + Blog guide](modules/docs-blog.md) |
 | AI | `optional` | `partial` | `ai` | [AI guide](modules/ai.md) |
 | Storage | `optional` | `partial` | `storage` | [Storage guide](modules/storage.md) |
 | Analytics | `optional` | `unverified` | `analytics` | [Growth support guide](modules/growth-support.md) |

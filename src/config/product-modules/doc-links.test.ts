@@ -61,3 +61,16 @@ test('Settings guide: points back to module contract source of truth', async () 
   assert.match(content, /docs\/guides\/module-contract\.md/);
   assert.match(content, /single source of truth/i);
 });
+
+test('Deploy governance: documents rawConclusion decision table', async () => {
+  const content = await readFile(
+    path.resolve(rootDir, 'docs/architecture/dual-deploy-governance.md'),
+    'utf8'
+  );
+
+  assert.match(content, /rawConclusion/);
+  assert.match(content, /`PASS`/);
+  assert.match(content, /`需要 adapter`/);
+  assert.match(content, /`需要替代路线`/);
+  assert.match(content, /`BLOCKED`/);
+});

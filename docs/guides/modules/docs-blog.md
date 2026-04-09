@@ -25,7 +25,7 @@ Docs and Blog are optional content modules:
 ## Common Failure Modes
 
 - The route exists but the public config toggle is out of sync.
-- Docs/blog content renders, but README still describes them as default mainline.
+- The `content` tab says the module is enabled, but public config or deploy state still hides the route.
 - A deploy contract change breaks docs visibility while the module remains marked enabled.
 
 ## Product Impact If Disabled
