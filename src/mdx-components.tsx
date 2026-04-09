@@ -3,6 +3,10 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 
 import { envConfigs } from '@/config';
+import {
+  getDefaultSupportEmailFromOrigin,
+  getDomainFromOrigin,
+} from '@/shared/lib/support-email';
 
 // Custom link component with nofollow for external links
 const CustomLink = ({
@@ -73,22 +77,6 @@ export function withNoFollow(
   return LinkWithNoFollow;
 }
 
-function tryGetDomainFromOrigin(origin: string): string {
-  try {
-    return new URL(origin).host;
-  } catch {
-    return '';
-  }
-}
-
-function defaultSupportEmail(appUrl: string): string {
-  const domain = tryGetDomainFromOrigin(appUrl);
-  if (!domain || domain.includes(':')) {
-    return 'support@example.com';
-  }
-  return `support@${domain}`;
-}
-
 function normalizePath(path: string): string {
   if (!path) return '/';
   return path.startsWith('/') ? path : `/${path}`;
@@ -97,8 +85,8 @@ function normalizePath(path: string): string {
 function buildDefaultBrandMdxComponents(): MDXComponents {
   const appName = envConfigs.app_name || '';
   const appUrl = envConfigs.app_url || '';
-  const domain = tryGetDomainFromOrigin(appUrl);
-  const supportEmail = defaultSupportEmail(appUrl);
+  const domain = getDomainFromOrigin(appUrl);
+  const supportEmail = getDefaultSupportEmailFromOrigin(appUrl);
 
   const AppName = () => appName;
   const AppUrl = () => appUrl;

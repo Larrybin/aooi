@@ -1,6 +1,10 @@
 import 'server-only';
 
 import { envConfigs } from '@/config';
+import {
+  getDefaultSupportEmailFromDomain,
+  getDomainFromOrigin,
+} from '@/shared/lib/support-email';
 
 export type BrandPlaceholderValues = {
   appName: string;
@@ -16,27 +20,6 @@ function safeTrim(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function tryGetDomainFromOrigin(origin: string): string {
-  try {
-    return new URL(origin).host;
-  } catch {
-    return '';
-  }
-}
-
-function defaultSupportEmail(domain: string): string {
-  if (!domain) {
-    return 'support@example.com';
-  }
-
-  // Avoid emitting invalid emails like support@localhost:3000
-  if (domain.includes(':')) {
-    return 'support@example.com';
-  }
-
-  return `support@${domain}`;
-}
-
 export function buildBrandPlaceholderValues(
   configs?: Record<string, string>
 ): BrandPlaceholderValues {
@@ -45,9 +28,10 @@ export function buildBrandPlaceholderValues(
   const appLogo = safeTrim(configs?.app_logo) || envConfigs.app_logo;
   const appFavicon = safeTrim(configs?.app_favicon) || envConfigs.app_favicon;
   const appOgImage = safeTrim(configs?.app_og_image) || envConfigs.app_og_image;
-  const domain = tryGetDomainFromOrigin(appUrl);
+  const domain = getDomainFromOrigin(appUrl);
   const supportEmail =
-    safeTrim(configs?.general_support_email) || defaultSupportEmail(domain);
+    safeTrim(configs?.general_support_email) ||
+    getDefaultSupportEmailFromDomain(domain);
 
   return {
     appName,
