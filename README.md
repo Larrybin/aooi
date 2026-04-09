@@ -2,6 +2,30 @@
 
 A production-ready AI SaaS template built with Next.js App Router, TypeScript, and modern tooling.
 
+## Product Contract
+
+Roller Rabbit now treats the repo as:
+
+- a **mainline** shell you can ship on day one
+- a set of **optional modules** you enable later
+
+The single source of truth for that split is [Module Contract](docs/guides/module-contract.md).
+
+Mainline today:
+
+- Core shell
+- Auth
+- Billing
+- Admin Settings
+- Deploy contract
+
+Optional modules today:
+
+- Docs / Blog
+- AI
+- Storage
+- Analytics / Affiliate / Customer Service / Ads
+
 ## Architecture Overview
 
 ```
@@ -90,6 +114,7 @@ Read `content/docs` to start your AI SaaS project.
 | Document                                  | Description                        |
 | ----------------------------------------- | ---------------------------------- |
 | [Auth Guide](docs/guides/auth.md)         | Authentication with Better Auth    |
+| [Module Contract](docs/guides/module-contract.md) | Product module matrix and verification status |
 | [RBAC Guide](docs/guides/rbac.md)         | Role-Based Access Control          |
 | [Settings Guide](docs/guides/settings.md) | User and admin settings surfaces   |
 | [Payment Guide](docs/guides/payment.md)   | Multi-provider payment integration |
@@ -115,8 +140,14 @@ Read `content/docs` to start your AI SaaS project.
 - Locale routing uses next-intl under `src/app/[locale]/**` + `src/request-proxy.ts`.
 - Supported locales are defined in `src/config/locale/index.ts`.
 - Message bundles live in `src/config/locale/messages/<locale>/**`; `en` is the complete base and other locales override partially (missing namespaces fall back to `en`).
-- Docs site UI/content translation scope excludes the `demo/*` and `admin/*` namespaces (we only maintain them for `en/zh/zh-TW`; other locales fall back to `en`).
-- Docs/local markdown (fumadocs pages/posts/docs) currently ship for `en/zh`; other locales fall back to `en`.
+- Server-side message loading is now route-scoped in `src/core/i18n/request.ts`: we infer the current pathname from middleware-injected request headers and only load the namespace set needed by that route.
+- Client-side message loading is no longer injected from the `[locale]` root layout. Client trees that call `useTranslations()` are wrapped by local `ScopedIntlProvider` boundaries with explicit namespace lists.
+- Docs site UI/content translation scope excludes the `demo/*` and `admin/*` namespaces (we only maintain them for `en/zh/zh-TW`).
+- Fumadocs content now uses per-surface language scopes instead of the full app locale list:
+  - `docs`: `en/zh`
+  - `pages`: `en/zh/zh-TW`
+  - `posts`: `en/zh`
+- Unsupported docs locales now return `notFound()` instead of silently rendering English content.
 - RTL locales (`ar`, `fa`, `he`, `ur`) set `<html dir="rtl">`.
 
 ## Deployment Notes
@@ -124,6 +155,8 @@ Read `content/docs` to start your AI SaaS project.
 - Docker builds now use the default `.next` output (not `.next/standalone`) and start with `next start` (see `Dockerfile`).
 - `wrangler.cloudflare.toml` and `open-next.config.ts` are the source of truth for the Cloudflare OpenNext build/deploy contract.
 - Production `next build` is explicitly pinned to Webpack through [scripts/next-build.mjs](/Users/bin/Desktop/project/aooi/scripts/next-build.mjs) to avoid the current Turbopack/OpenNext Worker runtime incompatibility (`require_turbopack_runtime(...) is not a function`) on Cloudflare.
+- `reactCompiler` is currently disabled in `next.config.mjs` because warm-build benchmarks on 2026-04-08 showed it materially hurt build time. Keep this as a single-path decision, not a long-lived dual config.
+- TypeScript build scope is intentionally split: `tsconfig.json` covers app build inputs, while `tsconfig.test.json` covers tests and test-only type errors.
 - Supported deployment modes are now single-origin only:
   - `DEPLOY_TARGET=vercel`: full-app on Vercel/Node
   - `DEPLOY_TARGET=cloudflare`: full-app on OpenNext/Cloudflare

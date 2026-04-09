@@ -47,6 +47,23 @@
     "buttons": {
       "submit": "保存"
     },
+    "module_contract": {
+      "tier_label": "模块层级",
+      "verification_label": "验证状态",
+      "guide_label": "启用说明",
+      "guide_cta": "打开文档",
+      "supporting_text": "这个标签页用于支持 {modules} 模块。",
+      "tier_values": {
+        "mainline": "主线",
+        "optional": "可选",
+        "experimental": "实验性"
+      },
+      "verification_values": {
+        "verified": "已验证",
+        "partial": "部分验证",
+        "unverified": "未验证"
+      }
+    },
     "errors": {
       "load_failed_title": "设置加载失败",
       "load_failed_desc": "部分配置无法从服务器加载，相关内容可能无法正常保存，但你仍然可以浏览和切换其他设置。",

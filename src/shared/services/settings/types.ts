@@ -1,3 +1,5 @@
+import type { SettingTabName } from './tab-names';
+
 export interface Setting {
   name: string;
   title: string;
@@ -10,7 +12,7 @@ export interface Setting {
   tip?: string;
   value?: string | string[] | boolean | number;
   group?: string;
-  tab?: string;
+  tab?: SettingTabName;
   attributes?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
@@ -19,5 +21,5 @@ export interface SettingGroup {
   name: string;
   title: string;
   description?: string;
-  tab: string;
+  tab: SettingTabName;
 }

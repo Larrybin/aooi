@@ -71,6 +71,13 @@ Admin pages are guarded in two layers:
 - Some fields are validated/normalized on submit (e.g. JSON for social links / payment methods / product mapping).
 - The admin settings schema and UI definitions live in `src/shared/services/settings/definitions/*.ts` and are grouped/tabs in `src/shared/services/settings/groups.ts` / `src/shared/services/settings/tabs.ts`.
 
+### Product Module Contract
+
+- Admin Settings is the operator-facing configuration surface for modules.
+- It is **not** the source of truth for module definitions, tiers, or verification levels.
+- The single source of truth is `src/config/product-modules/**`, and the human-readable matrix lives in `docs/guides/module-contract.md`.
+- Header badges on `/admin/settings/<tab>` are a read-only projection of that module contract.
+
 ## Related Files
 
 - `src/request-proxy.ts` - Protected-route session cookie gate (`/admin`, `/settings`, `/activity`)

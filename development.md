@@ -1,8 +1,8 @@
-# Roller Rabbit - Next.js AI SaaS Development Framework
+# Roller Rabbit - Development Guide
 
-Roller Rabbit is a comprehensive Next.js-based framework designed for rapid AI SaaS product development. Built on Next.js 16, it provides a complete development ecosystem with pre-built components, business functions, and extensive third-party integrations. The framework eliminates months of boilerplate work by offering ready-to-use systems for landing pages, user management, admin dashboards, and payment processing.
+This file is the engineering operations guide for running, validating, and deploying the repo.
 
-The framework follows a modular architecture with six major components: core systems (Landing, Admin, User Console), core modules (Database, Authentication, RBAC, i18n), extension modules (Payment, Storage, Email, AI, Analytics, Ads, Affiliate, Customer Service), theme system, configuration system, and content management. This pluggable architecture allows developers to quickly assemble features, customize branding, and deploy production-ready applications with minimal configuration. Roller Rabbit supports multiple deployment platforms including Vercel, Cloudflare Workers (via OpenNext), and VPS via Dokploy.
+For the product-level split between mainline and optional modules, use the single source of truth in `docs/guides/module-contract.md`. Do not treat this file as the place to redefine module tiers or verification labels.
 
 Current production build policy: `scripts/next-build.mjs` forces `next build --webpack`. Local dev can still use Turbopack, but Cloudflare deploys are pinned to Webpack until the Turbopack/OpenNext Worker runtime issue is resolved.
 

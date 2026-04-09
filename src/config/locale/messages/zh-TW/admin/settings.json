@@ -47,6 +47,23 @@
     "buttons": {
       "submit": "儲存"
     },
+    "module_contract": {
+      "tier_label": "模組層級",
+      "verification_label": "驗證狀態",
+      "guide_label": "啟用說明",
+      "guide_cta": "打開文件",
+      "supporting_text": "這個分頁用於支援 {modules} 模組。",
+      "tier_values": {
+        "mainline": "主線",
+        "optional": "可選",
+        "experimental": "實驗性"
+      },
+      "verification_values": {
+        "verified": "已驗證",
+        "partial": "部分驗證",
+        "unverified": "未驗證"
+      }
+    },
     "errors": {
       "load_failed_title": "設定載入失敗",
       "load_failed_desc": "部分配置無法從伺服器載入，相關內容可能無法正常儲存，但你仍然可以瀏覽並切換其他設定。",

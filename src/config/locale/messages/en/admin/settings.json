@@ -47,6 +47,23 @@
     "buttons": {
       "submit": "Save"
     },
+    "module_contract": {
+      "tier_label": "Tier",
+      "verification_label": "Verification",
+      "guide_label": "Enablement guide",
+      "guide_cta": "Open guide",
+      "supporting_text": "This tab supports the {modules} module.",
+      "tier_values": {
+        "mainline": "Mainline",
+        "optional": "Optional",
+        "experimental": "Experimental"
+      },
+      "verification_values": {
+        "verified": "Verified",
+        "partial": "Partial",
+        "unverified": "Unverified"
+      }
+    },
     "errors": {
       "load_failed_title": "Failed to load settings",
       "load_failed_desc": "Some configuration values could not be loaded from the server. Related settings might not be saved correctly, but you can still browse and switch between other tabs.",

@@ -2,11 +2,14 @@
 // cache: no-store (request-bound auth); configs cached via unstable_cache (tag=db-configs, 60s) / (tag=public-configs, 3600s)
 // reason: admin settings are user-specific; revalidateTag ensures updates propagate
 import { revalidateTag } from 'next/cache';
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
 
+import { getSettingsModuleContractViewModel } from '@/features/admin/settings/module-contract';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
+import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { parseFormData } from '@/shared/lib/action/form';
 import {
@@ -29,6 +32,7 @@ import {
   getSettings,
   getSettingTabs,
 } from '@/shared/services/settings';
+import { isSettingTabName } from '@/shared/services/settings/tab-names';
 import { normalizeAssetSettingValue } from '@/shared/services/settings/validators/general';
 import {
   parseCreemProductIdsMappingConfig,
@@ -44,6 +48,12 @@ export default async function SettingsPage({
 }) {
   const { locale, tab } = await params;
   setRequestLocale(locale);
+
+  if (!isSettingTabName(tab)) {
+    notFound();
+  }
+
+  const settingsTab = tab;
 
   // Check if user has permission to read settings
   await requireAllPermissions({
@@ -64,8 +74,9 @@ export default async function SettingsPage({
     { title: t('edit.crumbs.settings'), is_active: true },
   ];
 
-  const tabs = await getSettingTabs(tab ?? 'auth');
+  const tabs = await getSettingTabs(settingsTab);
   const hasConfigsError = Boolean(configsError);
+  const moduleContract = getSettingsModuleContractViewModel(settingsTab);
 
   const handleSubmit = async (data: FormData, _passby: unknown) => {
     'use server';
@@ -341,6 +352,66 @@ export default async function SettingsPage({
           </div>
         )}
         <MainHeader title={t('edit.title')} tabs={tabs} />
+        {moduleContract ? (
+          <div
+            className="bg-card mb-6 rounded-lg border p-4"
+            data-testid="admin-settings-module-contract"
+          >
+            <div className="flex flex-wrap items-center gap-4">
+              <div
+                className="flex items-center gap-2"
+                data-testid="admin-settings-module-contract-tier"
+              >
+                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  {t('edit.module_contract.tier_label')}
+                </span>
+                <Badge variant="secondary">
+                  {t(`edit.module_contract.tier_values.${moduleContract.tier}`)}
+                </Badge>
+              </div>
+              <div
+                className="flex items-center gap-2"
+                data-testid="admin-settings-module-contract-verification"
+              >
+                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  {t('edit.module_contract.verification_label')}
+                </span>
+                <Badge variant="outline">
+                  {t(
+                    `edit.module_contract.verification_values.${moduleContract.verification}`
+                  )}
+                </Badge>
+              </div>
+              <div
+                className="flex items-center gap-2"
+                data-testid="admin-settings-module-contract-guide"
+              >
+                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  {t('edit.module_contract.guide_label')}
+                </span>
+                <a
+                  href={moduleContract.guideHref}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-primary text-sm underline underline-offset-4"
+                  data-testid="admin-settings-module-contract-guide-link"
+                >
+                  {t('edit.module_contract.guide_cta')}
+                </a>
+              </div>
+            </div>
+            {moduleContract.isSupporting ? (
+              <p
+                className="text-muted-foreground mt-3 text-sm"
+                data-testid="admin-settings-module-contract-supporting"
+              >
+                {t('edit.module_contract.supporting_text', {
+                  modules: moduleContract.supportingModuleTitles.join(' / '),
+                })}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {forms.map((form) => (
           <div key={form.title} data-testid="admin-settings-form-shell">
             <FormCard
