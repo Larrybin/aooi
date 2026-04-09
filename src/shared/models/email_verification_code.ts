@@ -23,9 +23,32 @@ function hashCode(input: { identifier: string; code: string }): string {
     .digest('hex');
 }
 
+function decodeHex(hex: string): Uint8Array | null {
+  if (hex.length % 2 !== 0 || /[^0-9a-f]/i.test(hex)) {
+    return null;
+  }
+
+  const bytes = new Uint8Array(hex.length / 2);
+
+  for (let index = 0; index < hex.length; index += 2) {
+    const byte = Number.parseInt(hex.slice(index, index + 2), 16);
+
+    if (Number.isNaN(byte)) {
+      return null;
+    }
+
+    bytes[index / 2] = byte;
+  }
+
+  return bytes;
+}
+
 function timingSafeEqualHex(aHex: string, bHex: string): boolean {
-  const a = Buffer.from(aHex, 'hex');
-  const b = Buffer.from(bHex, 'hex');
+  const a = decodeHex(aHex);
+  const b = decodeHex(bHex);
+  if (!a || !b) {
+    return false;
+  }
   if (a.length !== b.length) {
     return false;
   }

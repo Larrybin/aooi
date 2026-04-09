@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
@@ -20,9 +21,12 @@ import type {
 
 export default async function PageDetailLayout({
   children,
+  params,
 }: {
   children: ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const t = await getTranslations('landing');
   const Layout = await getThemeLayout('landing');
 
@@ -38,11 +42,20 @@ export default async function PageDetailLayout({
   });
 
   return (
-    <AppContextProvider>
-      <Layout header={branded.header} footer={branded.footer}>
-        <LocaleDetector />
-        {children}
-      </Layout>
-    </AppContextProvider>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={[
+        'common.sign',
+        'common.locale_switcher',
+        'common.locale_detector',
+      ]}
+    >
+      <AppContextProvider>
+        <Layout header={branded.header} footer={branded.footer}>
+          <LocaleDetector />
+          {children}
+        </Layout>
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }

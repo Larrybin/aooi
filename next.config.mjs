@@ -42,7 +42,7 @@ const nextConfig = {
     // Disable mdxRs for Vercel deployment compatibility with fumadocs-mdx
     ...(process.env.VERCEL ? {} : { mdxRs: true }),
   },
-  reactCompiler: true,
+  reactCompiler: false,
 };
 
 export default withBundleAnalyzer(withNextIntl(withMDX(nextConfig)));

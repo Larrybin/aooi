@@ -17,6 +17,12 @@ import {
   validateSmokeResponse,
 } from '../../scripts/run-cf-preview-smoke.mjs';
 
+function createSilentConsole(
+  overrides: Partial<Pick<Console, 'log' | 'warn'>> = {}
+): Console {
+  return Object.assign(Object.create(console), console, overrides);
+}
+
 test('normalizePreviewBaseUrl 清理路径和尾随斜杠', () => {
   assert.equal(
     normalizePreviewBaseUrl('http://127.0.0.1:8787/sign-up?x=1'),
@@ -195,7 +201,7 @@ test('runRepeatedRequestCheck 连续验证两次请求', async () => {
     baseUrl: 'http://127.0.0.1:8787',
     check: signUpCheck,
     fetchImpl: fakeFetch,
-    logger: { log: () => undefined },
+    logger: createSilentConsole({ log: () => undefined }),
   });
 
   assert.deepEqual(calls, [
@@ -210,7 +216,7 @@ test('resolvePreviewBaseUrl 优先使用 Wrangler ready url，端口不固定为
       readyUrlPromise: Promise.resolve('http://127.0.0.1:8788'),
     },
     fallbackBaseUrl: 'http://127.0.0.1:8787',
-    logger: { warn: () => undefined },
+    logger: createSilentConsole({ warn: () => undefined }),
   });
 
   assert.equal(baseUrl, 'http://127.0.0.1:8788');
@@ -250,7 +256,7 @@ test('waitForPreviewReady 需要有效 config-api 响应连续成功后才通过
     baseUrl: 'http://127.0.0.1:8788',
     fetchImpl: fakeFetch,
     timeoutMs: 5000,
-    logger: { log: () => undefined },
+    logger: createSilentConsole({ log: () => undefined }),
   });
 
   assert.equal(attempt >= 3, true);

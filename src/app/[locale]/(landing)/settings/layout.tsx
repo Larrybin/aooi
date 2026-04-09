@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
@@ -21,9 +22,12 @@ import type {
 
 export default async function SettingsLayout({
   children,
+  params,
 }: {
   children: ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const t = await getTranslations('settings.sidebar');
   const tl = await getTranslations('landing');
   const Layout = await getThemeLayout('landing');
@@ -48,18 +52,28 @@ export default async function SettingsLayout({
   });
 
   return (
-    <AppContextProvider>
-      <Layout header={header} footer={footer}>
-        <LocaleDetector />
-        <ConsoleLayout
-          title={title}
-          nav={nav}
-          topNav={topNav}
-          className="py-16 md:py-20"
-        >
-          {children}
-        </ConsoleLayout>
-      </Layout>
-    </AppContextProvider>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={[
+        'common.sign',
+        'common.locale_switcher',
+        'common.locale_detector',
+        'common.uploader.image',
+      ]}
+    >
+      <AppContextProvider>
+        <Layout header={header} footer={footer}>
+          <LocaleDetector />
+          <ConsoleLayout
+            title={title}
+            nav={nav}
+            topNav={topNav}
+            className="py-16 md:py-20"
+          >
+            {children}
+          </ConsoleLayout>
+        </Layout>
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }

@@ -5,6 +5,7 @@ import createIntlMiddleware from 'next-intl/middleware';
 import { routing } from '@/core/i18n/config';
 import { defaultLocale, locales, type Locale } from '@/config/locale';
 import { ADMIN_PATH } from '@/shared/constants/admin-entry';
+import { upsertMiddlewareRequestHeader } from '@/shared/lib/middleware-request-headers';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -77,6 +78,8 @@ export async function proxy(request: NextRequest) {
 
   response.headers.set('x-pathname', request.nextUrl.pathname);
   response.headers.set('x-url', request.url);
+  upsertMiddlewareRequestHeader(response.headers, 'x-pathname', pathname);
+  upsertMiddlewareRequestHeader(response.headers, 'x-url', request.url);
 
   // For all other routes (including /, /sign-in, /sign-up, /sign-out), just return the intl response
   return response;

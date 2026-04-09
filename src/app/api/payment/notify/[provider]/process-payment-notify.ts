@@ -6,6 +6,8 @@ import {
 } from '@/extensions/payment';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
+import type { Order } from '@/shared/models/order';
+import type { Subscription } from '@/shared/models/subscription';
 
 type PaymentNotifyLog = {
   debug: (message: string, meta?: Record<string, unknown>) => void;
@@ -14,55 +16,43 @@ type PaymentNotifyLog = {
   error: (message: string, meta?: Record<string, unknown>) => void;
 };
 
-type PaymentOrderRecord = {
-  orderNo?: string;
-  status: string;
-} & Record<string, unknown>;
-
-type PaymentSubscriptionRecord = {
-  subscriptionNo?: string;
-  status: string;
-} & Record<string, unknown>;
-
 type FindOrderByInvoiceId = (args: {
   provider: string;
   invoiceId: string;
-}) => Promise<PaymentOrderRecord | null>;
+}) => Promise<Order | null>;
 
-type FindOrderByOrderNo = (
-  orderNo: string
-) => Promise<PaymentOrderRecord | null>;
+type FindOrderByOrderNo = (orderNo: string) => Promise<Order | null>;
 
 type FindOrderByTransactionId = (args: {
   provider: string;
   transactionId: string;
-}) => Promise<PaymentOrderRecord | null>;
+}) => Promise<Order | null>;
 
 type FindSubscriptionByProviderSubscriptionId = (args: {
   provider: string;
   subscriptionId: string;
-}) => Promise<PaymentSubscriptionRecord | null>;
+}) => Promise<Subscription | null>;
 
 type HandleCheckoutSuccess = (args: {
-  order: any;
+  order: Order;
   session: PaymentSession;
   log: PaymentNotifyLog;
 }) => Promise<void>;
 
 type HandleSubscriptionCanceled = (args: {
-  subscription: any;
+  subscription: Subscription;
   session: PaymentSession;
   log: PaymentNotifyLog;
 }) => Promise<void>;
 
 type HandleSubscriptionRenewal = (args: {
-  subscription: any;
+  subscription: Subscription;
   session: PaymentSession;
   log: PaymentNotifyLog;
 }) => Promise<void>;
 
 type HandleSubscriptionUpdated = (args: {
-  subscription: any;
+  subscription: Subscription;
   session: PaymentSession;
   log: PaymentNotifyLog;
 }) => Promise<void>;

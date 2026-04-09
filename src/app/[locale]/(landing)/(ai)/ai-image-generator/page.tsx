@@ -3,6 +3,7 @@
 // reason: public interactive page; keep server output cache-friendly
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { PageHeader } from '@/shared/blocks/common';
 import { ImageGenerator } from '@/shared/blocks/generator';
 import { getMetadata } from '@/shared/lib/seo';
@@ -25,15 +26,20 @@ export default async function AiImageGeneratorPage({
   const tt = await getTranslations('ai.image');
 
   return (
-    <>
-      <PageHeader
-        title={tt.raw('page.title')}
-        description={tt.raw('page.description')}
-        className="mt-16 -mb-32"
-      />
-      <ImageGenerator srOnlyTitle={tt.raw('generator.title')} />
-      <FAQ faq={t.raw('faq')} />
-      <CTA cta={t.raw('cta')} className="bg-muted" />
-    </>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={['ai.image.generator', 'common.uploader.image']}
+    >
+      <>
+        <PageHeader
+          title={tt.raw('page.title')}
+          description={tt.raw('page.description')}
+          className="mt-16 -mb-32"
+        />
+        <ImageGenerator srOnlyTitle={tt.raw('generator.title')} />
+        <FAQ faq={t.raw('faq')} />
+        <CTA cta={t.raw('cta')} className="bg-muted" />
+      </>
+    </ScopedIntlProvider>
   );
 }

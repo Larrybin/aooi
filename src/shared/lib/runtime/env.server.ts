@@ -21,11 +21,12 @@ export function getCloudflareBindings(): CloudflareBindings | null {
 
   try {
     const { env } = getCloudflareContext();
-    cachedBindings = env as unknown as CloudflareBindings;
-    return cachedBindings;
+    const bindings: CloudflareBindings = { ...env };
+    cachedBindings = bindings;
+    return bindings;
   } catch {
     cachedBindings = null;
-    return cachedBindings;
+    return null;
   }
 }
 

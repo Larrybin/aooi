@@ -9,6 +9,12 @@ import {
   waitForNodeReady,
 } from '../../scripts/run-local-auth-spike.mjs';
 
+function createSilentConsole(): Console {
+  return Object.assign(Object.create(console), console, {
+    log: () => undefined,
+  });
+}
+
 test('readWranglerLocalConnectionString 读取 Hyperdrive 本地连接串', () => {
   const connectionString = readWranglerLocalConnectionString(`
 name = "demo"
@@ -94,7 +100,7 @@ test('waitForNodeReady 在 sign-in 页面可达时完成', async () => {
   await waitForNodeReady({
     baseUrl: 'http://127.0.0.1:3000',
     fetchImpl: fakeFetch,
-    logger: { log: () => undefined },
+    logger: createSilentConsole(),
     timeoutMs: 500,
   });
 
@@ -108,7 +114,7 @@ test('detectReusableNodeServer 在目标地址已就绪时返回 true', async ()
       new Response('<html>ok</html>', {
         status: 200,
       })) as typeof fetch,
-    logger: { log: () => undefined },
+    logger: createSilentConsole(),
     timeoutMs: 100,
   });
 
@@ -121,7 +127,7 @@ test('detectReusableNodeServer 在目标地址未就绪时返回 false', async (
     fetchImpl: (async () => {
       throw new Error('connect ECONNREFUSED');
     }) as typeof fetch,
-    logger: { log: () => undefined },
+    logger: createSilentConsole(),
     timeoutMs: 50,
   });
 

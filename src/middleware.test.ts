@@ -5,8 +5,7 @@ import { NextRequest } from 'next/server';
 
 test('/api 请求会保留原始 request headers，并额外注入 x-request-id', async () => {
   const middlewareModule = await import('./middleware');
-  const middleware =
-    middlewareModule.middleware ?? middlewareModule.default?.middleware;
+  const middleware = middlewareModule.middleware;
 
   assert.equal(typeof middleware, 'function');
 
@@ -26,8 +25,18 @@ test('/api 请求会保留原始 request headers，并额外注入 x-request-id'
     response.headers.get('x-middleware-request-content-type'),
     'application/json'
   );
+  assert.equal(
+    response.headers.get('x-middleware-request-x-pathname'),
+    '/api/auth/sign-up/email'
+  );
+  assert.equal(
+    response.headers.get('x-middleware-request-x-url'),
+    'https://example.com/api/auth/sign-up/email'
+  );
   assert.equal(response.headers.get('x-middleware-request-x-auth-smoke'), '1');
   assert.ok(overrideHeaders.includes('content-type'));
+  assert.ok(overrideHeaders.includes('x-pathname'));
+  assert.ok(overrideHeaders.includes('x-url'));
   assert.ok(overrideHeaders.includes('x-auth-smoke'));
 
   const requestId = response.headers.get('x-request-id');

@@ -721,9 +721,9 @@ export class PayPalProvider implements PaymentProviderDriver {
       return;
     }
 
-    const credentials = Buffer.from(
+    const credentials = btoa(
       `${this.configs.clientId}:${this.configs.clientSecret}`
-    ).toString('base64');
+    );
 
     try {
       const data = await safeFetchJsonWithSchema(

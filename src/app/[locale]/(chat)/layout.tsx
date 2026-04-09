@@ -7,6 +7,7 @@ import { SignModal } from '@/features/web/auth/components/sign-modal';
 import { ChatLibrary } from '@/features/web/chat/components/library';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { WorkspaceLayout } from '@/shared/blocks/workspace';
 import { AppContextProvider } from '@/shared/contexts/app';
@@ -48,14 +49,24 @@ export default async function ChatLayout({
   const initialUser = await getSignedInUserSnapshot();
 
   return (
-    <AppContextProvider>
-      <ChatContextProvider>
-        <WorkspaceLayout sidebar={sidebar} initialUser={initialUser}>
-          <LocaleDetector />
-          {children}
-        </WorkspaceLayout>
-        <SignModal callbackUrl={sidebar.user?.signin_callback || '/'} />
-      </ChatContextProvider>
-    </AppContextProvider>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={[
+        'common.sign',
+        'common.locale_switcher',
+        'common.locale_detector',
+        'ai.chat',
+      ]}
+    >
+      <AppContextProvider>
+        <ChatContextProvider>
+          <WorkspaceLayout sidebar={sidebar} initialUser={initialUser}>
+            <LocaleDetector />
+            {children}
+          </WorkspaceLayout>
+          <SignModal callbackUrl={sidebar.user?.signin_callback || '/'} />
+        </ChatContextProvider>
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }

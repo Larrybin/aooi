@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { SignModal } from '@/features/web/auth/components/sign-modal';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
 import { AppContextProvider } from '@/shared/contexts/app';
@@ -40,12 +41,19 @@ export default async function AdminLayout({
 
   const initialUser = toAuthSessionUserSnapshot(signedInUser);
 
-  const t = await getTranslations('admin');
+  const t = await getTranslations('admin.sidebar');
 
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
   const sidebarRaw: SidebarType = replaceBrandPlaceholdersDeep(
-    t.raw('sidebar'),
+    {
+      header: t.raw('header'),
+      main_navs: t.raw('main_navs'),
+      bottom_nav: t.raw('bottom_nav'),
+      user: t.raw('user'),
+      footer: t.raw('footer'),
+      variant: t.raw('variant'),
+    },
     brand
   );
   const sidebar = applyBrandToSidebar(sidebarRaw, publicConfigs);
@@ -87,12 +95,23 @@ export default async function AdminLayout({
   };
 
   return (
-    <AppContextProvider>
-      <WorkspaceLayout sidebar={filteredSidebar} initialUser={initialUser}>
-        <LocaleDetector />
-        {children}
-      </WorkspaceLayout>
-      <SignModal callbackUrl={filteredSidebar.user?.signin_callback || '/'} />
-    </AppContextProvider>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={[
+        'common.sign',
+        'common.locale_switcher',
+        'common.locale_detector',
+        'common.uploader.image',
+        'admin.settings',
+      ]}
+    >
+      <AppContextProvider>
+        <WorkspaceLayout sidebar={filteredSidebar} initialUser={initialUser}>
+          <LocaleDetector />
+          {children}
+        </WorkspaceLayout>
+        <SignModal callbackUrl={filteredSidebar.user?.signin_callback || '/'} />
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }

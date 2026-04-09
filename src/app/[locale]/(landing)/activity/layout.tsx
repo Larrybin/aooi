@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
@@ -23,9 +24,12 @@ import type {
 
 export default async function ActivityLayout({
   children,
+  params,
 }: {
   children: ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const publicConfigs = await getPublicConfigsCached();
   if (!isAiEnabled(publicConfigs)) {
     notFound();
@@ -54,18 +58,27 @@ export default async function ActivityLayout({
   });
 
   return (
-    <AppContextProvider>
-      <Layout header={header} footer={footer}>
-        <LocaleDetector />
-        <ConsoleLayout
-          title={title}
-          nav={nav}
-          topNav={topNav}
-          className="py-16 md:py-20"
-        >
-          {children}
-        </ConsoleLayout>
-      </Layout>
-    </AppContextProvider>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={[
+        'common.sign',
+        'common.locale_switcher',
+        'common.locale_detector',
+      ]}
+    >
+      <AppContextProvider>
+        <Layout header={header} footer={footer}>
+          <LocaleDetector />
+          <ConsoleLayout
+            title={title}
+            nav={nav}
+            topNav={topNav}
+            className="py-16 md:py-20"
+          >
+            {children}
+          </ConsoleLayout>
+        </Layout>
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }

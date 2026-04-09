@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -30,6 +30,10 @@ import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import { reportSignUpAffiliate } from '../lib/report-sign-up-affiliate';
 import { SocialProviders } from './social-providers';
 
+function subscribeToHydration() {
+  return () => undefined;
+}
+
 export function SignUp({
   configs,
   callbackUrl = '/',
@@ -43,8 +47,12 @@ export function SignUp({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const clientReady = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false
+  );
 
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
   const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
@@ -58,10 +66,6 @@ export function SignUp({
     locale,
     defaultLocale,
   });
-
-  useEffect(() => {
-    setClientReady(true);
-  }, []);
 
   const handleSignUp = async () => {
     if (loading) {

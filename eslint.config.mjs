@@ -158,9 +158,12 @@ const eslintConfig = [
   {
     ignores: [
       '**/.next/**',
+      '**/.open-next/**',
+      '**/.wrangler/**',
       '**/node_modules/**',
       '**/.source/**',
       '**/.codex/**',
+      'src/shared/types/cloudflare.d.ts',
       'temp/**',
       'raphael-starterkit-v1-main/**',
     ],
@@ -243,6 +246,12 @@ const eslintConfig = [
   },
   {
     files: ['src/shared/services/**/*.{ts,tsx}'],
+    ignores: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+    ],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.json'],
@@ -263,6 +272,12 @@ const eslintConfig = [
       'src/shared/lib/fetch/**/*.{ts,tsx}',
       'src/app/api/**/route.ts',
     ],
+    ignores: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+    ],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.json'],
@@ -279,6 +294,12 @@ const eslintConfig = [
   },
   {
     files: ['src/shared/models/**/*.{ts,tsx}', 'src/core/db/**/*.{ts,tsx}'],
+    ignores: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+    ],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.json'],
@@ -295,6 +316,12 @@ const eslintConfig = [
   },
   {
     files: ['src/extensions/**/*.{ts,tsx}'],
+    ignores: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+    ],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.json'],

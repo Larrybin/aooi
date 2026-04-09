@@ -76,10 +76,13 @@ test('processPaymentNotifyEvent 对重复 renewal webhook 命中幂等', async (
         provider: 'creem',
         subscriptionId: 'sub_123',
         subscriptionInfo: {
-          currentPeriodStart: '2026-04-01T00:00:00.000Z',
-          currentPeriodEnd: '2026-05-01T00:00:00.000Z',
+          subscriptionId: 'sub_123',
+          currentPeriodStart: new Date('2026-04-01T00:00:00.000Z'),
+          currentPeriodEnd: new Date('2026-05-01T00:00:00.000Z'),
         },
         paymentInfo: {
+          paymentAmount: 100,
+          paymentCurrency: 'USD',
           subscriptionCycleType: SubscriptionCycleType.RENEWAL,
           transactionId: 'txn_123',
           invoiceId: 'inv_123',
@@ -115,8 +118,9 @@ test('processPaymentNotifyEvent 在订阅取消后不重复处理 update 事件'
         provider: 'creem',
         subscriptionId: 'sub_123',
         subscriptionInfo: {
-          currentPeriodStart: '2026-04-01T00:00:00.000Z',
-          currentPeriodEnd: '2026-05-01T00:00:00.000Z',
+          subscriptionId: 'sub_123',
+          currentPeriodStart: new Date('2026-04-01T00:00:00.000Z'),
+          currentPeriodEnd: new Date('2026-05-01T00:00:00.000Z'),
         },
       },
     },

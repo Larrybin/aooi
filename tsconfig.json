@@ -28,8 +28,8 @@
   "include": [
     "next-env.d.ts",
     "src/shared/types/global.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts",
     "next.config.mjs",
     ".next/dev/types/**/*.ts",
@@ -37,6 +37,12 @@
     ".next\\dev/types/**/*.ts"
   ],
   "exclude": [
+    "tests",
+    "scripts/**/*.test.ts",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
     "node_modules",
     ".next",
     "out",
