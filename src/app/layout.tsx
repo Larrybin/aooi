@@ -1,11 +1,9 @@
-// data: request locale (next-intl) + configs (env + db via getAllConfigs) + injected ads/analytics tags
-// cache: dynamic (request-based); db configs cached via unstable_cache (tag=db-configs, revalidate=60s)
-// reason: avoid cross-locale caching; keep config reads cheap while allowing toggles
+// data: cached configs (env + db via getAllConfigs) + injected ads/analytics tags
+// cache: static shell; db configs cached via unstable_cache (tag=db-configs, revalidate=60s)
+// reason: keep the root html shell statically analyzable; locale-specific state lives under app/[locale]
 import '@/config/style/global.css';
 
-import { getLocale, setRequestLocale } from 'next-intl/server';
-
-import { isRtlLocale } from '@/config/locale';
+import { defaultLocale, isRtlLocale } from '@/config/locale';
 import { getAllConfigsSafe } from '@/shared/models/config';
 import { getAdsManagerWithConfigs } from '@/shared/services/ads';
 import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
@@ -17,9 +15,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
-  setRequestLocale(locale);
-
   const isProduction = process.env.NODE_ENV === 'production';
   const isDebug = process.env.NEXT_PUBLIC_DEBUG === 'true';
 
@@ -73,8 +68,8 @@ export default async function RootLayout({
 
   return (
     <html
-      lang={locale}
-      dir={isRtlLocale(locale) ? 'rtl' : 'ltr'}
+      lang={defaultLocale}
+      dir={isRtlLocale(defaultLocale) ? 'rtl' : 'ltr'}
       suppressHydrationWarning
     >
       <head>

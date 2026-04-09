@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { SignUser } from '@/features/web/auth/components/sign-user';
 import { ChevronDown, Menu } from 'lucide-react';
@@ -24,6 +25,14 @@ function getNavItemHref(item: NavItem, locale: string) {
 
 function hasNavChildren(item: NavItem) {
   return (item.children?.length ?? 0) > 0;
+}
+
+function SignUserSuspense({ userNav }: { userNav?: HeaderType['user_nav'] }) {
+  return (
+    <Suspense fallback={null}>
+      <SignUser userNav={userNav} />
+    </Suspense>
+  );
 }
 
 function MarketingNavItem({ item, locale }: { item: NavItem; locale: string }) {
@@ -200,7 +209,9 @@ export function MarketingHeader({
             </Link>
           ))}
 
-          {header.show_sign ? <SignUser userNav={header.user_nav} /> : null}
+          {header.show_sign ? (
+            <SignUserSuspense userNav={header.user_nav} />
+          ) : null}
         </div>
       </div>
     </header>

@@ -1,4 +1,3 @@
-import type { Subscription } from '@/shared/models/subscription';
 import type {
   FAQ as FAQType,
   Testimonials as TestimonialsType,
@@ -9,23 +8,17 @@ import { FAQ, Pricing, Testimonials } from '@/themes/default/blocks';
 export default async function PricingPage({
   locale: _locale,
   pricing,
-  currentSubscription,
   faq,
   testimonials,
 }: {
   locale?: string;
   pricing: PricingType;
-  currentSubscription?: Subscription;
   faq?: FAQType;
   testimonials?: TestimonialsType;
 }) {
   return (
     <div className="overflow-hidden">
-      <Pricing
-        pricing={pricing}
-        currentSubscription={currentSubscription}
-        className="pb-14 md:pb-16"
-      />
+      <Pricing pricing={pricing} className="pb-14 md:pb-16" />
       {faq && (
         <div className="border-border/60 bg-muted/35 border-y">
           <FAQ faq={faq} className="py-14 md:py-18" />

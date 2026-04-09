@@ -1,10 +1,15 @@
 // data: blog post (content + db) + i18n (next-intl) + notFound() for missing slugs
-// cache: default (no explicit cache; slug-based dynamic route)
+// cache: static (generateStaticParams) + default RSC
 // reason: public content page; keep SEO metadata aligned with content source
 import { notFound } from 'next/navigation';
-import { getBlogPost } from '@/features/docs/server/content';
+import {
+  getBlogPost,
+  getPublicBlogPostStaticSlugs,
+} from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { locales } from '@/config/locale';
+import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
 import { getThemePage } from '@/core/theme';
 import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
@@ -56,6 +61,10 @@ export async function generateMetadata({
       ...(languageAlternates ? { languages: languageAlternates } : {}),
     },
   };
+}
+
+export async function generateStaticParams() {
+  return getLocaleSlugStaticParams(locales, await getPublicBlogPostStaticSlugs());
 }
 
 export default async function BlogDetailPage({

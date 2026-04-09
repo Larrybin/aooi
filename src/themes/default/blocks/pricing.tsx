@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -29,7 +29,6 @@ import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
 import { getCookie } from '@/shared/lib/cookie';
 import { RequestIdError } from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
-import type { Subscription } from '@/shared/models/subscription';
 import type {
   PricingCurrency,
   PricingItem,
@@ -66,21 +65,20 @@ function getInitialCurrency(
 export function Pricing({
   pricing,
   className,
-  currentSubscription,
 }: {
   pricing: PricingType;
   className?: string;
-  currentSubscription?: Subscription;
 }) {
   const locale = useLocale();
   const t = useTranslations('pricing.page');
   const { user, setIsShowSignModal, setIsShowPaymentModal, configs } =
     useAppContext();
+  const currentSubscriptionProductId = user?.currentSubscriptionProductId;
 
   const [group, setGroup] = useState(() => {
     // find current pricing item
     const currentItem = pricing.items?.find(
-      (i) => i.product_id === currentSubscription?.productId
+      (i) => i.product_id === currentSubscriptionProductId
     );
 
     // First look for a group with is_featured set to true
@@ -90,6 +88,20 @@ export function Pricing({
       currentItem?.group || featuredGroup?.name || pricing.groups?.[0]?.name
     );
   });
+
+  useEffect(() => {
+    if (!currentSubscriptionProductId) {
+      return;
+    }
+
+    const currentItem = pricing.items?.find(
+      (item) => item.product_id === currentSubscriptionProductId
+    );
+
+    if (currentItem?.group) {
+      setGroup(currentItem.group);
+    }
+  }, [currentSubscriptionProductId, pricing.items]);
 
   // current pricing item
   const [pricingItem, setPricingItem] = useState<PricingItem | null>(null);
@@ -325,8 +337,8 @@ export function Pricing({
 
             let isCurrentPlan = false;
             if (
-              currentSubscription &&
-              currentSubscription.productId === item.product_id
+              currentSubscriptionProductId &&
+              currentSubscriptionProductId === item.product_id
             ) {
               isCurrentPlan = true;
             }

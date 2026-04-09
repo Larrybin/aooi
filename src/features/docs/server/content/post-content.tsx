@@ -4,7 +4,7 @@ import { createElement, type ElementType, type ReactNode } from 'react';
 import { getMDXComponents } from '@/mdx-components';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 
-import { i18n, pagesSource, postsSource } from '@/core/docs/source';
+import { pagesI18n, pagesSource, postsI18n, postsSource } from '@/core/docs/source';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
@@ -17,10 +17,8 @@ import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import { toSortTimestamp, type BlogPostEntry } from './blog-feed';
 
-const supportedContentLocales = new Set(i18n.languages);
-
-function resolveContentLocale(locale: string) {
-  return supportedContentLocales.has(locale) ? locale : i18n.defaultLanguage;
+function resolveContentLocale(locale: string, languages: string[]) {
+  return languages.includes(locale) ? locale : 'en';
 }
 
 /**
@@ -45,11 +43,11 @@ export async function getLocalPost({
   locale: string;
   postPrefix?: string;
 }): Promise<BlogPostType | null> {
-  const sourceLocale = resolveContentLocale(locale);
+  const sourceLocale = resolveContentLocale(locale, postsI18n.languages);
   const localPost =
     (await postsSource.getPage([slug], sourceLocale)) ??
-    (sourceLocale !== i18n.defaultLanguage
-      ? await postsSource.getPage([slug], i18n.defaultLanguage)
+    (sourceLocale !== postsI18n.defaultLanguage
+      ? await postsSource.getPage([slug], postsI18n.defaultLanguage)
       : null);
   if (!localPost) {
     return null;
@@ -105,11 +103,11 @@ export async function getLocalPage({
   locale: string;
   pagePrefix?: string;
 }): Promise<BlogPostType | null> {
-  const sourceLocale = resolveContentLocale(locale);
+  const sourceLocale = resolveContentLocale(locale, pagesI18n.languages);
   const localPage =
     (await pagesSource.getPage([slug], sourceLocale)) ??
-    (sourceLocale !== i18n.defaultLanguage
-      ? await pagesSource.getPage([slug], i18n.defaultLanguage)
+    (sourceLocale !== pagesI18n.defaultLanguage
+      ? await pagesSource.getPage([slug], pagesI18n.defaultLanguage)
       : null);
   if (!localPage) {
     return null;
@@ -164,16 +162,16 @@ export async function getLocalBlogPostEntries({
   postPrefix?: string;
 }) {
   const requestedLocale = locale;
-  const sourceLocale = resolveContentLocale(locale);
+  const sourceLocale = resolveContentLocale(locale, postsI18n.languages);
   let contentLocale = sourceLocale;
   let localPosts = postsSource.getPages(sourceLocale);
 
   if (
     (!localPosts || localPosts.length === 0) &&
-    sourceLocale !== i18n.defaultLanguage
+    sourceLocale !== postsI18n.defaultLanguage
   ) {
-    contentLocale = i18n.defaultLanguage;
-    localPosts = postsSource.getPages(i18n.defaultLanguage);
+    contentLocale = postsI18n.defaultLanguage;
+    localPosts = postsSource.getPages(postsI18n.defaultLanguage);
   }
 
   if (!localPosts || localPosts.length === 0) {

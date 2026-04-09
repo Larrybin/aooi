@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { SignUser } from '@/features/web/auth/components/sign-user';
 import { Menu, X } from 'lucide-react';
 
@@ -32,6 +32,14 @@ function NavigationMenuTrigger(
   props: React.ComponentProps<typeof RawNavigationMenuTrigger>
 ) {
   return <RawNavigationMenuTrigger {...props} />;
+}
+
+function SignUserSuspense({ userNav }: { userNav?: HeaderType['user_nav'] }) {
+  return (
+    <Suspense fallback={null}>
+      <SignUser userNav={userNav} />
+    </Suspense>
+  );
 }
 
 export function Header({
@@ -298,7 +306,7 @@ export function Header({
                   {isLocaleSwitcherEnabled ? <LocaleSelector /> : null}
                   <div className="flex-1 md:hidden"></div>
                   {header.show_sign ? (
-                    <SignUser userNav={header.user_nav} />
+                    <SignUserSuspense userNav={header.user_nav} />
                   ) : null}
 
                   {header.buttons &&

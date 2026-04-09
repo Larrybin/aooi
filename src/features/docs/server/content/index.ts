@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { postsI18n } from '@/core/docs/source';
+import { logger } from '@/shared/lib/logger.server';
 import { formatPostDate } from '@/shared/lib/post-date';
 import {
   PostType as DbPostType,
@@ -23,9 +25,9 @@ import type {
 } from '@/shared/types/blocks/blog';
 
 import {
+  getDefaultBlogPageSize,
   mergeBlogPostEntries,
   paginateBlogPostEntries,
-  resolvePagination,
   toSortTimestamp,
   type BlogPostEntry,
 } from './blog-feed';
@@ -63,20 +65,14 @@ export async function getBlogPost({
 }
 
 export async function getBlogPostsAndCategories({
-  page,
-  pageSize,
   locale,
   postPrefix = '/blog/',
   categoryPrefix = '/blog/category/',
 }: {
-  page?: number | string | string[];
-  pageSize?: number | string | string[];
   locale: string;
   postPrefix?: string;
   categoryPrefix?: string;
 }) {
-  const normalizedPagination = resolvePagination({ page, pageSize });
-
   const [localEntries, remoteEntries, categories] = await Promise.all([
     getLocalBlogPostEntries({
       locale,
@@ -97,8 +93,8 @@ export async function getBlogPostsAndCategories({
   });
   const posts = paginateBlogPostEntries(
     mergedEntries,
-    normalizedPagination.page,
-    normalizedPagination.pageSize
+    1,
+    getDefaultBlogPageSize()
   );
 
   return {
@@ -116,10 +112,16 @@ export async function getBlogCategory({
   slug: string;
   categoryPrefix?: string;
 }): Promise<BlogCategoryType | null> {
-  const category = await findTaxonomy({
-    slug,
-    status: TaxonomyStatus.PUBLISHED,
-  });
+  let category: Taxonomy | undefined;
+  try {
+    category = await findTaxonomy({
+      slug,
+      status: TaxonomyStatus.PUBLISHED,
+    });
+  } catch (error) {
+    logger.warn('blog: get category failed', { slug, error });
+    return null;
+  }
 
   if (!category) {
     return null;
@@ -130,21 +132,15 @@ export async function getBlogCategory({
 
 export async function getBlogCategoryPostsAndCategories({
   slug,
-  page,
-  pageSize,
   locale,
   postPrefix = '/blog/',
   categoryPrefix = '/blog/category/',
 }: {
   slug: string;
-  page?: number | string | string[];
-  pageSize?: number | string | string[];
   locale: string;
   postPrefix?: string;
   categoryPrefix?: string;
 }) {
-  const normalizedPagination = resolvePagination({ page, pageSize });
-
   const [currentCategory, categories] = await Promise.all([
     getBlogCategory({
       slug,
@@ -166,8 +162,8 @@ export async function getBlogCategoryPostsAndCategories({
   });
   const posts = paginateBlogPostEntries(
     remoteEntries,
-    normalizedPagination.page,
-    normalizedPagination.pageSize
+    1,
+    getDefaultBlogPageSize()
   );
 
   return {
@@ -179,6 +175,38 @@ export async function getBlogCategoryPostsAndCategories({
   };
 }
 
+export async function getPublicBlogPostStaticSlugs() {
+  const [localSlugGroups, remotePosts] = await Promise.all([
+    Promise.all(
+      postsI18n.languages.map(async (locale) => {
+        const entries = await getLocalBlogPostEntries({ locale });
+        return entries
+          .map((entry) => entry.post.slug?.trim() || '')
+          .filter((slug) => slug.length > 0);
+      })
+    ),
+    getPublishedRemoteBlogPosts(),
+  ]);
+
+  return Array.from(
+    new Set([
+      ...localSlugGroups.flat(),
+      ...remotePosts
+        .map((post) => post.slug?.trim() || '')
+        .filter((slug) => slug.length > 0),
+    ])
+  ).map((slug) => ({ slug }));
+}
+
+export async function getPublicBlogCategoryStaticSlugs() {
+  const categories = await getPublishedBlogCategories();
+
+  return categories
+    .map((category) => category.slug?.trim() || '')
+    .filter((slug) => slug.length > 0)
+    .map((slug) => ({ slug }));
+}
+
 async function getPublishedRemoteBlogPostEntries({
   locale,
   postPrefix = '/blog/',
@@ -188,51 +216,72 @@ async function getPublishedRemoteBlogPostEntries({
   postPrefix?: string;
   categoryId?: string;
 }): Promise<BlogPostEntry[]> {
-  const postsCount = await getPostsCount({
-    type: DbPostType.ARTICLE,
-    status: PostStatus.PUBLISHED,
-    category: categoryId,
-  });
-
-  if (postsCount <= 0) {
-    return [];
-  }
-
-  const posts = await getPosts({
-    type: DbPostType.ARTICLE,
-    status: PostStatus.PUBLISHED,
-    category: categoryId,
-    page: 1,
-    limit: postsCount,
-  });
+  const posts = await getPublishedRemoteBlogPosts({ categoryId });
 
   return posts
     .map((post) => toRemoteBlogPostEntry(post, locale, postPrefix))
     .sort((entryA, entryB) => entryB.sortTimestamp - entryA.sortTimestamp);
 }
 
+async function getPublishedRemoteBlogPosts({
+  categoryId,
+}: {
+  categoryId?: string;
+} = {}) {
+  try {
+    const postsCount = await getPostsCount({
+      type: DbPostType.ARTICLE,
+      status: PostStatus.PUBLISHED,
+      category: categoryId,
+    });
+
+    if (postsCount <= 0) {
+      return [] satisfies RemotePost[];
+    }
+
+    return getPosts({
+      type: DbPostType.ARTICLE,
+      status: PostStatus.PUBLISHED,
+      category: categoryId,
+      page: 1,
+      limit: postsCount,
+    });
+  } catch (error) {
+    logger.warn('blog: get remote posts failed', {
+      categoryId,
+      error,
+    });
+    return [] satisfies RemotePost[];
+  }
+}
+
 async function getPublishedBlogCategories({
   categoryPrefix = '/blog/category/',
 }: {
   categoryPrefix?: string;
-}) {
-  const categoriesCount = await getTaxonomiesCount({
-    type: TaxonomyType.CATEGORY,
-    status: TaxonomyStatus.PUBLISHED,
-  });
+} = {}) {
+  try {
+    const categoriesCount = await getTaxonomiesCount({
+      type: TaxonomyType.CATEGORY,
+      status: TaxonomyStatus.PUBLISHED,
+    });
 
-  if (categoriesCount <= 0) {
+    if (categoriesCount <= 0) {
+      return [] satisfies BlogCategoryType[];
+    }
+
+    const categories = await getTaxonomies({
+      type: TaxonomyType.CATEGORY,
+      status: TaxonomyStatus.PUBLISHED,
+      page: 1,
+      limit: categoriesCount,
+    });
+
+    return categories.map((category) => toBlogCategory(category, categoryPrefix));
+  } catch (error) {
+    logger.warn('blog: get categories failed', { error });
     return [] satisfies BlogCategoryType[];
   }
-
-  const categories = await getTaxonomies({
-    type: TaxonomyType.CATEGORY,
-    status: TaxonomyStatus.PUBLISHED,
-    page: 1,
-    limit: categoriesCount,
-  });
-
-  return categories.map((category) => toBlogCategory(category, categoryPrefix));
 }
 
 function toRemoteBlogPostEntry(

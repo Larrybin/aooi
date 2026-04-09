@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { AppContextProvider } from '@/shared/contexts/app';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
@@ -24,20 +25,22 @@ export default async function LandingMarketingLayout({
   const publicConfigs = await getPublicConfigsCached();
 
   return (
-    <AppContextProvider initialConfigs={publicConfigs}>
-      <div className="min-h-screen w-full">
-        <MarketingHeader
-          header={header}
-          locale={locale}
-          publicConfigs={publicConfigs}
-        />
-        <main role="main">{children}</main>
-        <MarketingFooter
-          footer={footer}
-          locale={locale}
-          publicConfigs={publicConfigs}
-        />
-      </div>
-    </AppContextProvider>
+    <ScopedIntlProvider locale={locale} namespaces={['common.sign']}>
+      <AppContextProvider initialConfigs={publicConfigs}>
+        <div className="min-h-screen w-full">
+          <MarketingHeader
+            header={header}
+            locale={locale}
+            publicConfigs={publicConfigs}
+          />
+          <main role="main">{children}</main>
+          <MarketingFooter
+            footer={footer}
+            locale={locale}
+            publicConfigs={publicConfigs}
+          />
+        </div>
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }

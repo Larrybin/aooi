@@ -5,11 +5,19 @@ import type { I18nConfig } from 'fumadocs-core/i18n';
 import { loader, type Source, type SourceConfig } from 'fumadocs-core/source';
 import { icons } from 'lucide-react';
 
-import { locales } from '@/config/locale';
-
-export const i18n: I18nConfig = {
+export const docsI18n: I18nConfig = {
   defaultLanguage: 'en',
-  languages: [...locales],
+  languages: ['en', 'zh'],
+};
+
+export const pagesI18n: I18nConfig = {
+  defaultLanguage: 'en',
+  languages: ['en', 'zh', 'zh-TW'],
+};
+
+export const postsI18n: I18nConfig = {
+  defaultLanguage: 'en',
+  languages: ['en', 'zh'],
 };
 
 const iconHelper = (icon: string | undefined) => {
@@ -44,7 +52,7 @@ export const toLoaderSource = <Config extends SourceConfig>(
 export const docsSource = loader({
   baseUrl: '/docs',
   source: toLoaderSource(docs.toFumadocsSource()),
-  i18n,
+  i18n: docsI18n,
   icon: iconHelper,
 });
 
@@ -52,7 +60,7 @@ export const docsSource = loader({
 export const pagesSource = loader({
   baseUrl: '/',
   source: toLoaderSource(pages.toFumadocsSource()),
-  i18n,
+  i18n: pagesI18n,
   icon: iconHelper,
 });
 
@@ -60,9 +68,6 @@ export const pagesSource = loader({
 export const postsSource = loader({
   baseUrl: '/blog',
   source: toLoaderSource(posts.toFumadocsSource()),
-  i18n,
+  i18n: postsI18n,
   icon: iconHelper,
 });
-
-// Keep backward compatibility
-export const source = docsSource;

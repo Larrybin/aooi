@@ -5,48 +5,10 @@ export type BlogPostEntry = {
   sortTimestamp: number;
 };
 
-type PaginationValue = number | string | string[] | undefined;
+const DEFAULT_BLOG_PAGE_SIZE = 30;
 
-export function normalizePositiveInteger(
-  value: PaginationValue,
-  fallback: number
-): number {
-  const normalizedValue = Array.isArray(value) ? value[0] : value;
-
-  if (typeof normalizedValue === 'number') {
-    return Number.isInteger(normalizedValue) && normalizedValue > 0
-      ? normalizedValue
-      : fallback;
-  }
-
-  if (typeof normalizedValue !== 'string') {
-    return fallback;
-  }
-
-  const trimmedValue = normalizedValue.trim();
-  if (!/^\d+$/.test(trimmedValue)) {
-    return fallback;
-  }
-
-  const parsedValue = Number.parseInt(trimmedValue, 10);
-  return parsedValue > 0 ? parsedValue : fallback;
-}
-
-export function resolvePagination({
-  page,
-  pageSize,
-  defaultPage = 1,
-  defaultPageSize = 30,
-}: {
-  page?: PaginationValue;
-  pageSize?: PaginationValue;
-  defaultPage?: number;
-  defaultPageSize?: number;
-}) {
-  return {
-    page: normalizePositiveInteger(page, defaultPage),
-    pageSize: normalizePositiveInteger(pageSize, defaultPageSize),
-  };
+export function getDefaultBlogPageSize() {
+  return DEFAULT_BLOG_PAGE_SIZE;
 }
 
 export function toSortTimestamp(value?: Date | string | null): number {

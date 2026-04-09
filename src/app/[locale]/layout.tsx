@@ -3,7 +3,7 @@
 // reason: keep the locale shell cache-friendly; avoid request headers/cookies here
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { routing } from '@/core/i18n/config';
 import { HtmlLangProvider } from '@/core/i18n/html-lang-provider';
@@ -25,10 +25,9 @@ export default async function LocaleLayout({
   }
 
   setRequestLocale(locale);
-  const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider locale={locale}>
       <HtmlLangProvider>
         {children}
         <Toaster position="top-center" richColors />

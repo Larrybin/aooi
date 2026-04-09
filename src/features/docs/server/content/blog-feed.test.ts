@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  getDefaultBlogPageSize,
   mergeBlogPostEntries,
-  normalizePositiveInteger,
   paginateBlogPostEntries,
-  resolvePagination,
   toSortTimestamp,
   type BlogPostEntry,
 } from './blog-feed';
@@ -26,19 +25,8 @@ function createEntry(
   };
 }
 
-test('normalizePositiveInteger: 仅接受正整数，其它值回退默认值', () => {
-  assert.equal(normalizePositiveInteger(undefined, 30), 30);
-  assert.equal(normalizePositiveInteger('2', 30), 2);
-  assert.equal(normalizePositiveInteger(['3'], 30), 3);
-  assert.equal(normalizePositiveInteger('0', 30), 30);
-  assert.equal(normalizePositiveInteger('-1', 30), 30);
-  assert.equal(normalizePositiveInteger('2.5', 30), 30);
-  assert.equal(normalizePositiveInteger('abc', 30), 30);
-
-  assert.deepEqual(resolvePagination({ page: '2', pageSize: '5' }), {
-    page: 2,
-    pageSize: 5,
-  });
+test('getDefaultBlogPageSize: 返回公开 blog 首屏固定页长', () => {
+  assert.equal(getDefaultBlogPageSize(), 30);
 });
 
 test('mergeBlogPostEntries: 远端同 slug 覆盖本地，并在统一排序后分页', () => {

@@ -1,9 +1,11 @@
-// data: blog translations + posts/categories (content + db) + pagination (query)
-// cache: dynamic (request-based searchParams); no explicit cache for db reads
-// reason: public listing varies by page; avoid serving stale mixed pagination data
+// data: blog translations + posts/categories (content + db)
+// cache: static (generateStaticParams) + default RSC
+// reason: public blog listing should be statically prerenderable
 import { getBlogPostsAndCategories } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { locales } from '@/config/locale';
+import { getLocaleStaticParams } from '@/core/i18n/static-params';
 import { getThemePage } from '@/core/theme';
 import {
   buildBrandPlaceholderValues,
@@ -23,15 +25,14 @@ export const generateMetadata = getMetadata({
   canonicalUrl: '/blog',
 });
 
+export function generateStaticParams() {
+  return getLocaleStaticParams(locales);
+}
+
 export default async function BlogPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{
-    page?: string | string[];
-    pageSize?: string | string[];
-  }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -51,13 +52,9 @@ export default async function BlogPage({
   };
 
   try {
-    const { page, pageSize } = await searchParams;
-
     const { posts: allPosts, categories: allCategories } =
       await getBlogPostsAndCategories({
         locale,
-        page,
-        pageSize,
       });
 
     posts = allPosts;

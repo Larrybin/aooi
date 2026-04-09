@@ -12,7 +12,11 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/page';
 
-import { i18n, source } from '@/core/docs/source';
+import { docsSource } from '@/core/docs/source';
+import {
+  normalizeDocsSlug,
+  resolveDocsLocale,
+} from '@/core/docs/route-params';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
@@ -20,21 +24,12 @@ import {
 } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
-const supportedDocsLocales = new Set(i18n.languages);
-
-function resolveDocsLocale(locale?: string) {
-  const requestedLocale = locale || i18n.defaultLanguage;
-  return supportedDocsLocales.has(requestedLocale)
-    ? requestedLocale
-    : i18n.defaultLanguage;
-}
-
 export default async function DocsContentPage(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;
 }) {
   const params = await props.params;
   const docsLocale = resolveDocsLocale(params.locale);
-  const page = source.getPage(params.slug ?? [], docsLocale);
+  const page = docsSource.getPage(normalizeDocsSlug(params.slug), docsLocale);
 
   if (!page) notFound();
 
@@ -44,7 +39,7 @@ export default async function DocsContentPage(props: {
   const MDXContent = page.data.body;
   const mdxComponents = getMDXComponents({
     // this allows you to link to other pages with relative file paths
-    a: createRelativeLink(source, page),
+    a: createRelativeLink(docsSource, page),
   });
   const body = replaceBrandPlaceholdersInReactNode(
     typeof MDXContent === 'function'
@@ -77,7 +72,7 @@ export default async function DocsContentPage(props: {
 }
 
 export async function generateStaticParams() {
-  return source.generateParams('slug', 'locale');
+  return docsSource.generateParams('slug', 'locale');
 }
 
 export async function generateMetadata(props: {
@@ -85,7 +80,7 @@ export async function generateMetadata(props: {
 }) {
   const params = await props.params;
   const docsLocale = resolveDocsLocale(params.locale);
-  const page = source.getPage(params.slug ?? [], docsLocale);
+  const page = docsSource.getPage(normalizeDocsSlug(params.slug), docsLocale);
   if (!page) notFound();
 
   const publicConfigs = await getPublicConfigsCached();

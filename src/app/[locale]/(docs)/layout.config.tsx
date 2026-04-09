@@ -1,6 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
-import { i18n } from '@/core/docs/source';
+import { docsI18n } from '@/core/docs/source';
 import { envConfigs } from '@/config';
 import { BrandImage } from '@/shared/blocks/common';
 
@@ -30,6 +30,6 @@ export function baseOptions(
       ),
       transparentMode: 'top',
     },
-    i18n,
+    i18n: docsI18n,
   };
 }

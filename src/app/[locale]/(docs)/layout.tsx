@@ -7,7 +7,8 @@ import type { Translations } from 'fumadocs-ui/i18n';
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
 import { RootProvider } from 'fumadocs-ui/provider';
 
-import { i18n, source } from '@/core/docs/source';
+import { docsSource } from '@/core/docs/source';
+import { resolveDocsLocale } from '@/core/docs/route-params';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
@@ -20,7 +21,6 @@ const zh: Partial<Translations> = {
   search: '搜索内容',
 };
 
-const supportedDocsLocales = new Set(i18n.languages);
 // available languages that will be displayed on UI
 // make sure `locale` is consistent with your i18n config
 const docsLocales = [
@@ -47,10 +47,7 @@ export default async function DocsRootLayout({
   }
 
   const { locale } = await params;
-  const requestedLocale = locale || i18n.defaultLanguage;
-  const lang = supportedDocsLocales.has(requestedLocale)
-    ? requestedLocale
-    : i18n.defaultLanguage;
+  const lang = resolveDocsLocale(locale);
   const brand = buildBrandPlaceholderValues(publicConfigs);
   const options = baseOptions(lang, {
     appName: brand.appName,
@@ -77,7 +74,7 @@ export default async function DocsRootLayout({
     >
       <DocsLayout
         {...options}
-        tree={source.pageTree[lang]}
+        tree={docsSource.pageTree[lang]}
         nav={{ ...options.nav, mode: 'top' }}
         sidebar={{
           tabs: [],

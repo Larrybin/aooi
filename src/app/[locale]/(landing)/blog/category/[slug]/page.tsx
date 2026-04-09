@@ -1,13 +1,16 @@
-// data: category taxonomy (db) + posts list (db) + i18n (next-intl) + pagination (query)
-// cache: dynamic (request-based searchParams); no explicit cache for db reads
-// reason: public listing varies by category/page; avoid serving stale mixed pagination data
+// data: category taxonomy (db) + posts list (db) + i18n (next-intl)
+// cache: static (generateStaticParams) + default RSC
+// reason: public category listing should be statically prerenderable
 import { notFound } from 'next/navigation';
 import {
   getBlogCategory,
   getBlogCategoryPostsAndCategories,
+  getPublicBlogCategoryStaticSlugs,
 } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
+import { locales } from '@/config/locale';
+import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
 import { getThemePage } from '@/core/theme';
 import {
   buildBrandPlaceholderValues,
@@ -55,28 +58,27 @@ export async function generateMetadata({
   };
 }
 
+export async function generateStaticParams() {
+  return getLocaleSlugStaticParams(
+    locales,
+    await getPublicBlogCategoryStaticSlugs()
+  );
+}
+
 export default async function CategoryBlogPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{
-    page?: string | string[];
-    pageSize?: string | string[];
-  }>;
 }) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
   // load blog data
   const t = await getTranslations('blog');
-  const { page, pageSize } = await searchParams;
 
   const categoryBlog = await getBlogCategoryPostsAndCategories({
     slug,
     locale,
-    page,
-    pageSize,
   });
 
   if (!categoryBlog) {

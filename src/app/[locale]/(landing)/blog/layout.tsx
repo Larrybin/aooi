@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { AppContextProvider } from '@/shared/contexts/app';
@@ -22,9 +23,12 @@ import type {
 
 export default async function BlogLayout({
   children,
+  params,
 }: {
   children: ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const publicConfigs = await getPublicConfigsCached();
   if (!isLandingBlogEnabled(publicConfigs)) {
     notFound();
@@ -44,11 +48,21 @@ export default async function BlogLayout({
   });
 
   return (
-    <AppContextProvider>
-      <Layout header={branded.header} footer={branded.footer}>
-        <LocaleDetector />
-        {children}
-      </Layout>
-    </AppContextProvider>
+    <ScopedIntlProvider
+      locale={locale}
+      namespaces={[
+        'common.sign',
+        'common.locale_switcher',
+        'common.locale_detector',
+        'blog.page',
+      ]}
+    >
+      <AppContextProvider>
+        <Layout header={branded.header} footer={branded.footer}>
+          <LocaleDetector />
+          {children}
+        </Layout>
+      </AppContextProvider>
+    </ScopedIntlProvider>
   );
 }
