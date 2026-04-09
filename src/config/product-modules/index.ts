@@ -275,7 +275,9 @@ export function getProductModulesByTier(tier: ProductModuleTier) {
 }
 
 export function getSupportingProductModulesByTab(tab: SettingTabName) {
-  return PRODUCT_MODULES.filter((module) => module.supportingTabs.includes(tab));
+  return PRODUCT_MODULES.filter((module) =>
+    module.supportingTabs.includes(tab)
+  );
 }
 
 const PRODUCT_MODULE_ORDER = new Map(

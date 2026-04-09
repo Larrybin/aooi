@@ -3,10 +3,10 @@
 // reason: admin settings are user-specific; revalidateTag ensures updates propagate
 import { revalidateTag } from 'next/cache';
 import { notFound } from 'next/navigation';
+import { getSettingsModuleContractRows } from '@/features/admin/settings/module-contract';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
 
-import { getSettingsModuleContractRows } from '@/features/admin/settings/module-contract';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { Badge } from '@/shared/components/ui/badge';
@@ -48,9 +48,7 @@ type NormalizedSettingValueResult =
   | { ok: true; value: string }
   | { ok: false; error: string };
 
-type SettingValueNormalizer = (
-  value: string
-) => NormalizedSettingValueResult;
+type SettingValueNormalizer = (value: string) => NormalizedSettingValueResult;
 
 function normalizeRequiredText(
   value: string,
@@ -147,7 +145,8 @@ function normalizeSocialLinks(value: string): NormalizedSettingValueResult {
     const issues = formatSocialLinksIssues(result.error);
     return {
       ok: false,
-      error: `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim(),
+      error:
+        `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim(),
     };
   }
 
@@ -355,7 +354,7 @@ export default async function SettingsPage({
                     className="flex items-center gap-2"
                     data-testid="admin-settings-module-contract-title"
                   >
-                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {t('edit.module_contract.title_label')}
                     </span>
                     <span className="text-sm font-medium">
@@ -366,7 +365,7 @@ export default async function SettingsPage({
                     className="flex items-center gap-2"
                     data-testid="admin-settings-module-contract-relationship"
                   >
-                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {t('edit.module_contract.relationship_label')}
                     </span>
                     <Badge variant="secondary">
@@ -379,18 +378,20 @@ export default async function SettingsPage({
                     className="flex items-center gap-2"
                     data-testid="admin-settings-module-contract-tier"
                   >
-                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {t('edit.module_contract.tier_label')}
                     </span>
                     <Badge variant="secondary">
-                      {t(`edit.module_contract.tier_values.${moduleContract.tier}`)}
+                      {t(
+                        `edit.module_contract.tier_values.${moduleContract.tier}`
+                      )}
                     </Badge>
                   </div>
                   <div
                     className="flex items-center gap-2"
                     data-testid="admin-settings-module-contract-verification"
                   >
-                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {t('edit.module_contract.verification_label')}
                     </span>
                     <Badge variant="outline">
@@ -403,7 +404,7 @@ export default async function SettingsPage({
                     className="flex items-center gap-2"
                     data-testid="admin-settings-module-contract-guide"
                   >
-                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {t('edit.module_contract.guide_label')}
                     </span>
                     <a
