@@ -4,6 +4,15 @@ import type { Setting } from '../types';
 
 export const aiSettings: Setting[] = [
   {
+    name: 'general_ai_enabled',
+    title: 'AI Module Enabled',
+    type: 'switch',
+    value: 'false',
+    tip: 'When disabled, the AI module is globally unavailable (AI pages and APIs return 404).',
+    group: 'ai_module',
+    tab: 'ai',
+  },
+  {
     name: 'openrouter_api_key',
     title: 'OpenRouter API Key',
     type: 'password',

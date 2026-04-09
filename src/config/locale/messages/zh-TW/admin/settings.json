@@ -2,6 +2,7 @@
   "groups": {
     "general_ui": "介面",
     "general_brand": "品牌",
+    "content_modules": "內容模組",
     "email_auth": "電子郵件驗證",
     "google_auth": "Google 驗證",
     "github_auth": "Github 驗證",
@@ -11,6 +12,7 @@
     "paypal": "Paypal",
     "resend": "Resend",
     "r2": "Cloudflare R2",
+    "ai_module": "AI 模組",
     "s3": "AWS S3",
     "openrouter": "OpenRouter",
     "replicate": "Replicate",
@@ -34,6 +36,7 @@
     },
     "tabs": {
       "general": "一般",
+      "content": "內容",
       "auth": "驗證",
       "payment": "付款",
       "email": "電子郵件",
@@ -48,11 +51,16 @@
       "submit": "儲存"
     },
     "module_contract": {
+      "title_label": "模組",
+      "relationship_label": "關係",
       "tier_label": "模組層級",
       "verification_label": "驗證狀態",
       "guide_label": "啟用說明",
       "guide_cta": "打開文件",
-      "supporting_text": "這個分頁用於支援 {modules} 模組。",
+      "relationship_values": {
+        "owned": "所屬",
+        "supporting": "支援"
+      },
       "tier_values": {
         "mainline": "主線",
         "optional": "可選",

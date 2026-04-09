@@ -1,5 +1,6 @@
 export const SETTING_TAB_NAMES = [
   'general',
+  'content',
   'auth',
   'payment',
   'email',

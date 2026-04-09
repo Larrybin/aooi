@@ -15,7 +15,7 @@ import {
   PRODUCT_MODULES,
   PRODUCT_MODULE_TIERS,
   PRODUCT_MODULE_VERIFICATIONS,
-  getProductModuleByTab,
+  getProductModuleItemsByTab,
 } from './index';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -98,10 +98,21 @@ test('PRODUCT_MODULES: settingKeys 都能在 settings definitions 或 public set
   }
 });
 
-test('getProductModuleByTab: owned tab 优先，supporting tab 回落到主模块', () => {
-  assert.equal(getProductModuleByTab('general')?.id, 'core_shell');
-  assert.equal(getProductModuleByTab('auth')?.id, 'auth');
-  assert.equal(getProductModuleByTab('payment')?.id, 'billing');
-  assert.equal(getProductModuleByTab('ai')?.id, 'ai');
-  assert.equal(getProductModuleByTab('email')?.id, 'auth');
+test('getProductModuleItemsByTab: 按 relationship/tier/注册表顺序返回模块行', () => {
+  assert.deepEqual(
+    getProductModuleItemsByTab('general').map((item) => item.moduleId),
+    ['core_shell']
+  );
+  assert.deepEqual(
+    getProductModuleItemsByTab('content').map((item) => item.moduleId),
+    ['docs', 'blog']
+  );
+  assert.deepEqual(
+    getProductModuleItemsByTab('email').map((item) => item.moduleId),
+    ['auth', 'customer_service']
+  );
+  assert.deepEqual(
+    getProductModuleItemsByTab('email').map((item) => item.relationship),
+    ['supporting', 'supporting']
+  );
 });

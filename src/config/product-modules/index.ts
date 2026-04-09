@@ -3,7 +3,9 @@ import type { SettingTabName } from '@/shared/services/settings/tab-names';
 import type {
   ModuleGuideSlug,
   ProductModule,
+  ProductModuleId,
   ProductModuleTier,
+  ProductModuleVerification,
 } from './types';
 
 export type {
@@ -25,6 +27,22 @@ const TIER_PRIORITY: Record<ProductModuleTier, number> = {
   optional: 1,
   experimental: 2,
 };
+
+const RELATIONSHIP_PRIORITY = {
+  owned: 0,
+  supporting: 1,
+} as const;
+
+export type ProductModuleTabRelationship = keyof typeof RELATIONSHIP_PRIORITY;
+
+export interface ProductModuleTabItem {
+  moduleId: ProductModuleId;
+  title: string;
+  relationship: ProductModuleTabRelationship;
+  tier: ProductModuleTier;
+  verification: ProductModuleVerification;
+  guideHref: string;
+}
 
 export const PRODUCT_MODULE_GUIDE_REPO_BASE_URL =
   'https://github.com/Larrybin/aooi/blob/main/docs/guides/';
@@ -134,7 +152,7 @@ export const PRODUCT_MODULES: ProductModule[] = [
     title: 'Docs',
     tier: 'optional',
     verification: 'partial',
-    ownedTabs: [],
+    ownedTabs: ['content'],
     supportingTabs: [],
     settingKeys: ['general_docs_enabled'],
     docSlug: 'modules/docs-blog',
@@ -146,7 +164,7 @@ export const PRODUCT_MODULES: ProductModule[] = [
     title: 'Blog',
     tier: 'optional',
     verification: 'partial',
-    ownedTabs: [],
+    ownedTabs: ['content'],
     supportingTabs: [],
     settingKeys: ['general_blog_enabled'],
     docSlug: 'modules/docs-blog',
@@ -252,10 +270,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
   },
 ];
 
-function compareModulePriority(a: ProductModule, b: ProductModule) {
-  return TIER_PRIORITY[a.tier] - TIER_PRIORITY[b.tier];
-}
-
 export function getProductModulesByTier(tier: ProductModuleTier) {
   return PRODUCT_MODULES.filter((module) => module.tier === tier);
 }
@@ -264,19 +278,50 @@ export function getSupportingProductModulesByTab(tab: SettingTabName) {
   return PRODUCT_MODULES.filter((module) => module.supportingTabs.includes(tab));
 }
 
-export function getProductModuleByTab(tab: SettingTabName) {
-  const ownedModule = PRODUCT_MODULES.find((module) =>
-    module.ownedTabs.includes(tab)
-  );
-  if (ownedModule) {
-    return ownedModule;
-  }
+const PRODUCT_MODULE_ORDER = new Map(
+  PRODUCT_MODULES.map((module, index) => [module.id, index] as const)
+);
 
-  const supportingModules = getSupportingProductModulesByTab(tab).sort(
-    compareModulePriority
-  );
+function createProductModuleTabItem(
+  module: ProductModule,
+  relationship: ProductModuleTabRelationship
+): ProductModuleTabItem {
+  return {
+    moduleId: module.id,
+    title: module.title,
+    relationship,
+    tier: module.tier,
+    verification: module.verification,
+    guideHref: getProductModuleGuideHref(module),
+  };
+}
 
-  return supportingModules[0] ?? null;
+function compareTabItemPriority(
+  a: ProductModuleTabItem,
+  b: ProductModuleTabItem
+) {
+  return (
+    RELATIONSHIP_PRIORITY[a.relationship] -
+      RELATIONSHIP_PRIORITY[b.relationship] ||
+    TIER_PRIORITY[a.tier] - TIER_PRIORITY[b.tier] ||
+    (PRODUCT_MODULE_ORDER.get(a.moduleId) ?? Number.MAX_SAFE_INTEGER) -
+      (PRODUCT_MODULE_ORDER.get(b.moduleId) ?? Number.MAX_SAFE_INTEGER)
+  );
+}
+
+export function getProductModuleItemsByTab(tab: SettingTabName) {
+  return PRODUCT_MODULES.flatMap((module) =>
+    (
+      [
+        { relationship: 'owned', tabs: module.ownedTabs },
+        { relationship: 'supporting', tabs: module.supportingTabs },
+      ] as const
+    )
+      .filter(({ tabs }) => tabs.includes(tab))
+      .map(({ relationship }) =>
+        createProductModuleTabItem(module, relationship)
+      )
+  ).sort(compareTabItemPriority);
 }
 
 export function getProductModuleGuideHref(

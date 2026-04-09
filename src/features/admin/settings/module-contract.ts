@@ -1,45 +1,25 @@
 import {
-  getProductModuleByTab,
-  getProductModuleGuideHref,
-  getSupportingProductModulesByTab,
+  getProductModuleItemsByTab,
 } from '@/config/product-modules';
 import type {
   ProductModuleId,
+  ProductModuleTabRelationship,
   ProductModuleTier,
   ProductModuleVerification,
 } from '@/config/product-modules';
 import type { SettingTabName } from '@/shared/services/settings/tab-names';
 
-export interface SettingsModuleContractViewModel {
+export interface SettingsModuleContractRow {
   moduleId: ProductModuleId;
   title: string;
+  relationship: ProductModuleTabRelationship;
   tier: ProductModuleTier;
   verification: ProductModuleVerification;
   guideHref: string;
-  isSupporting: boolean;
-  supportingModuleTitles: string[];
 }
 
-export function getSettingsModuleContractViewModel(
+export function getSettingsModuleContractRows(
   tab: SettingTabName
-): SettingsModuleContractViewModel | null {
-  const productModule = getProductModuleByTab(tab);
-  if (!productModule) {
-    return null;
-  }
-
-  const supportingModules = getSupportingProductModulesByTab(tab);
-  const isSupporting = !productModule.ownedTabs.includes(tab);
-
-  return {
-    moduleId: productModule.id,
-    title: productModule.title,
-    tier: productModule.tier,
-    verification: productModule.verification,
-    guideHref: getProductModuleGuideHref(productModule),
-    isSupporting,
-    supportingModuleTitles: isSupporting
-      ? supportingModules.map((item) => item.title)
-      : [],
-  };
+): SettingsModuleContractRow[] {
+  return getProductModuleItemsByTab(tab);
 }

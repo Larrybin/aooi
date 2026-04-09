@@ -11,7 +11,7 @@ test('getAdminSettingsModuleContractChecks: 覆盖五个代表性 settings tab',
 
   assert.deepEqual(
     checks.map((check) => check.name),
-    ['general', 'auth', 'payment', 'ai', 'email']
+    ['general', 'auth', 'payment', 'ai', 'content', 'email']
   );
 });
 
@@ -23,10 +23,21 @@ test('validateAdminSettingsModuleContractSnapshot: 校验普通 tab 快照', () 
   assert.doesNotThrow(() =>
     validateAdminSettingsModuleContractSnapshot(generalCheck, {
       visible: true,
-      tierText: 'Mainline',
-      verificationText: 'Verified',
-      guideHref: generalCheck.expectedGuideHref,
-      supportingText: null,
+      rows: generalCheck.expectedRows,
+    })
+  );
+});
+
+test('validateAdminSettingsModuleContractSnapshot: 校验多模块 content tab 快照', () => {
+  const contentCheck = getAdminSettingsModuleContractChecks(
+    'http://127.0.0.1:3000'
+  ).find((check) => check.name === 'content');
+
+  assert(contentCheck);
+  assert.doesNotThrow(() =>
+    validateAdminSettingsModuleContractSnapshot(contentCheck, {
+      visible: true,
+      rows: contentCheck.expectedRows,
     })
   );
 });
@@ -40,10 +51,7 @@ test('validateAdminSettingsModuleContractSnapshot: 校验 supporting tab 快照'
   assert.doesNotThrow(() =>
     validateAdminSettingsModuleContractSnapshot(emailCheck, {
       visible: true,
-      tierText: 'Mainline',
-      verificationText: 'Partial',
-      guideHref: emailCheck.expectedGuideHref,
-      supportingText: emailCheck.expectedSupportingText,
+      rows: emailCheck.expectedRows,
     })
   );
 });

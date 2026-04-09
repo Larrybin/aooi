@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
 
-import { getSettingsModuleContractViewModel } from '@/features/admin/settings/module-contract';
+import { getSettingsModuleContractRows } from '@/features/admin/settings/module-contract';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { Badge } from '@/shared/components/ui/badge';
@@ -40,6 +40,185 @@ import {
 } from '@/shared/services/settings/validators/payment';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { FormField, Form as FormType } from '@/shared/types/blocks/form';
+
+const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
+const SUPPORT_EMAIL_SCHEMA = z.string().email();
+
+type NormalizedSettingValueResult =
+  | { ok: true; value: string }
+  | { ok: false; error: string };
+
+type SettingValueNormalizer = (
+  value: string
+) => NormalizedSettingValueResult;
+
+function normalizeRequiredText(
+  value: string,
+  fieldLabel: string
+): NormalizedSettingValueResult {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {
+      ok: false,
+      error: `Invalid ${fieldLabel}. Must not be empty.`,
+    };
+  }
+
+  return { ok: true, value: trimmed };
+}
+
+function normalizeAppUrl(value: string): NormalizedSettingValueResult {
+  const trimmed = normalizeRequiredText(value, 'App URL');
+  if (!trimmed.ok) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed.value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return {
+        ok: false,
+        error: `Invalid App URL. Must use http/https (got: ${trimmed.value}).`,
+      };
+    }
+
+    return { ok: true, value: url.origin };
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      error: `Invalid App URL. Must be a valid URL (got: ${trimmed.value}, error: ${String(error)}).`,
+    };
+  }
+}
+
+function normalizeSupportEmail(value: string): NormalizedSettingValueResult {
+  const normalized = value.trim().toLowerCase();
+  const result = SUPPORT_EMAIL_SCHEMA.safeParse(normalized);
+
+  if (!result.success) {
+    return {
+      ok: false,
+      error: 'Invalid Support Email. Must be a valid email address.',
+    };
+  }
+
+  return { ok: true, value: normalized };
+}
+
+function normalizeAssetValue(
+  value: string,
+  fieldLabel: string,
+  errorLabel: string
+): NormalizedSettingValueResult {
+  const result = normalizeAssetSettingValue(value, fieldLabel);
+  if (!result.ok) {
+    return { ok: false, error: `Invalid ${errorLabel}. ${result.error}` };
+  }
+
+  return result;
+}
+
+function formatSocialLinksIssues(error: z.ZodError): string {
+  return error.issues
+    .slice(0, 3)
+    .map((issue) => {
+      const path = issue.path.length ? issue.path.join('.') : 'root';
+      return `${path}: ${issue.message}`;
+    })
+    .join('; ');
+}
+
+function normalizeSocialLinks(value: string): NormalizedSettingValueResult {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { ok: true, value: '' };
+  }
+
+  const parsedResult = tryJsonParse<unknown>(trimmed);
+  if (!parsedResult.ok) {
+    return {
+      ok: false,
+      error: 'Invalid Social Links JSON. Must be valid JSON.',
+    };
+  }
+
+  const result = generalSocialLinksSchema.safeParse(parsedResult.value);
+  if (!result.success) {
+    const issues = formatSocialLinksIssues(result.error);
+    return {
+      ok: false,
+      error: `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim(),
+    };
+  }
+
+  return { ok: true, value: JSON.stringify(result.data) };
+}
+
+function normalizeStripePaymentMethods(
+  value: string
+): NormalizedSettingValueResult {
+  const result = parseStripePaymentMethodsConfig(value);
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: `Invalid Stripe Payment Methods. ${result.error}. Expected a JSON array, e.g. ["card","alipay"].`,
+    };
+  }
+
+  return { ok: true, value: result.normalized };
+}
+
+function normalizeCreemProductIds(value: string): NormalizedSettingValueResult {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { ok: true, value: '' };
+  }
+
+  const result = parseCreemProductIdsMappingConfig(value);
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: `Invalid Creem Product IDs Mapping. ${result.error}. Expected a JSON object, e.g. {"starter":"prod_xxx"}.`,
+    };
+  }
+
+  return { ok: true, value: result.normalized };
+}
+
+const SETTING_VALUE_NORMALIZERS: Partial<
+  Record<string, SettingValueNormalizer>
+> = {
+  app_name: (value) => normalizeRequiredText(value, 'App Name'),
+  app_url: normalizeAppUrl,
+  general_support_email: normalizeSupportEmail,
+  app_logo: (value) => normalizeAssetValue(value, 'App Logo', 'App Logo'),
+  app_favicon: (value) => normalizeAssetValue(value, 'Favicon', 'Favicon'),
+  app_og_image: (value) =>
+    normalizeAssetValue(value, 'Preview Image', 'Preview Image'),
+  general_social_links: normalizeSocialLinks,
+  stripe_payment_methods: normalizeStripePaymentMethods,
+  creem_product_ids: normalizeCreemProductIds,
+};
+
+function normalizeSettingOverrides(values: Record<string, string>) {
+  const overrides: Record<string, string> = {};
+
+  for (const [name, value] of Object.entries(values)) {
+    const normalize = SETTING_VALUE_NORMALIZERS[name];
+    if (!normalize) {
+      continue;
+    }
+
+    const result = normalize(value);
+    if (!result.ok) {
+      return result;
+    }
+
+    overrides[name] = result.value;
+  }
+
+  return { ok: true, value: overrides } as const;
+}
 
 export default async function SettingsPage({
   params,
@@ -76,7 +255,7 @@ export default async function SettingsPage({
 
   const tabs = await getSettingTabs(settingsTab);
   const hasConfigsError = Boolean(configsError);
-  const moduleContract = getSettingsModuleContractViewModel(settingsTab);
+  const moduleContractRows = getSettingsModuleContractRows(settingsTab);
 
   const handleSubmit = async (data: FormData, _passby: unknown) => {
     'use server';
@@ -95,201 +274,14 @@ export default async function SettingsPage({
         );
       }
 
-      const recordSchema = z.record(z.string(), z.string());
-      const values = parseFormData(data, recordSchema);
-
-      let normalizedAppName: string | undefined;
-      const appName = values.app_name;
-      if (typeof appName === 'string') {
-        const trimmed = appName.trim();
-        if (!trimmed) {
-          return actionErr('Invalid App Name. Must not be empty.');
-        }
-        normalizedAppName = trimmed;
-      }
-
-      let normalizedAppUrl: string | undefined;
-      const appUrl = values.app_url;
-      if (typeof appUrl === 'string') {
-        const trimmed = appUrl.trim();
-        if (!trimmed) {
-          return actionErr('Invalid App URL. Must not be empty.');
-        }
-        try {
-          const url = new URL(trimmed);
-          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-            return actionErr(
-              `Invalid App URL. Must use http/https (got: ${trimmed}).`
-            );
-          }
-          normalizedAppUrl = url.origin;
-        } catch (error: unknown) {
-          return actionErr(
-            `Invalid App URL. Must be a valid URL (got: ${trimmed}, error: ${String(error)}).`
-          );
-        }
-      }
-
-      let normalizedSupportEmail: string | undefined;
-      const supportEmail = values.general_support_email;
-      if (typeof supportEmail === 'string') {
-        const trimmed = supportEmail.trim().toLowerCase();
-        const emailSchema = z.string().email();
-        const result = emailSchema.safeParse(trimmed);
-        if (!result.success) {
-          return actionErr(
-            'Invalid Support Email. Must be a valid email address.'
-          );
-        }
-        normalizedSupportEmail = trimmed;
-      }
-
-      let normalizedAppLogo: string | undefined;
-      const appLogo = values.app_logo;
-      if (typeof appLogo === 'string') {
-        const result = normalizeAssetSettingValue(appLogo, 'App Logo');
-        if (!result.ok) {
-          return actionErr(`Invalid App Logo. ${result.error}`);
-        }
-        normalizedAppLogo = result.value;
-      }
-
-      let normalizedAppFavicon: string | undefined;
-      const appFavicon = values.app_favicon;
-      if (typeof appFavicon === 'string') {
-        const result = normalizeAssetSettingValue(appFavicon, 'Favicon');
-        if (!result.ok) {
-          return actionErr(`Invalid Favicon. ${result.error}`);
-        }
-        normalizedAppFavicon = result.value;
-      }
-
-      let normalizedAppOgImage: string | undefined;
-      const appOgImage = values.app_og_image;
-      if (typeof appOgImage === 'string') {
-        const result = normalizeAssetSettingValue(appOgImage, 'Preview Image');
-        if (!result.ok) {
-          return actionErr(`Invalid Preview Image. ${result.error}`);
-        }
-        normalizedAppOgImage = result.value;
-      }
-
-      let normalizedSocialLinks: string | undefined;
-      const socialLinks = values.general_social_links;
-      if (typeof socialLinks === 'string') {
-        const trimmed = socialLinks.trim();
-        if (!trimmed) {
-          normalizedSocialLinks = '';
-        } else {
-          const parsedResult = tryJsonParse<unknown>(trimmed);
-          if (!parsedResult.ok) {
-            return actionErr('Invalid Social Links JSON. Must be valid JSON.');
-          }
-          const result = generalSocialLinksSchema.safeParse(parsedResult.value);
-          if (!result.success) {
-            const issues = result.error.issues
-              .slice(0, 3)
-              .map((issue) => {
-                const path = issue.path.length ? issue.path.join('.') : 'root';
-                return `${path}: ${issue.message}`;
-              })
-              .join('; ');
-            return actionErr(
-              `Invalid Social Links JSON. ${issues || ''} Expected an array. When enabled=true, icon and url are required.`.trim()
-            );
-          }
-          normalizedSocialLinks = JSON.stringify(result.data);
-        }
-      }
-
-      let normalizedStripePaymentMethods: string | undefined;
-      const stripePaymentMethods = values.stripe_payment_methods;
-      if (typeof stripePaymentMethods === 'string') {
-        const result = parseStripePaymentMethodsConfig(stripePaymentMethods);
-        if (!result.ok) {
-          return actionErr(
-            `Invalid Stripe Payment Methods. ${result.error}. Expected a JSON array, e.g. ["card","alipay"].`
-          );
-        }
-        normalizedStripePaymentMethods = result.normalized;
-      }
-
-      let normalizedCreemProductIds: string | undefined;
-      const creemProductIds = values.creem_product_ids;
-      if (typeof creemProductIds === 'string') {
-        const trimmed = creemProductIds.trim();
-        if (!trimmed) {
-          normalizedCreemProductIds = '';
-        } else {
-          const result = parseCreemProductIdsMappingConfig(creemProductIds);
-          if (!result.ok) {
-            return actionErr(
-              `Invalid Creem Product IDs Mapping. ${result.error}. Expected a JSON object, e.g. {"starter":"prod_xxx"}.`
-            );
-          }
-          normalizedCreemProductIds = result.normalized;
-        }
+      const values = parseFormData(data, SETTINGS_FORM_VALUES_SCHEMA);
+      const normalizedOverrides = normalizeSettingOverrides(values);
+      if (!normalizedOverrides.ok) {
+        return actionErr(normalizedOverrides.error);
       }
 
       for (const [name, value] of Object.entries(values)) {
-        if (name === 'app_name' && normalizedAppName !== undefined) {
-          configs[name] = normalizedAppName;
-          continue;
-        }
-
-        if (name === 'app_url' && normalizedAppUrl !== undefined) {
-          configs[name] = normalizedAppUrl;
-          continue;
-        }
-
-        if (name === 'app_logo' && normalizedAppLogo !== undefined) {
-          configs[name] = normalizedAppLogo;
-          continue;
-        }
-
-        if (name === 'app_favicon' && normalizedAppFavicon !== undefined) {
-          configs[name] = normalizedAppFavicon;
-          continue;
-        }
-
-        if (name === 'app_og_image' && normalizedAppOgImage !== undefined) {
-          configs[name] = normalizedAppOgImage;
-          continue;
-        }
-
-        if (
-          name === 'general_support_email' &&
-          normalizedSupportEmail !== undefined
-        ) {
-          configs[name] = normalizedSupportEmail;
-          continue;
-        }
-
-        if (
-          name === 'general_social_links' &&
-          normalizedSocialLinks !== undefined
-        ) {
-          configs[name] = normalizedSocialLinks;
-          continue;
-        }
-
-        if (
-          name === 'stripe_payment_methods' &&
-          normalizedStripePaymentMethods !== undefined
-        ) {
-          configs[name] = normalizedStripePaymentMethods;
-          continue;
-        }
-
-        if (
-          name === 'creem_product_ids' &&
-          normalizedCreemProductIds !== undefined
-        ) {
-          configs[name] = normalizedCreemProductIds;
-          continue;
-        }
-
-        configs[name] = value;
+        configs[name] = normalizedOverrides.value[name] ?? value;
       }
 
       await saveConfigs(configs);
@@ -300,14 +292,9 @@ export default async function SettingsPage({
     });
   };
 
-  const forms: FormType[] = [];
-
-  settingGroups.forEach((group) => {
-    if (group.tab !== tab) {
-      return;
-    }
-
-    forms.push({
+  const forms: FormType[] = settingGroups
+    .filter((group) => group.tab === tab)
+    .map((group) => ({
       title: group.title,
       description: group.description,
       fields: settings
@@ -335,8 +322,7 @@ export default async function SettingsPage({
         },
         handler: handleSubmit,
       },
-    });
-  });
+    }));
 
   const loadErrorTitle = t('edit.errors.load_failed_title');
   const loadErrorDesc = t('edit.errors.load_failed_desc');
@@ -352,64 +338,87 @@ export default async function SettingsPage({
           </div>
         )}
         <MainHeader title={t('edit.title')} tabs={tabs} />
-        {moduleContract ? (
+        {moduleContractRows.length > 0 ? (
           <div
             className="bg-card mb-6 rounded-lg border p-4"
             data-testid="admin-settings-module-contract"
           >
-            <div className="flex flex-wrap items-center gap-4">
-              <div
-                className="flex items-center gap-2"
-                data-testid="admin-settings-module-contract-tier"
-              >
-                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                  {t('edit.module_contract.tier_label')}
-                </span>
-                <Badge variant="secondary">
-                  {t(`edit.module_contract.tier_values.${moduleContract.tier}`)}
-                </Badge>
-              </div>
-              <div
-                className="flex items-center gap-2"
-                data-testid="admin-settings-module-contract-verification"
-              >
-                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                  {t('edit.module_contract.verification_label')}
-                </span>
-                <Badge variant="outline">
-                  {t(
-                    `edit.module_contract.verification_values.${moduleContract.verification}`
-                  )}
-                </Badge>
-              </div>
-              <div
-                className="flex items-center gap-2"
-                data-testid="admin-settings-module-contract-guide"
-              >
-                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-                  {t('edit.module_contract.guide_label')}
-                </span>
-                <a
-                  href={moduleContract.guideHref}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="text-primary text-sm underline underline-offset-4"
-                  data-testid="admin-settings-module-contract-guide-link"
+            <div className="flex flex-col gap-3">
+              {moduleContractRows.map((moduleContract) => (
+                <div
+                  key={`${moduleContract.relationship}-${moduleContract.moduleId}`}
+                  className="flex flex-wrap items-center gap-4 rounded-md border p-3"
+                  data-testid="admin-settings-module-contract-row"
+                  data-module-id={moduleContract.moduleId}
                 >
-                  {t('edit.module_contract.guide_cta')}
-                </a>
-              </div>
+                  <div
+                    className="flex items-center gap-2"
+                    data-testid="admin-settings-module-contract-title"
+                  >
+                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      {t('edit.module_contract.title_label')}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {moduleContract.title}
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2"
+                    data-testid="admin-settings-module-contract-relationship"
+                  >
+                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      {t('edit.module_contract.relationship_label')}
+                    </span>
+                    <Badge variant="secondary">
+                      {t(
+                        `edit.module_contract.relationship_values.${moduleContract.relationship}`
+                      )}
+                    </Badge>
+                  </div>
+                  <div
+                    className="flex items-center gap-2"
+                    data-testid="admin-settings-module-contract-tier"
+                  >
+                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      {t('edit.module_contract.tier_label')}
+                    </span>
+                    <Badge variant="secondary">
+                      {t(`edit.module_contract.tier_values.${moduleContract.tier}`)}
+                    </Badge>
+                  </div>
+                  <div
+                    className="flex items-center gap-2"
+                    data-testid="admin-settings-module-contract-verification"
+                  >
+                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      {t('edit.module_contract.verification_label')}
+                    </span>
+                    <Badge variant="outline">
+                      {t(
+                        `edit.module_contract.verification_values.${moduleContract.verification}`
+                      )}
+                    </Badge>
+                  </div>
+                  <div
+                    className="flex items-center gap-2"
+                    data-testid="admin-settings-module-contract-guide"
+                  >
+                    <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      {t('edit.module_contract.guide_label')}
+                    </span>
+                    <a
+                      href={moduleContract.guideHref}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-primary text-sm underline underline-offset-4"
+                      data-testid="admin-settings-module-contract-guide-link"
+                    >
+                      {t('edit.module_contract.guide_cta')}
+                    </a>
+                  </div>
+                </div>
+              ))}
             </div>
-            {moduleContract.isSupporting ? (
-              <p
-                className="text-muted-foreground mt-3 text-sm"
-                data-testid="admin-settings-module-contract-supporting"
-              >
-                {t('edit.module_contract.supporting_text', {
-                  modules: moduleContract.supportingModuleTitles.join(' / '),
-                })}
-              </p>
-            ) : null}
           </div>
         ) : null}
         {forms.map((form) => (

@@ -2,6 +2,7 @@
   "groups": {
     "general_ui": "界面",
     "general_brand": "品牌",
+    "content_modules": "内容模块",
     "email_auth": "邮箱认证",
     "google_auth": "Google认证",
     "github_auth": "Github认证",
@@ -11,6 +12,7 @@
     "paypal": "Paypal",
     "resend": "Resend",
     "r2": "Cloudflare R2",
+    "ai_module": "AI 模块",
     "s3": "AWS S3",
     "openrouter": "OpenRouter",
     "replicate": "Replicate",
@@ -34,6 +36,7 @@
     },
     "tabs": {
       "general": "通用",
+      "content": "内容",
       "auth": "认证",
       "payment": "支付",
       "email": "邮箱",
@@ -48,11 +51,16 @@
       "submit": "保存"
     },
     "module_contract": {
+      "title_label": "模块",
+      "relationship_label": "关系",
       "tier_label": "模块层级",
       "verification_label": "验证状态",
       "guide_label": "启用说明",
       "guide_cta": "打开文档",
-      "supporting_text": "这个标签页用于支持 {modules} 模块。",
+      "relationship_values": {
+        "owned": "所属",
+        "supporting": "支持"
+      },
       "tier_values": {
         "mainline": "主线",
         "optional": "可选",

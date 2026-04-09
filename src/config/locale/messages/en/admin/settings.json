@@ -2,6 +2,7 @@
   "groups": {
     "general_ui": "UI",
     "general_brand": "Brand",
+    "content_modules": "Content Modules",
     "email_auth": "Email Auth",
     "google_auth": "Google Auth",
     "github_auth": "Github Auth",
@@ -11,6 +12,7 @@
     "paypal": "Paypal",
     "resend": "Resend",
     "r2": "Cloudflare R2",
+    "ai_module": "AI Module",
     "s3": "AWS S3",
     "openrouter": "OpenRouter",
     "replicate": "Replicate",
@@ -34,6 +36,7 @@
     },
     "tabs": {
       "general": "General",
+      "content": "Content",
       "auth": "Auth",
       "payment": "Payment",
       "email": "Email",
@@ -48,11 +51,16 @@
       "submit": "Save"
     },
     "module_contract": {
+      "title_label": "Module",
+      "relationship_label": "Relationship",
       "tier_label": "Tier",
       "verification_label": "Verification",
       "guide_label": "Enablement guide",
       "guide_cta": "Open guide",
-      "supporting_text": "This tab supports the {modules} module.",
+      "relationship_values": {
+        "owned": "Owned",
+        "supporting": "Supporting"
+      },
       "tier_values": {
         "mainline": "Mainline",
         "optional": "Optional",

@@ -1,20 +1,9 @@
 import 'server-only';
 
 import { envConfigs } from '@/config';
+import { getDefaultSupportEmailFromOrigin } from '@/shared/lib/support-email';
 
 import type { Setting } from '../types';
-
-function defaultSupportEmail(appUrl: string): string {
-  try {
-    const host = new URL(appUrl).host;
-    if (!host || host.includes(':')) {
-      return 'support@example.com';
-    }
-    return `support@${host}`;
-  } catch {
-    return 'support@example.com';
-  }
-}
 
 export const generalSettings: Setting[] = [
   {
@@ -40,7 +29,7 @@ export const generalSettings: Setting[] = [
     name: 'general_support_email',
     title: 'Support Email',
     type: 'text',
-    value: defaultSupportEmail(envConfigs.app_url),
+    value: getDefaultSupportEmailFromOrigin(envConfigs.app_url),
     placeholder: 'support@example.com',
     group: 'general_brand',
     tab: 'general',
@@ -97,31 +86,6 @@ export const generalSettings: Setting[] = [
       maxSizeMB: 5,
     },
     group: 'general_brand',
-    tab: 'general',
-  },
-  {
-    name: 'general_ai_enabled',
-    title: 'AI Module Enabled',
-    type: 'switch',
-    value: 'false',
-    tip: 'When disabled, the AI module is globally unavailable (AI pages and APIs return 404).',
-    group: 'general_ui',
-    tab: 'general',
-  },
-  {
-    name: 'general_blog_enabled',
-    title: 'Blog Enabled',
-    type: 'switch',
-    value: 'false',
-    group: 'general_ui',
-    tab: 'general',
-  },
-  {
-    name: 'general_docs_enabled',
-    title: 'Docs Enabled',
-    type: 'switch',
-    value: 'false',
-    group: 'general_ui',
     tab: 'general',
   },
   {

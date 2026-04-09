@@ -25,7 +25,7 @@ const DEFAULT_PASSWORD = 'ModuleContract123!module';
 const DEFAULT_NAME = 'Module Contract Smoke';
 const DEFAULT_AUTH_SECRET = 'module-contract-smoke-secret-0123456789';
 const productModules = productModulesModule.default ?? productModulesModule;
-const { getProductModuleGuideHref, getProductModuleByTab } = productModules;
+const { getProductModuleItemsByTab } = productModules;
 
 function createTempEmail() {
   return `module-contract-smoke+${Date.now()}@example.com`;
@@ -133,84 +133,136 @@ function isProcessAlive(pid) {
   }
 }
 
-function buildExpectedSupportingText(modules) {
-  return `This tab supports the ${modules.join(' / ')} module.`;
-}
-
 export function getAdminSettingsModuleContractChecks(baseUrl = DEFAULT_BASE_URL) {
-  const generalModule = getProductModuleByTab('general');
-  const authModule = getProductModuleByTab('auth');
-  const paymentModule = getProductModuleByTab('payment');
-  const aiModule = getProductModuleByTab('ai');
-  const emailModule = getProductModuleByTab('email');
+  const generalModules = getProductModuleItemsByTab('general');
+  const authModules = getProductModuleItemsByTab('auth');
+  const paymentModules = getProductModuleItemsByTab('payment');
+  const aiModules = getProductModuleItemsByTab('ai');
+  const contentModules = getProductModuleItemsByTab('content');
+  const emailModules = getProductModuleItemsByTab('email');
 
-  assert(generalModule && authModule && paymentModule && aiModule && emailModule);
+  assert.equal(generalModules.length, 1);
+  assert.equal(authModules.length, 1);
+  assert.equal(paymentModules.length, 1);
+  assert.equal(aiModules.length, 1);
+  assert.equal(contentModules.length, 2);
+  assert.equal(emailModules.length, 2);
 
   return [
     {
       name: 'general',
       path: '/admin/settings/general',
-      expectedTier: 'Mainline',
-      expectedVerification: 'Verified',
-      expectedGuideHref: getProductModuleGuideHref(generalModule),
+      expectedRows: generalModules.map((module) => ({
+        moduleId: module.moduleId,
+        title: module.title,
+        relationship: 'Owned',
+        tier: 'Mainline',
+        verification: 'Verified',
+        guideHref: module.guideHref,
+      })),
     },
     {
       name: 'auth',
       path: '/admin/settings/auth',
-      expectedTier: 'Mainline',
-      expectedVerification: 'Partial',
-      expectedGuideHref: getProductModuleGuideHref(authModule),
+      expectedRows: authModules.map((module) => ({
+        moduleId: module.moduleId,
+        title: module.title,
+        relationship: 'Owned',
+        tier: 'Mainline',
+        verification: 'Partial',
+        guideHref: module.guideHref,
+      })),
     },
     {
       name: 'payment',
       path: '/admin/settings/payment',
-      expectedTier: 'Mainline',
-      expectedVerification: 'Partial',
-      expectedGuideHref: getProductModuleGuideHref(paymentModule),
+      expectedRows: paymentModules.map((module) => ({
+        moduleId: module.moduleId,
+        title: module.title,
+        relationship: 'Owned',
+        tier: 'Mainline',
+        verification: 'Partial',
+        guideHref: module.guideHref,
+      })),
     },
     {
       name: 'ai',
       path: '/admin/settings/ai',
-      expectedTier: 'Optional',
-      expectedVerification: 'Partial',
-      expectedGuideHref: getProductModuleGuideHref(aiModule),
+      expectedRows: aiModules.map((module) => ({
+        moduleId: module.moduleId,
+        title: module.title,
+        relationship: 'Owned',
+        tier: 'Optional',
+        verification: 'Partial',
+        guideHref: module.guideHref,
+      })),
+    },
+    {
+      name: 'content',
+      path: '/admin/settings/content',
+      expectedRows: contentModules.map((module) => ({
+        moduleId: module.moduleId,
+        title: module.title,
+        relationship: 'Owned',
+        tier: 'Optional',
+        verification: 'Partial',
+        guideHref: module.guideHref,
+      })),
     },
     {
       name: 'email',
       path: '/admin/settings/email',
-      expectedTier: 'Mainline',
-      expectedVerification: 'Partial',
-      expectedGuideHref: getProductModuleGuideHref(emailModule),
-      expectedSupportingText: buildExpectedSupportingText([
-        'Auth',
-        'Customer Service',
-      ]),
+      expectedRows: emailModules.map((module) => ({
+        moduleId: module.moduleId,
+        title: module.title,
+        relationship: 'Supporting',
+        tier: module.moduleId === 'auth' ? 'Mainline' : 'Optional',
+        verification: module.moduleId === 'auth' ? 'Partial' : 'Unverified',
+        guideHref: module.guideHref,
+      })),
     },
   ].map((check) => ({ ...check, baseUrl }));
 }
 
 export function validateAdminSettingsModuleContractSnapshot(check, snapshot) {
   assert.equal(snapshot.visible, true, `[${check.name}] module contract block missing`);
-  assert.equal(snapshot.tierText, check.expectedTier, `[${check.name}] unexpected tier`);
   assert.equal(
-    snapshot.verificationText,
-    check.expectedVerification,
-    `[${check.name}] unexpected verification`
-  );
-  assert.equal(
-    snapshot.guideHref,
-    check.expectedGuideHref,
-    `[${check.name}] unexpected guide href`
+    snapshot.rows.length,
+    check.expectedRows.length,
+    `[${check.name}] unexpected row count`
   );
 
-  if (check.expectedSupportingText) {
-    assert.equal(
-      snapshot.supportingText,
-      check.expectedSupportingText,
-      `[${check.name}] unexpected supporting text`
+  for (const expectedRow of check.expectedRows) {
+    const actualRow = snapshot.rows.find(
+      (row) => row.moduleId === expectedRow.moduleId
     );
-  } else {
-    assert.equal(snapshot.supportingText, null, `[${check.name}] expected no supporting text`);
+
+    assert.ok(actualRow, `[${check.name}] missing row for ${expectedRow.moduleId}`);
+    assert.equal(
+      actualRow.title,
+      expectedRow.title,
+      `[${check.name}] unexpected title for ${expectedRow.moduleId}`
+    );
+    assert.equal(
+      actualRow.relationship,
+      expectedRow.relationship,
+      `[${check.name}] unexpected relationship for ${expectedRow.moduleId}`
+    );
+    assert.equal(
+      actualRow.tier,
+      expectedRow.tier,
+      `[${check.name}] unexpected tier for ${expectedRow.moduleId}`
+    );
+    assert.equal(
+      actualRow.verification,
+      expectedRow.verification,
+      `[${check.name}] unexpected verification for ${expectedRow.moduleId}`
+    );
+    assert.equal(
+      actualRow.guideHref,
+      expectedRow.guideHref,
+      `[${check.name}] unexpected guide href for ${expectedRow.moduleId}`
+    );
   }
 }
 
@@ -244,27 +296,39 @@ async function signUpAsAdminCandidate(page, baseUrl, email) {
 
 async function captureCheckSnapshot(page) {
   await page.waitForSelector('[data-testid="admin-settings-module-contract"]');
+  const rows = await page.$$eval(
+    '[data-testid="admin-settings-module-contract-row"]',
+    (elements) =>
+      elements.map((element) => {
+        const queryText = (selector) =>
+          element.querySelector(selector)?.textContent?.trim() || '';
+        const queryHref = (selector) =>
+          element.querySelector(selector)?.getAttribute('href') || '';
 
-  const tierText = await page.textContent(
-    '[data-testid="admin-settings-module-contract-tier"] [data-slot="badge"]'
+        return {
+          moduleId: element.getAttribute('data-module-id') || '',
+          title: queryText(
+            '[data-testid="admin-settings-module-contract-title"] span:last-child'
+          ),
+          relationship: queryText(
+            '[data-testid="admin-settings-module-contract-relationship"] [data-slot="badge"]'
+          ),
+          tier: queryText(
+            '[data-testid="admin-settings-module-contract-tier"] [data-slot="badge"]'
+          ),
+          verification: queryText(
+            '[data-testid="admin-settings-module-contract-verification"] [data-slot="badge"]'
+          ),
+          guideHref: queryHref(
+            '[data-testid="admin-settings-module-contract-guide-link"]'
+          ),
+        };
+      })
   );
-  const verificationText = await page.textContent(
-    '[data-testid="admin-settings-module-contract-verification"] [data-slot="badge"]'
-  );
-  const guideHref = await page.getAttribute(
-    '[data-testid="admin-settings-module-contract-guide-link"]',
-    'href'
-  );
-  const supportingText = await page.textContent(
-    '[data-testid="admin-settings-module-contract-supporting"]'
-  ).catch(() => null);
 
   return {
     visible: true,
-    tierText: tierText?.trim() || '',
-    verificationText: verificationText?.trim() || '',
-    guideHref: guideHref || '',
-    supportingText: supportingText?.trim() || null,
+    rows,
   };
 }
 

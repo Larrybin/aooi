@@ -20,6 +20,12 @@ export async function getSettingGroups() {
       tab: 'general',
     },
     {
+      name: 'content_modules',
+      title: t('groups.content_modules'),
+      description: 'custom your docs and blog module settings',
+      tab: 'content',
+    },
+    {
       name: 'email_auth',
       title: t('groups.email_auth'),
       description: 'custom your email auth settings',
@@ -109,6 +115,12 @@ export async function getSettingGroups() {
       title: t('groups.r2'),
       description: 'custom your cloudflare r2 settings',
       tab: 'storage',
+    },
+    {
+      name: 'ai_module',
+      title: t('groups.ai_module'),
+      description: 'custom your ai module availability',
+      tab: 'ai',
     },
     {
       name: 'openrouter',
