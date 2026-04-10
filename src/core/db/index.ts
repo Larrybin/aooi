@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -229,6 +230,13 @@ function createWorkersDb(
   return drizzle(checkedClient);
 }
 
+const getWorkersDbForRequest = cache(
+  (
+    databaseUrl: string,
+    options: Parameters<typeof postgres>[1]
+  ): ReturnType<typeof drizzle> => createWorkersDb(databaseUrl, options)
+);
+
 export function db() {
   let databaseUrl = serverEnv.databaseUrl;
 
@@ -276,7 +284,7 @@ export function db() {
   // Cloudflare Workers: create a fresh client per request.
   // Reusing a postgres/Hyperdrive client across requests can hang in Workers.
   if (runningInCloudflareWorkers) {
-    return createWorkersDb(
+    return getWorkersDbForRequest(
       databaseUrl,
       {
         prepare: false,

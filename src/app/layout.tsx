@@ -5,7 +5,7 @@ import '@/config/style/global.css';
 
 import { defaultLocale, isRtlLocale } from '@/config/locale';
 import { getAllConfigsSafe } from '@/shared/models/config';
-import { getAdsManagerWithConfigs } from '@/shared/services/ads';
+import { getAdsRuntimeForRequest } from '@/shared/services/ads';
 import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
 import { getAnalyticsManagerWithConfigs } from '@/shared/services/analytics';
 import { getCustomerServiceWithConfigs } from '@/shared/services/customer_service';
@@ -41,11 +41,12 @@ export default async function RootLayout({
   if (isProduction || isDebug) {
     const { configs } = await getAllConfigsSafe();
 
-    // get ads components
-    const adsService = getAdsManagerWithConfigs(configs);
-    adsMetaTags = adsService.getMetaTags();
-    adsHeadScripts = adsService.getHeadScripts();
-    adsBodyScripts = adsService.getBodyScripts();
+    const adsRuntime = await getAdsRuntimeForRequest();
+    if (adsRuntime.enabled) {
+      adsMetaTags = adsRuntime.provider.getMetaTags();
+      adsHeadScripts = adsRuntime.provider.getHeadScripts();
+      adsBodyScripts = adsRuntime.provider.getBodyScripts();
+    }
 
     // get analytics components
     const analyticsService = getAnalyticsManagerWithConfigs(configs);

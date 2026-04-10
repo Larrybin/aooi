@@ -1,27 +1,36 @@
 import 'server-only';
 
-import { AdsenseProvider, AdsManager } from '@/extensions/ads';
-import type { Configs } from '@/shared/models/config';
+import { cache } from 'react';
 
+import { getAllConfigsSafe, type Configs } from '@/shared/models/config';
+
+import { resolveAdsRuntime, type ResolvedAdsRuntime } from './ads-runtime';
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
-/**
- * get ads manager with configs
- */
-export function getAdsManagerWithConfigs(configs: Configs) {
-  const ads = new AdsManager();
+export {
+  getAdsTxtBody,
+  resolveAdsRuntime,
+  type ResolvedAdsRuntime,
+} from './ads-runtime';
 
-  // adsense
-  if (configs.adsense_code) {
-    ads.addProvider(new AdsenseProvider({ adId: configs.adsense_code }));
+export function getAdsRuntimeWithConfigs(configs: Configs): ResolvedAdsRuntime {
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.NEXT_PUBLIC_DEBUG !== 'true'
+  ) {
+    return { enabled: false };
   }
 
-  return ads;
+  return resolveAdsRuntime(configs);
 }
 
-/**
- * global ads service
- */
-export async function getAdsService(): Promise<AdsManager> {
-  return await buildServiceFromLatestConfigs(getAdsManagerWithConfigs);
+export async function getAdsRuntime(): Promise<ResolvedAdsRuntime> {
+  return await buildServiceFromLatestConfigs(getAdsRuntimeWithConfigs);
 }
+
+export const getAdsRuntimeForRequest = cache(
+  async (): Promise<ResolvedAdsRuntime> => {
+    const { configs } = await getAllConfigsSafe();
+    return getAdsRuntimeWithConfigs(configs);
+  }
+);

@@ -1,17 +1,6 @@
+import { AdZone } from '@/extensions/ads';
 import type { Landing } from '@/shared/types/blocks/landing';
-import {
-  CTA,
-  FAQ,
-  Features,
-  FeaturesAccordion,
-  FeaturesList,
-  FeaturesStep,
-  Hero,
-  Logos,
-  Stats,
-  Subscribe,
-  Testimonials,
-} from '@/themes/default/blocks';
+import { LandingPageView } from '@/themes/default/pages/landing-view';
 
 export default async function LandingPage({
   locale: _locale,
@@ -21,20 +10,15 @@ export default async function LandingPage({
   page: Landing;
 }) {
   return (
-    <>
-      {page.hero && <Hero hero={page.hero} />}
-      {page.logos && <Logos logos={page.logos} />}
-      {page.introduce && <FeaturesList features={page.introduce} />}
-      {page.benefits && <FeaturesAccordion features={page.benefits} />}
-      {page.usage && <FeaturesStep features={page.usage} />}
-      {page.features && <Features features={page.features} />}
-      {page.stats && <Stats stats={page.stats} className="bg-muted" />}
-      {page.testimonials && <Testimonials testimonials={page.testimonials} />}
-      {page.subscribe && (
-        <Subscribe subscribe={page.subscribe} className="bg-muted" />
-      )}
-      {page.faq && <FAQ faq={page.faq} />}
-      {page.cta && <CTA cta={page.cta} className="bg-muted" />}
-    </>
+    <LandingPageView
+      page={page}
+      landingInlinePrimaryAd={
+        <AdZone
+          zone="landing_inline_primary"
+          className="py-4 md:py-6"
+          containerClassName="container"
+        />
+      }
+    />
   );
 }

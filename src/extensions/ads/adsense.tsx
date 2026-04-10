@@ -1,49 +1,65 @@
-import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import type { AdsConfigs, AdsProvider } from '@/extensions/ads';
+import { AdsenseSlot } from './adsense-slot';
+import type { AdsProvider, AdsZoneContext, AdsZoneName } from './types';
 
-/**
- * Google adsense configs
- */
-export interface AdsenseConfigs extends AdsConfigs {
-  adId: string;
+export interface AdsenseConfigs {
+  clientId: string;
+  slotIds: Partial<Record<AdsZoneName, string>>;
 }
 
-/**
- * Google adsense provider
- * @website https://adsense.google.com/
- */
 export class AdsenseProvider implements AdsProvider {
   readonly name = 'adsense';
 
-  configs: AdsenseConfigs;
+  constructor(private readonly configs: AdsenseConfigs) {}
 
-  constructor(configs: AdsenseConfigs) {
-    this.configs = configs;
-  }
-
-  getHeadScripts(): ReactNode {
+  getHeadScripts() {
     return (
       <Script
-        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${this.configs.adId}`}
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${this.configs.clientId}`}
         crossOrigin="anonymous"
         strategy="lazyOnload"
       />
     );
   }
 
-  getBodyScripts(): ReactNode {
+  getBodyScripts() {
     return null;
   }
 
-  getMetaTags(): ReactNode {
+  getMetaTags() {
     return (
       <meta
         key={this.name}
         name="google-adsense-account"
-        content={this.configs.adId}
+        content={this.configs.clientId}
       />
     );
+  }
+
+  private getSlot(zone: AdsZoneName) {
+    return this.configs.slotIds[zone] || '';
+  }
+
+  supportsZone(zone: AdsZoneName): boolean {
+    return Boolean(this.getSlot(zone));
+  }
+
+  renderZone(context: AdsZoneContext) {
+    const slot = this.getSlot(context.zone);
+    if (!slot) {
+      return null;
+    }
+
+    return <AdsenseSlot clientId={this.configs.clientId} slot={slot} />;
+  }
+
+  getAdsTxtEntry(): string | null {
+    const publisherId = this.configs.clientId.replace(/^ca-/, '').trim();
+    if (!publisherId) {
+      return null;
+    }
+
+    return `google.com, ${publisherId}, DIRECT, f08c47fec0942fa0`;
   }
 }

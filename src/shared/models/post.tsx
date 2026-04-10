@@ -109,6 +109,7 @@ export async function getPost({
         title: postData.title || '',
         description: postData.description || '',
         content,
+        inlineAdContent: content,
         body: undefined,
         toc: content ? buildPostTocFromMarkdown(content) : undefined,
         created_at:

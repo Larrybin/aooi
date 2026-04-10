@@ -147,9 +147,23 @@ export async function getSettingGroups() {
       tab: 'ai',
     },
     {
+      name: 'ads_basic',
+      title: t('groups.ads_basic'),
+      description: 'choose the active ads provider and enable the ads runtime',
+      tab: 'ads',
+    },
+    {
       name: 'adsense',
       title: t('groups.adsense'),
-      description: 'custom your adsense settings',
+      description:
+        'custom your <a href="https://adsense.google.com/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">AdSense</a> runtime and zone settings',
+      tab: 'ads',
+    },
+    {
+      name: 'adsterra',
+      title: t('groups.adsterra'),
+      description:
+        'custom your <a href="https://adsterra.com/blog/set-up-publishers-dashboard/#add-your-first-website-and-start-monetizing" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Adsterra</a> script and zone settings',
       tab: 'ads',
     },
     {

@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { TOCItems, TOCProvider } from 'fumadocs-ui/components/layout/toc';
 import { CalendarIcon, ListIcon } from 'lucide-react';
@@ -12,7 +13,17 @@ import type { NavItem } from '@/shared/types/blocks/common';
 
 import '@/config/style/docs.css';
 
-export function BlogDetail({ post }: { post: PostType }) {
+import { splitBlogContentForInlineAd } from './blog-detail-inline-content';
+
+export function BlogDetail({
+  post,
+  inlineAd,
+  footerAd,
+}: {
+  post: PostType;
+  inlineAd?: ReactNode;
+  footerAd?: ReactNode;
+}) {
   const t = useTranslations('blog.page');
 
   const crumbItems: NavItem[] = [
@@ -41,6 +52,11 @@ export function BlogDetail({ post }: { post: PostType }) {
     if (showToc || showAuthor) return 'lg:col-span-9';
     return 'lg:col-span-12';
   };
+
+  const contentSplit =
+    inlineAd && post.inlineAdContent
+      ? splitBlogContentForInlineAd(post.inlineAdContent)
+      : null;
 
   return (
     <TOCProvider toc={post.toc || []}>
@@ -82,7 +98,17 @@ export function BlogDetail({ post }: { post: PostType }) {
               {/* Main Content - Center */}
               <div className={getMainColSpan()}>
                 <article className="p-0">
-                  {post.body ? (
+                  {contentSplit ? (
+                    <div className="space-y-10">
+                      <div className="prose prose-lg text-muted-foreground max-w-none space-y-6 *:leading-relaxed">
+                        <MarkdownPreview content={contentSplit.before} />
+                      </div>
+                      {inlineAd}
+                      <div className="prose prose-lg text-muted-foreground max-w-none space-y-6 *:leading-relaxed">
+                        <MarkdownPreview content={contentSplit.after} />
+                      </div>
+                    </div>
+                  ) : post.body ? (
                     <div className="docs text-foreground text-md space-y-4 font-normal *:leading-relaxed">
                       {post.body}
                     </div>
@@ -93,6 +119,7 @@ export function BlogDetail({ post }: { post: PostType }) {
                       </div>
                     )
                   )}
+                  {footerAd}
                 </article>
               </div>
 

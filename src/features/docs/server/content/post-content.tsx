@@ -81,7 +81,6 @@ export async function getLocalPost({
       localPost.data.description || '',
       brand
     ),
-    content: '',
     body,
     toc: localPost.data.toc,
     created_at: frontmatter.created_at
@@ -141,7 +140,6 @@ export async function getLocalPage({
       localPage.data.description || '',
       brand
     ),
-    content: '',
     body,
     toc: localPage.data.toc,
     created_at: frontmatter.created_at

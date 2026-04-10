@@ -19,6 +19,7 @@ export interface Post {
   description?: string;
   image?: string;
   content?: string;
+  inlineAdContent?: string;
   created_at?: string;
   author_name?: string;
   author_role?: string;
