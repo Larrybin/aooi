@@ -111,14 +111,14 @@ Read `content/docs` to start your AI SaaS project.
 
 ### Engineering Guides
 
-| Document                                  | Description                        |
-| ----------------------------------------- | ---------------------------------- |
-| [Auth Guide](docs/guides/auth.md)         | Authentication with Better Auth    |
+| Document                                          | Description                                   |
+| ------------------------------------------------- | --------------------------------------------- |
+| [Auth Guide](docs/guides/auth.md)                 | Authentication with Better Auth               |
 | [Module Contract](docs/guides/module-contract.md) | Product module matrix and verification status |
-| [RBAC Guide](docs/guides/rbac.md)         | Role-Based Access Control          |
-| [Settings Guide](docs/guides/settings.md) | User and admin settings surfaces   |
-| [Payment Guide](docs/guides/payment.md)   | Multi-provider payment integration |
-| [Database Guide](docs/guides/database.md) | Drizzle ORM and migrations         |
+| [RBAC Guide](docs/guides/rbac.md)                 | Role-Based Access Control                     |
+| [Settings Guide](docs/guides/settings.md)         | User and admin settings surfaces              |
+| [Payment Guide](docs/guides/payment.md)           | Multi-provider payment integration            |
+| [Database Guide](docs/guides/database.md)         | Drizzle ORM and migrations                    |
 
 ### Code Quality
 
@@ -162,6 +162,8 @@ Read `content/docs` to start your AI SaaS project.
   - `DEPLOY_TARGET=cloudflare`: full-app on OpenNext/Cloudflare
 - Cross-origin cookie auth topology is intentionally unsupported. `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
 - Cloudflare helper commands:
+  - `pnpm cf:check`
+  - `pnpm cf:check:deploy`
   - `pnpm cf:build`
   - `pnpm cf:preview`
   - `pnpm test:local-auth-spike`
@@ -189,6 +191,167 @@ Read `content/docs` to start your AI SaaS project.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
 - Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id`, `DEPLOY_TARGET="cloudflare"`, `main=".open-next/worker.js"`, and a non-localhost pure-origin `NEXT_PUBLIC_APP_URL`.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
+
+### Cloudflare Deployment Runbook
+
+Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
+This is the shortest supported path. No cross-origin auth split, no fallback origin,
+one Worker serving the app on one canonical origin.
+
+#### 1. Provision the external resources first
+
+You need these before touching the deploy command:
+
+- A PostgreSQL database reachable from Cloudflare Hyperdrive
+- A Cloudflare zone with the production domain already managed in Cloudflare DNS
+- One Hyperdrive instance pointing at that PostgreSQL database
+- One Worker route or custom domain for the app origin
+
+This repo assumes the production app origin and auth origin are the same.
+If you were planning to put auth on another domain, stop. That topology is intentionally unsupported.
+
+#### 2. Update `wrangler.cloudflare.toml`
+
+Edit [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml) and replace the tracked example values with your real project values:
+
+```toml
+name = "your-worker-name"
+main = ".open-next/worker.js"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = false
+preview_urls = false
+
+[[routes]]
+pattern = "app.example.com"
+custom_domain = true
+
+[assets]
+binding = "ASSETS"
+directory = ".open-next/assets"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "your-worker-name"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "your-hyperdrive-id"
+localConnectionString = "postgresql://user:password@127.0.0.1:5432/your_local_db"
+
+[observability]
+enabled = true
+
+[vars]
+DEPLOY_TARGET = "cloudflare"
+NEXT_PUBLIC_APP_URL = "https://app.example.com"
+NEXT_PUBLIC_APP_NAME = "Your App"
+NEXT_PUBLIC_THEME = "default"
+DATABASE_PROVIDER = "postgresql"
+DB_SINGLETON_ENABLED = "true"
+```
+
+Rules that matter:
+
+- `NEXT_PUBLIC_APP_URL` must be a pure origin and must match the route exactly
+- `service` under `WORKER_SELF_REFERENCE` must match `name`
+- `localConnectionString` is for local preview only, but it still needs to point at a real migrated database
+- Do not add `CF_FALLBACK_ORIGIN`; single-origin Cloudflare mode forbids it
+
+#### 3. Set production secrets in Cloudflare
+
+At minimum, set the auth signing secret:
+
+```bash
+pnpm exec wrangler secret put BETTER_AUTH_SECRET --config wrangler.cloudflare.toml
+```
+
+Recommended:
+
+- Use `BETTER_AUTH_SECRET` and leave `AUTH_SECRET` unset unless you have a compatibility reason
+- Generate the secret with `openssl rand -base64 32`
+
+Optional feature secrets such as Resend, Stripe, Creem, or storage credentials are only required if you actually enable those modules.
+
+#### 4. Run database migrations against production
+
+Cloudflare Workers reads PostgreSQL through Hyperdrive at runtime, but schema migrations still need direct database access from your machine or CI job:
+
+```bash
+DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
+```
+
+Run this before the first production deploy and before any later deploy that includes schema changes.
+
+#### 5. Run the local preflight gates
+
+Start with the cheap checks:
+
+```bash
+pnpm cf:check
+pnpm cf:check:deploy
+pnpm cf:build
+```
+
+If you also want runtime confidence before shipping, keep `localConnectionString` valid and run:
+
+```bash
+pnpm test:cf-preview-smoke
+pnpm test:cf-auth-spike
+pnpm test:cf-oauth-spike
+pnpm test:cf-app-smoke
+```
+
+Those commands validate the actual Worker preview path, not a fake static shell.
+
+#### 6. Deploy
+
+The normal production command is:
+
+```bash
+pnpm cf:deploy
+```
+
+This command runs config checks, builds the OpenNext Worker, then deploys with `wrangler.cloudflare.toml`.
+
+`pnpm cf:upload` exists for workflows that separate asset upload from the final publish step, but `pnpm cf:deploy` should be your default.
+
+#### 7. Verify production immediately
+
+Run these checks against the real domain right after deploy:
+
+```bash
+curl -I https://app.example.com
+curl -I https://app.example.com/sign-in
+curl -I https://app.example.com/sign-up
+curl https://app.example.com/api/config/get-configs
+curl -I https://app.example.com/robots.txt
+curl -I https://app.example.com/sitemap.xml
+```
+
+Then manually verify:
+
+- Sign-up
+- Sign-in
+- Sign-out
+- One protected route redirecting back to `/sign-in` on the same origin
+
+If a protected route redirects to another host, treat that as a broken deployment, not a harmless warning.
+
+#### 8. First deploy checklist
+
+Use this exact order the first time:
+
+```bash
+pnpm install
+DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
+pnpm cf:check
+pnpm cf:check:deploy
+pnpm cf:build
+pnpm cf:deploy
+```
+
+If that succeeds, open the production domain and complete one real auth flow before calling the release done.
 
 ## Database Migrations (Required)
 
