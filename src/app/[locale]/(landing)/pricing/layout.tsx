@@ -7,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme/landing';
 import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
-import { AppContextProvider } from '@/shared/contexts/app';
+import { PublicAppProvider } from '@/shared/contexts/app';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import {
   buildBrandPlaceholderValues,
@@ -50,12 +50,12 @@ export default async function PricingLayout({
         'common.locale_detector',
       ]}
     >
-      <AppContextProvider>
+      <PublicAppProvider initialConfigs={publicConfigs}>
         <Layout header={branded.header} footer={branded.footer}>
           <LocaleDetectorLazy />
           {children}
         </Layout>
-      </AppContextProvider>
+      </PublicAppProvider>
     </ScopedIntlProvider>
   );
 }

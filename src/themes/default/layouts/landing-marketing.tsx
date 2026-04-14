@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { AppContextProvider } from '@/shared/contexts/app';
+import { PublicAppProvider } from '@/shared/contexts/app';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
   Footer as FooterType,
@@ -26,7 +26,7 @@ export default async function LandingMarketingLayout({
 
   return (
     <ScopedIntlProvider locale={locale} namespaces={['common.sign']}>
-      <AppContextProvider initialConfigs={publicConfigs}>
+      <PublicAppProvider initialConfigs={publicConfigs}>
         <div className="min-h-screen w-full">
           <MarketingHeader
             header={header}
@@ -40,7 +40,7 @@ export default async function LandingMarketingLayout({
             publicConfigs={publicConfigs}
           />
         </div>
-      </AppContextProvider>
+      </PublicAppProvider>
     </ScopedIntlProvider>
   );
 }

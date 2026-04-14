@@ -1,10 +1,10 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
-import { ChevronsUpDown, Loader2, LogOut, User } from 'lucide-react';
+import { Fragment } from 'react';
+import { ChevronsUpDown, LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { signOut, useSession } from '@/core/auth/client';
+import { signOut } from '@/core/auth/client';
 import { Link, useRouter } from '@/core/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common';
 import {
@@ -28,7 +28,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/shared/components/ui/sidebar';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
+import { useAuthSnapshot } from '@/shared/contexts/auth-snapshot';
 import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { SidebarUser as SidebarUserType } from '@/shared/types/blocks/workspace';
@@ -38,31 +39,20 @@ type SidebarUserProps = {
   initialUser?: AuthSessionUserSnapshot | null;
 };
 
-// SSR/CSR hydration fix: render from a server-provided snapshot on the first pass,
-// then sync with the client session after hydration.
 export function SidebarUser({ user, initialUser }: SidebarUserProps) {
   const t = useTranslations('common.sign');
-  const { data: session, isPending } = useSession();
   const { isMobile, open } = useSidebar();
   const router = useRouter();
-  const [hasMounted, setHasMounted] = useState(false);
-
-  const { setIsShowSignModal } = useAppContext();
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydration gate: switch from SSR snapshot to client session after mount (avoid larger refactor for now).
-    setHasMounted(true);
-  }, []);
+  const snapshot = useAuthSnapshot();
+  const { setIsShowSignModal } = usePublicAppContext();
 
   const handleSignOut = async () => {
     await signOut();
+    router.refresh();
     router.push(user.signout_callback || '/sign-in');
   };
 
-  const sessionUser = session?.user as AuthSessionUserSnapshot | undefined;
-  const authUser = !hasMounted
-    ? (sessionUser ?? initialUser)
-    : (sessionUser ?? (isPending ? initialUser : null));
+  const authUser: AuthSessionUserSnapshot | null = snapshot ?? initialUser ?? null;
 
   if (authUser) {
     return (
@@ -160,16 +150,10 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
     <>
       {open ? (
         <div className="flex h-full items-center justify-center px-4 py-4">
-          {isPending ? (
-            <div className="flex w-full items-center justify-center">
-              <Loader2 className="animate-spin" />
-            </div>
-          ) : (
-            <Button className="w-full" onClick={() => setIsShowSignModal(true)}>
-              <User className="mr-1 h-4 w-4" />
-              {t('sign_in_title')}
-            </Button>
-          )}
+          <Button className="w-full" onClick={() => setIsShowSignModal(true)}>
+            <User className="mr-1 h-4 w-4" />
+            {t('sign_in_title')}
+          </Button>
         </div>
       ) : (
         <SidebarMenu />

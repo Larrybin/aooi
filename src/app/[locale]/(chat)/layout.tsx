@@ -10,7 +10,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { WorkspaceLayout } from '@/shared/blocks/workspace';
-import { AppContextProvider } from '@/shared/contexts/app';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
 import { ChatContextProvider } from '@/shared/contexts/chat';
 import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
@@ -58,15 +59,17 @@ export default async function ChatLayout({
         'ai.chat',
       ]}
     >
-      <AppContextProvider>
-        <ChatContextProvider>
-          <WorkspaceLayout sidebar={sidebar} initialUser={initialUser}>
-            <LocaleDetector />
-            {children}
-          </WorkspaceLayout>
-          <SignModal callbackUrl={sidebar.user?.signin_callback || '/'} />
-        </ChatContextProvider>
-      </AppContextProvider>
+      <PublicAppProvider initialConfigs={publicConfigs}>
+        <AuthSnapshotProvider initialSnapshot={initialUser}>
+          <ChatContextProvider>
+            <WorkspaceLayout sidebar={sidebar} initialUser={initialUser}>
+              <LocaleDetector />
+              {children}
+            </WorkspaceLayout>
+            <SignModal callbackUrl={sidebar.user?.signin_callback || '/'} />
+          </ChatContextProvider>
+        </AuthSnapshotProvider>
+      </PublicAppProvider>
     </ScopedIntlProvider>
   );
 }

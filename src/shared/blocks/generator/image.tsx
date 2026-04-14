@@ -7,7 +7,6 @@ import {
   ImageIcon,
   Loader2,
   Sparkles,
-  User,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -37,10 +36,19 @@ import {
 } from '@/shared/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
+import {
+  resolveSelfUserDetailsForAction,
+  useSelfUserDetails,
+} from '@/shared/hooks/use-self-user-details';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
 import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 
 interface ImageGeneratorProps {
   allowMultipleImages?: boolean;
@@ -166,17 +174,64 @@ export function ImageGenerator({
   );
   const [isMounted, setIsMounted] = useState(false);
 
-  const { user, isCheckSign, setIsShowSignModal, fetchUserCredits } =
-    useAppContext();
+  const { setIsShowSignModal } = usePublicAppContext();
+  const {
+    data: details,
+    error: detailsError,
+    isLoading: isLoadingDetails,
+    refresh: refreshDetails,
+  } = useSelfUserDetails();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const promptLength = prompt.trim().length;
-  const remainingCredits = user?.credits?.remainingCredits ?? 0;
+  const remainingCredits = details?.credits?.remainingCredits ?? 0;
   const isPromptTooLong = promptLength > MAX_PROMPT_LENGTH;
   const isTextToImageMode = activeTab === 'text-to-image';
+  const accountDetailsErrorMessage = useMemo(() => {
+    if (!detailsError) {
+      return null;
+    }
+
+    return formatMessageWithRequestId(
+      'Failed to load account details',
+      getRequestIdFromError(detailsError)
+    );
+  }, [detailsError]);
+
+  const refreshDetailsSafely = useCallback(async () => {
+    try {
+      await refreshDetails();
+    } catch (error) {
+      if (error instanceof RequestIdError && error.status === 401) {
+        setIsShowSignModal(true);
+        return;
+      }
+
+      toastFetchError(error, 'Failed to refresh account details');
+    }
+  }, [refreshDetails, setIsShowSignModal]);
+
+  const resolveDetailsForGenerate = useCallback(async () => {
+    const result = await resolveSelfUserDetailsForAction({
+      currentDetails: details,
+      loadDetails: refreshDetails,
+    });
+
+    if (result.status === 'auth_required') {
+      setIsShowSignModal(true);
+      return null;
+    }
+
+    if (result.status === 'error') {
+      toastFetchError(result.error, 'Failed to load account details');
+      return null;
+    }
+
+    return result.details;
+  }, [details, refreshDetails, setIsShowSignModal]);
 
   useEffect(() => {
     if (activeTab === 'text-to-image') {
@@ -317,7 +372,7 @@ export function ImageGenerator({
           toast.error(errorMessage);
           resetTaskState();
 
-          fetchUserCredits();
+          void refreshDetailsSafely();
 
           return true;
         }
@@ -337,12 +392,12 @@ export function ImageGenerator({
         );
         resetTaskState();
 
-        fetchUserCredits();
+        void refreshDetailsSafely();
 
         return true;
       }
     },
-    [generationStartTime, resetTaskState, fetchUserCredits, t]
+    [generationStartTime, refreshDetailsSafely, resetTaskState, t]
   );
 
   useEffect(() => {
@@ -397,12 +452,12 @@ export function ImageGenerator({
   }, [taskId, isGenerating, pollTaskStatus]);
 
   const handleGenerate = async () => {
-    if (!user) {
-      setIsShowSignModal(true);
+    const nextDetails = await resolveDetailsForGenerate();
+    if (!nextDetails) {
       return;
     }
 
-    if (remainingCredits < costCredits) {
+    if ((nextDetails.credits?.remainingCredits ?? 0) < costCredits) {
       toast.error(t('errors.insufficient_credits'));
       return;
     }
@@ -463,7 +518,7 @@ export function ImageGenerator({
       setTaskId(newTaskId);
       setProgress(25);
 
-      await fetchUserCredits();
+      await refreshDetailsSafely();
     } catch (error: unknown) {
       console.error('Failed to generate image:', error);
       toastFetchError(
@@ -614,12 +669,12 @@ export function ImageGenerator({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {t('loading')}
                   </Button>
-                ) : isCheckSign ? (
+                ) : isLoadingDetails && !details && !isGenerating ? (
                   <Button className="w-full" disabled size="lg">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {t('checking_account')}
                   </Button>
-                ) : user ? (
+                ) : (
                   <Button
                     size="lg"
                     className="w-full"
@@ -644,15 +699,6 @@ export function ImageGenerator({
                       </>
                     )}
                   </Button>
-                ) : (
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    onClick={() => setIsShowSignModal(true)}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    {t('sign_in_to_generate')}
-                  </Button>
                 )}
 
                 {!isMounted ? (
@@ -660,9 +706,14 @@ export function ImageGenerator({
                     <span className="text-primary">
                       {t('credits_cost', { credits: costCredits })}
                     </span>
-                    <span>{t('credits_remaining', { credits: 0 })}</span>
+                    <span>{t('sign_in_to_generate')}</span>
                   </div>
-                ) : user && remainingCredits > 0 ? (
+                ) : accountDetailsErrorMessage ? (
+                  <div className="space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                    <p className="text-destructive">{accountDetailsErrorMessage}</p>
+                    <p className="text-muted-foreground">{t('checking_account')}</p>
+                  </div>
+                ) : details && remainingCredits > 0 ? (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-primary">
                       {t('credits_cost', { credits: costCredits })}
@@ -671,7 +722,7 @@ export function ImageGenerator({
                       {t('credits_remaining', { credits: remainingCredits })}
                     </span>
                   </div>
-                ) : (
+                ) : details ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-primary">
@@ -684,6 +735,17 @@ export function ImageGenerator({
                     <Link href="/pricing">
                       <Button variant="outline" className="w-full" size="lg">
                         <CreditCard className="mr-2 h-4 w-4" />
+                        {t('buy_credits')}
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-primary">
+                      {t('credits_cost', { credits: costCredits })}
+                    </span>
+                    <Link href="/pricing">
+                      <Button variant="outline" size="sm">
                         {t('buy_credits')}
                       </Button>
                     </Link>

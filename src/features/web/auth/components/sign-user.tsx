@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react/jsx-runtime';
 import { useSearchParams } from 'next/navigation';
-import { Coins, LayoutDashboard, Loader2, LogOut, User } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { signOut } from '@/core/auth/client';
@@ -21,7 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
+import { useAuthSnapshot } from '@/shared/contexts/auth-snapshot';
 import {
   normalizeCallbackUrl,
   withCallbackUrl,
@@ -42,8 +43,9 @@ export function SignUser({
   userNav?: UserNav;
 }) {
   const t = useTranslations('common.sign');
-  const { isCheckSign, isShowSignModal, user, setIsShowSignModal, configs } =
-    useAppContext();
+  const snapshot = useAuthSnapshot();
+  const { isShowSignModal, setIsShowSignModal, configs } =
+    usePublicAppContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -57,7 +59,7 @@ export function SignUser({
 
   return (
     <>
-      {user ? (
+      {snapshot ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -66,8 +68,11 @@ export function SignUser({
               data-testid="auth-user-menu-trigger"
             >
               <Avatar>
-                <AvatarImage src={user.image || ''} alt={user.name || ''} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                <AvatarImage
+                  src={snapshot.image || ''}
+                  alt={snapshot.name || ''}
+                />
+                <AvatarFallback>{snapshot.name?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -80,24 +85,7 @@ export function SignUser({
                     href="/settings/profile"
                   >
                     <User />
-                    {user.name}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-
-            {userNav?.show_credits && (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link
-                    className="w-full cursor-pointer"
-                    href="/settings/credits"
-                  >
-                    <Coins />
-                    {t('credits_title', {
-                      credits: user.credits?.remainingCredits || 0,
-                    })}
+                    {snapshot.name || t('sign_in_title')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -125,18 +113,6 @@ export function SignUser({
               </Fragment>
             ))}
 
-            {user.isAdmin && (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link className="w-full cursor-pointer" href="/admin">
-                    <LayoutDashboard />
-                    {t('admin_title')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-
             {userNav?.show_sign_out && (
               <DropdownMenuItem
                 className="w-full cursor-pointer"
@@ -145,6 +121,7 @@ export function SignUser({
                   signOut({
                     fetchOptions: {
                       onSuccess: () => {
+                        router.refresh();
                         router.push('/');
                       },
                     },
@@ -185,9 +162,6 @@ export function SignUser({
             }}
           >
             <Link href={signInHref} prefetch={false}>
-              {isCheckSign ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : null}
               <span>{t('sign_in_title')}</span>
             </Link>
           </Button>

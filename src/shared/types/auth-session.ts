@@ -3,3 +3,14 @@ export type AuthSessionUserSnapshot = {
   email?: string | null;
   image?: string | null;
 };
+
+export type UserCreditsSummary = {
+  remainingCredits: number;
+  expiresAt: string | null;
+};
+
+export type SelfUserDetails = {
+  isAdmin: boolean;
+  credits: UserCreditsSummary | null;
+  currentSubscriptionProductId: string | null;
+};

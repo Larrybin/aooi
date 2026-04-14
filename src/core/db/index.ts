@@ -107,7 +107,7 @@ function createSchemaCheckedClient(
   getSchemaReady: () => Promise<void>
 ): ReturnType<typeof postgres> {
   // Why query-time schema gating?
-  // - `src/instrumentation.ts` runs a best-effort startup check in production (Node runtime only, non-blocking).
+  // - We do not rely on startup hooks to validate database readiness.
   // - In serverless/Workers, startup hooks may not run (or may race), and transient DB failures should self-heal.
   // - We gate all queries on the latest schema check (cached with cooldown) so correctness does not depend on a
   //   successful process start and so a single transient failure won't require a full restart.

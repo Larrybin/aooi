@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle,
@@ -38,11 +38,19 @@ import {
 } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
+import {
+  resolveSelfUserDetailsForAction,
+  useSelfUserDetails,
+} from '@/shared/hooks/use-self-user-details';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
 import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
-import { RequestIdError } from '@/shared/lib/request-id';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
 
 interface GeneratedSong {
@@ -64,8 +72,13 @@ interface SongGeneratorProps {
 
 export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   const t = useTranslations('ai.music');
-  const { user, isCheckSign, setIsShowSignModal, fetchUserCredits } =
-    useAppContext();
+  const { setIsShowSignModal } = usePublicAppContext();
+  const {
+    data: details,
+    error: detailsError,
+    isLoading: isLoadingDetails,
+    refresh: refreshDetails,
+  } = useSelfUserDetails();
 
   // Form state
   const [provider] = useState('kie');
@@ -117,6 +130,49 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       audioRef.current = null;
     };
   }, []);
+
+  const accountDetailsErrorMessage = useMemo(() => {
+    if (!detailsError) {
+      return null;
+    }
+
+    return formatMessageWithRequestId(
+      'Failed to load account details',
+      getRequestIdFromError(detailsError)
+    );
+  }, [detailsError]);
+
+  const refreshDetailsSafely = useCallback(async () => {
+    try {
+      await refreshDetails();
+    } catch (error) {
+      if (error instanceof RequestIdError && error.status === 401) {
+        setIsShowSignModal(true);
+        return;
+      }
+
+      toastFetchError(error, 'Failed to refresh account details');
+    }
+  }, [refreshDetails, setIsShowSignModal]);
+
+  const resolveDetailsForGenerate = useCallback(async () => {
+    const result = await resolveSelfUserDetailsForAction({
+      currentDetails: details,
+      loadDetails: refreshDetails,
+    });
+
+    if (result.status === 'auth_required') {
+      setIsShowSignModal(true);
+      return null;
+    }
+
+    if (result.status === 'error') {
+      toastFetchError(result.error, 'Failed to load account details');
+      return null;
+    }
+
+    return result.details;
+  }, [details, refreshDetails, setIsShowSignModal]);
 
   // Task polling
   const pollTaskStatus = useCallback(
@@ -234,7 +290,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
             })
           );
 
-          fetchUserCredits();
+          void refreshDetailsSafely();
 
           return true;
         }
@@ -281,12 +337,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
           })
         );
 
-        fetchUserCredits();
+        void refreshDetailsSafely();
 
         return true; // Stop polling on error
       }
     },
-    [generationStartTime, fetchUserCredits, t]
+    [generationStartTime, refreshDetailsSafely, t]
   );
 
   // Start task polling
@@ -321,12 +377,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   }, [taskId, isGenerating, pollTaskStatus]);
 
   const handleGenerate = async () => {
-    if (!user) {
-      setIsShowSignModal(true);
+    const nextDetails = await resolveDetailsForGenerate();
+    if (!nextDetails) {
       return;
     }
 
-    if (!user.credits || user.credits.remainingCredits < costCredits) {
+    if ((nextDetails.credits?.remainingCredits ?? 0) < costCredits) {
       toast.error(t('generator.errors.insufficient_credits'));
       return;
     }
@@ -410,7 +466,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       const taskId = data.id.trim();
 
       // refresh user credits
-      await fetchUserCredits();
+      await refreshDetailsSafely();
 
       setTaskId(taskId);
       setProgress(20);
@@ -629,12 +685,12 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                     <Music className="mr-2 h-4 w-4" />
                     {t('generator.generate')}
                   </Button>
-                ) : isCheckSign ? (
+                ) : isLoadingDetails && !details && !isGenerating ? (
                   <Button className="w-full" size="lg">
                     <Loader2 className="size-4 animate-spin" />{' '}
                     {t('generator.loading')}
                   </Button>
-                ) : user ? (
+                ) : (
                   <Button
                     onClick={handleGenerate}
                     disabled={isGenerating}
@@ -653,15 +709,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                       </>
                     )}
                   </Button>
-                ) : (
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={() => setIsShowSignModal(true)}
-                  >
-                    <User className="mr-2 h-4 w-4" />{' '}
-                    {t('generator.sign_in_to_generate')}
-                  </Button>
                 )}
 
                 {!isMounted ? (
@@ -670,33 +717,49 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                       {t('generator.credits_cost', { credits: costCredits })}
                     </span>
                     <span className="text-foreground font-medium">
-                      {t('generator.credits_remaining', { credits: 0 })}
+                      {t('generator.sign_in_to_generate')}
                     </span>
                   </div>
-                ) : user &&
-                  user.credits &&
-                  user.credits.remainingCredits > 0 ? (
+                ) : accountDetailsErrorMessage ? (
+                  <div className="mb-6 space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                    <p className="text-destructive">{accountDetailsErrorMessage}</p>
+                    <p className="text-muted-foreground">
+                      {t('generator.loading')}
+                    </p>
+                  </div>
+                ) : (details?.credits?.remainingCredits ?? 0) > 0 ? (
                   <div className="mb-6 flex items-center justify-between text-sm">
                     <span className="text-primary">
                       {t('generator.credits_cost', { credits: costCredits })}
                     </span>
                     <span className="text-foreground font-medium">
                       {t('generator.credits_remaining', {
-                        credits: user.credits.remainingCredits,
+                        credits: details?.credits?.remainingCredits ?? 0,
                       })}
                     </span>
                   </div>
-                ) : (
+                ) : details ? (
                   <div className="mb-6 flex items-center justify-between text-sm">
                     <span className="text-primary">
                       {t('generator.credits_cost', { credits: costCredits })},{' '}
                       {t('generator.credits_remaining', {
-                        credits: user?.credits?.remainingCredits || 0,
+                        credits: details?.credits?.remainingCredits || 0,
                       })}
                     </span>
                     <Link href="/pricing">
                       <Button className="w-full" size="lg" variant="outline">
                         <CreditCard className="size-4" />{' '}
+                        {t('generator.buy_credits')}
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="mb-6 flex items-center justify-between text-sm">
+                    <span className="text-primary">
+                      {t('generator.credits_cost', { credits: costCredits })}
+                    </span>
+                    <Link href="/pricing">
+                      <Button size="sm" variant="outline">
                         {t('generator.buy_credits')}
                       </Button>
                     </Link>

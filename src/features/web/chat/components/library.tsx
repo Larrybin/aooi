@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/shared/components/ui/sidebar';
-import { useAppContext } from '@/shared/contexts/app';
+import { useAuthSnapshot } from '@/shared/contexts/auth-snapshot';
 import { useChatContext } from '@/shared/contexts/chat';
 import { fetchApiData } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
@@ -23,7 +23,7 @@ export function ChatLibrary() {
   const t = useTranslations('ai.chat.library');
   const params = useParams();
 
-  const { user } = useAppContext();
+  const snapshot = useAuthSnapshot();
 
   const { chats, setChats } = useChatContext();
   const [hasMore, setHasMore] = useState(false);
@@ -34,7 +34,7 @@ export function ChatLibrary() {
   const limit = 10;
 
   useEffect(() => {
-    if (!user) {
+    if (!snapshot) {
       return;
     }
 
@@ -60,7 +60,7 @@ export function ChatLibrary() {
     };
 
     void fetchChats();
-  }, [user, page, limit, setChats]);
+  }, [snapshot, page, limit, setChats]);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">

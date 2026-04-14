@@ -12,7 +12,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { Skeleton } from '@/shared/components/ui/skeleton';
-import { useAppContext } from '@/shared/contexts/app';
+import { useAuthSnapshot } from '@/shared/contexts/auth-snapshot';
 import { fetchApiData } from '@/shared/lib/api/client';
 import { formatRelativeTime } from '@/shared/lib/date/format';
 import {
@@ -43,7 +43,7 @@ export function ChatHistory() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, isCheckSign } = useAppContext();
+  const snapshot = useAuthSnapshot();
 
   const page = useMemo(() => {
     const value = Number(searchParams.get('page') || '1');
@@ -89,7 +89,7 @@ export function ChatHistory() {
   );
 
   const fetchChats = useCallback(async () => {
-    if (!user) {
+    if (!snapshot) {
       return;
     }
 
@@ -115,41 +115,33 @@ export function ChatHistory() {
     } finally {
       setLoading(false);
     }
-  }, [limit, page, t, user]);
+  }, [limit, page, snapshot, t]);
 
   useEffect(() => {
-    if (!user || isCheckSign) {
+    if (!snapshot) {
       return;
     }
     fetchChats();
-  }, [fetchChats, isCheckSign, user]);
+  }, [fetchChats, snapshot]);
 
   useEffect(() => {
     if (
       !loading &&
-      user &&
+      snapshot &&
       total > 0 &&
       chats.length === 0 &&
       page > totalPages
     ) {
       handlePageChange(totalPages);
     }
-  }, [chats.length, handlePageChange, loading, page, total, totalPages, user]);
+  }, [chats.length, handlePageChange, loading, page, snapshot, total, totalPages]);
 
   const handleRetry = () => {
     fetchChats();
   };
 
   const renderContent = () => {
-    if (isCheckSign) {
-      return (
-        <div className="flex h-[40vh] items-center justify-center">
-          <Skeleton className="h-6 w-40" />
-        </div>
-      );
-    }
-
-    if (!user) {
+    if (!snapshot) {
       return <Empty message={t('signin')} />;
     }
 

@@ -349,6 +349,9 @@ export default async function SettingsPage({
                   className="flex flex-wrap items-center gap-4 rounded-md border p-3"
                   data-testid="admin-settings-module-contract-row"
                   data-module-id={moduleContract.moduleId}
+                  data-relationship={moduleContract.relationship}
+                  data-tier={moduleContract.tier}
+                  data-verification={moduleContract.verification}
                 >
                   <div
                     className="flex items-center gap-2"

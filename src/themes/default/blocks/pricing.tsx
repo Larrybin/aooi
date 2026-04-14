@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -23,12 +23,21 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
+import {
+  resolveSelfUserDetailsForAction,
+  useSelfUserDetails,
+} from '@/shared/hooks/use-self-user-details';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
 import { getCookie } from '@/shared/lib/cookie';
-import { RequestIdError } from '@/shared/lib/request-id';
+import {
+  formatMessageWithRequestId,
+  getRequestIdFromError,
+  RequestIdError,
+} from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
+import type { SelfUserDetails } from '@/shared/types/auth-session';
 import type {
   PricingCurrency,
   PricingItem,
@@ -71,22 +80,32 @@ export function Pricing({
 }) {
   const locale = useLocale();
   const t = useTranslations('pricing.page');
-  const { user, setIsShowSignModal, setIsShowPaymentModal, configs } =
-    useAppContext();
-  const currentSubscriptionProductId = user?.currentSubscriptionProductId;
+  const { setIsShowSignModal, setIsShowPaymentModal, configs } =
+    usePublicAppContext();
+  const {
+    data: details,
+    error: detailsError,
+    isLoading: isLoadingDetails,
+    refresh: refreshDetails,
+  } = useSelfUserDetails();
+  const currentSubscriptionProductId =
+    details?.currentSubscriptionProductId ?? null;
+  const pricingAccountErrorMessage = useMemo(() => {
+    if (!detailsError) {
+      return null;
+    }
+
+    return formatMessageWithRequestId(
+      'Failed to load pricing account details',
+      getRequestIdFromError(detailsError)
+    );
+  }, [detailsError]);
 
   const [group, setGroup] = useState(() => {
-    // find current pricing item
-    const currentItem = pricing.items?.find(
-      (i) => i.product_id === currentSubscriptionProductId
-    );
-
     // First look for a group with is_featured set to true
     const featuredGroup = pricing.groups?.find((g) => g.is_featured);
     // If no featured group exists, fall back to the first group
-    return (
-      currentItem?.group || featuredGroup?.name || pricing.groups?.[0]?.name
-    );
+    return featuredGroup?.name || pricing.groups?.[0]?.name;
   });
 
   useEffect(() => {
@@ -155,9 +174,30 @@ export function Pricing({
     setSelectedCurrencies((prev) => ({ ...prev, [productId]: currency }));
   };
 
-  const handlePayment = async (item: PricingItem) => {
-    if (!user) {
+  const resolveDetailsForPayment = useCallback(async () => {
+    const result = await resolveSelfUserDetailsForAction({
+      currentDetails: details,
+      loadDetails: refreshDetails,
+    });
+
+    if (result.status === 'auth_required') {
       setIsShowSignModal(true);
+      return null;
+    }
+
+    if (result.status === 'error') {
+      toastFetchError(result.error, 'Failed to load pricing account details');
+      return null;
+    }
+
+    return result.details;
+  }, [details, refreshDetails, setIsShowSignModal]);
+
+  const handlePayment = async (item: PricingItem) => {
+    setProductId(item.product_id);
+    const accountDetails = await resolveDetailsForPayment();
+    if (!accountDetails) {
+      setProductId(null);
       return;
     }
 
@@ -165,12 +205,23 @@ export function Pricing({
     const displayedItem =
       itemCurrencies[item.product_id]?.displayedItem || item;
 
+    if (accountDetails.currentSubscriptionProductId === displayedItem.product_id) {
+      setProductId(null);
+      return;
+    }
+
     if (configs.select_payment_enabled === 'true') {
       setPricingItem(displayedItem);
       setIsShowPaymentModal(true);
-    } else {
-      handleCheckout(displayedItem, configs.default_payment_provider);
+      setProductId(null);
+      return;
     }
+
+    void handleCheckout(
+      displayedItem,
+      configs.default_payment_provider,
+      accountDetails
+    );
   };
 
   const getAffiliateMetadata = ({
@@ -206,11 +257,17 @@ export function Pricing({
 
   const handleCheckout = async (
     item: PricingItem,
-    paymentProvider?: string
+    paymentProvider?: string,
+    accountDetails?: SelfUserDetails
   ) => {
     try {
-      if (!user) {
-        setIsShowSignModal(true);
+      const resolvedDetails =
+        accountDetails ?? (await resolveDetailsForPayment());
+      if (!resolvedDetails) {
+        return;
+      }
+
+      if (resolvedDetails.currentSubscriptionProductId === item.product_id) {
         return;
       }
 
@@ -294,6 +351,12 @@ export function Pricing({
       </div>
 
       <div className="relative container max-w-6xl">
+        {pricingAccountErrorMessage && (
+          <div className="border-destructive/30 bg-destructive/5 text-destructive mb-8 rounded-2xl border px-4 py-3 text-sm">
+            {pricingAccountErrorMessage}
+          </div>
+        )}
+
         {pricing.groups && pricing.groups.length > 0 && (
           <div className="mx-auto mt-8 mb-10 flex w-full flex-col items-center gap-4 md:max-w-2xl">
             <Tabs value={group} onValueChange={setGroup} className="">
@@ -455,14 +518,15 @@ export function Pricing({
                   ) : (
                     <Button
                       onClick={() => handlePayment(item)}
-                      disabled={isLoading}
+                      disabled={isLoading || isLoadingDetails}
                       className={cn(
                         'focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
                         'mt-2 h-11 w-full px-4 py-2',
                         'bg-primary text-primary-foreground hover:bg-primary/90 border-[0.5px] border-white/25 shadow-md shadow-black/20'
                       )}
                     >
-                      {isLoading && item.product_id === productId ? (
+                      {((isLoading && item.product_id === productId) ||
+                        (isLoadingDetails && item.product_id === productId)) ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
                           <span className="block">{t('processing')}</span>

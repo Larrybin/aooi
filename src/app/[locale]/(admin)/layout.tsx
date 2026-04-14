@@ -8,7 +8,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
-import { AppContextProvider } from '@/shared/contexts/app';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
 import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
 import {
@@ -105,13 +106,15 @@ export default async function AdminLayout({
         'admin.settings',
       ]}
     >
-      <AppContextProvider>
-        <WorkspaceLayout sidebar={filteredSidebar} initialUser={initialUser}>
-          <LocaleDetector />
-          {children}
-        </WorkspaceLayout>
-        <SignModal callbackUrl={filteredSidebar.user?.signin_callback || '/'} />
-      </AppContextProvider>
+      <PublicAppProvider initialConfigs={publicConfigs}>
+        <AuthSnapshotProvider initialSnapshot={initialUser}>
+          <WorkspaceLayout sidebar={filteredSidebar} initialUser={initialUser}>
+            <LocaleDetector />
+            {children}
+          </WorkspaceLayout>
+          <SignModal callbackUrl={filteredSidebar.user?.signin_callback || '/'} />
+        </AuthSnapshotProvider>
+      </PublicAppProvider>
     </ScopedIntlProvider>
   );
 }

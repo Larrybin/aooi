@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 
 import { Link } from '@/core/i18n/navigation';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
 import {
   isConfigTrue,
   parseGeneralSocialLinks,
@@ -24,7 +24,7 @@ export function GeneralSocialLinks({
   iconSize?: number;
   configs?: Record<string, string>;
 }) {
-  const { configs: contextConfigs } = useAppContext();
+  const { configs: contextConfigs } = usePublicAppContext();
   const configs = configsProp ?? contextConfigs;
   const generalSocialLinks = configs['general_social_links'] ?? '';
   const items = useMemo(

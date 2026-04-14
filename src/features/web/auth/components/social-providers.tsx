@@ -8,7 +8,7 @@ import { signIn, withAuthJsonRequest } from '@/core/auth/client';
 import { normalizeSocialAuthorizationUrl } from '@/core/auth/social-authorization-url';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
 import { normalizeCallbackUrl } from '@/shared/lib/callback-url';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import { cn } from '@/shared/lib/utils';
@@ -29,7 +29,7 @@ export function SocialProviders({
   const t = useTranslations('common.sign');
   const locale = useLocale();
 
-  const { setIsShowSignModal } = useAppContext();
+  const { setIsShowSignModal } = usePublicAppContext();
 
   const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({

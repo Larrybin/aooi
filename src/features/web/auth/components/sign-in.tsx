@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { signIn, withAuthJsonRequest } from '@/core/auth/client';
-import { Link } from '@/core/i18n/navigation';
+import { Link, useRouter } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -42,6 +42,7 @@ export function SignIn({
 }) {
   const t = useTranslations('common.sign');
   const locale = useLocale();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,7 +94,9 @@ export function SignIn({
           onResponse: () => {
             setLoading(false);
           },
-          onSuccess: () => {},
+          onSuccess: () => {
+            router.refresh();
+          },
           onError: (ctx: AuthErrorContext) => {
             toast.error(ctx.error?.message || t('sign_in_failed'));
             setLoading(false);

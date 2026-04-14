@@ -9,7 +9,9 @@ import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
-import { AppContextProvider } from '@/shared/contexts/app';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
+import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import {
   buildBrandPlaceholderValues,
@@ -34,6 +36,7 @@ export default async function ActivityLayout({
   if (!isAiEnabled(publicConfigs)) {
     notFound();
   }
+  const initialSnapshot = await getSignedInUserSnapshot();
 
   const t = await getTranslations('activity.sidebar');
   const tl = await getTranslations('landing');
@@ -66,19 +69,21 @@ export default async function ActivityLayout({
         'common.locale_detector',
       ]}
     >
-      <AppContextProvider>
-        <Layout header={header} footer={footer}>
-          <LocaleDetector />
-          <ConsoleLayout
-            title={title}
-            nav={nav}
-            topNav={topNav}
-            className="py-16 md:py-20"
-          >
-            {children}
-          </ConsoleLayout>
-        </Layout>
-      </AppContextProvider>
+      <PublicAppProvider initialConfigs={publicConfigs}>
+        <AuthSnapshotProvider initialSnapshot={initialSnapshot}>
+          <Layout header={header} footer={footer}>
+            <LocaleDetector />
+            <ConsoleLayout
+              title={title}
+              nav={nav}
+              topNav={topNav}
+              className="py-16 md:py-20"
+            >
+              {children}
+            </ConsoleLayout>
+          </Layout>
+        </AuthSnapshotProvider>
+      </PublicAppProvider>
     </ScopedIntlProvider>
   );
 }

@@ -6,12 +6,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { signIn, withAuthJsonRequest } from '@/core/auth/client';
-import { Link } from '@/core/i18n/navigation';
+import { Link, useRouter } from '@/core/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
 import {
   normalizeCallbackUrl,
   withCallbackUrl,
@@ -31,12 +31,13 @@ export function SignInForm({
 }) {
   const t = useTranslations('common.sign');
   const locale = useLocale();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { configs, setIsShowSignModal } = useAppContext();
+  const { configs, setIsShowSignModal } = usePublicAppContext();
 
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
   const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
@@ -87,6 +88,7 @@ export function SignInForm({
           },
           onSuccess: () => {
             setIsShowSignModal(false);
+            router.refresh();
           },
           onError: (ctx: AuthErrorContext) => {
             toast.error(ctx.error?.message || t('sign_in_failed'));

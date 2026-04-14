@@ -9,7 +9,8 @@ import { useRouter } from '@/core/i18n/navigation';
 import { LocaleSelector } from '@/shared/blocks/common';
 import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
-import { useAppContext } from '@/shared/contexts/app';
+import { usePublicAppContext } from '@/shared/contexts/app';
+import { useAuthSnapshot } from '@/shared/contexts/auth-snapshot';
 import { useChatContext } from '@/shared/contexts/chat';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson } from '@/shared/lib/api/fetch-json';
@@ -27,7 +28,8 @@ export function ChatGenerator() {
 
   const t = useTranslations('ai.chat.generator');
 
-  const { user, setIsShowSignModal } = useAppContext();
+  const snapshot = useAuthSnapshot();
+  const { setIsShowSignModal } = usePublicAppContext();
   const { chats, setChats, setChat } = useChatContext();
 
   const [status, setStatus] = useState<UseChatHelpers<UIMessage>['status']>();
@@ -82,7 +84,7 @@ export function ChatGenerator() {
     body: Record<string, unknown>
   ) => {
     // check user sign
-    if (!user) {
+    if (!snapshot) {
       setIsShowSignModal(true);
       return;
     }
