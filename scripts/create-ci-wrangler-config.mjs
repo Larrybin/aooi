@@ -16,11 +16,44 @@ function replaceQuotedValue(content, pattern, nextValue, label) {
   return content.replace(pattern, `$1${escapeTomlBasicString(nextValue)}$3`);
 }
 
+function normalizeTomlPath(value) {
+  return value.split(path.sep).join('/');
+}
+
+function rebaseRelativeTomlPath({
+  content,
+  pattern,
+  label,
+  templatePath,
+  outputPath,
+}) {
+  const match = content.match(pattern);
+  if (!match?.[2]) {
+    throw new Error(`missing ${label} in wrangler config template`);
+  }
+
+  const currentPath = match[2];
+  if (path.isAbsolute(currentPath)) {
+    return content;
+  }
+
+  const rebasedPath = normalizeTomlPath(
+    path.relative(
+      path.dirname(outputPath),
+      path.resolve(path.dirname(templatePath), currentPath)
+    )
+  );
+
+  return content.replace(pattern, `$1${escapeTomlBasicString(rebasedPath)}$3`);
+}
+
 export function buildCiWranglerConfig({
   template,
   databaseUrl,
   appUrl,
   deployTarget = 'cloudflare',
+  templatePath = path.resolve(rootDir, 'wrangler.cloudflare.toml'),
+  outputPath = path.resolve(rootDir, '.tmp/wrangler.cloudflare.ci.toml'),
 }) {
   let nextContent = replaceQuotedValue(
     template,
@@ -42,6 +75,22 @@ export function buildCiWranglerConfig({
     deployTarget,
     'vars.DEPLOY_TARGET'
   );
+
+  nextContent = rebaseRelativeTomlPath({
+    content: nextContent,
+    pattern: /(^\s*main\s*=\s*")([^"\n]*)(")/m,
+    label: 'main',
+    templatePath,
+    outputPath,
+  });
+
+  nextContent = rebaseRelativeTomlPath({
+    content: nextContent,
+    pattern: /(^\s*directory\s*=\s*")([^"\n]*)(")/m,
+    label: 'assets.directory',
+    templatePath,
+    outputPath,
+  });
 
   return nextContent;
 }
@@ -87,6 +136,8 @@ async function main() {
     databaseUrl,
     appUrl,
     deployTarget,
+    templatePath,
+    outputPath,
   });
 
   await mkdir(path.dirname(outputPath), { recursive: true });

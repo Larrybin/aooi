@@ -5,6 +5,11 @@ import { buildCiWranglerConfig } from '../../scripts/create-ci-wrangler-config.m
 
 test('buildCiWranglerConfig 注入 CI 数据库、preview app url 与 deploy target', () => {
   const template = `
+main = ".open-next/worker.js"
+
+[assets]
+directory = ".open-next/assets"
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = ""
@@ -20,8 +25,12 @@ NEXT_PUBLIC_APP_URL = "http://localhost:3000"
     databaseUrl: 'postgresql://postgres:postgres@127.0.0.1:5432/aooi',
     appUrl: 'http://127.0.0.1:8787',
     deployTarget: 'cloudflare',
+    templatePath: '/repo/wrangler.cloudflare.toml',
+    outputPath: '/repo/.tmp/wrangler.cloudflare.ci.toml',
   });
 
+  assert.match(config, /main = "\.\.\/\.open-next\/worker\.js"/);
+  assert.match(config, /directory = "\.\.\/\.open-next\/assets"/);
   assert.match(
     config,
     /localConnectionString = "postgresql:\/\/postgres:postgres@127\.0\.0\.1:5432\/aooi"/

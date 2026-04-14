@@ -145,7 +145,8 @@ export async function validateCloudflareAppSmokeResponse(
     const location = response.headers.get('location') || '';
     assert.ok(location, `[${check.name}] missing Location header`);
 
-    const url = new URL(location);
+    const responseUrl = response.url || `http://localhost${check.path || '/'}`;
+    const url = new URL(location, responseUrl);
     if (check.expectedLocationOrigin) {
       assert.equal(
         url.origin,

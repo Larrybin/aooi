@@ -99,3 +99,7 @@ jobs:
       - name: Run Cloudflare full-app smoke gate
         if: matrix.deploy_target == 'cloudflare'
         run: pnpm test:cf-app-smoke
+
+      - name: Run Cloudflare admin settings smoke gate
+        if: matrix.deploy_target == 'cloudflare'
+        run: pnpm test:cf-admin-settings-smoke

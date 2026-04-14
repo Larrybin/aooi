@@ -67,6 +67,27 @@ test('validateCloudflareAppSmokeResponse 校验 protected route 的同源重定�
   await validateCloudflareAppSmokeResponse(check, response, '');
 });
 
+test('validateCloudflareAppSmokeResponse 支持相对 Location 重定向头', async () => {
+  const check = getCloudflareAppSmokeProtectedChecks({
+    baseUrlOrigin: 'http://127.0.0.1:8787',
+  }).find((item) => item.name === 'admin-settings-auth-protected');
+  assert(check);
+
+  const response = new Response(null, {
+    status: 307,
+    headers: {
+      location: '/sign-in?callbackUrl=%2Fadmin%2Fsettings%2Fauth',
+    },
+  });
+
+  Object.defineProperty(response, 'url', {
+    configurable: true,
+    value: 'http://127.0.0.1:8787/admin/settings/auth',
+  });
+
+  await validateCloudflareAppSmokeResponse(check, response, '');
+});
+
 test('validateCloudflareAppSmokeResponse 在 HTML 缺少关键内容时失败', async () => {
   const check = getCloudflareAppSmokeChecks().find(
     (item) => item.name === 'landing-page'
