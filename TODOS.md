@@ -2,6 +2,18 @@
 
 ## Review
 
+### Cloudflare Admin Settings Phase 2 写路径验证
+
+**What:** 为 Cloudflare `admin/settings/**` 增加第二阶段验证，覆盖关键写操作、配置保存、以及 provider 级提交成功/失败路径。
+
+**Why:** 第一阶段只读 smoke 只能证明页面族可信，不能证明真实配置提交在 Cloudflare Worker 上可用。没有这条后续验证，团队很容易把“页面能打开”误当成“配置链路已被验证”。
+
+**Context:** 当前已批准的一阶段方案是：7 个代表 tab、全 locale、结构契约优先、PR gate、混合 runner。它明确不做真实写入和第三方 provider 成功链路。建议未来第二阶段至少覆盖：保存成功、保存失败、配置回读一致、关键 provider 的 happy path/denied path，以及执行后状态清理。起点可直接复用本次新增的 `cf-admin-settings-smoke`、现有 RBAC/bootstrap、以及现有 `test:r2-upload-spike` / OAuth spike 的 runner 模式。
+
+**Effort:** M
+**Priority:** P1
+**Depends on:** Cloudflare admin settings 第一阶段 smoke 落地并稳定进入 CI
+
 ### Ads provider/zone 扩展指南
 
 **What:** 为 ads provider/zone 系统补一份短的扩展指南，说明新增 provider 或 zone 时需要同步修改哪些位置。

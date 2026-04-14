@@ -170,6 +170,7 @@ Read `content/docs` to start your AI SaaS project.
   - `pnpm test:cf-auth-spike`
   - `pnpm test:cf-oauth-spike`
   - `pnpm test:cf-app-smoke`
+  - `pnpm test:cf-admin-settings-smoke`
   - `pnpm test:creem-webhook-spike`
   - `pnpm test:r2-upload-spike`
   - `pnpm test:cf-preview-smoke`
@@ -185,6 +186,8 @@ Read `content/docs` to start your AI SaaS project.
 - `pnpm test:cf-preview-smoke` now prefers the real Wrangler `Ready on http://...` URL instead of assuming port `8787`, and only falls back to `CF_PREVIEW_URL` / `CF_PREVIEW_APP_URL` if log parsing fails.
 - `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
 - `pnpm test:cf-app-smoke` is now read-only. It no longer upserts `app_url`, `general_docs_enabled`, or `general_ai_enabled`, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing preview server.
+- `pnpm test:cf-admin-settings-smoke` is the dedicated Cloudflare admin/settings gate. It keeps `cf-app-smoke` small, covers `general/auth/payment/ai/content/email/storage` across all locales, and verifies only route/permission/structure/module-contract signals instead of provider writes or translated copy.
+- `pnpm test:cf-admin-settings-smoke` runs one preview lifecycle, seeds RBAC once, checks unauthenticated same-origin redirects with callback preservation, verifies non-admin denial to `/admin/no-permission`, and validates `super_admin` module-contract rows plus form shell rendering without mutating config rows.
 - `pnpm test:cf-auth-spike` runs the full Cloudflare preview auth spike on one local Worker surface: fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out. It auto-generates a unique email alias per run and writes Markdown/JSON reports plus Playwright failure screenshots.
 - `pnpm test:cf-oauth-spike` is a real Cloudflare preview OAuth acceptance command. It injects deterministic in-memory Google + GitHub auth config under `AUTH_SPIKE_OAUTH_MOCK=true`, drives the real `/sign-in` social buttons in the browser, mocks only provider authorize/token/userinfo, and exercises Better Auth callback, session establishment, same-origin callback-target access, denial handling, and sign-out on the Worker surface without mutating the local `config` table.
 - `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
@@ -300,6 +303,7 @@ pnpm test:cf-preview-smoke
 pnpm test:cf-auth-spike
 pnpm test:cf-oauth-spike
 pnpm test:cf-app-smoke
+pnpm test:cf-admin-settings-smoke
 ```
 
 Those commands validate the actual Worker preview path, not a fake static shell.
@@ -356,7 +360,7 @@ If that succeeds, open the production domain and complete one real auth flow bef
 ## Database Migrations (Required)
 
 - Before starting the app in staging/production, apply migrations: `pnpm db:migrate`.
-- If migrations are not applied, the server may fail fast on startup due to schema checks (e.g. missing `role.deleted_at`).
+- If migrations are not applied, the first database-backed request will fail with the schema guard until `pnpm db:migrate` is applied.
 
 ## Auth Secret (Production Required)
 
