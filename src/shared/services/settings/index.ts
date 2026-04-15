@@ -17,6 +17,9 @@ export type { Setting, SettingGroup } from './types';
 
 export { getSettingGroups } from './groups';
 export { getSettingTabs } from './tabs';
+export { createSettingsSubmitAction } from './settings-actions';
+export { mapSettingsToForms } from './settings-form-mapper';
+export { normalizeSettingOverrides } from './settings-normalizers';
 
 const ALL_SETTINGS: Setting[] = [
   ...generalSettings,

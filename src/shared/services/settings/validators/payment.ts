@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { tryJsonParse } from '@/shared/lib/json';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
