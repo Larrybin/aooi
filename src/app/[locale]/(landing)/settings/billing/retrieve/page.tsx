@@ -5,13 +5,13 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   findSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNo,
 } from '@/shared/models/subscription';
-import { getUserInfo } from '@/shared/models/user';
 import { getPaymentService } from '@/shared/services/payment';
 
 export default async function RetrieveBillingPage({
@@ -29,7 +29,7 @@ export default async function RetrieveBillingPage({
     return <Empty message={t('errors.invalid_subscription_no')} />;
   }
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message={t('errors.no_auth')} />;
   }

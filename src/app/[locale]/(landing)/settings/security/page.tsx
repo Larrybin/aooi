@@ -3,12 +3,12 @@
 // reason: user-specific security entry page
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
-import { getUserInfo } from '@/shared/models/user';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 
 export default async function SecurityPage() {
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message="no auth" />;
   }

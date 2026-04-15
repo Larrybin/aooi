@@ -4,16 +4,16 @@
 import { getTranslations } from 'next-intl/server';
 
 import type { PaymentType } from '@/extensions/payment';
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   getOrders,
   getOrdersCount,
   OrderStatus,
   type Order,
 } from '@/shared/models/order';
-import { getUserInfo } from '@/shared/models/user';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -44,7 +44,7 @@ export default async function PaymentsPage({
     ? `/settings/payments?${cleanQuery.toString()}`
     : '/settings/payments';
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message="no auth" />;
   }

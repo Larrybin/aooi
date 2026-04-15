@@ -7,14 +7,14 @@
 import 'server-only';
 
 import { hasPermission } from '@/core/rbac';
-import { getUserInfo } from '@/shared/models/user';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 
 import { assertCsrf } from './csrf.server';
 import { ForbiddenError, UnauthorizedError } from './errors';
 
 export async function requireUser(req: Request) {
   assertCsrf(req);
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     throw new UnauthorizedError('no auth, please sign in');
   }

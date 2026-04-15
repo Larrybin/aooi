@@ -3,7 +3,8 @@ import 'server-only';
 import { redirect } from '@/core/i18n/navigation';
 import { hasAnyRole, hasRole } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getSignUser } from '@/shared/models/user';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
 import { getPermissionCheckerForRequest } from '@/shared/services/rbac_request_cache';
 
 export { PERMISSIONS };
@@ -41,7 +42,7 @@ function deny(
 }
 
 async function requireSignedInUser(ctx: RedirectContext) {
-  const user = await getSignUser();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     deny('User not authenticated', ctx);
   }
@@ -174,7 +175,7 @@ export async function requireAdminAccess({
   redirectUrl?: string;
   locale?: string;
 }): Promise<unknown> {
-  const user = await getSignUser();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     redirectTo('/sign-in', locale);
   }
@@ -199,8 +200,8 @@ export async function getCurrentUserWithPermission({
 }: {
   code: string;
   locale?: string;
-}): Promise<{ id: string; email: string; name: string } | null> {
-  const user = await getSignUser();
+}): Promise<AuthSessionUserIdentity | null> {
+  const user = await getSignedInUserIdentity();
   if (!user) return null;
 
   const allowed = await getPermissionCheckerForRequest(user.id).has(code);
@@ -219,7 +220,7 @@ export async function checkPageAccess({
   codes: string[];
   locale?: string;
 }): Promise<boolean> {
-  const user = await getSignUser();
+  const user = await getSignedInUserIdentity();
   if (!user) return false;
 
   return getPermissionCheckerForRequest(user.id).hasAny(codes);

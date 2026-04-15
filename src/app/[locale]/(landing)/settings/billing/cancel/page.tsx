@@ -5,19 +5,19 @@ import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   findSubscriptionBySubscriptionNo,
   SubscriptionStatus,
   updateSubscriptionBySubscriptionNo,
 } from '@/shared/models/subscription';
-import { getUserInfo } from '@/shared/models/user';
 import { getPaymentService } from '@/shared/services/payment';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form } from '@/shared/types/blocks/form';
@@ -38,7 +38,7 @@ export default async function CancelBillingPage({
     return <Empty message={tb('errors.invalid_subscription_no')} />;
   }
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message={tb('errors.no_auth')} />;
   }

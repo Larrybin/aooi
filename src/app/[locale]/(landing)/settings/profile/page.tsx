@@ -3,21 +3,22 @@
 // reason: user-specific settings page
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { logger } from '@/shared/lib/logger.server';
-import { getUserInfo, updateUser, type UpdateUser } from '@/shared/models/user';
+import { updateUser, type UpdateUser } from '@/shared/models/user';
 import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-profile';
 import type { Form as FormType } from '@/shared/types/blocks/form';
 
 export default async function ProfilePage() {
   const t = await getTranslations('settings.profile');
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message={t('no_auth')} />;
   }

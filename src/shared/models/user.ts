@@ -4,22 +4,8 @@ import { count, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { user } from '@/config/db/schema';
-import { getSignedInUser } from '@/shared/lib/auth-session.server';
 
-import type { Permission, Role } from '../services/rbac';
-
-export interface UserCredits {
-  remainingCredits: number;
-  expiresAt: string | null;
-}
-
-export type User = typeof user.$inferSelect & {
-  isAdmin?: boolean;
-  credits?: UserCredits;
-  currentSubscriptionProductId?: string;
-  roles?: Role[];
-  permissions?: Permission[];
-};
+export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type UpdateUser = Partial<Omit<NewUser, 'id' | 'createdAt' | 'email'>>;
 
@@ -74,16 +60,6 @@ export async function getUserByUserIds(userIds: string[]) {
     .where(inArray(user.id, userIds));
 
   return result;
-}
-
-export async function getUserInfo() {
-  const signUser = await getSignUser();
-
-  return signUser;
-}
-
-export async function getSignUser() {
-  return await getSignedInUser();
 }
 
 export type WithUserId = {

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getUserInfo } from '@/shared/models/user';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { getPermissionCheckerForRequest } from '@/shared/services/rbac_request_cache';
 
 import { ActionError } from './errors';
@@ -9,7 +9,7 @@ import { ActionError } from './errors';
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export async function requireActionUser() {
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     throw new ActionError('no auth');
   }

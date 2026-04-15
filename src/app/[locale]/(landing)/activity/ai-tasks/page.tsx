@@ -5,16 +5,18 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { AITaskStatus } from '@/extensions/ai';
-import { AudioPlayer, Empty, LazyImage } from '@/shared/blocks/common';
+import { AudioPlayer } from '@/shared/blocks/common/audio-player';
+import { Empty } from '@/shared/blocks/common/empty';
+import { LazyImage } from '@/shared/blocks/common/lazy-image';
 import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
   getAITasks,
   getAITasksCount,
   type AITask,
 } from '@/shared/models/ai_task';
-import { getUserInfo } from '@/shared/models/user';
 import type { Button, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -33,7 +35,7 @@ export default async function AiTasksPage({
 
   const t = await getTranslations('activity.ai-tasks');
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message={t('errors.no_auth')} />;
   }

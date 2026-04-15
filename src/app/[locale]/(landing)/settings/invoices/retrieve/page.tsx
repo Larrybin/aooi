@@ -3,13 +3,13 @@
 // reason: user-specific invoice retrieval; do not cache redirects
 import { redirect } from 'next/navigation';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   findOrderByOrderNo,
   updateOrderByOrderNo,
 } from '@/shared/models/order';
-import { getUserInfo } from '@/shared/models/user';
 import { getPaymentService } from '@/shared/services/payment';
 
 export default async function RetrieveInvoicePage({
@@ -26,7 +26,7 @@ export default async function RetrieveInvoicePage({
     return <Empty message="invalid order no" />;
   }
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message="no auth, please sign in" />;
   }

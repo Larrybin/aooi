@@ -4,11 +4,11 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
-import { getUserInfo } from '@/shared/models/user';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -27,7 +27,7 @@ export default async function ChatsPage({
 
   const t = await getTranslations('activity.chats');
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message={t('errors.no_auth')} />;
   }

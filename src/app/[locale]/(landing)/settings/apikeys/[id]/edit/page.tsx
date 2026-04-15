@@ -3,19 +3,19 @@
 // reason: user-specific write flow
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   findApikeyById,
   updateApikey,
   type UpdateApikey,
 } from '@/shared/models/apikey';
-import { getUserInfo } from '@/shared/models/user';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form as FormType } from '@/shared/types/blocks/form';
@@ -31,7 +31,7 @@ export default async function EditApiKeyPage({
     return <Empty message="API key not found" />;
   }
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message="no auth" />;
   }

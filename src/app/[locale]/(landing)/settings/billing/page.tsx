@@ -4,10 +4,11 @@
 import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
 import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   getCurrentSubscription,
   getSubscriptions,
@@ -15,7 +16,6 @@ import {
   SubscriptionStatus,
   type Subscription,
 } from '@/shared/models/subscription';
-import { getUserInfo } from '@/shared/models/user';
 import type { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -48,7 +48,7 @@ export default async function BillingPage({
 
   const t = await getTranslations('settings.billing');
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message={t('errors.no_auth')} />;
   }

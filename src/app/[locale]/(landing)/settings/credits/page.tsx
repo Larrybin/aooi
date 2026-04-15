@@ -3,9 +3,10 @@
 // reason: user-specific credits and history
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
   CreditStatus,
   getCredits,
@@ -14,7 +15,6 @@ import {
   type Credit,
   type CreditTransactionType,
 } from '@/shared/models/credit';
-import { getUserInfo } from '@/shared/models/user';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -27,7 +27,7 @@ export default async function CreditsPage({
   const page = pageNum || 1;
   const limit = pageSize || 20;
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message="no auth" />;
   }

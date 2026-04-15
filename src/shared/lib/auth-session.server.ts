@@ -1,20 +1,43 @@
 import 'server-only';
 
+import { and, eq, gt } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
-import { getAuth } from '@/core/auth';
-import type { AuthSessionUserSnapshot } from '@/shared/types/auth-session';
-import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-user-snapshot';
+import { db } from '@/core/db';
+import { session, user } from '@/config/db/schema';
+import type {
+  AuthSessionUserIdentity,
+  AuthSessionUserSnapshot,
+} from '@/shared/types/auth-session';
+import { createRequestScopedAuthSessionReader } from '@/shared/lib/auth-session-reader';
 
-export async function getSignedInUser() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+async function readSignedInUserIdentityBySessionToken(
+  sessionToken: string
+): Promise<AuthSessionUserIdentity | null> {
+  const [signedInUser] = await db()
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+    })
+    .from(session)
+    .innerJoin(user, eq(session.userId, user.id))
+    .where(
+      and(eq(session.token, sessionToken), gt(session.expiresAt, new Date()))
+    )
+    .limit(1);
 
-  return session?.user;
+  return signedInUser ?? null;
+}
+
+const requestScopedAuthSessionReader =
+  createRequestScopedAuthSessionReader(readSignedInUserIdentityBySessionToken);
+
+export async function getSignedInUserIdentity(): Promise<AuthSessionUserIdentity | null> {
+  return requestScopedAuthSessionReader.getIdentity((await headers()).get('cookie'));
 }
 
 export async function getSignedInUserSnapshot(): Promise<AuthSessionUserSnapshot | null> {
-  return toAuthSessionUserSnapshot(await getSignedInUser());
+  return requestScopedAuthSessionReader.getSnapshot((await headers()).get('cookie'));
 }
