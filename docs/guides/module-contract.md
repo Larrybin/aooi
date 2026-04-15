@@ -77,6 +77,6 @@ Current evidence points:
 - `pnpm test:cf-auth-spike`
 - `pnpm test:cf-oauth-spike`
 - `pnpm test:cf-app-smoke`
-- `pnpm test:cf-preview-smoke`
+- `pnpm test:cf-local-smoke`
 
 The deploy contract guide remains engineering-heavy by design. It is not an optional provider matrix.

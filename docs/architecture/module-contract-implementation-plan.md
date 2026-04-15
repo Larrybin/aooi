@@ -231,7 +231,7 @@
 - `pnpm test:cf-auth-spike`
 - `pnpm test:cf-oauth-spike`
 - `pnpm test:cf-app-smoke`
-- `pnpm test:cf-preview-smoke`
+- `pnpm test:cf-local-smoke`
 - `pnpm test:creem-webhook-spike`
 - `pnpm test:r2-upload-spike`
 

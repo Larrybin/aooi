@@ -51,7 +51,7 @@ Notes:
 - The route is `force-dynamic`, and responses are marked `Cache-Control: no-store`.
 - This route is exercised by the shared dual-runtime auth spike (`pnpm test:local-auth-spike`) plus the Cloudflare-only auth spike (`pnpm test:cf-auth-spike`).
 - Runtime parity now uses a fixed diff/whitelist helper: `status`, `cache-control`, `content-type` MIME, same-origin `location` path+query, `set-cookie` presence/count, and cookie security semantics must match; only `date`, `x-request-id`, `x-vercel-id`, and `cf-ray` are ignored.
-- The local dual-runtime harness still depends on `wrangler.cloudflare.toml` `localConnectionString` reaching a migrated Postgres instance. In CI, `Dual Deploy Acceptance` generates a temporary Wrangler config and points preview at the service-container Postgres instead of using the tracked local DSN.
+- The local dual-runtime harness depends on a generated temporary Wrangler config whose `localConnectionString` points at a migrated Postgres instance. Tracked Wrangler templates keep `localConnectionString = ""`.
 
 ```typescript
 // src/app/api/auth/[...all]/route.ts
@@ -176,8 +176,8 @@ Notes:
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
-- 本地双端 auth 验收默认使用 `wrangler.cloudflare.toml` 的 `localConnectionString` 作为 Cloudflare 侧数据库，同时给本地 Node 面注入同一条 `DATABASE_URL`，确保两个 surface 跑的是同一份数据。
-- CI 中的 `Dual Deploy Acceptance` 不会直接读取仓库里的 `wrangler.cloudflare.toml` 本地连接串；它会生成一份临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container，这样 Node 与 Cloudflare preview 共用同一份测试数据库。
+- 本地双端 auth 验收默认从 `AUTH_SPIKE_DATABASE_URL` 或 `DATABASE_URL` 生成临时 Wrangler config，并把同一条连接串注入本地 Node 面，确保两个 surface 跑的是同一份数据。
+- CI 中的 `Dual Deploy Acceptance` 同样生成临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container；仓库里的 Wrangler 模板不再存储本地数据库连接串。
 
 ### Optional
 

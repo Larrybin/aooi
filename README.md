@@ -161,45 +161,30 @@ Read `content/docs` to start your AI SaaS project.
   - `DEPLOY_TARGET=vercel`: full-app on Vercel/Node
   - `DEPLOY_TARGET=cloudflare`: full-app on OpenNext/Cloudflare
 - Cross-origin cookie auth topology is intentionally unsupported. `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
+- Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The router lives in [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml); each server Worker has its own `cloudflare/wrangler.server-*.toml`.
+- Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
+- Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical multi-worker topology under the authoritative `wrangler versions upload --dry-run` gzip gate. The measured gzip sizes were `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, and `router 0.14 MiB`.
 - Cloudflare helper commands:
   - `pnpm cf:check`
-  - `pnpm cf:check:deploy`
   - `pnpm cf:build`
-  - `pnpm cf:preview`
-  - `pnpm test:local-auth-spike`
-  - `pnpm test:cf-auth-spike`
-  - `pnpm test:cf-oauth-spike`
+  - `pnpm test:cf-local-smoke`
   - `pnpm test:cf-app-smoke`
-  - `pnpm test:cf-admin-settings-smoke`
-  - `pnpm test:creem-webhook-spike`
-  - `pnpm test:r2-upload-spike`
-  - `pnpm test:cf-preview-smoke`
   - `pnpm cf:deploy`
-  - `pnpm cf:upload`
-- `.github/workflows/cloudflare-preview-smoke.yaml` remains the fast repeated-request regression gate.
-- `.github/workflows/dual-deploy-acceptance.yaml` now runs a `vercel|cloudflare` matrix, provisions a Postgres service container, and generates a temporary Cloudflare preview config for Worker-based checks.
+- `.github/workflows/dual-deploy-acceptance.yaml` keeps Cloudflare CI on `pnpm cf:check`, `pnpm cf:build`, and `pnpm test:cf-local-smoke`.
 - Single-origin deployment governance is documented in `docs/architecture/dual-deploy-governance.md`.
-- Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
-- `pnpm cf:preview` is a real full-app preview path: it reads DB-backed config via Hyperdrive and `wrangler.cloudflare.toml` `localConnectionString`, so config-driven pages follow your local `config` table state instead of hardcoded preview defaults.
-- `pnpm test:local-auth-spike` boots a local Node surface and a local Cloudflare preview surface, then runs the shared dual-runtime auth harness against both. It now prefers reusing a healthy same-repo Node dev server from `.next/dev/lock`; otherwise it starts a clean local Node surface and still fails fast when Node/preview bootstrap exits early.
-- `pnpm test:cf-preview-smoke` is the regression gate for the Workers DB hang fix. It checks `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice in a row against Cloudflare preview so “first request works, second request hangs” gets caught automatically.
-- `pnpm test:cf-preview-smoke` now prefers the real Wrangler `Ready on http://...` URL instead of assuming port `8787`, and only falls back to `CF_PREVIEW_URL` / `CF_PREVIEW_APP_URL` if log parsing fails.
+- Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
-- `pnpm test:cf-app-smoke` is now read-only. It no longer upserts `app_url`, `general_docs_enabled`, or `general_ai_enabled`, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing preview server.
-- `pnpm test:cf-admin-settings-smoke` is the dedicated Cloudflare admin/settings gate. It keeps `cf-app-smoke` small, covers `general/auth/payment/ai/content/email/storage` across all locales, and verifies only route/permission/structure/module-contract signals instead of provider writes or translated copy.
-- `pnpm test:cf-admin-settings-smoke` runs one preview lifecycle, seeds RBAC once, checks unauthenticated same-origin redirects with callback preservation, verifies non-admin denial to `/admin/no-permission`, and validates `super_admin` module-contract rows plus form shell rendering without mutating config rows.
-- `pnpm test:cf-auth-spike` runs the full Cloudflare preview auth spike on one local Worker surface: fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out. It auto-generates a unique email alias per run and writes Markdown/JSON reports plus Playwright failure screenshots.
-- `pnpm test:cf-oauth-spike` is a real Cloudflare preview OAuth acceptance command. It injects deterministic in-memory Google + GitHub auth config under `AUTH_SPIKE_OAUTH_MOCK=true`, drives the real `/sign-in` social buttons in the browser, mocks only provider authorize/token/userinfo, and exercises Better Auth callback, session establishment, same-origin callback-target access, denial handling, and sign-out on the Worker surface without mutating the local `config` table.
+- `pnpm test:cf-app-smoke` is now read-only. It no longer upserts `app_url`, `general_docs_enabled`, or `general_ai_enabled`, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing smoke target.
 - `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
-- Cloudflare config contract: local preview uses `[[hyperdrive]].localConnectionString`; real deploy/upload requires `[[hyperdrive]].id`, `DEPLOY_TARGET="cloudflare"`, `main=".open-next/worker.js"`, and a non-localhost pure-origin `NEXT_PUBLIC_APP_URL`.
+- Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and canonical `NEXT_PUBLIC_APP_URL`.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 
 ### Cloudflare Deployment Runbook
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
-This is the shortest supported path. No cross-origin auth split, no fallback origin,
-one Worker serving the app on one canonical origin.
+The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` is the canonical local runtime gate, and final production acceptance is decided by `pnpm cf:deploy` plus `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -213,13 +198,13 @@ You need these before touching the deploy command:
 This repo assumes the production app origin and auth origin are the same.
 If you were planning to put auth on another domain, stop. That topology is intentionally unsupported.
 
-#### 2. Update `wrangler.cloudflare.toml`
+#### 2. Update router + server Wrangler configs
 
-Edit [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml) and replace the tracked example values with your real project values:
+Edit [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml) and the relevant `cloudflare/wrangler.server-*.toml` files together:
 
 ```toml
-name = "your-worker-name"
-main = ".open-next/worker.js"
+name = "your-router-worker-name"
+main = "cloudflare/workers/router.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 workers_dev = false
@@ -235,12 +220,12 @@ directory = ".open-next/assets"
 
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
-service = "your-worker-name"
+service = "your-router-worker-name"
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "your-hyperdrive-id"
-localConnectionString = "postgresql://user:password@127.0.0.1:5432/your_local_db"
+localConnectionString = ""
 
 [observability]
 enabled = true
@@ -258,7 +243,10 @@ Rules that matter:
 
 - `NEXT_PUBLIC_APP_URL` must be a pure origin and must match the route exactly
 - `service` under `WORKER_SELF_REFERENCE` must match `name`
-- `localConnectionString` is for local preview only, but it still needs to point at a real migrated database
+- each server worker needs its own `cloudflare/wrangler.server-*.toml` with no public `[[routes]]`
+- the canonical server worker set is `public-web/auth/payment/member/chat/admin`; keep names, bindings, and split ownership aligned with `src/shared/config/cloudflare-worker-splits.ts`
+- router services and server worker names must stay in sync with `src/shared/config/cloudflare-worker-splits.ts`
+- tracked Wrangler templates must keep `localConnectionString = ""`; local and CI DSNs only enter generated temporary configs
 - Do not add `CF_FALLBACK_ORIGIN`; single-origin Cloudflare mode forbids it
 
 #### 3. Set production secrets in Cloudflare
@@ -271,7 +259,16 @@ pnpm exec wrangler secret put BETTER_AUTH_SECRET --config wrangler.cloudflare.to
 
 Recommended:
 
+- In multi-worker Cloudflare mode, set the same `BETTER_AUTH_SECRET` on the router worker and every `cloudflare/wrangler.server-*.toml` worker config
 - Use `BETTER_AUTH_SECRET` and leave `AUTH_SECRET` unset unless you have a compatibility reason
+
+#### 4. Local and CI runtime wiring
+
+Do not put a real local PostgreSQL DSN into tracked Wrangler files.
+
+- Local smoke uses `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL` plus `pnpm test:cf-local-smoke`
+- CI generates temporary Wrangler configs and temporary secrets files before local runtime smoke
+- `pnpm cf:deploy` also deploys from temporary Wrangler configs and `--secrets-file`; tracked templates stay secret-free
 - Generate the secret with `openssl rand -base64 32`
 
 Optional feature secrets such as Resend, Stripe, Creem, or storage credentials are only required if you actually enable those modules.
@@ -286,27 +283,16 @@ DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
 
 Run this before the first production deploy and before any later deploy that includes schema changes.
 
-#### 5. Run the local preflight gates
+#### 5. Run the build gates
 
 Start with the cheap checks:
 
 ```bash
 pnpm cf:check
-pnpm cf:check:deploy
 pnpm cf:build
 ```
 
-If you also want runtime confidence before shipping, keep `localConnectionString` valid and run:
-
-```bash
-pnpm test:cf-preview-smoke
-pnpm test:cf-auth-spike
-pnpm test:cf-oauth-spike
-pnpm test:cf-app-smoke
-pnpm test:cf-admin-settings-smoke
-```
-
-Those commands validate the actual Worker preview path, not a fake static shell.
+`pnpm cf:build` must keep every deployable Worker bundle under the Cloudflare 3 MiB gzip limit as verified by `wrangler versions upload --dry-run`. If it fails, do not deploy.
 
 #### 6. Deploy
 
@@ -316,9 +302,7 @@ The normal production command is:
 pnpm cf:deploy
 ```
 
-This command runs config checks, builds the OpenNext Worker, then deploys with `wrangler.cloudflare.toml`.
-
-`pnpm cf:upload` exists for workflows that separate asset upload from the final publish step, but `pnpm cf:deploy` should be your default.
+This command runs config checks, builds the OpenNext multi-worker bundles, bootstraps brand-new workers when needed, and otherwise uploads server worker versions plus the router version with version-affinity overrides before deploying the batch.
 
 #### 7. Verify production immediately
 
@@ -350,7 +334,6 @@ Use this exact order the first time:
 pnpm install
 DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
 pnpm cf:check
-pnpm cf:check:deploy
 pnpm cf:build
 pnpm cf:deploy
 ```

@@ -56,27 +56,23 @@ DB_SINGLETON_ENABLED = "true"
 Notes:
 
 - `DATABASE_PROVIDER` currently supports `postgresql` only.
-- Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in `wrangler.cloudflare.toml`.
+- Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in the tracked Wrangler templates, but keep `localConnectionString = ""` there and inject local DSNs only through generated temporary configs.
 - Production `src/instrumentation.ts` now validates auth secret presence only. Database readiness and schema validation are enforced at query time inside `src/core/db/index.ts`; there is no longer a production DB startup probe in instrumentation.
-- `pnpm cf:preview` is not a fake public-page mode; it requires `[[hyperdrive]]` `localConnectionString` plus a migrated local database, and config-driven pages reflect the real `config` table state.
-- `pnpm test:local-auth-spike` is the local dual-runtime auth acceptance script. It boots local Node plus Cloudflare preview, then runs one shared auth spike across both surfaces. The latest recorded local dual-runtime report is `PASS`; the script now prefers reusing a healthy same-repo Node dev server from `.next/dev/lock`, and still fails fast when Node/preview bootstrap exits early or when `[[hyperdrive]].localConnectionString` is not actually reachable.
-- `pnpm test:cf-preview-smoke` is the fast regression gate for DB-backed auth shell rendering in Workers preview. It hits `/api/config/get-configs`, `/sign-up`, and `/sign-in` twice to catch cross-request DB client reuse bugs.
-- `pnpm test:cf-preview-smoke` now resolves the actual Wrangler ready URL from stdout and only falls back to `CF_PREVIEW_URL` / `CF_PREVIEW_APP_URL` when log parsing fails, so preview smoke no longer depends on port `8787` being fixed.
-- `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It covers public entrypoints and same-origin protected-route redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
-- `pnpm test:cf-app-smoke` is read-only by design. It must never rewrite public config rows such as `app_url`, `general_docs_enabled`, or `general_ai_enabled`.
-- `pnpm test:cf-admin-settings-smoke` is the dedicated Cloudflare `admin/settings/**` gate. It covers `general/auth/payment/ai/content/email/storage` across all locales, keeps `cf-app-smoke` small, and only asserts stable route/permission/structure/module-contract signals.
-- `pnpm test:cf-admin-settings-smoke` uses one preview lifecycle plus one-time RBAC bootstrap, checks unauthenticated same-origin sign-in redirects with callback preservation, verifies non-admin denial to `/admin/no-permission`, and validates `super_admin` module-contract rows plus form shell rendering without testing provider writes.
-- `pnpm test:cf-auth-spike` builds on that and runs the full Cloudflare preview auth path: fresh sign-up, sign-in, protected profile read, invalid-session redirect, and sign-out, all against one local Worker surface.
-- `pnpm test:cf-oauth-spike` is the dedicated OAuth follow-up harness. It boots Cloudflare preview, injects deterministic Google + GitHub auth config under `AUTH_SPIKE_OAUTH_MOCK=true`, drives the real `/sign-in` social buttons in Playwright, and mocks only provider authorize/token/userinfo responses. The harness does not write or restore local `config` rows.
+- Cloudflare preview is removed from the supported contract. The repo now targets a router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers with version affinity.
+- `pnpm cf:check` validates the router + server Wrangler configs against `src/shared/config/cloudflare-worker-splits.ts`.
+- `pnpm cf:build` runs the OpenNext multi-bundle build and hard-fails if any required Worker bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
+- `pnpm test:cf-local-smoke` is the canonical local Cloudflare runtime gate. It generates the full temporary topology, starts all server Workers with `wrangler dev`, then starts the router with `opennextjs-cloudflare preview`, and finally runs the read-only smoke against the router origin.
+- `pnpm cf:deploy` is the only supported Cloudflare deploy entry. It bootstraps brand-new Workers with `wrangler deploy`, and uses version-affinity rollout for steady-state deploys.
+- Multi-worker Cloudflare auth requires the same `BETTER_AUTH_SECRET` on the router Worker and every `cloudflare/wrangler.server-*.toml` Worker; missing the secret on any server Worker will surface as production 500s during instrumentation startup.
+- `pnpm test:cf-app-smoke` is the post-deploy production read-only smoke. It covers public entrypoints, image routing, and same-origin protected-route redirects back to `/sign-in`.
 - `pnpm test:creem-webhook-spike` covers Creem webhook signature verification and duplicate renewal idempotency.
 - `pnpm test:r2-upload-spike` covers R2 upload success/failure semantics (valid image, invalid MIME, provider init failure, upload failure).
-- `.github/workflows/cloudflare-preview-smoke.yaml` now provisions a Postgres service container, runs migrations, generates a temporary Wrangler config, and runs the repeated-request preview smoke against the real Worker preview path.
-- `.github/workflows/dual-deploy-acceptance.yaml` now provisions a Postgres service container, migrates it, generates a temporary Wrangler config that points preview at that CI database, and runs `pnpm test`, `pnpm cf:build`, `pnpm test:cf-auth-spike`, `pnpm test:cf-oauth-spike`, `pnpm test:cf-app-smoke`, and `pnpm test:cf-admin-settings-smoke`.
+- `.github/workflows/dual-deploy-acceptance.yaml` keeps Cloudflare CI on `pnpm cf:check`, `pnpm cf:build`, and `pnpm test:cf-local-smoke`.
 - Cloudflare state is governed as `first-class` / `preview-only` / `blocked`; see `docs/architecture/dual-deploy-governance.md`.
 - Auth spike raw conclusions now have explicit governance actions; use the decision table in `docs/architecture/dual-deploy-governance.md` instead of inferring policy from exit codes.
-- Current repo status is `first-class`: Vercel and Cloudflare are both governed single-origin full-app targets, and each deployment must choose exactly one target.
+- Current repo status is `ready` for Cloudflare multi-worker build, local smoke, and real deploy validation through the canonical scripts above. On April 15, 2026, `pnpm cf:build` measured the deployable gzip sizes as `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, `router 0.14 MiB`.
 - Cloudflare topology is fixed: `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin, and `AUTH_URL` / `BETTER_AUTH_URL` may only exist as same-origin mirrors of it.
-- Production Cloudflare routing is fixed in `wrangler.cloudflare.toml`: `workers_dev = false`, `preview_urls = false`, and the app origin is bound through `[[routes]]` as the custom domain.
+- Production Cloudflare routing is fixed in `wrangler.cloudflare.toml`: `workers_dev = false`, `preview_urls = false`, and the router Worker is bound through `[[routes]]` as the custom domain.
 - Runtime-specific code must stay inside `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 - For details, see `docs/guides/database.md`.
 
@@ -400,7 +396,7 @@ pnpm test:cf-oauth-spike
 
 说明：
 
-- 该命令只跑 Cloudflare preview 的 OAuth follow-up，不覆盖 email/password。
+- 该命令只跑 Cloudflare 本地多 Worker 运行时上的 OAuth follow-up，不覆盖 email/password。
 - 该命令通过 `AUTH_SPIKE_OAUTH_MOCK=true` 注入内存内的 Google / GitHub OAuth 测试配置，不写入也不恢复本地 `config` 表，因此开箱可跑且不会持久污染本地 auth 设置。
 - 该命令只 mock provider 的 authorize/token/userinfo，不依赖真实 Google/GitHub 凭证和外部账号交互。
 - 浏览器侧会从 `/sign-in` 页面真实点击 social button，Worker 侧仍真实经过 Better Auth 的 social sign-in、`/api/auth/callback/:provider`、state 校验、session 建立与 sign-out。

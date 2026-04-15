@@ -18,18 +18,21 @@
 
 ## Cloudflare Rules
 
-- Cloudflare runs as a full-app OpenNext Worker.
-- `wrangler.cloudflare.toml` is the only Cloudflare deployment config.
-- `main` must point to `.open-next/worker.js`.
+- Cloudflare runs as a router Worker plus the canonical `public-web/auth/payment/member/chat/admin` private server Workers.
+- `wrangler.cloudflare.toml` represents the router Worker.
+- `cloudflare/wrangler.server-*.toml` represent the server Workers.
+- Router-to-server dispatch must use Cloudflare version affinity.
+- Cloudflare preview is removed from the supported contract as a user-facing deploy command.
 - `CF_FALLBACK_ORIGIN` is forbidden.
 - Any protected route redirecting to another origin is a failure.
+- `pnpm cf:build` is authoritative for size governance: it must pass `wrangler versions upload --dry-run`, and the deployable gzip size of every Worker must stay below `3 MiB`.
 
 ## Test Gates
 
-- `pnpm test:local-auth-spike` validates the shared auth contract across local Node and Cloudflare preview.
-- `pnpm test:cf-auth-spike` validates Cloudflare full-app email/password auth.
-- `pnpm test:cf-oauth-spike` validates Cloudflare full-app OAuth, same-origin callback, denied/tamper failure paths, and sign-out.
-- `pnpm test:cf-app-smoke` validates Cloudflare full-app public routes plus same-origin protected-route redirects.
+- `pnpm cf:check` validates the multi-worker config contract.
+- `pnpm cf:build` validates OpenNext multi-bundle generation and hard-fails if any required bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
+- `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: all server Workers start under `wrangler dev`, the router starts under `opennextjs-cloudflare preview`, and the read-only smoke runs against the router origin.
+- `pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
 
 ## Raw Conclusion Governance
 

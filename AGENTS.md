@@ -17,7 +17,7 @@
 - Lint code: `pnpm lint`.
 - Format code: `pnpm format` / check only: `pnpm format:check`.
 - Database workflows: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:studio`.
-- Cloudflare deployment helpers: `pnpm cf:preview`, `pnpm cf:deploy`, `pnpm cf:upload`.
+- Cloudflare deployment helpers: `pnpm cf:check`, `pnpm cf:build`, `pnpm cf:deploy`, `pnpm test:cf-local-smoke`.
 
 ## Coding Style & Naming Conventions
 

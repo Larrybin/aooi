@@ -171,13 +171,13 @@ Minimal "go-live" checklist:
 Before deploying:
 
 - Vercel / Node / Docker: set `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, then run `pnpm db:migrate`
-- Cloudflare Workers: configure `wrangler.toml`, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`; local preview also requires `localConnectionString` and a migrated local database, while deploy/upload requires a real `hyperdrive.id`
+- Cloudflare Workers: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
 
 Deployment options:
 
 - Vercel/Node (recommended for full features: auth/payment/admin)
 - Docker (see `Dockerfile`; starts with `next start`)
-- Cloudflare Workers (managed via `wrangler.toml`; use `pnpm cf:build`, `pnpm cf:preview`, `pnpm cf:deploy`; requires Hyperdrive for database. `pnpm cf:preview` is config-driven and reads your local `config` table via `localConnectionString`. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`; dual-surface auth is tracked by `pnpm test:local-auth-spike`, which is currently blocked until local Hyperdrive can reach a migrated Postgres instance.)
+- Cloudflare Workers (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`; dual-surface auth is tracked by `pnpm test:local-auth-spike`, which is currently blocked until local Hyperdrive can reach a migrated Postgres instance.)
 
 ## Feature Configuration
 

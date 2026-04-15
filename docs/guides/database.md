@@ -50,7 +50,7 @@ Notes:
 - `DB_SINGLETON_ENABLED` only applies to non-Workers Node runtimes. Workers always use the Hyperdrive request-scoped path above.
 - Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
 - Cloudflare is now treated as a full-app runtime target. The Worker serves public, auth, and protected routes from one origin, and cross-origin cookie auth topologies are not supported.
-- CI preview/app smoke now create a temporary Wrangler config that rewrites `[[hyperdrive]].localConnectionString`, so database-backed preview checks run against the service-container Postgres without mutating the tracked production config.
+- CI Cloudflare local smoke and app smoke now create a temporary Wrangler config that rewrites `[[hyperdrive]].localConnectionString`, so database-backed runtime checks run against the service-container Postgres without mutating the tracked production config.
 
 ## Schema Definition
 
@@ -276,27 +276,27 @@ id = "hyperdrive-id"
 
 The `db()` function automatically detects and uses Hyperdrive.
 
-For local Cloudflare preview, `wrangler.cloudflare.toml` must also provide a non-empty `localConnectionString` that points to a migrated local database. Preview reads the real `config` table through Hyperdrive, so docs/landing/brand visibility matches actual local config state.
+Tracked Wrangler files are templates. Keep `localConnectionString = ""` in version control and generate a temporary Wrangler config when local Hyperdrive access is needed.
 
 Cloudflare helper commands:
 
 - `pnpm cf:build`
-- `pnpm cf:preview`
+- `pnpm test:cf-local-smoke`
 - `pnpm test:cf-auth-spike`
-- `pnpm test:cf-preview-smoke`
 - `pnpm test:cf-app-smoke`
 - `pnpm cf:deploy`
-- `pnpm cf:upload`
 
-`pnpm test:cf-auth-spike` is the full local Workers auth harness. It builds and boots Cloudflare preview, verifies the DB-backed auth shell still renders, then exercises fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out against the same Worker surface.
+`pnpm test:cf-auth-spike` is the full local Workers auth harness. It boots the canonical local multi-worker topology, verifies the DB-backed auth shell still renders, then exercises fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out against the same router origin.
+
+`pnpm cf:build` now validates deployable Worker bundles through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
 
 `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke: landing, sign-in, sign-up, docs, public config API, sitemap, robots, and same-origin protected-route redirects back to `/sign-in`.
 
-The smoke is read-only. It must not upsert public config values or mutate the `config` table in preview or production.
+The smoke is read-only. It must not upsert public config values or mutate the `config` table in local runtime or production.
 
 The governed deployment posture is now single-origin per target: Vercel and Cloudflare are both supported full-app targets, but each deployment must choose exactly one origin/runtime.
 
-`Dual Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so preview uses the CI database instead of the tracked local DSN in `wrangler.cloudflare.toml`.
+`Dual Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
 
 ### Vercel / AWS Lambda (Serverless)
 
