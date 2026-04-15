@@ -4,6 +4,7 @@ import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
+import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
 import {
   consumeSettingsEmailVerificationCode,
   SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS,
@@ -25,21 +26,13 @@ function buildVerifyIdentifier(userId: string, email: string): string {
 }
 
 function cleanupFailedAttempts(now: number): void {
-  for (const [key, entry] of failedAttemptsByIdentifier.entries()) {
-    if (now - entry.firstAt > VERIFY_FAIL_WINDOW_MS) {
-      failedAttemptsByIdentifier.delete(key);
-    }
-  }
-
-  const overflow = failedAttemptsByIdentifier.size - VERIFY_FAIL_MAX_ENTRIES;
-  if (overflow <= 0) return;
-
-  let removed = 0;
-  for (const key of failedAttemptsByIdentifier.keys()) {
-    failedAttemptsByIdentifier.delete(key);
-    removed += 1;
-    if (removed >= overflow) break;
-  }
+  cleanupExpiringMap({
+    map: failedAttemptsByIdentifier,
+    now,
+    ttlMs: VERIFY_FAIL_WINDOW_MS,
+    maxEntries: VERIFY_FAIL_MAX_ENTRIES,
+    getTimestamp: (entry) => entry.firstAt,
+  });
 }
 
 function recordFailedAttempt(key: string, now: number): number {

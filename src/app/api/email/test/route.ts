@@ -10,6 +10,7 @@ import {
 } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
+import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
 import { getEmailService } from '@/shared/services/email';
 
@@ -29,23 +30,13 @@ let throttleCleanupTick = 0;
 const emailTestThrottleByUser = new Map<string, EmailTestThrottle>();
 
 function cleanupEmailTestThrottle(now: number) {
-  for (const [userId, state] of emailTestThrottleByUser.entries()) {
-    if (now - state.windowStartedAt > EMAIL_TEST_WINDOW_MS) {
-      emailTestThrottleByUser.delete(userId);
-    }
-  }
-
-  if (emailTestThrottleByUser.size <= EMAIL_TEST_MAX_ENTRIES) {
-    return;
-  }
-
-  let removed = 0;
-  const overflow = emailTestThrottleByUser.size - EMAIL_TEST_MAX_ENTRIES;
-  for (const userId of emailTestThrottleByUser.keys()) {
-    emailTestThrottleByUser.delete(userId);
-    removed += 1;
-    if (removed >= overflow) break;
-  }
+  cleanupExpiringMap({
+    map: emailTestThrottleByUser,
+    now,
+    ttlMs: EMAIL_TEST_WINDOW_MS,
+    maxEntries: EMAIL_TEST_MAX_ENTRIES,
+    getTimestamp: (state) => state.windowStartedAt,
+  });
 }
 
 function consumeEmailTestQuota(userId: string): {

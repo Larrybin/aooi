@@ -12,6 +12,7 @@ import {
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
+import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
 import {
   deleteEmailVerificationCodeById,
   deleteEmailVerificationCodesByIdentifierExceptId,
@@ -28,21 +29,13 @@ let sendThrottleCleanupTick = 0;
 const recentSendByUserAndEmail = new Map<string, number>();
 
 function cleanupSendThrottle(now: number) {
-  for (const [key, lastAt] of recentSendByUserAndEmail.entries()) {
-    if (now - lastAt > SEND_THROTTLE_TTL_MS) {
-      recentSendByUserAndEmail.delete(key);
-    }
-  }
-
-  const overflow = recentSendByUserAndEmail.size - SEND_THROTTLE_MAX_ENTRIES;
-  if (overflow <= 0) return;
-
-  let removed = 0;
-  for (const key of recentSendByUserAndEmail.keys()) {
-    recentSendByUserAndEmail.delete(key);
-    removed += 1;
-    if (removed >= overflow) break;
-  }
+  cleanupExpiringMap({
+    map: recentSendByUserAndEmail,
+    now,
+    ttlMs: SEND_THROTTLE_TTL_MS,
+    maxEntries: SEND_THROTTLE_MAX_ENTRIES,
+    getTimestamp: (lastAt) => lastAt,
+  });
 }
 
 function uniqueNormalizedEmails(emails: string[]): string[] {

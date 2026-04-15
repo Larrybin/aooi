@@ -11,6 +11,7 @@ import {
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
+import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
 import {
   findAITaskById,
   updateAITaskById,
@@ -26,22 +27,13 @@ const PROVIDER_QUERY_THROTTLE_MAX_ENTRIES = 10_000;
 let providerQueryThrottleCleanupTick = 0;
 
 function cleanupProviderQueryThrottle(now: number): void {
-  for (const [taskId, lastAt] of lastProviderQueryAtByTaskId.entries()) {
-    if (now - lastAt > PROVIDER_QUERY_THROTTLE_TTL_MS) {
-      lastProviderQueryAtByTaskId.delete(taskId);
-    }
-  }
-
-  const overflow =
-    lastProviderQueryAtByTaskId.size - PROVIDER_QUERY_THROTTLE_MAX_ENTRIES;
-  if (overflow <= 0) return;
-
-  let removed = 0;
-  for (const taskId of lastProviderQueryAtByTaskId.keys()) {
-    lastProviderQueryAtByTaskId.delete(taskId);
-    removed += 1;
-    if (removed >= overflow) break;
-  }
+  cleanupExpiringMap({
+    map: lastProviderQueryAtByTaskId,
+    now,
+    ttlMs: PROVIDER_QUERY_THROTTLE_TTL_MS,
+    maxEntries: PROVIDER_QUERY_THROTTLE_MAX_ENTRIES,
+    getTimestamp: (lastAt) => lastAt,
+  });
 }
 
 function isFinalTaskStatus(status: string | null | undefined) {
@@ -71,6 +63,24 @@ function shouldQueryProvider(taskId: string) {
   return true;
 }
 
+function toTaskResponse(task: {
+  id: string;
+  status: string | null;
+  provider: string;
+  model: string | null;
+  prompt: string | null;
+  taskInfo: string | null;
+}) {
+  return {
+    id: task.id,
+    status: task.status,
+    provider: task.provider,
+    model: task.model,
+    prompt: task.prompt,
+    taskInfo: safeJsonParse(task.taskInfo),
+  };
+}
+
 export const POST = withApi(async (req: Request) => {
   await requireAiEnabled();
 
@@ -94,31 +104,15 @@ export const POST = withApi(async (req: Request) => {
 
   if (isFinalTaskStatus(task.status)) {
     lastProviderQueryAtByTaskId.delete(task.id);
-    return jsonOk(
-      {
-        id: task.id,
-        status: task.status,
-        provider: task.provider,
-        model: task.model,
-        prompt: task.prompt,
-        taskInfo: safeJsonParse(task.taskInfo),
-      },
-      { headers: { 'Cache-Control': 'no-store' } }
-    );
+    return jsonOk(toTaskResponse(task), {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 
   if (!shouldQueryProvider(task.id)) {
-    return jsonOk(
-      {
-        id: task.id,
-        status: task.status,
-        provider: task.provider,
-        model: task.model,
-        prompt: task.prompt,
-        taskInfo: safeJsonParse(task.taskInfo),
-      },
-      { headers: { 'Cache-Control': 'no-store' } }
-    );
+    return jsonOk(toTaskResponse(task), {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 
   const aiService = await getAIService();
@@ -174,15 +168,7 @@ export const POST = withApi(async (req: Request) => {
   task.taskInfo = updateAITask.taskInfo ?? null;
   task.taskResult = updateAITask.taskResult ?? null;
 
-  return jsonOk(
-    {
-      id: task.id,
-      status: task.status,
-      provider: task.provider,
-      model: task.model,
-      prompt: task.prompt,
-      taskInfo: safeJsonParse(task.taskInfo),
-    },
-    { headers: { 'Cache-Control': 'no-store' } }
-  );
+  return jsonOk(toTaskResponse(task), {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 });
