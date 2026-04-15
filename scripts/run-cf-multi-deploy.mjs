@@ -30,6 +30,10 @@ function log(message) {
   console.log(`[cf:deploy] ${message}`);
 }
 
+function createDeployMessage(label) {
+  return `${label}-${new Date().toISOString().replaceAll(':', '-')}`;
+}
+
 function runWrangler(args, { allowFailure = false } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn('pnpm', ['exec', 'wrangler', ...args], {
@@ -291,7 +295,7 @@ async function deployWorkerBootstrap({ name, configPath, secretsPath }) {
     '--name',
     name,
     '--message',
-    `bootstrap ${new Date().toISOString()}`,
+    createDeployMessage('bootstrap'),
     '--keep-vars',
     '--secrets-file',
     secretsPath,
@@ -308,7 +312,7 @@ async function uploadWorkerVersion({ name, configPath, secretsPath }) {
     '--name',
     name,
     '--message',
-    `multi-worker deploy ${new Date().toISOString()}`,
+    createDeployMessage('multi-worker-deploy'),
     '--secrets-file',
     secretsPath,
   ]);
@@ -335,7 +339,7 @@ async function deployWorkerVersionSet({
     '--name',
     name,
     '--message',
-    `multi-worker rollout ${new Date().toISOString()}`,
+    createDeployMessage('multi-worker-rollout'),
     '--yes',
   ]);
 }
