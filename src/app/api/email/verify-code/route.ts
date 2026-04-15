@@ -1,122 +1,117 @@
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
+import { FixedWindowAttemptLimiter } from '@/shared/lib/api/limiters';
+import { VERIFY_CODE_ATTEMPT_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
-import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
-import {
-  consumeSettingsEmailVerificationCode,
-  SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS,
-} from '@/shared/models/email_verification_code';
 import { EmailVerifyCodeBodySchema } from '@/shared/schemas/api/email/verify-code';
 
-const VERIFY_FAIL_WINDOW_MS = SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS;
-const VERIFY_FAIL_MAX_ATTEMPTS = 5;
-const VERIFY_FAIL_MAX_ENTRIES = 10_000;
-let verifyFailCleanupTick = 0;
+type MaybePromise<T> = T | Promise<T>;
+type VerifyCodeApiContext = Pick<
+  Awaited<ReturnType<typeof createApiContext>>,
+  'log' | 'parseJson' | 'requireUser' | 'requirePermission'
+>;
 
-const failedAttemptsByIdentifier = new Map<
-  string,
-  { count: number; firstAt: number }
->();
+type VerifyCodeRouteDeps = {
+  getApiContext: (req: Request) => MaybePromise<VerifyCodeApiContext>;
+  consumeSettingsEmailVerificationCode: (input: {
+    userId: string;
+    email: string;
+    code: string;
+  }) => Promise<{ ok: true } | { ok: false; reason: 'not_found' | 'expired' | 'mismatch' }>;
+  now: () => number;
+};
+
+function getDefaultVerifyCodeRouteDeps(): VerifyCodeRouteDeps {
+  return {
+    getApiContext: async (req) => {
+      const mod = await import('@/shared/lib/api/context');
+      return mod.createApiContext(req) as VerifyCodeApiContext;
+    },
+    consumeSettingsEmailVerificationCode: async (input) => {
+      const mod = await import('@/shared/models/email_verification_code');
+      return await mod.consumeSettingsEmailVerificationCode(input);
+    },
+    now: Date.now,
+  };
+}
 
 function buildVerifyIdentifier(userId: string, email: string): string {
   return `${userId}|${normalizeEmail(email)}`;
 }
 
-function cleanupFailedAttempts(now: number): void {
-  cleanupExpiringMap({
-    map: failedAttemptsByIdentifier,
-    now,
-    ttlMs: VERIFY_FAIL_WINDOW_MS,
-    maxEntries: VERIFY_FAIL_MAX_ENTRIES,
-    getTimestamp: (entry) => entry.firstAt,
-  });
+export function createVerifyCodePostHandler(
+  overrides: Partial<VerifyCodeRouteDeps> = {}
+) {
+  return withApi(buildVerifyCodePostLogic(overrides));
 }
 
-function recordFailedAttempt(key: string, now: number): number {
-  const current = failedAttemptsByIdentifier.get(key);
-  if (!current) {
-    failedAttemptsByIdentifier.set(key, { count: 1, firstAt: now });
-    return 1;
-  }
-  const withinWindow = now - current.firstAt <= VERIFY_FAIL_WINDOW_MS;
-  if (!withinWindow) {
-    failedAttemptsByIdentifier.set(key, { count: 1, firstAt: now });
-    return 1;
-  }
-  const next = { count: current.count + 1, firstAt: current.firstAt };
-  failedAttemptsByIdentifier.set(key, next);
-  return next.count;
-}
-
-function remainingRetryAfterSeconds(entry: { firstAt: number }, now: number) {
-  return Math.max(
-    1,
-    Math.ceil((VERIFY_FAIL_WINDOW_MS - (now - entry.firstAt)) / 1000)
-  );
-}
-
-export const POST = withApi(async (req: Request) => {
-  const api = createApiContext(req);
-  const { log } = api;
-  const user = await api.requireUser();
-  await api.requirePermission(user.id, PERMISSIONS.SETTINGS_WRITE);
-
-  const { email, code } = await api.parseJson(EmailVerifyCodeBodySchema);
-  const now = Date.now();
-
-  if ((verifyFailCleanupTick++ & 0xff) === 0) {
-    cleanupFailedAttempts(now);
-  }
-
-  const verifyKey = buildVerifyIdentifier(user.id, email);
-  const existing = failedAttemptsByIdentifier.get(verifyKey);
-  if (existing && existing.count >= VERIFY_FAIL_MAX_ATTEMPTS) {
-    const retryAfterSeconds = remainingRetryAfterSeconds(existing, now);
-    throw new TooManyRequestsError('too many attempts', { retryAfterSeconds });
-  }
-
-  const result = await consumeSettingsEmailVerificationCode({
-    userId: user.id,
-    email,
-    code,
+function buildVerifyCodePostLogic(
+  overrides: Partial<VerifyCodeRouteDeps> = {}
+) {
+  const deps = { ...getDefaultVerifyCodeRouteDeps(), ...overrides };
+  const verifyCodeAttemptLimiter = new FixedWindowAttemptLimiter({
+    ...VERIFY_CODE_ATTEMPT_LIMIT_CONFIG,
+    now: deps.now,
   });
 
-  if (!result.ok) {
-    const attempts = recordFailedAttempt(verifyKey, now);
-    const entry = failedAttemptsByIdentifier.get(verifyKey)!;
-    const retryAfterSeconds =
-      attempts >= VERIFY_FAIL_MAX_ATTEMPTS
-        ? remainingRetryAfterSeconds(entry, now)
-        : undefined;
+  return async (req: Request) => {
+    const api = await deps.getApiContext(req);
+    const { log } = api;
+    const user = await api.requireUser();
+    await api.requirePermission(user.id, PERMISSIONS.SETTINGS_WRITE);
 
-    log.warn('[API] verify email code failed', {
-      userId: user.id,
-      email: maskEmail(email),
-      reason: result.reason,
-      attempts,
-    });
+    const { email, code } = await api.parseJson(EmailVerifyCodeBodySchema);
+    const now = deps.now();
 
-    if (retryAfterSeconds) {
+    const verifyKey = buildVerifyIdentifier(user.id, email);
+    const existing = verifyCodeAttemptLimiter.check(verifyKey, now);
+    if (!existing.allowed) {
       throw new TooManyRequestsError('too many attempts', {
-        retryAfterSeconds,
+        retryAfterSeconds: existing.retryAfterSeconds,
       });
     }
 
-    if (result.reason === 'expired') {
-      throw new BadRequestError('verification code expired');
+    const result = await deps.consumeSettingsEmailVerificationCode({
+      userId: user.id,
+      email,
+      code,
+    });
+
+    if (!result.ok) {
+      const attempt = verifyCodeAttemptLimiter.recordFailure(verifyKey, now);
+      const retryAfterSeconds = attempt.retryAfterSeconds;
+
+      log.warn('[API] verify email code failed', {
+        userId: user.id,
+        email: maskEmail(email),
+        reason: result.reason,
+        attempts: attempt.attempts,
+      });
+
+      if (retryAfterSeconds) {
+        throw new TooManyRequestsError('too many attempts', {
+          retryAfterSeconds,
+        });
+      }
+
+      if (result.reason === 'expired') {
+        throw new BadRequestError('verification code expired');
+      }
+
+      throw new BadRequestError('invalid verification code');
     }
 
-    throw new BadRequestError('invalid verification code');
-  }
+    verifyCodeAttemptLimiter.clear(verifyKey);
 
-  failedAttemptsByIdentifier.delete(verifyKey);
+    log.info('[API] verify email code ok', {
+      userId: user.id,
+      email: maskEmail(email),
+    });
+    return jsonOk({ verified: true });
+  };
+}
 
-  log.info('[API] verify email code ok', {
-    userId: user.id,
-    email: maskEmail(email),
-  });
-  return jsonOk({ verified: true });
-});
+export const POST = withApi(buildVerifyCodePostLogic());

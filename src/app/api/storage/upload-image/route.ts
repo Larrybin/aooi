@@ -1,71 +1,98 @@
-import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
+import type { createApiContext } from '@/shared/lib/api/context';
+import { DualConcurrencyLimiter } from '@/shared/lib/api/limiters';
+import { STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { readUploadRequestInput } from '@/shared/lib/runtime/upload';
-import { getStorageService } from '@/shared/services/storage';
+import type { getStorageService } from '@/shared/services/storage';
+import type { uploadImageFiles } from './upload-image-files';
 
-import { uploadImageFiles } from './upload-image-files';
+type MaybePromise<T> = T | Promise<T>;
+type ApiContextLike = Pick<
+  Awaited<ReturnType<typeof createApiContext>>,
+  'log' | 'requireUser'
+>;
 
-const MAX_CONCURRENT_UPLOADS_GLOBAL = 4;
-const MAX_CONCURRENT_UPLOADS_PER_USER = 2;
+type StorageUploadRouteDeps = {
+  getApiContext: (req: Request) => MaybePromise<ApiContextLike>;
+  readUploadRequestInput: (req: Request) => Promise<{
+    entries: unknown[];
+    files: File[];
+    runtimePlatform: string;
+  }>;
+  uploadImageFiles: typeof uploadImageFiles;
+  getStorageService: typeof getStorageService;
+};
 
-let activeUploadsGlobal = 0;
-const activeUploadsByUserId = new Map<string, number>();
-
-function tryAcquireUploadSlot(userId: string): boolean {
-  if (activeUploadsGlobal >= MAX_CONCURRENT_UPLOADS_GLOBAL) return false;
-
-  const current = activeUploadsByUserId.get(userId) || 0;
-  if (current >= MAX_CONCURRENT_UPLOADS_PER_USER) return false;
-
-  activeUploadsGlobal += 1;
-  activeUploadsByUserId.set(userId, current + 1);
-  return true;
+function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
+  return {
+    getApiContext: async (req) => {
+      const mod = await import('@/shared/lib/api/context');
+      return mod.createApiContext(req) as ApiContextLike;
+    },
+    readUploadRequestInput: async (req) => {
+      const mod = await import('@/shared/lib/runtime/upload');
+      return await mod.readUploadRequestInput(req);
+    },
+    uploadImageFiles: async (input) => {
+      const mod = await import('./upload-image-files');
+      return await mod.uploadImageFiles(input);
+    },
+    getStorageService: async () => {
+      const mod = await import('@/shared/services/storage');
+      return await mod.getStorageService();
+    },
+  };
 }
 
-function releaseUploadSlot(userId: string): void {
-  activeUploadsGlobal = Math.max(0, activeUploadsGlobal - 1);
-  const current = activeUploadsByUserId.get(userId) || 0;
-  if (current <= 1) {
-    activeUploadsByUserId.delete(userId);
-    return;
-  }
-  activeUploadsByUserId.set(userId, current - 1);
+export function createStorageUploadImagePostHandler(
+  overrides: Partial<StorageUploadRouteDeps> = {}
+) {
+  return withApi(buildStorageUploadImagePostLogic(overrides));
 }
 
-export const POST = withApi(async (req: Request) => {
-  const api = createApiContext(req);
-  const { log } = api;
-  const user = await api.requireUser();
-  if (!tryAcquireUploadSlot(user.id)) {
-    throw new TooManyRequestsError('too many concurrent uploads');
-  }
+function buildStorageUploadImagePostLogic(
+  overrides: Partial<StorageUploadRouteDeps> = {}
+) {
+  const deps = { ...getDefaultStorageUploadRouteDeps(), ...overrides };
+  const storageUploadConcurrencyLimiter = new DualConcurrencyLimiter(
+    STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG
+  );
 
-  try {
-    const { entries, files, runtimePlatform } = await readUploadRequestInput(
-      req
-    );
-
-    if (files.length !== entries.length) {
-      throw new BadRequestError('invalid files');
+  return async (req: Request) => {
+    const api = await deps.getApiContext(req);
+    const { log } = api;
+    const user = await api.requireUser();
+    if (!storageUploadConcurrencyLimiter.acquire(user.id)) {
+      throw new TooManyRequestsError('too many concurrent uploads');
     }
 
-    log.debug('storage: upload request accepted', {
-      runtimePlatform,
-      fileCount: files.length,
-    });
+    try {
+      const { entries, files, runtimePlatform } =
+        await deps.readUploadRequestInput(req);
 
-    const uploadResults = await uploadImageFiles({
-      files,
-      deps: { getStorageService, log },
-    });
+      if (files.length !== entries.length) {
+        throw new BadRequestError('invalid files');
+      }
 
-    return jsonOk({
-      urls: uploadResults.map((r) => r.url),
-      results: uploadResults,
-    });
-  } finally {
-    releaseUploadSlot(user.id);
-  }
-});
+      log.debug('storage: upload request accepted', {
+        runtimePlatform,
+        fileCount: files.length,
+      });
+
+      const uploadResults = await deps.uploadImageFiles({
+        files,
+        deps: { getStorageService: deps.getStorageService, log },
+      });
+
+      return jsonOk({
+        urls: uploadResults.map((r) => r.url),
+        results: uploadResults,
+      });
+    } finally {
+      storageUploadConcurrencyLimiter.release(user.id);
+    }
+  };
+}
+
+export const POST = withApi(buildStorageUploadImagePostLogic());

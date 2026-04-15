@@ -1,155 +1,157 @@
 import { randomInt } from 'crypto';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { buildVerificationCodeEmailPayload } from '@/shared/content/email/verification-code';
-import { createApiContext } from '@/shared/lib/api/context';
+import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
+import type { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   TooManyRequestsError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
+import { FixedWindowQuotaLimiter } from '@/shared/lib/api/limiters';
+import { EMAIL_TEST_QUOTA_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import { getEmailService } from '@/shared/services/email';
+import type { getEmailService as getEmailServiceFn } from '@/shared/services/email';
 
 const MAX_EMAIL_RECIPIENTS = 10;
-const EMAIL_TEST_WINDOW_MS = 5 * 60 * 1000;
-const EMAIL_TEST_MAX_ATTEMPTS = 3;
-const EMAIL_TEST_MAX_CONCURRENT = 1;
-const EMAIL_TEST_MAX_ENTRIES = 5_000;
 
-type EmailTestThrottle = {
-  windowStartedAt: number;
-  count: number;
-  inflight: number;
+type MaybePromise<T> = T | Promise<T>;
+type EmailTestApiContext = Pick<
+  Awaited<ReturnType<typeof createApiContext>>,
+  'log' | 'parseJson' | 'requireUser' | 'requirePermission'
+>;
+type EmailTestService = Awaited<ReturnType<typeof getEmailServiceFn>>;
+type BuildVerificationCodeEmailPayload =
+  typeof buildVerificationCodeEmailPayloadFn;
+
+type EmailTestRouteDeps = {
+  getApiContext: (req: Request) => MaybePromise<EmailTestApiContext>;
+  getEmailService: () => Promise<EmailTestService>;
+  buildVerificationCodeEmailPayload: (
+    input: Parameters<BuildVerificationCodeEmailPayload>[0]
+  ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
+  now: () => number;
+  randomInt: typeof randomInt;
 };
 
-let throttleCleanupTick = 0;
-const emailTestThrottleByUser = new Map<string, EmailTestThrottle>();
-
-function cleanupEmailTestThrottle(now: number) {
-  cleanupExpiringMap({
-    map: emailTestThrottleByUser,
-    now,
-    ttlMs: EMAIL_TEST_WINDOW_MS,
-    maxEntries: EMAIL_TEST_MAX_ENTRIES,
-    getTimestamp: (state) => state.windowStartedAt,
-  });
-}
-
-function consumeEmailTestQuota(userId: string): {
-  allowed: boolean;
-  reason?: string;
-} {
-  const now = Date.now();
-
-  if ((throttleCleanupTick++ & 0xff) === 0) {
-    cleanupEmailTestThrottle(now);
-  }
-
-  const existing = emailTestThrottleByUser.get(userId);
-  const state: EmailTestThrottle = existing
-    ? { ...existing }
-    : { windowStartedAt: now, count: 0, inflight: 0 };
-
-  if (now - state.windowStartedAt > EMAIL_TEST_WINDOW_MS) {
-    state.windowStartedAt = now;
-    state.count = 0;
-    state.inflight = 0;
-  }
-
-  if (state.count >= EMAIL_TEST_MAX_ATTEMPTS) {
-    return { allowed: false, reason: 'rate_limited' };
-  }
-
-  if (state.inflight >= EMAIL_TEST_MAX_CONCURRENT) {
-    return { allowed: false, reason: 'concurrency_limit' };
-  }
-
-  state.count += 1;
-  state.inflight += 1;
-  emailTestThrottleByUser.set(userId, state);
-
-  return { allowed: true };
-}
-
-function releaseEmailTestQuota(userId: string) {
-  const state = emailTestThrottleByUser.get(userId);
-  if (!state) return;
-
-  state.inflight = Math.max(0, state.inflight - 1);
-  emailTestThrottleByUser.set(userId, state);
+function getDefaultEmailTestRouteDeps(): EmailTestRouteDeps {
+  return {
+    getApiContext: async (req) => {
+      const mod = await import('@/shared/lib/api/context');
+      return mod.createApiContext(req) as EmailTestApiContext;
+    },
+    getEmailService: async () => {
+      const mod = await import('@/shared/services/email');
+      return await mod.getEmailService();
+    },
+    buildVerificationCodeEmailPayload: async (input) => {
+      const mod = await import('@/shared/content/email/verification-code');
+      return mod.buildVerificationCodeEmailPayload(input);
+    },
+    now: Date.now,
+    randomInt,
+  };
 }
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export const POST = withApi(async (req: Request) => {
-  const api = createApiContext(req);
-  const { log } = api;
-  const user = await api.requireUser();
-  await api.requirePermission(user.id, PERMISSIONS.EMAIL_TEST);
+function buildEmailTestPostLogic(
+  overrides: Partial<EmailTestRouteDeps> = {}
+) {
+  const deps = { ...getDefaultEmailTestRouteDeps(), ...overrides };
+  const emailTestQuotaLimiter = new FixedWindowQuotaLimiter({
+    ...EMAIL_TEST_QUOTA_LIMIT_CONFIG,
+    now: deps.now,
+  });
 
-  const quota = consumeEmailTestQuota(user.id);
-  if (!quota.allowed) {
-    log.warn('[API] email test throttled', {
-      userId: user.id,
-      reason: quota.reason,
-    });
-    throw new TooManyRequestsError('rate limited');
+  function consumeEmailTestQuota(userId: string): {
+    allowed: boolean;
+    reason?: string;
+  } {
+    const result = emailTestQuotaLimiter.acquire(userId);
+    return result.allowed ? { allowed: true } : result;
   }
-  try {
-    const { emails, subject } = await api.parseJson(EmailSendBodySchema);
 
-    const to = Array.isArray(emails) ? emails : [emails];
-    if (to.length > MAX_EMAIL_RECIPIENTS) {
-      throw new BadRequestError(
-        `too many recipients (max ${MAX_EMAIL_RECIPIENTS})`
-      );
-    }
+  function releaseEmailTestQuota(userId: string) {
+    emailTestQuotaLimiter.release(userId);
+  }
 
-    let emailService;
-    try {
-      emailService = await getEmailService();
-    } catch (error: unknown) {
-      log.error('[API] Email service init failed', {
-        error: getErrorMessage(error),
+  return async (req: Request) => {
+    const api = await deps.getApiContext(req);
+    const { log } = api;
+    const user = await api.requireUser();
+    await api.requirePermission(user.id, PERMISSIONS.EMAIL_TEST);
+
+    const quota = consumeEmailTestQuota(user.id);
+    if (!quota.allowed) {
+      log.warn('[API] email test throttled', {
+        userId: user.id,
+        reason: quota.reason,
       });
-      throw new UpstreamError(503, 'email service unavailable');
+      throw new TooManyRequestsError('rate limited');
     }
-
-    let result;
     try {
-      const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-      result = await emailService.sendEmail({
-        to,
-        subject,
-        ...buildVerificationCodeEmailPayload({ code }),
-      });
-    } catch (error: unknown) {
-      log.error('[API] sendEmail threw', { error: getErrorMessage(error) });
-      throw new UpstreamError(503, 'email service unavailable');
-    }
+      const { emails, subject } = await api.parseJson(EmailSendBodySchema);
 
-    if (!result.success) {
-      log.error('[API] sendEmail failed', {
+      const to = Array.isArray(emails) ? emails : [emails];
+      if (to.length > MAX_EMAIL_RECIPIENTS) {
+        throw new BadRequestError(
+          `too many recipients (max ${MAX_EMAIL_RECIPIENTS})`
+        );
+      }
+
+      let emailService;
+      try {
+        emailService = await deps.getEmailService();
+      } catch (error: unknown) {
+        log.error('[API] Email service init failed', {
+          error: getErrorMessage(error),
+        });
+        throw new UpstreamError(503, 'email service unavailable');
+      }
+
+      let result;
+      try {
+        const code = String(deps.randomInt(0, 1_000_000)).padStart(6, '0');
+        result = await emailService.sendEmail({
+          to,
+          subject,
+          ...(await deps.buildVerificationCodeEmailPayload({ code })),
+        });
+      } catch (error: unknown) {
+        log.error('[API] sendEmail threw', { error: getErrorMessage(error) });
+        throw new UpstreamError(503, 'email service unavailable');
+      }
+
+      if (!result.success) {
+        log.error('[API] sendEmail failed', {
+          provider: result.provider,
+          error: result.error,
+        });
+        throw new UpstreamError(502, 'send email failed');
+      }
+
+      log.debug('send email result', {
+        emailCount: Array.isArray(emails) ? emails.length : 1,
+        success: result.success,
+        messageId: result.messageId,
         provider: result.provider,
-        error: result.error,
       });
-      throw new UpstreamError(502, 'send email failed');
+      return jsonOk(result);
+    } finally {
+      releaseEmailTestQuota(user.id);
     }
+  };
+}
 
-    log.debug('send email result', {
-      emailCount: Array.isArray(emails) ? emails.length : 1,
-      success: result.success,
-      messageId: result.messageId,
-      provider: result.provider,
-    });
-    return jsonOk(result);
-  } finally {
-    releaseEmailTestQuota(user.id);
-  }
-});
+export function createEmailTestPostHandler(
+  overrides: Partial<EmailTestRouteDeps> = {}
+) {
+  return withApi(buildEmailTestPostLogic(overrides));
+}
+
+export const POST = withApi(buildEmailTestPostLogic());

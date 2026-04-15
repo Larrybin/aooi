@@ -1,41 +1,82 @@
 import { randomInt } from 'crypto';
 
 import type { EmailSendResult } from '@/extensions/email';
+import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { buildVerificationCodeEmailPayload } from '@/shared/content/email/verification-code';
-import { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
   TooManyRequestsError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
+import { CooldownLimiter } from '@/shared/lib/api/limiters';
+import { SEND_EMAIL_RATE_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
-import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
-import {
-  deleteEmailVerificationCodeById,
-  deleteEmailVerificationCodesByIdentifierExceptId,
-  persistSettingsEmailVerificationCode,
-} from '@/shared/models/email_verification_code';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import { getEmailService } from '@/shared/services/email';
+import type { getEmailService as getEmailServiceFn } from '@/shared/services/email';
 
 const MAX_EMAIL_RECIPIENTS = 10;
-const MIN_SEND_INTERVAL_MS = 60_000;
-const SEND_THROTTLE_TTL_MS = 15 * 60 * 1000;
-const SEND_THROTTLE_MAX_ENTRIES = 10_000;
-let sendThrottleCleanupTick = 0;
-const recentSendByUserAndEmail = new Map<string, number>();
 
-function cleanupSendThrottle(now: number) {
-  cleanupExpiringMap({
-    map: recentSendByUserAndEmail,
-    now,
-    ttlMs: SEND_THROTTLE_TTL_MS,
-    maxEntries: SEND_THROTTLE_MAX_ENTRIES,
-    getTimestamp: (lastAt) => lastAt,
-  });
+type MaybePromise<T> = T | Promise<T>;
+type SendEmailApiContext = Pick<
+  Awaited<ReturnType<typeof createApiContext>>,
+  'log' | 'parseJson' | 'requireUser' | 'requirePermission'
+>;
+type SendEmailService = Awaited<ReturnType<typeof getEmailServiceFn>>;
+type BuildVerificationCodeEmailPayload =
+  typeof buildVerificationCodeEmailPayloadFn;
+
+type SendEmailRouteDeps = {
+  getApiContext: (req: Request) => MaybePromise<SendEmailApiContext>;
+  getEmailService: () => Promise<SendEmailService>;
+  persistSettingsEmailVerificationCode: (input: {
+    userId: string;
+    email: string;
+    code: string;
+  }) => Promise<{ id: string; identifier: string }>;
+  deleteEmailVerificationCodeById: (id: string) => Promise<void>;
+  deleteEmailVerificationCodesByIdentifierExceptId: (input: {
+    identifier: string;
+    keepId: string;
+  }) => Promise<void>;
+  buildVerificationCodeEmailPayload: (
+    input: Parameters<BuildVerificationCodeEmailPayload>[0]
+  ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
+  now: () => number;
+  randomInt: typeof randomInt;
+};
+
+function getDefaultSendEmailRouteDeps(): SendEmailRouteDeps {
+  return {
+    getApiContext: async (req) => {
+      const mod = await import('@/shared/lib/api/context');
+      return mod.createApiContext(req) as SendEmailApiContext;
+    },
+    getEmailService: async () => {
+      const mod = await import('@/shared/services/email');
+      return await mod.getEmailService();
+    },
+    persistSettingsEmailVerificationCode: async (input) => {
+      const mod = await import('@/shared/models/email_verification_code');
+      return await mod.persistSettingsEmailVerificationCode(input);
+    },
+    deleteEmailVerificationCodeById: async (id) => {
+      const mod = await import('@/shared/models/email_verification_code');
+      await mod.deleteEmailVerificationCodeById(id);
+    },
+    deleteEmailVerificationCodesByIdentifierExceptId: async (input) => {
+      const mod = await import('@/shared/models/email_verification_code');
+      await mod.deleteEmailVerificationCodesByIdentifierExceptId(input);
+    },
+    buildVerificationCodeEmailPayload: async (input) => {
+      const mod = await import('@/shared/content/email/verification-code');
+      return mod.buildVerificationCodeEmailPayload(input);
+    },
+    now: Date.now,
+    randomInt,
+  };
 }
 
 function uniqueNormalizedEmails(emails: string[]): string[] {
@@ -50,203 +91,215 @@ function uniqueNormalizedEmails(emails: string[]): string[] {
   return unique;
 }
 
-export const POST = withApi(async (req: Request) => {
-  const api = createApiContext(req);
-  const { log } = api;
-  const user = await api.requireUser();
-  await api.requirePermission(user.id, PERMISSIONS.SETTINGS_WRITE);
-  const { emails, subject } = await api.parseJson(EmailSendBodySchema);
-
-  const recipientsRaw = Array.isArray(emails) ? emails : [emails];
-  const recipients = uniqueNormalizedEmails(recipientsRaw);
-
-  if (recipients.length > MAX_EMAIL_RECIPIENTS) {
-    throw new BadRequestError(
-      `too many recipients (max ${MAX_EMAIL_RECIPIENTS})`
-    );
-  }
-
-  const now = Date.now();
-
-  if ((sendThrottleCleanupTick++ & 0xff) === 0) {
-    cleanupSendThrottle(now);
-  }
-
-  const throttled = recipients
-    .map((email) => {
-      const key = `${user.id}|${email}`;
-      const lastSentAt = recentSendByUserAndEmail.get(key);
-      if (!lastSentAt || now - lastSentAt >= MIN_SEND_INTERVAL_MS) {
-        return null;
-      }
-      const retryAfterSeconds = Math.ceil(
-        (MIN_SEND_INTERVAL_MS - (now - lastSentAt)) / 1000
-      );
-      return { email, retryAfterSeconds };
-    })
-    .filter(
-      (
-        x
-      ): x is {
-        email: string;
-        retryAfterSeconds: number;
-      } => x !== null
-    );
-
-  if (throttled.length > 0) {
-    const retryAfterSeconds = Math.max(
-      ...throttled.map((item) => item.retryAfterSeconds)
-    );
-    log.warn('[API] send email throttled', {
-      userId: user.id,
-      retryAfterSeconds,
-    });
-    throw new TooManyRequestsError('too many requests', { retryAfterSeconds });
-  }
-
-  const emailService = await getEmailService().catch((error: unknown) => {
-    log.error('[API] Email service init failed', { error });
-    throw new UpstreamError(503, 'email service unavailable');
+function buildSendEmailPostLogic(
+  overrides: Partial<SendEmailRouteDeps> = {}
+) {
+  const deps = { ...getDefaultSendEmailRouteDeps(), ...overrides };
+  const sendEmailRateLimiter = new CooldownLimiter({
+    ...SEND_EMAIL_RATE_LIMIT_CONFIG,
+    now: deps.now,
   });
 
-  const results: Array<{ email: string; result: EmailSendResult }> = [];
-  const isSingleRecipient = recipients.length === 1;
+  return async (req: Request) => {
+    const api = await deps.getApiContext(req);
+    const { log } = api;
+    const user = await api.requireUser();
+    await api.requirePermission(user.id, PERMISSIONS.SETTINGS_WRITE);
+    const { emails, subject } = await api.parseJson(EmailSendBodySchema);
 
-  for (const email of recipients) {
-    const rateLimitKey = `${user.id}|${email}`;
-    recentSendByUserAndEmail.set(rateLimitKey, now);
+    const recipientsRaw = Array.isArray(emails) ? emails : [emails];
+    const recipients = uniqueNormalizedEmails(recipientsRaw);
 
-    const rollbackRateLimit = () => {
-      const current = recentSendByUserAndEmail.get(rateLimitKey);
-      if (current === now) {
-        recentSendByUserAndEmail.delete(rateLimitKey);
-      }
-    };
-
-    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-
-    let verification: { id: string; identifier: string } | null = null;
-    try {
-      verification = await persistSettingsEmailVerificationCode({
-        userId: user.id,
-        email,
-        code,
-      });
-    } catch (error: unknown) {
-      rollbackRateLimit();
-      log.error('[API] persist verification code failed', {
-        error,
-        userId: user.id,
-        email: maskEmail(email),
-      });
-      if (isSingleRecipient) {
-        throw new UpstreamError(503, 'verification service unavailable');
-      }
-      results.push({
-        email,
-        result: {
-          success: false,
-          provider: 'unknown',
-          error: 'verification service unavailable',
-        },
-      });
-      continue;
+    if (recipients.length > MAX_EMAIL_RECIPIENTS) {
+      throw new BadRequestError(
+        `too many recipients (max ${MAX_EMAIL_RECIPIENTS})`
+      );
     }
 
-    let sendResult: EmailSendResult;
-    try {
-      sendResult = await emailService.sendEmail({
-        to: email,
-        subject,
-        ...buildVerificationCodeEmailPayload({ code }),
-      });
-    } catch (error: unknown) {
-      rollbackRateLimit();
-      void deleteEmailVerificationCodeById(verification.id).catch(
-        (cleanupError: unknown) => {
-          log.error('[API] rollback verification code failed', {
-            cleanupError,
-          });
+    const now = deps.now();
+
+    const throttled = recipients
+      .map((email) => {
+        const key = `${user.id}|${email}`;
+        const throttleCheck = sendEmailRateLimiter.check(key, now);
+        if (throttleCheck.allowed) {
+          return null;
         }
+        return { email, retryAfterSeconds: throttleCheck.retryAfterSeconds ?? 1 };
+      })
+      .filter(
+        (
+          x
+        ): x is {
+          email: string;
+          retryAfterSeconds: number;
+        } => x !== null
       );
-      log.error('[API] sendEmail threw', {
-        error,
+
+    if (throttled.length > 0) {
+      const retryAfterSeconds = Math.max(
+        ...throttled.map((item) => item.retryAfterSeconds)
+      );
+      log.warn('[API] send email throttled', {
         userId: user.id,
-        email: maskEmail(email),
+        retryAfterSeconds,
       });
-      if (isSingleRecipient) {
+      throw new TooManyRequestsError('too many requests', { retryAfterSeconds });
+    }
+
+    const emailService = await deps
+      .getEmailService()
+      .catch((error: unknown) => {
+        log.error('[API] Email service init failed', { error });
         throw new UpstreamError(503, 'email service unavailable');
-      }
-      results.push({
-        email,
-        result: {
-          success: false,
-          provider: 'unknown',
-          error: 'email service unavailable',
-        },
       });
-      continue;
-    }
 
-    if (!sendResult.success) {
-      rollbackRateLimit();
-      void deleteEmailVerificationCodeById(verification.id).catch(
-        (cleanupError: unknown) => {
-          log.error('[API] rollback verification code failed', {
-            cleanupError,
-          });
+    const results: Array<{ email: string; result: EmailSendResult }> = [];
+    const isSingleRecipient = recipients.length === 1;
+
+    for (const email of recipients) {
+      const rateLimitKey = `${user.id}|${email}`;
+      const consumedAt = sendEmailRateLimiter.consume(rateLimitKey, now);
+
+      const rollbackRateLimit = () => {
+        sendEmailRateLimiter.rollback(rateLimitKey, consumedAt);
+      };
+
+      const code = String(deps.randomInt(0, 1_000_000)).padStart(6, '0');
+
+      let verification: { id: string; identifier: string } | null = null;
+      try {
+        verification = await deps.persistSettingsEmailVerificationCode({
+          userId: user.id,
+          email,
+          code,
+        });
+      } catch (error: unknown) {
+        rollbackRateLimit();
+        log.error('[API] persist verification code failed', {
+          error,
+          userId: user.id,
+          email: maskEmail(email),
+        });
+        if (isSingleRecipient) {
+          throw new UpstreamError(503, 'verification service unavailable');
         }
-      );
-      log.error('[API] sendEmail failed', {
-        provider: sendResult.provider,
-        error: sendResult.error,
-        userId: user.id,
-        email: maskEmail(email),
-      });
-      if (isSingleRecipient) {
-        throw new UpstreamError(502, 'send email failed');
+        results.push({
+          email,
+          result: {
+            success: false,
+            provider: 'unknown',
+            error: 'verification service unavailable',
+          },
+        });
+        continue;
       }
+
+      let sendResult: EmailSendResult;
+      try {
+        sendResult = await emailService.sendEmail({
+          to: email,
+          subject,
+          ...(await deps.buildVerificationCodeEmailPayload({ code })),
+        });
+      } catch (error: unknown) {
+        rollbackRateLimit();
+        void deps.deleteEmailVerificationCodeById(verification.id).catch(
+          (cleanupError: unknown) => {
+            log.error('[API] rollback verification code failed', {
+              cleanupError,
+            });
+          }
+        );
+        log.error('[API] sendEmail threw', {
+          error,
+          userId: user.id,
+          email: maskEmail(email),
+        });
+        if (isSingleRecipient) {
+          throw new UpstreamError(503, 'email service unavailable');
+        }
+        results.push({
+          email,
+          result: {
+            success: false,
+            provider: 'unknown',
+            error: 'email service unavailable',
+          },
+        });
+        continue;
+      }
+
+      if (!sendResult.success) {
+        rollbackRateLimit();
+        void deps.deleteEmailVerificationCodeById(verification.id).catch(
+          (cleanupError: unknown) => {
+            log.error('[API] rollback verification code failed', {
+              cleanupError,
+            });
+          }
+        );
+        log.error('[API] sendEmail failed', {
+          provider: sendResult.provider,
+          error: sendResult.error,
+          userId: user.id,
+          email: maskEmail(email),
+        });
+        if (isSingleRecipient) {
+          throw new UpstreamError(502, 'send email failed');
+        }
+        results.push({ email, result: sendResult });
+        continue;
+      }
+
+      void deps
+        .deleteEmailVerificationCodesByIdentifierExceptId({
+          identifier: verification.identifier,
+          keepId: verification.id,
+        })
+        .catch((cleanupError: unknown) => {
+          log.error('[API] cleanup verification codes failed', {
+            cleanupError,
+            userId: user.id,
+          });
+        });
+
       results.push({ email, result: sendResult });
-      continue;
     }
 
-    void deleteEmailVerificationCodesByIdentifierExceptId({
-      identifier: verification.identifier,
-      keepId: verification.id,
-    }).catch((cleanupError: unknown) => {
-      log.error('[API] cleanup verification codes failed', {
-        cleanupError,
-        userId: user.id,
-      });
+    const anySuccess = results.some((item) => item.result.success);
+    const provider =
+      results.find((item) => item.result.success)?.result.provider ?? 'unknown';
+    const messageId = results.find((item) => item.result.success)?.result
+      .messageId;
+
+    log.debug('send email result', {
+      emailCount: recipients.length,
+      success: anySuccess,
+      provider,
+      messageId,
+      failures: results.filter((item) => !item.result.success).length,
     });
 
-    results.push({ email, result: sendResult });
-  }
+    if (isSingleRecipient) {
+      return jsonOk(
+        results[0]?.result ?? { success: false, provider: 'unknown' }
+      );
+    }
 
-  const anySuccess = results.some((item) => item.result.success);
-  const provider =
-    results.find((item) => item.result.success)?.result.provider ?? 'unknown';
-  const messageId = results.find((item) => item.result.success)?.result
-    .messageId;
+    return jsonOk({
+      success: anySuccess,
+      provider,
+      messageId,
+      results: results.map(({ email, result }) => ({ email, ...result })),
+    });
+  };
+}
 
-  log.debug('send email result', {
-    emailCount: recipients.length,
-    success: anySuccess,
-    provider,
-    messageId,
-    failures: results.filter((item) => !item.result.success).length,
-  });
+export function createSendEmailPostHandler(
+  overrides: Partial<SendEmailRouteDeps> = {}
+) {
+  return withApi(buildSendEmailPostLogic(overrides));
+}
 
-  if (isSingleRecipient) {
-    return jsonOk(
-      results[0]?.result ?? { success: false, provider: 'unknown' }
-    );
-  }
-
-  return jsonOk({
-    success: anySuccess,
-    provider,
-    messageId,
-    results: results.map(({ email, result }) => ({ email, ...result })),
-  });
-});
+export const POST = withApi(buildSendEmailPostLogic());
