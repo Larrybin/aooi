@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { ChatThreadShell } from '@/features/web/chat/components/thread-shell';
 import type { UIMessage } from 'ai';
 
-import { buildHasPermissionCondition } from '@/core/rbac';
+import { buildPermissionGuardCondition } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { safeJsonParse } from '@/shared/lib/json';
@@ -34,7 +34,7 @@ export default async function ChatPage({
   const chat = await findChatByIdForViewer({
     chatId,
     viewerUserId: user.id,
-    allowAccessCondition: buildHasPermissionCondition({
+    allowAccessCondition: buildPermissionGuardCondition({
       userId: user.id,
       permissionCode: PERMISSIONS.ADMIN_ACCESS,
     }),

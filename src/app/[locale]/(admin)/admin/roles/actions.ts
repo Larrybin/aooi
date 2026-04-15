@@ -10,12 +10,12 @@ import { z } from 'zod';
 
 import { db } from '@/core/db';
 import {
-  assignPermissionsToRole,
-  deleteRole,
-  getRoleById,
-  restoreRole,
-  updateRole,
-  type UpdateRole,
+  findRoleById,
+  replaceRolePermissions,
+  restoreRoleRecord,
+  softDeleteRole,
+  updateRoleRecord,
+  type UpdateRoleRecord,
 } from '@/core/rbac';
 import { role } from '@/config/db/schema';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
@@ -36,17 +36,17 @@ export async function updateRoleAction(id: string, formData: FormData) {
       errorMessage: 'title and description are required',
     });
 
-    const roleRow = await getRoleById(id);
+    const roleRow = await findRoleById(id);
     if (!roleRow) {
       throw new ActionError('Role not found');
     }
 
-    const newRole: UpdateRole = {
+    const newRole: UpdateRoleRecord = {
       title: data.title,
       description: data.description,
     };
 
-    const result = await updateRole(id, newRole, {
+    const result = await updateRoleRecord(id, newRole, {
       actorUserId: user.id,
       source: 'admin.roles.updateRoleAction',
     });
@@ -68,7 +68,7 @@ export async function updateRolePermissionsAction(
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
 
-    const roleRow = await getRoleById(id);
+    const roleRow = await findRoleById(id);
     if (!roleRow) {
       throw new ActionError('Role not found');
     }
@@ -80,7 +80,7 @@ export async function updateRolePermissionsAction(
       throw new ActionError('invalid permissions');
     }
 
-    await assignPermissionsToRole(
+    await replaceRolePermissions(
       roleRow.id as string,
       parsed.data.permissions,
       {
@@ -109,7 +109,7 @@ export async function deleteRoleAction(id: string) {
       throw new ActionError('Role not found');
     }
 
-    await deleteRole(id, {
+    await softDeleteRole(id, {
       actorUserId: user.id,
       source: 'admin.roles.deleteRoleAction',
     });
@@ -134,7 +134,7 @@ export async function restoreRoleAction(id: string) {
     }
 
     try {
-      await restoreRole(id, {
+      await restoreRoleRecord(id, {
         actorUserId: user.id,
         source: 'admin.roles.restoreRoleAction',
       });

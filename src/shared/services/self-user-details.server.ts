@@ -37,7 +37,7 @@ export async function readSelfUserDetails(
   const resolvedDeps =
     deps ??
     (await (async (): Promise<ReadSelfUserDetailsDeps> => {
-      const [{ hasPermission }, { getRemainingCreditsSummary }, { getCurrentSubscription }] =
+      const [{ checkUserPermission }, { getRemainingCreditsSummary }, { getCurrentSubscription }] =
         await Promise.all([
           import('@/core/rbac'),
           import('@/shared/models/credit'),
@@ -46,7 +46,7 @@ export async function readSelfUserDetails(
 
       return {
         hasPermission: (targetUserId, permission) =>
-          hasPermission(targetUserId, permission),
+          checkUserPermission(targetUserId, permission),
         getRemainingCreditsSummary: (targetUserId) =>
           getRemainingCreditsSummary(targetUserId),
         getCurrentSubscription: (targetUserId) =>

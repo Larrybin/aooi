@@ -3,7 +3,7 @@
 // reason: permission catalog is admin-only; avoid caching across users/roles
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getPermissions, type Permission } from '@/core/rbac';
+import { listPermissions, type PermissionRecord } from '@/core/rbac';
 import { TableCard } from '@/shared/blocks/table';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
@@ -26,7 +26,7 @@ export default async function AdminPermissionsPage({
     locale,
   });
 
-  const permissions = await getPermissions();
+  const permissions = await listPermissions();
 
   const t = await getTranslations('admin.permissions');
 
@@ -35,7 +35,7 @@ export default async function AdminPermissionsPage({
     { title: t('list.crumbs.permissions'), is_active: true },
   ];
 
-  const table: Table<Permission> = {
+  const table: Table<PermissionRecord> = {
     columns: [
       { name: 'code', title: t('fields.code') },
       { name: 'title', title: t('fields.title') },

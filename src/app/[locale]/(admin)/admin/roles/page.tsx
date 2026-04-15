@@ -5,7 +5,7 @@ import { desc } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 
 import { db } from '@/core/db';
-import { getRoles, type Role } from '@/core/rbac';
+import { listRoles, type RoleRecord } from '@/core/rbac';
 import { role } from '@/config/db/schema';
 import { TableCard } from '@/shared/blocks/table';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
@@ -36,7 +36,7 @@ export default async function AdminRolesPage({
 
   const roles = shouldIncludeDeleted
     ? await db().select().from(role).orderBy(desc(role.createdAt))
-    : await getRoles();
+    : await listRoles();
 
   const t = await getTranslations('admin.roles');
 
@@ -59,7 +59,7 @@ export default async function AdminRolesPage({
         },
   ];
 
-  const table: Table<Role> = {
+  const table: Table<RoleRecord> = {
     columns: [
       { name: 'name', title: t('fields.name') },
       { name: 'title', title: t('fields.title') },
@@ -79,7 +79,7 @@ export default async function AdminRolesPage({
         name: 'actions',
         title: t('fields.actions'),
         type: 'dropdown',
-        callback: (item: Role) => {
+        callback: (item: RoleRecord) => {
           if (item.deletedAt) {
             if (!shouldIncludeDeleted) {
               return [];

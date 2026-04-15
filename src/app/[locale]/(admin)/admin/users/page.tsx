@@ -3,7 +3,7 @@
 // reason: admin data is user/role-specific; avoid caching across users
 import { getTranslations } from 'next-intl/server';
 
-import { getUserRoles } from '@/core/rbac';
+import { listUserRoles } from '@/core/rbac';
 import { TableCard } from '@/shared/blocks/table';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { Badge } from '@/shared/components/ui/badge';
@@ -76,7 +76,7 @@ export default async function AdminUsersPage({
         name: 'roles',
         title: t('fields.roles'),
         callback: async (item: User) => {
-          const roles = await getUserRoles(item.id);
+          const roles = await listUserRoles(item.id);
 
           return (
             <div className="flex flex-col gap-2">

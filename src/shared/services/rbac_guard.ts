@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { redirect } from '@/core/i18n/navigation';
-import { hasAnyRole, hasRole } from '@/core/rbac';
+import { checkUserHasAnyRoles, checkUserRole } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
@@ -135,7 +135,7 @@ export async function requireRole({
   locale?: string;
 }): Promise<void> {
   const user = await requireSignedInUser({ redirectUrl, locale });
-  const allowed = await hasRole(user.id, roleName);
+  const allowed = await checkUserRole(user.id, roleName);
 
   if (!allowed) {
     deny(`Role required: ${roleName}`, { redirectUrl, locale });
@@ -155,7 +155,7 @@ export async function requireAnyRole({
   locale?: string;
 }): Promise<void> {
   const user = await requireSignedInUser({ redirectUrl, locale });
-  const allowed = await hasAnyRole(user.id, roleNames);
+  const allowed = await checkUserHasAnyRoles(user.id, roleNames);
 
   if (!allowed) {
     deny(`Any of these roles required: ${roleNames.join(', ')}`, {

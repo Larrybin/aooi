@@ -29,7 +29,7 @@ import {
 } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { getUuid } from '@/shared/lib/hash';
-import { hasPermission, RoleStatus } from '@/shared/services/rbac';
+import { checkUserPermission, RbacRoleStatus } from '@/shared/services/rbac';
 
 const LOG_PREFIX = '[rbac-selfcheck]';
 
@@ -111,7 +111,7 @@ async function main() {
       name: `rbac_selfcheck_${suffix}`,
       title: 'RBAC Self Check',
       description: 'Created by scripts/self-check-rbac.ts',
-      status: RoleStatus.ACTIVE,
+      status: RbacRoleStatus.ACTIVE,
       createdAt: now,
       updatedAt: now,
       sort: 0,
@@ -170,8 +170,11 @@ async function main() {
   });
 
   console.log(`${LOG_PREFIX} verifying permissions (should be TRUE)…`);
-  const exactBefore = await hasPermission(testUserId, exactPermissionCode);
-  const wildcardBefore = await hasPermission(testUserId, wildcardTargetCode);
+  const exactBefore = await checkUserPermission(testUserId, exactPermissionCode);
+  const wildcardBefore = await checkUserPermission(
+    testUserId,
+    wildcardTargetCode
+  );
 
   if (!exactBefore) {
     throw new Error(
@@ -192,8 +195,11 @@ async function main() {
     .set({ expiresAt: new Date(0), updatedAt: new Date() })
     .where(andEqUserRole(testUserId, testRoleId));
 
-  const exactAfter = await hasPermission(testUserId, exactPermissionCode);
-  const wildcardAfter = await hasPermission(testUserId, wildcardTargetCode);
+  const exactAfter = await checkUserPermission(testUserId, exactPermissionCode);
+  const wildcardAfter = await checkUserPermission(
+    testUserId,
+    wildcardTargetCode
+  );
 
   if (exactAfter || wildcardAfter) {
     throw new Error(

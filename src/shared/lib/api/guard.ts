@@ -6,7 +6,7 @@
 
 import 'server-only';
 
-import { hasPermission } from '@/core/rbac';
+import { checkUserPermission } from '@/core/rbac';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 
 import { assertCsrf } from './csrf.server';
@@ -22,7 +22,7 @@ export async function requireUser(req: Request) {
 }
 
 export async function requirePermission(userId: string, code: string) {
-  const allowed = await hasPermission(userId, code);
+  const allowed = await checkUserPermission(userId, code);
   if (!allowed) {
     throw new ForbiddenError('no permission');
   }

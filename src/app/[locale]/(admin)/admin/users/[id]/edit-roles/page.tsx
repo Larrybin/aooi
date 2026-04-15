@@ -4,7 +4,7 @@
 import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { getRoles, getUserRoles } from '@/core/rbac';
+import { listRoles, listUserRoles } from '@/core/rbac';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
@@ -46,14 +46,14 @@ export default async function UserEditRolesPage({
     { key: 'edit_roles.crumbs.edit_roles' },
   ]);
 
-  const roles = await getRoles();
+  const roles = await listRoles();
   const rolesOptions = roles.map((role) => ({
     title: role.title,
     description: role.description,
     value: role.id,
   }));
 
-  const userRoles = await getUserRoles(user.id as string);
+  const userRoles = await listUserRoles(user.id as string);
   const userRoleIds = userRoles.map((role) => role.id);
 
   const form: Form<typeof user & { roles: string[] }, { user: typeof user }> = {

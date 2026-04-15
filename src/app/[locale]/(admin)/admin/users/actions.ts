@@ -4,7 +4,7 @@ import { AdminUserUpdateFormSchema } from '@/features/admin/schemas/user';
 import { validateAndParseForm } from '@/features/admin/server/action-utils';
 import { z } from 'zod';
 
-import { assignRolesToUser } from '@/core/rbac';
+import { replaceUserRoles } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
@@ -75,7 +75,7 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
       throw new ActionError('invalid roles');
     }
 
-    await assignRolesToUser(user.id as string, parsed.data.roles, {
+    await replaceUserRoles(user.id as string, parsed.data.roles, {
       actorUserId: admin.id,
       source: 'admin.users.updateUserRolesAction',
     });
