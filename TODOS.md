@@ -38,4 +38,28 @@
 **Priority:** P3
 **Depends on:** 当前 ads provider/zone 首版落地完成并经过实际流量或真实使用验证
 
+### API 限流升级到跨实例一致性后端
+
+**What:** 为当前进程内限流器补一个跨实例后端方案（Redis/DB），支持多实例部署时的一致限流。
+
+**Why:** 现有实现基于内存 `Map`，单实例内语义正确，但在多实例/多区域部署下无法形成全局一致的节流与并发控制，存在被绕过风险。
+
+**Context:** 本轮结构级重构已经把限流逻辑收敛到 4 类显式限流器（Cooldown/FixedWindowAttempt/FixedWindowQuota/DualConcurrency），为后续切换共享状态后端提供了统一替换点。后续实施时优先保持现有路由 429 文案与 data 语义不变，仅替换状态存储与原子更新机制。
+
+**Effort:** M
+**Priority:** P1
+**Depends on:** 当前限流器重构在生产稳定运行，且确认存在多实例一致性需求
+
+### i18n 路由 namespace 契约守卫
+
+**What:** 增加一套“路由路径 -> namespace 集合”的契约守卫测试，覆盖主要路由族并在新增路由时强制补齐规则。
+
+**Why:** i18n 分发表改为规则表后，核心风险从“分支难读”转为“新增路由忘记补规则”，这类问题通常不会直接抛错，而是静默缺文案。
+
+**Context:** 本轮已补关键路径测试，但仍依赖维护者手工补规则。后续建议在契约测试中维护一份最小路由清单，按 admin/settings/activity/blog/ai/docs/public 等族校验 namespace 结果与顺序，避免规则漂移。
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** 当前 i18n 规则表稳定落地并冻结首版优先级
+
 ## Completed
