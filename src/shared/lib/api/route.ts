@@ -4,18 +4,42 @@
  * - Throw `ApiError` (or subclasses) for consistent `{code,message,data}` responses with HTTP status.
  */
 
-import 'server-only';
-
 import { BusinessError, ExternalError } from '@/shared/lib/errors';
-import { logger } from '@/shared/lib/logger.server';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
 
 import { ApiError } from './errors';
 import { jsonErr } from './response';
 import { setResponseHeader } from './response-headers';
 
+type LogLike = {
+  debug: (message: string, meta?: unknown) => void;
+  info: (message: string, meta?: unknown) => void;
+  warn: (message: string, meta?: unknown) => void;
+  error: (message: string, meta?: unknown) => void;
+};
+
+type RequestLoggerLike = {
+  ctx: { requestId: string };
+  log: LogLike;
+};
+
+const fallbackLog: LogLike = {
+  debug: () => undefined,
+  info: () => undefined,
+  warn: () => undefined,
+  error: () => undefined,
+};
+
+function createFallbackRequestLogger(request: Request): RequestLoggerLike {
+  return {
+    ctx: {
+      requestId: request.headers.get('x-request-id') || crypto.randomUUID(),
+    },
+    log: fallbackLog,
+  };
+}
+
 function logHandledServerError(
-  reqLogger: ReturnType<typeof getRequestLogger> | undefined,
+  reqLogger: RequestLoggerLike | undefined,
   error: Error,
   meta: Record<string, unknown>
 ) {
@@ -24,20 +48,32 @@ function logHandledServerError(
     return;
   }
 
-  logger.error('[api] handled server error', { ...meta, error });
+  fallbackLog.error('[api] handled server error', { ...meta, error });
 }
 
-function toRequestLogger(
+async function toRequestLogger(
   args: readonly unknown[]
-): ReturnType<typeof getRequestLogger> | undefined {
+): Promise<RequestLoggerLike | undefined> {
   const maybeReq = args[0];
-  return typeof maybeReq === 'object' &&
-    maybeReq !== null &&
-    'headers' in maybeReq &&
-    'url' in maybeReq &&
-    'method' in maybeReq
-    ? getRequestLogger(maybeReq as Request)
-    : undefined;
+  if (
+    !(
+      typeof maybeReq === 'object' &&
+      maybeReq !== null &&
+      'headers' in maybeReq &&
+      'url' in maybeReq &&
+      'method' in maybeReq
+    )
+  ) {
+    return undefined;
+  }
+
+  const request = maybeReq as Request;
+  try {
+    const mod = await import('@/shared/lib/request-logger.server');
+    return mod.getRequestLogger(request);
+  } catch {
+    return createFallbackRequestLogger(request);
+  }
 }
 
 function attachRequestIdHeader(
@@ -55,7 +91,7 @@ export function withApi<Args extends ApiRouteHandlerArgs, R>(
   handler: (...args: Args) => R
 ): (...args: Args) => Promise<Awaited<R>> {
   return (async (...args: Args) => {
-    const reqLogger = toRequestLogger(args);
+    const reqLogger = await toRequestLogger(args);
     try {
       const result = await handler(...args);
       if (reqLogger && result instanceof Response) {
@@ -99,7 +135,7 @@ export function withApi<Args extends ApiRouteHandlerArgs, R>(
       if (reqLogger) {
         reqLogger.log.error('[api] unhandled error', { error });
       } else {
-        logger.error('[api] unhandled error', { error });
+        fallbackLog.error('[api] unhandled error', { error });
       }
       const response = jsonErr(500, 'internal server error');
       return reqLogger

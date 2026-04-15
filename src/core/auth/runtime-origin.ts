@@ -66,7 +66,7 @@ function printAuthOriginDebug(
   }
 
   const request = params.request;
-  console.error('[auth-debug]', label, {
+  const debugPayload = {
     allowedOrigins: params.allowedOrigins || [],
     origin: params.origin || null,
     candidates: params.candidates || [],
@@ -76,7 +76,10 @@ function printAuthOriginDebug(
     requestForwardedHost: request?.headers.get('x-forwarded-host') || null,
     requestForwardedProto: request?.headers.get('x-forwarded-proto') || null,
     requestReferer: request?.headers.get('referer') || null,
-  });
+  };
+  process.stderr.write(
+    `[auth-debug] ${label} ${JSON.stringify(debugPayload)}\n`
+  );
 }
 
 function isCanonicalHttpPreviewVariant(origin: string, canonicalOrigin: string) {

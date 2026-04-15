@@ -1,5 +1,3 @@
-import 'server-only';
-
 function cloneHeaders(headers: Headers): Headers {
   const cloned = new Headers();
   for (const [key, value] of headers.entries()) {

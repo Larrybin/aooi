@@ -123,13 +123,14 @@ export function buildForwardedWorkerRequest(
 }
 
 function loadRouterRuntime(): Promise<RouterRuntime> {
+  const imagesModulePath = '../../.open-next/cloudflare/images.js';
+  const initModulePath = '../../.open-next/cloudflare/init.js';
+  const middlewareModulePath = '../../.open-next/middleware/handler.mjs';
+
   routerRuntimePromise ??= Promise.all([
-    // @ts-ignore OpenNext generates this module after Next build.
-    import('../../.open-next/cloudflare/images.js'),
-    // @ts-ignore OpenNext generates this module after Next build.
-    import('../../.open-next/cloudflare/init.js'),
-    // @ts-ignore OpenNext generates this module after Next build.
-    import('../../.open-next/middleware/handler.mjs'),
+    import(imagesModulePath),
+    import(initModulePath),
+    import(middlewareModulePath),
   ]).then(([imagesModule, initModule, middlewareModule]) => ({
     handleCdnCgiImageRequest: imagesModule.handleCdnCgiImageRequest,
     handleImageRequest: imagesModule.handleImageRequest,
