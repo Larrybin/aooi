@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { useRouter } from '@/core/i18n/navigation';
-import { LocaleSelector } from '@/shared/blocks/common';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { usePublicAppContext } from '@/shared/contexts/app';

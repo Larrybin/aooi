@@ -2,7 +2,6 @@ import 'server-only';
 
 import { createElement, type ElementType, type ReactNode } from 'react';
 import { getMDXComponents } from '@/mdx-components';
-import { createRelativeLink } from 'fumadocs-ui/mdx';
 
 import { pagesI18n, pagesSource, postsI18n, postsSource } from '@/core/docs/source';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
@@ -10,6 +9,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
+import { createRelativeLink } from '@/mdx-components';
 import { formatPostDate } from '@/shared/lib/post-date';
 import { buildPostTocFromMarkdown as buildMarkdownToc } from '@/shared/lib/post-toc';
 import { getAllConfigs } from '@/shared/models/config';

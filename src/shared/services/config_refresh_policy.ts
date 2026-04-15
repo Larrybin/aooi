@@ -16,10 +16,10 @@ export type ConfigRefreshPolicy = 'always';
 export const CONFIG_REFRESH_POLICY: ConfigRefreshPolicy = 'always';
 
 export async function buildServiceFromLatestConfigs<T>(
-  buildWithConfigs: (configs: Configs) => T
+  buildWithConfigs: (configs: Configs) => T | Promise<T>
 ): Promise<T> {
   const configs = await getAllConfigs();
-  return buildWithConfigs(configs);
+  return await buildWithConfigs(configs);
 }
 
 /**
@@ -28,7 +28,7 @@ export async function buildServiceFromLatestConfigs<T>(
  * Important: Callers must create a new getter per request to avoid cross-request caching.
  */
 export function createRequestScopedServiceGetter<T>(
-  buildWithConfigs: (configs: Configs) => T
+  buildWithConfigs: (configs: Configs) => T | Promise<T>
 ) {
   let servicePromise: Promise<T> | null = null;
 

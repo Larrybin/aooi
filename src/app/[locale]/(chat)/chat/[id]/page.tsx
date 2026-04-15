@@ -2,18 +2,18 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: user-specific chat content; must not cache across users/roles
 import { redirect } from 'next/navigation';
-import { ChatBox } from '@/features/web/chat/components/box';
+import { ChatThreadShell } from '@/features/web/chat/components/thread-shell';
 import type { UIMessage } from 'ai';
 
 import { buildHasPermissionCondition } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import { findChatByIdForViewer } from '@/shared/models/chat';
 import {
   ChatMessageStatus,
   getChatMessages,
 } from '@/shared/models/chat_message';
-import { getUserInfo } from '@/shared/models/user';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({
@@ -23,7 +23,7 @@ export default async function ChatPage({
 }) {
   const { locale, id: chatId } = await params;
 
-  const user = await getUserInfo();
+  const user = await getSignedInUserIdentity();
   if (!user) {
     const callbackUrl = `/chat/${encodeURIComponent(chatId)}`;
     redirect(
@@ -72,6 +72,9 @@ export default async function ChatPage({
   })) as UIMessage[];
 
   return (
-    <ChatBox initialChat={initialChat} initialMessages={initialMessages} />
+    <ChatThreadShell
+      initialChat={initialChat}
+      initialMessages={initialMessages}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
+import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,24 @@ const repoRoot = path.resolve(currentDir, '../../..');
 
 async function readRepoFile(relativePath: string) {
   return readFile(path.resolve(repoRoot, relativePath), 'utf8');
+}
+
+async function collectSourceFiles(currentDirPath: string): Promise<string[]> {
+  const entries = await readdir(currentDirPath, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const resolvedPath = path.join(currentDirPath, entry.name);
+      if (entry.isDirectory()) {
+        return collectSourceFiles(resolvedPath);
+      }
+
+      return resolvedPath.endsWith('.ts') || resolvedPath.endsWith('.tsx')
+        ? [resolvedPath]
+        : [];
+    })
+  );
+
+  return files.flat();
 }
 
 test('PublicAppProvider 不再在公共壳层读取 session、details 或 configs fallback', async () => {
@@ -66,5 +85,63 @@ test('公共消费方不再在首屏隐式读取 useSession', async () => {
   for (const file of filesToCheck) {
     const content = await readRepoFile(file);
     assert.equal(content.includes('useSession('), false, file);
+  }
+});
+
+test('根 locale layout 默认不注入全量 messages，也不再挂全局动态 metadata', async () => {
+  const content = await readRepoFile('src/app/[locale]/layout.tsx');
+
+  assert.equal(
+    content.includes('<NextIntlClientProvider locale={locale} messages={null}>'),
+    true
+  );
+  assert.equal(content.includes('generateMetadata = getMetadata()'), false);
+});
+
+test('shared/common 不再持有 markdown-it 解析器实现', async () => {
+  assert.equal(
+    fs.existsSync(
+      path.resolve(repoRoot, 'src/shared/blocks/common/markdown-content.tsx')
+    ),
+    false
+  );
+  assert.equal(
+    fs.existsSync(
+      path.resolve(repoRoot, 'src/shared/blocks/common/markdown-preview.tsx')
+    ),
+    false
+  );
+});
+
+test('非 payment surface 不允许直接 import payment provider 实现', async () => {
+  const srcRoot = path.resolve(repoRoot, 'src');
+  const allowedPrefixes = [
+    path.resolve(srcRoot, 'extensions/payment'),
+    path.resolve(srcRoot, 'shared/services/payment'),
+  ];
+  const providerImportPatterns = [
+    "@/extensions/payment/providers",
+    "@/extensions/payment/stripe",
+    "@/extensions/payment/paypal",
+    "@/extensions/payment/creem",
+  ];
+
+  for (const file of await collectSourceFiles(srcRoot)) {
+    if (file.endsWith('app-boundaries.test.ts')) {
+      continue;
+    }
+
+    if (allowedPrefixes.some((allowedPrefix) => file.startsWith(allowedPrefix))) {
+      continue;
+    }
+
+    const content = await readFile(file, 'utf8');
+    for (const importPath of providerImportPatterns) {
+      assert.equal(
+        content.includes(importPath),
+        false,
+        `${path.relative(repoRoot, file)} 不应直接引用 ${importPath}`
+      );
+    }
   }
 });

@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
-import { LocaleSelector, Pagination } from '@/shared/blocks/common';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
+import { Pagination } from '@/shared/blocks/common/pagination';
 import { Empty } from '@/shared/blocks/common/empty';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';

@@ -6,11 +6,11 @@ import { SignModal } from '@/features/web/auth/components/sign-modal';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common';
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
-import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-session.server';
+import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-user-snapshot';
 import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
 import {
   buildBrandPlaceholderValues,
@@ -36,7 +36,7 @@ export default async function AdminLayout({
 
   // Check if user has admin access permission
   const signedInUser = await requireAdminAccess({
-    redirectUrl: `/no-permission`,
+    redirectUrl: `/admin/no-permission`,
     locale: locale || '',
   });
 

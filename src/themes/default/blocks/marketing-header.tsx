@@ -4,7 +4,7 @@ import { SignUser } from '@/features/web/auth/components/sign-user';
 import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
-import { BrandImage } from '@/shared/blocks/common';
+import { BrandImage } from '@/shared/blocks/common/brand-image';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';

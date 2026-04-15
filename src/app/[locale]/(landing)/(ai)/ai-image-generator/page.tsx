@@ -4,7 +4,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { PageHeader } from '@/shared/blocks/common';
+import { PageHeader } from '@/shared/blocks/common/page-header';
 import { ImageGenerator } from '@/shared/blocks/generator';
 import { getMetadata } from '@/shared/lib/seo';
 import { CTA, FAQ } from '@/themes/default/blocks';

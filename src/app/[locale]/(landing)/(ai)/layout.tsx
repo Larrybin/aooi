@@ -7,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
-import { LocaleDetector } from '@/shared/blocks/common';
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import {

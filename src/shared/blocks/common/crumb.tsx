@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
-import { SmartIcon } from '@/shared/blocks/common';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import type { NavItem } from '@/shared/types/blocks/common';
 
 export function Crumb({ items }: { items: NavItem[] }) {

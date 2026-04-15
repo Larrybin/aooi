@@ -1,5 +1,7 @@
 import React from 'react';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Heading } from 'fumadocs-ui/components/heading';
 import type { MDXComponents } from 'mdx/types';
 
 import { envConfigs } from '@/config';
@@ -135,10 +137,102 @@ function buildDefaultBrandMdxComponents(): MDXComponents {
   };
 }
 
+type RelativeLinkSource = {
+  getPageByHref: (
+    href: string,
+    options: { dir: string; language?: string }
+  ) => { page: { url: string }; hash?: string } | null | undefined;
+};
+
+type RelativeLinkPage = {
+  path: string;
+  locale?: string;
+};
+
+function dirname(input: string): string {
+  const normalized = input.replace(/\\/g, '/');
+  const index = normalized.lastIndexOf('/');
+  return index <= 0 ? '' : normalized.slice(0, index);
+}
+
+function LightPre(props: React.HTMLAttributes<HTMLPreElement>) {
+  return (
+    <pre
+      {...props}
+      className={`my-4 overflow-x-auto rounded-xl border bg-muted/40 px-4 py-3 text-sm ${props.className || ''}`}
+    />
+  );
+}
+
+function Table(props: React.TableHTMLAttributes<HTMLTableElement>) {
+  return (
+    <div className="relative my-6 overflow-auto prose-no-margin">
+      <table {...props} />
+    </div>
+  );
+}
+
+function Image(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+  return <img {...props} className={`rounded-lg ${props.className || ''}`} />;
+}
+
+export function createRelativeLink(
+  source: RelativeLinkSource,
+  page: RelativeLinkPage,
+  LinkComponent: React.ComponentType<
+    React.AnchorHTMLAttributes<HTMLAnchorElement>
+  > = CustomLink
+) {
+  return async function RelativeLink({
+    href,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+    let resolvedHref = href;
+
+    if (href && href.startsWith('.')) {
+      const target = source.getPageByHref(href, {
+        dir: dirname(page.path),
+        language: page.locale,
+      });
+
+      if (target) {
+        resolvedHref = target.hash
+          ? `${target.page.url}#${target.hash}`
+          : target.page.url;
+      }
+    }
+
+    return <LinkComponent href={resolvedHref} {...props} />;
+  };
+}
+
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   const defaultBrandComponents = buildDefaultBrandMdxComponents();
   const mergedComponents = {
-    ...defaultMdxComponents,
+    Card,
+    Cards,
+    Callout,
+    pre: LightPre,
+    img: Image,
+    table: Table,
+    h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <Heading as="h1" {...props} />
+    ),
+    h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <Heading as="h2" {...props} />
+    ),
+    h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <Heading as="h3" {...props} />
+    ),
+    h4: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <Heading as="h4" {...props} />
+    ),
+    h5: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <Heading as="h5" {...props} />
+    ),
+    h6: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <Heading as="h6" {...props} />
+    ),
     a: CustomLink,
     ...defaultBrandComponents,
     ...components,

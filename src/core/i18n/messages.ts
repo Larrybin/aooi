@@ -1,4 +1,4 @@
-import { localeMessagesPaths, type Locale } from '@/config/locale';
+import type { Locale } from '@/config/locale';
 
 import { resolveMessagePath } from './messages.shared';
 
@@ -186,8 +186,4 @@ export async function getScopedMessages(
   }
 
   return scopedMessages;
-}
-
-export async function getRequestMessages(locale: Locale): Promise<Messages> {
-  return getScopedMessages(locale, localeMessagesPaths);
 }

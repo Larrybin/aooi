@@ -15,9 +15,9 @@ import { Link } from '@/core/i18n/navigation';
 import { AIMediaType, AITaskStatus } from '@/extensions/ai';
 import {
   ImageUploader,
-  LazyImage,
   type ImageUploaderValue,
-} from '@/shared/blocks/common';
+} from '@/shared/blocks/common/image-uploader';
+import { LazyImage } from '@/shared/blocks/common/lazy-image';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,

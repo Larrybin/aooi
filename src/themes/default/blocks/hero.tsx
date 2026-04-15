@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
-import { LazyImage } from '@/shared/blocks/common';
+import { LazyImage } from '@/shared/blocks/common/lazy-image';
 import { Button } from '@/shared/components/ui/button';
 import type { Hero as HeroType } from '@/shared/types/blocks/landing';
 

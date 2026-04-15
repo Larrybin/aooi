@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { signOut } from '@/core/auth/client';
 import { Link, useRouter } from '@/core/i18n/navigation';
-import { SmartIcon } from '@/shared/blocks/common';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Avatar,
   AvatarFallback,

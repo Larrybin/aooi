@@ -1,4 +1,4 @@
-import { LazyImage } from '@/shared/blocks/common';
+import { LazyImage } from '@/shared/blocks/common/lazy-image';
 import { cn } from '@/shared/lib/utils';
 
 export function Image({

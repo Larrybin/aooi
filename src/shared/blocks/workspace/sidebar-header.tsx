@@ -1,5 +1,5 @@
 import { Link } from '@/core/i18n/navigation';
-import { BrandImage } from '@/shared/blocks/common';
+import { BrandImage } from '@/shared/blocks/common/brand-image';
 import {
   SidebarHeader as SidebarHeaderComponent,
   SidebarMenu,

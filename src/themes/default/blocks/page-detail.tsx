@@ -1,6 +1,6 @@
 import { CalendarIcon } from 'lucide-react';
 
-import { MarkdownPreview } from '@/shared/blocks/common/markdown-preview';
+import { MarkdownPreview } from '@/features/docs/ui/markdown-preview';
 import { type Post as PostType } from '@/shared/types/blocks/blog';
 
 import '@/config/style/docs.css';

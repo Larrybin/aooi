@@ -14,10 +14,6 @@ export const posts = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    rehypeCodeOptions: {
-      theme: 'github-light',
-      // Use defaultLanguage for unknown language codes
-      defaultLanguage: 'plaintext',
-    },
+    rehypeCodeOptions: false,
   },
 });

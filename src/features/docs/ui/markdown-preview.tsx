@@ -1,4 +1,3 @@
-// components/MarkdownPreview.tsx
 'use client';
 
 import { useMemo } from 'react';
@@ -6,7 +5,7 @@ import GithubSlugger from 'github-slugger';
 import MarkdownIt from 'markdown-it';
 
 import 'github-markdown-css/github-markdown-light.css';
-import './markdown.css';
+import '@/shared/blocks/common/markdown.css';
 
 export interface TocItem {
   id: string;
@@ -48,20 +47,12 @@ function getOrCreateHeadingSlugger(env: unknown): GithubSlugger {
 }
 
 const md = new MarkdownIt({
-  // Security: markdown preview may render user-provided content; do not allow raw HTML.
   html: false,
   linkify: true,
   breaks: true,
 });
 
-// Custom renderer for headings with IDs
-md.renderer.rules.heading_open = function (
-  tokens,
-  idx,
-  options,
-  env,
-  renderer
-) {
+md.renderer.rules.heading_open = function (tokens, idx, options, env, renderer) {
   const nextToken = tokens[idx + 1];
 
   if (nextToken && nextToken.type === 'inline') {
@@ -73,16 +64,13 @@ md.renderer.rules.heading_open = function (
   return renderer.renderToken(tokens, idx, options);
 };
 
-// Custom renderer for links with nofollow
 md.renderer.rules.link_open = function (tokens, idx, options, env, renderer) {
   const token = tokens[idx];
   const hrefIndex = token.attrIndex('href');
 
   if (hrefIndex >= 0) {
     const href = token.attrGet('href');
-    // Add nofollow to all links
     token.attrSet('rel', 'nofollow');
-    // Optionally add target="_blank" for external links
     if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
       token.attrSet('target', '_blank');
       token.attrSet('rel', 'nofollow noopener noreferrer');
@@ -92,11 +80,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, renderer) {
   return renderer.renderToken(tokens, idx, options);
 };
 
-interface MarkdownPreviewProps {
-  content: string;
-}
-
-export function MarkdownPreview({ content }: MarkdownPreviewProps) {
+export function MarkdownPreview({ content }: { content: string }) {
   const html = useMemo(() => {
     if (!content) return '';
     const env: MarkdownEnv = {};

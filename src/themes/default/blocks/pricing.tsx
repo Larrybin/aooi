@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { SmartIcon } from '@/shared/blocks/common';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { PaymentModal } from '@/shared/blocks/payment/payment-modal';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';

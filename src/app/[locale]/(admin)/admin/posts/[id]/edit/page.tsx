@@ -4,7 +4,7 @@
 import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';

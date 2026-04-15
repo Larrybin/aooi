@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getThemeLayout } from '@/core/theme';
-import { LocaleDetector } from '@/shared/blocks/common';
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';

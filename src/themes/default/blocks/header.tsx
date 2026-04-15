@@ -5,7 +5,9 @@ import { SignUser } from '@/features/web/auth/components/sign-user';
 import { Menu, X } from 'lucide-react';
 
 import { Link, usePathname } from '@/core/i18n/navigation';
-import { BrandLogo, LocaleSelector, SmartIcon } from '@/shared/blocks/common';
+import { BrandLogo } from '@/shared/blocks/common/brand-logo';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Accordion,
   AccordionContent,

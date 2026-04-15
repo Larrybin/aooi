@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getRequestMessages } from './messages';
+import { getScopedMessages } from './messages';
 import {
   getRequestNamespaces,
   normalizeAppPathname,
@@ -35,11 +35,15 @@ test('getRequestNamespaces 会按路由收敛服务端消息集', () => {
   assert.deepEqual(getRequestNamespaces('/api/payment/checkout'), ['pricing']);
 });
 
-test('getRequestMessages: request config 不依赖 pathname，直接加载全量消息树', async () => {
-  const messages = await getRequestMessages('zh-TW');
+test('getScopedMessages 只加载当前请求需要的 namespace', async () => {
+  const messages = await getScopedMessages('zh-TW', [
+    'common.metadata',
+    'pricing',
+  ]);
 
   assert.equal(typeof messages.common, 'object');
-  assert.equal(typeof messages.landing, 'object');
-  assert.equal(typeof messages.admin, 'object');
-  assert.equal(typeof messages.settings, 'object');
+  assert.equal(typeof messages.pricing, 'object');
+  assert.equal('landing' in messages, false);
+  assert.equal('admin' in messages, false);
+  assert.equal('settings' in messages, false);
 });

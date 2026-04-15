@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { getAuthClient } from '@/core/auth/client';
+import { isPlainObject } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 
 type OneTapParams = {

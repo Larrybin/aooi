@@ -1,10 +1,8 @@
 import { Link } from '@/core/i18n/navigation';
-import {
-  BrandLogo,
-  Copyright,
-  GeneralSocialLinks,
-  LocaleSelector,
-} from '@/shared/blocks/common';
+import { BrandLogo } from '@/shared/blocks/common/brand-logo';
+import { Copyright } from '@/shared/blocks/common/copyright';
+import { GeneralSocialLinks } from '@/shared/blocks/common/general-social-links';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';

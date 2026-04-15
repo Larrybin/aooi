@@ -8,7 +8,7 @@ import { ChatLibrary } from '@/features/web/chat/components/library';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common';
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { WorkspaceLayout } from '@/shared/blocks/workspace';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';

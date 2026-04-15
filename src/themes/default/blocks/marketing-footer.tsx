@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { defaultLocale } from '@/config/locale';
-import { BrandImage } from '@/shared/blocks/common';
+import { BrandImage } from '@/shared/blocks/common/brand-image';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';

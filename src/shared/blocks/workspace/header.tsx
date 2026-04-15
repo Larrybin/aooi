@@ -1,7 +1,8 @@
 import { Fragment } from 'react';
 
 import { Link } from '@/core/i18n/navigation';
-import { LocaleSelector, SmartIcon } from '@/shared/blocks/common';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Breadcrumb,
   BreadcrumbItem,

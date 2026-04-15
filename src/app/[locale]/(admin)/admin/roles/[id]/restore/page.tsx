@@ -7,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { db } from '@/core/db';
 import { role } from '@/config/db/schema';
-import { Empty } from '@/shared/blocks/common';
+import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { BrandImage } from '@/shared/blocks/common';
+import { BrandImage } from '@/shared/blocks/common/brand-image';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';

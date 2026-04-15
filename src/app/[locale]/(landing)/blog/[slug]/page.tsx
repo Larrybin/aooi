@@ -6,12 +6,12 @@ import {
   getBlogPost,
   getPublicBlogPostStaticSlugs,
 } from '@/features/docs/server/content';
+import { MarkdownContent } from '@/features/docs/server/markdown-content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
 import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
 import { getThemePage } from '@/core/theme';
-import { MarkdownContent } from '@/shared/blocks/common/markdown-content';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 
 import { Link } from '@/core/i18n/navigation';
-import { SmartIcon } from '@/shared/blocks/common';
+import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import type { Features as FeaturesType } from '@/shared/types/blocks/landing';

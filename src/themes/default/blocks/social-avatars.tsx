@@ -1,6 +1,6 @@
 import { Star } from 'lucide-react';
 
-import { LazyImage } from '@/shared/blocks/common';
+import { LazyImage } from '@/shared/blocks/common/lazy-image';
 import { Avatar } from '@/shared/components/ui/avatar';
 
 const userImgUrls = [

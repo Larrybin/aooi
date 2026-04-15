@@ -5,7 +5,8 @@ import { setRequestLocale } from 'next-intl/server';
 
 import { envConfigs } from '@/config';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { BrandLogo, LocaleSelector } from '@/shared/blocks/common';
+import { BrandLogo } from '@/shared/blocks/common/brand-logo';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 

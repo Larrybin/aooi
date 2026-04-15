@@ -4,7 +4,6 @@
 import { createElement, type ElementType, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getMDXComponents } from '@/mdx-components';
-import { createRelativeLink } from 'fumadocs-ui/mdx';
 import {
   DocsBody,
   DocsDescription,
@@ -22,6 +21,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
+import { createRelativeLink } from '@/mdx-components';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 
 export default async function DocsContentPage(props: {
