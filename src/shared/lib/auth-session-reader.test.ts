@@ -75,3 +75,18 @@ test('readSignedInUserIdentityFromCookieHeader 在无 session cookie 时零查�
   assert.equal(result, null);
   assert.equal(queryCount, 0);
 });
+
+test('readSignedInUserIdentityFromCookieHeader 会将 signed cookie 归一为原始 token', async () => {
+  let tokenSeen: string | null = null;
+  const signature = `${'A'.repeat(43)}=`;
+
+  await readSignedInUserIdentityFromCookieHeader(
+    `theme=dark; __Secure-better-auth.session_token=raw-session-token.${signature}; locale=zh`,
+    async (sessionToken) => {
+      tokenSeen = sessionToken;
+      return null;
+    }
+  );
+
+  assert.equal(tokenSeen, 'raw-session-token');
+});
