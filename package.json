@@ -114,6 +114,7 @@
     "next-intl": "^4.3.4",
     "nextjs-toploader": "^3.9.17",
     "overtype": "^1.2.6",
+    "parse5": "^7.3.0",
     "postgres": "^3.4.7",
     "react": "19.2.0",
     "react-copy-to-clipboard": "^5.1.0",

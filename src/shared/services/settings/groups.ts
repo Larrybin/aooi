@@ -163,7 +163,7 @@ export async function getSettingGroups() {
       name: 'adsterra',
       title: t('groups.adsterra'),
       description:
-        'custom your <a href="https://adsterra.com/blog/set-up-publishers-dashboard/#add-your-first-website-and-start-monetizing" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Adsterra</a> script and zone settings',
+        'custom your <a href="https://adsterra.com/blog/set-up-publishers-dashboard/#add-your-first-website-and-start-monetizing" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Adsterra</a> snippet and zone settings',
       tab: 'ads',
     },
     {

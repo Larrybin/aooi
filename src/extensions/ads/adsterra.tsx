@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { renderAdsterraSnippet } from './adsterra-snippet.server';
 import type { AdsProvider, AdsZoneContext, AdsZoneName } from './types';
 
 export type AdsterraMode =
@@ -10,24 +11,29 @@ export type AdsterraMode =
 
 export interface AdsterraConfigs {
   mode: AdsterraMode;
-  globalScriptSrc?: string;
+  globalSnippet?: string;
   adsTxtEntry?: string;
-  zoneScriptSrc: Partial<Record<AdsZoneName, string>>;
-}
-
-function AdsterraScript({ src, zone }: { src: string; zone?: AdsZoneName }) {
-  return (
-    <>
-      {zone ? <div data-adsterra-zone={zone} /> : null}
-      <script async data-cfasync="false" src={src} />
-    </>
-  );
+  zoneSnippets: Partial<Record<AdsZoneName, string>>;
 }
 
 export class AdsterraProvider implements AdsProvider {
   readonly name = 'adsterra';
 
-  constructor(private readonly configs: AdsterraConfigs) {}
+  private readonly globalHeadScripts: ReactNode;
+
+  private readonly globalBodyScripts: ReactNode;
+
+  private readonly zoneNodes: Partial<Record<AdsZoneName, ReactNode>>;
+
+  constructor(private readonly configs: AdsterraConfigs) {
+    const parsedGlobalSnippet = this.parseGlobalSnippet();
+
+    this.globalHeadScripts =
+      this.configs.mode === 'popunder' ? parsedGlobalSnippet : null;
+    this.globalBodyScripts =
+      this.configs.mode === 'social_bar' ? parsedGlobalSnippet : null;
+    this.zoneNodes = this.parseZoneSnippets();
+  }
 
   private supportsInlineZones() {
     return (
@@ -36,8 +42,44 @@ export class AdsterraProvider implements AdsProvider {
     );
   }
 
-  private getZoneScriptSrc(zone: AdsZoneName) {
-    return this.configs.zoneScriptSrc[zone] || '';
+  private parseGlobalSnippet() {
+    const snippet = this.configs.globalSnippet?.trim();
+    if (!snippet || this.supportsInlineZones()) {
+      return null;
+    }
+
+    const parsedSnippet = renderAdsterraSnippet(
+      snippet,
+      `adsterra-global-${this.configs.mode}`
+    );
+    return parsedSnippet.ok ? parsedSnippet.node : null;
+  }
+
+  private parseZoneSnippets() {
+    const zoneNodes: Partial<Record<AdsZoneName, ReactNode>> = {};
+    if (!this.supportsInlineZones()) {
+      return zoneNodes;
+    }
+
+    for (const [zone, snippet] of Object.entries(this.configs.zoneSnippets) as [
+      AdsZoneName,
+      string | undefined,
+    ][]) {
+      const normalizedSnippet = snippet?.trim();
+      if (!normalizedSnippet) {
+        continue;
+      }
+
+      const parsedSnippet = renderAdsterraSnippet(
+        normalizedSnippet,
+        `adsterra-zone-${zone}`
+      );
+      if (parsedSnippet.ok) {
+        zoneNodes[zone] = parsedSnippet.node;
+      }
+    }
+
+    return zoneNodes;
   }
 
   getMetaTags(): ReactNode {
@@ -45,28 +87,19 @@ export class AdsterraProvider implements AdsProvider {
   }
 
   getHeadScripts(): ReactNode {
-    return null;
+    return this.globalHeadScripts;
   }
 
   getBodyScripts(): ReactNode {
-    if (this.supportsInlineZones() || !this.configs.globalScriptSrc) {
-      return null;
-    }
-
-    return <AdsterraScript src={this.configs.globalScriptSrc} />;
+    return this.globalBodyScripts;
   }
 
   supportsZone(zone: AdsZoneName): boolean {
-    return this.supportsInlineZones() && Boolean(this.getZoneScriptSrc(zone));
+    return Boolean(this.zoneNodes[zone]);
   }
 
   renderZone(context: AdsZoneContext): ReactNode {
-    const scriptSrc = this.getZoneScriptSrc(context.zone);
-    if (!this.supportsZone(context.zone) || !scriptSrc) {
-      return null;
-    }
-
-    return <AdsterraScript src={scriptSrc} zone={context.zone} />;
+    return this.zoneNodes[context.zone] || null;
   }
 
   getAdsTxtEntry(): string | null {

@@ -22,19 +22,19 @@ function getNonEmptyConfig(configs: Configs, key: string) {
   return configs[key]?.trim() || '';
 }
 
-function getAdsterraZoneScriptMap(configs: Configs) {
+function getAdsterraZoneSnippetMap(configs: Configs) {
   return {
     landing_inline_primary: getNonEmptyConfig(
       configs,
-      'adsterra_zone_landing_inline_primary_script_src'
+      'adsterra_zone_landing_inline_primary_snippet'
     ),
     blog_post_inline: getNonEmptyConfig(
       configs,
-      'adsterra_zone_blog_post_inline_script_src'
+      'adsterra_zone_blog_post_inline_snippet'
     ),
     blog_post_footer: getNonEmptyConfig(
       configs,
-      'adsterra_zone_blog_post_footer_script_src'
+      'adsterra_zone_blog_post_footer_snippet'
     ),
   } satisfies Partial<Record<AdsZoneName, string>>;
 }
@@ -94,14 +94,15 @@ function buildAdsterraRuntime(configs: Configs): ResolvedAdsRuntime {
 
   const provider = new AdsterraProvider({
     mode,
-    globalScriptSrc: getNonEmptyConfig(configs, 'adsterra_global_script_src'),
+    globalSnippet: getNonEmptyConfig(configs, 'adsterra_global_snippet'),
     adsTxtEntry: getNonEmptyConfig(configs, 'adsterra_ads_txt_entry'),
-    zoneScriptSrc: getAdsterraZoneScriptMap(configs),
+    zoneSnippets: getAdsterraZoneSnippetMap(configs),
   });
 
   if (
     (mode === 'social_bar' || mode === 'popunder') &&
-    !getNonEmptyConfig(configs, 'adsterra_global_script_src')
+    !provider.getHeadScripts() &&
+    !provider.getBodyScripts()
   ) {
     return { enabled: false };
   }

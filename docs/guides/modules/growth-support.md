@@ -14,7 +14,7 @@ Growth Support groups the optional modules that extend distribution and support 
 - Analytics tab provider keys
 - Affiliate tab provider keys
 - Customer Service tab provider keys
-- Ads tab provider switch, provider-specific runtime keys, and zone script sources when the active provider uses in-page placements
+- Ads tab provider switch, provider-specific runtime keys, and Adsterra snippet fields when the active provider uses in-page placements
 - supporting email config when customer service workflows depend on email delivery
 
 ## External Services
