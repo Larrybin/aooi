@@ -2,6 +2,18 @@
 
 ## Review
 
+### Payment webhook 回放与未知事件审计补偿工具
+
+**What:** 增加支付 webhook 回放工具（按 provider、event id、时间窗重放），并提供未知事件审计记录的补偿处理入口。
+
+**Why:** 当前生产策略是“未知事件忽略并审计”，但缺少回放与补偿工具会导致对账异常修复依赖人工脚本，恢复效率低。
+
+**Context:** 本轮重构已统一 provider 契约与 `UNKNOWN` 事件语义。下一步应补齐 replay CLI/API、幂等保护、最小审计字段（provider/eventType/eventId/rawDigest/receivedAt）和操作留痕，保证账务核对链路可追溯。
+
+**Effort:** M
+**Priority:** P1
+**Depends on:** 支付契约收敛与 notify 状态机稳定
+
 ### Cloudflare Admin Settings Phase 2 写路径验证
 
 **What:** 为 Cloudflare `admin/settings/**` 增加第二阶段验证，覆盖关键写操作、配置保存、以及 provider 级提交成功/失败路径。

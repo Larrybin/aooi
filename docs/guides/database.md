@@ -128,6 +128,7 @@ src/config/db/migrations/
 ├── 0000_flashy_galactus.sql
 ├── 0001_nasty_vindicator.sql
 ├── 0002_enable_rls_public_tables.sql
+├── 0003_payment_webhook_audit.sql
 └── meta/
     ├── _journal.json
     ├── 0000_snapshot.json
