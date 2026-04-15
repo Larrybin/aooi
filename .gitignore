@@ -71,6 +71,8 @@ src/shared/types/cloudflare.d.ts
 
 # local agent notes / scratch
 /temp/
+/.tmp/
+/cloudflare/.tmp/
 
 # local IDE history (do not commit)
 .specstory/history/
