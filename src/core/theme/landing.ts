@@ -47,15 +47,21 @@ const themeLandingLayouts: Record<
   },
 };
 
-/**
- * load theme page (landing group only)
- */
-export async function getThemePage(
-  pageName: ThemeLandingPageName,
-  theme?: string
-) {
+async function loadLandingThemeEntry({
+  kind,
+  name,
+  theme,
+  registry,
+  logKey,
+}: {
+  kind: 'page' | 'layout';
+  name: string;
+  theme?: string;
+  registry: Record<ThemeName, object>;
+  logKey: string;
+}): Promise<AnyComponent> {
   const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName = hasOwn(themeLandingPages, activeTheme)
+  const loadTheme: ThemeName = hasOwn(registry, activeTheme)
     ? (activeTheme as ThemeName)
     : defaultTheme;
 
@@ -63,28 +69,45 @@ export async function getThemePage(
     logger.warn('theme: unknown theme, fallback to default', {
       requestedTheme: activeTheme,
       fallbackTheme: loadTheme,
-      pageName,
+      [logKey]: name,
     });
   }
 
   const loader =
-    getOwnLoader(themeLandingPages[loadTheme], pageName) ??
-    getOwnLoader(themeLandingPages[defaultTheme as ThemeName], pageName);
+    getOwnLoader(registry[loadTheme], name) ??
+    getOwnLoader(registry[defaultTheme as ThemeName], name);
 
   if (!loader) {
-    logger.error('theme: unknown landing page', {
-      pageName,
+    logger.error(`theme: unknown landing ${kind}`, {
+      [logKey]: name,
       theme: loadTheme,
       fallbackTheme: defaultTheme,
     });
-    throw new Error(`Unknown theme landing page: ${pageName}`);
+    throw new Error(`Unknown theme landing ${kind}: ${name}`);
   }
 
   const themeModule = (await loader()) as { default?: unknown };
   if (typeof themeModule.default !== 'function') {
-    throw new Error(`Invalid theme landing page module: ${pageName}`);
+    throw new Error(`Invalid theme landing ${kind} module: ${name}`);
   }
+
   return themeModule.default as AnyComponent;
+}
+
+/**
+ * load theme page (landing group only)
+ */
+export async function getThemePage(
+  pageName: ThemeLandingPageName,
+  theme?: string
+) {
+  return await loadLandingThemeEntry({
+    kind: 'page',
+    name: pageName,
+    theme,
+    registry: themeLandingPages,
+    logKey: 'pageName',
+  });
 }
 
 /**
@@ -94,35 +117,11 @@ export async function getThemeLayout(
   layoutName: ThemeLandingLayoutName,
   theme?: string
 ): Promise<AnyComponent> {
-  const activeTheme = theme || getActiveTheme();
-  const loadTheme: ThemeName = hasOwn(themeLandingLayouts, activeTheme)
-    ? (activeTheme as ThemeName)
-    : defaultTheme;
-
-  if (loadTheme !== activeTheme) {
-    logger.warn('theme: unknown theme, fallback to default', {
-      requestedTheme: activeTheme,
-      fallbackTheme: loadTheme,
-      layoutName,
-    });
-  }
-
-  const loader =
-    getOwnLoader(themeLandingLayouts[loadTheme], layoutName) ??
-    getOwnLoader(themeLandingLayouts[defaultTheme as ThemeName], layoutName);
-
-  if (!loader) {
-    logger.error('theme: unknown landing layout', {
-      layoutName,
-      theme: loadTheme,
-      fallbackTheme: defaultTheme,
-    });
-    throw new Error(`Unknown theme landing layout: ${layoutName}`);
-  }
-
-  const themeModule = (await loader()) as { default?: unknown };
-  if (typeof themeModule.default !== 'function') {
-    throw new Error(`Invalid theme landing layout module: ${layoutName}`);
-  }
-  return themeModule.default as AnyComponent;
+  return await loadLandingThemeEntry({
+    kind: 'layout',
+    name: layoutName,
+    theme,
+    registry: themeLandingLayouts,
+    logKey: 'layoutName',
+  });
 }
