@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { PaymentManager } from '@/extensions/payment';
-import { withPaymentProviderAdapter } from '@/extensions/payment/adapter';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { logger } from '@/shared/lib/logger.server';
 import type { Configs } from '@/shared/models/config';
@@ -55,14 +54,12 @@ async function addStripeProvider(paymentManager: PaymentManager, configs: Config
   }
 
   paymentManager.addProvider(
-    withPaymentProviderAdapter(
-      new StripeProvider({
-        secretKey: configs.stripe_secret_key,
-        publishableKey: configs.stripe_publishable_key,
-        signingSecret: configs.stripe_signing_secret,
-        allowedPaymentMethods,
-      })
-    ),
+    new StripeProvider({
+      secretKey: configs.stripe_secret_key,
+      publishableKey: configs.stripe_publishable_key,
+      signingSecret: configs.stripe_signing_secret,
+      allowedPaymentMethods,
+    }),
     defaultProvider === 'stripe'
   );
 }
@@ -71,14 +68,12 @@ async function addCreemProvider(paymentManager: PaymentManager, configs: Configs
   const { CreemProvider } = await import('@/extensions/payment/creem');
 
   paymentManager.addProvider(
-    withPaymentProviderAdapter(
-      new CreemProvider({
-        apiKey: configs.creem_api_key,
-        environment:
-          configs.creem_environment === 'production' ? 'production' : 'sandbox',
-        signingSecret: configs.creem_signing_secret,
-      })
-    ),
+    new CreemProvider({
+      apiKey: configs.creem_api_key,
+      environment:
+        configs.creem_environment === 'production' ? 'production' : 'sandbox',
+      signingSecret: configs.creem_signing_secret,
+    }),
     configs.default_payment_provider === 'creem'
   );
 }
@@ -90,15 +85,13 @@ async function addPayPalProvider(
   const { PayPalProvider } = await import('@/extensions/payment/paypal');
 
   paymentManager.addProvider(
-    withPaymentProviderAdapter(
-      new PayPalProvider({
-        clientId: configs.paypal_client_id,
-        clientSecret: configs.paypal_client_secret,
-        webhookId: configs.paypal_webhook_id,
-        environment:
-          configs.paypal_environment === 'production' ? 'production' : 'sandbox',
-      })
-    ),
+    new PayPalProvider({
+      clientId: configs.paypal_client_id,
+      clientSecret: configs.paypal_client_secret,
+      webhookId: configs.paypal_webhook_id,
+      environment:
+        configs.paypal_environment === 'production' ? 'production' : 'sandbox',
+    }),
     configs.default_payment_provider === 'paypal'
   );
 }

@@ -27,6 +27,15 @@ import {
 
 import { buildGrantCreditForOrder } from './credit';
 
+/**
+ * Payment flow state machine
+ *
+ * [Webhook/API]
+ *    -> [Provider Parse+Map]
+ *    -> [Canonical PaymentSession]
+ *    -> [Checkout/Payment/Subscription Flow]
+ *    -> [Order/Subscription Tx + Credit Grant]
+ */
 type LogLike = {
   debug(message: string, meta?: unknown): void;
   info(message: string, meta?: unknown): void;

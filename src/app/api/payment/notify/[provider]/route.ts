@@ -16,6 +16,7 @@ import {
   findOrderByOrderNo,
   findOrderByTransactionId,
 } from '@/shared/models/order';
+import { recordPaymentWebhookAudit } from '@/shared/models/payment_webhook_audit';
 import {
   findSubscriptionByProviderSubscriptionId,
 } from '@/shared/models/subscription';
@@ -40,13 +41,13 @@ async function getPaymentEventOrThrow({
 }: {
   provider: string;
   paymentProvider: {
-    getPaymentEvent(args: { req: Request }): Promise<unknown>;
+    getPaymentEvent(args: { req: Request }): Promise<PaymentEvent>;
   };
   req: Request;
   log: ReturnType<typeof createApiContext>['log'];
 }): Promise<PaymentEvent> {
   try {
-    return (await paymentProvider.getPaymentEvent({ req })) as PaymentEvent;
+    return await paymentProvider.getPaymentEvent({ req });
   } catch (err: unknown) {
     if (err instanceof WebhookVerificationError) {
       log.warn('payment: webhook verification failed', {
@@ -74,6 +75,7 @@ const paymentNotifyDeps: PaymentNotifyDeps = {
   findOrderByOrderNo,
   findOrderByTransactionId,
   findSubscriptionByProviderSubscriptionId,
+  recordUnknownWebhookEvent: recordPaymentWebhookAudit,
   handleCheckoutSuccess,
   handleSubscriptionCanceled,
   handleSubscriptionRenewal,

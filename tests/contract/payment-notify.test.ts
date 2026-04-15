@@ -23,6 +23,7 @@ function createDeps(overrides: Record<string, unknown> = {}) {
     findOrderByOrderNo: async () => null,
     findOrderByTransactionId: async () => null,
     findSubscriptionByProviderSubscriptionId: async () => null,
+    recordUnknownWebhookEvent: async () => undefined,
     handleCheckoutSuccess: async () => undefined,
     handleSubscriptionCanceled: async () => undefined,
     handleSubscriptionRenewal: async () => undefined,
@@ -141,4 +142,105 @@ test('processPaymentNotifyEvent 在订阅取消后不重复处理 update 事件'
     message: 'ok',
     data: { message: 'already processed' },
   });
+});
+
+test('processPaymentNotifyEvent 对 unknown 事件执行审计并忽略', async () => {
+  const warns: Array<Record<string, unknown>> = [];
+  const audits: Array<Record<string, unknown>> = [];
+  const response = await processPaymentNotifyEvent({
+    provider: 'paypal',
+    log: {
+      ...createLog(),
+      warn: (_message: string, meta?: Record<string, unknown>) => {
+        warns.push(meta || {});
+      },
+    } as never,
+    event: {
+      eventType: PaymentEventType.UNKNOWN,
+      eventResult: { source: 'webhook', kind: 'unmapped' },
+      paymentSession: {
+        provider: 'paypal',
+        paymentStatus: 'processing' as never,
+        metadata: {
+          event_type: 'PAYPAL.UNKNOWN',
+          event_id: 'evt_123',
+        },
+      },
+    },
+    deps: createDeps({
+      recordUnknownWebhookEvent: async (audit: {
+        provider: string;
+        eventType: string;
+        eventId?: string | null;
+        rawDigest: string;
+        receivedAt: Date;
+      }) => {
+        audits.push({
+          ...audit,
+          receivedAt: audit.receivedAt.toISOString(),
+        });
+      },
+    }) as never,
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(warns.length, 1);
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0]?.provider, 'paypal');
+  assert.equal(audits[0]?.eventType, 'PAYPAL.UNKNOWN');
+  assert.equal(audits[0]?.eventId, 'evt_123');
+  assert.match(String(audits[0]?.rawDigest || ''), /^[0-9a-f]{64}$/);
+  assert.equal(warns[0]?.provider, 'paypal');
+  assert.equal(warns[0]?.eventType, PaymentEventType.UNKNOWN);
+  assert.deepEqual(await response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'ignored' },
+  });
+});
+
+test('processPaymentNotifyEvent 在 unknown 审计写入失败时返回错误并阻断后续迁移', async () => {
+  let checkoutHandled = false;
+  let renewalHandled = false;
+  let canceledHandled = false;
+  let updatedHandled = false;
+
+  await assert.rejects(
+    async () =>
+      processPaymentNotifyEvent({
+        provider: 'paypal',
+        log: createLog() as never,
+        event: {
+          eventType: PaymentEventType.UNKNOWN,
+          eventResult: { source: 'webhook', kind: 'unmapped' },
+          paymentSession: {
+            provider: 'paypal',
+            paymentStatus: 'processing' as never,
+          },
+        },
+        deps: createDeps({
+          recordUnknownWebhookEvent: async () => {
+            throw new Error('audit insert failed');
+          },
+          handleCheckoutSuccess: async () => {
+            checkoutHandled = true;
+          },
+          handleSubscriptionRenewal: async () => {
+            renewalHandled = true;
+          },
+          handleSubscriptionCanceled: async () => {
+            canceledHandled = true;
+          },
+          handleSubscriptionUpdated: async () => {
+            updatedHandled = true;
+          },
+        }) as never,
+      }),
+    /audit insert failed/
+  );
+
+  assert.equal(checkoutHandled, false);
+  assert.equal(renewalHandled, false);
+  assert.equal(canceledHandled, false);
+  assert.equal(updatedHandled, false);
 });

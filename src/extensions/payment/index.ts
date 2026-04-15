@@ -2,7 +2,6 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
-import type { JsonObject, JsonValue } from '@/shared/lib/json';
 import {
   ProviderRegistry,
   trimmedProviderNameKey,
@@ -178,11 +177,11 @@ export interface SubscriptionInfo {
 export interface CheckoutSession {
   provider: string;
 
-  checkoutParams: JsonValue; // checkout request params (json-serializable)
+  checkoutParams: unknown; // checkout request params
   checkoutInfo: CheckoutInfo; // checkout info after checkout success
-  checkoutResult: JsonValue; // provider checkout result (json-serializable)
+  checkoutResult: unknown; // provider checkout result
 
-  metadata: JsonObject;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -194,14 +193,14 @@ export interface PaymentSession {
   // payment info
   paymentStatus?: PaymentStatus; // payment status
   paymentInfo?: PaymentInfo; // payment info after payment success
-  paymentResult?: JsonValue; // provider payment result (json-serializable)
+  paymentResult?: unknown; // provider payment result
 
   // subscription info
   subscriptionId?: string;
   subscriptionInfo?: SubscriptionInfo; // subscription info after subscription success
-  subscriptionResult?: JsonValue; // provider subscription result (json-serializable)
+  subscriptionResult?: unknown; // provider subscription result
 
-  metadata?: JsonObject;
+  metadata?: Record<string, unknown>;
 }
 
 export enum PaymentEventType {
@@ -211,6 +210,7 @@ export enum PaymentEventType {
   PAYMENT_REFUNDED = 'payment.refunded', // payment refunded
   SUBSCRIBE_UPDATED = 'subscribe.updated', // subscription updated
   SUBSCRIBE_CANCELED = 'subscribe.canceled', // subscription canceled
+  UNKNOWN = 'unknown', // unknown event, should be audited and ignored
 }
 
 export type EventInfo = Record<string, unknown>;
@@ -244,40 +244,9 @@ export class WebhookConfigError extends Error {
  */
 export interface PaymentEvent {
   eventType: PaymentEventType;
-  eventResult: JsonValue; // provider event result (json-serializable)
+  eventResult: unknown; // provider event result
 
   paymentSession: PaymentSession;
-}
-
-/**
- * Raw provider output types (driver-level)
- *
- * - Used by provider implementations (Stripe/Creem/PayPal)
- * - Converted and validated by adapter into stable contracts above
- */
-export interface RawCheckoutSession {
-  provider: string;
-  checkoutParams: unknown;
-  checkoutInfo: CheckoutInfo;
-  checkoutResult: unknown;
-  metadata: Record<string, unknown>;
-}
-
-export interface RawPaymentSession {
-  provider: string;
-  paymentStatus?: PaymentStatus;
-  paymentInfo?: PaymentInfo;
-  paymentResult?: unknown;
-  subscriptionId?: string;
-  subscriptionInfo?: SubscriptionInfo;
-  subscriptionResult?: unknown;
-  metadata?: Record<string, unknown>;
-}
-
-export interface RawPaymentEvent {
-  eventType: PaymentEventType;
-  eventResult: unknown;
-  paymentSession: RawPaymentSession;
 }
 
 export interface PaymentInvoice {
@@ -343,48 +312,6 @@ export interface PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession>;
-}
-
-/**
- * Payment provider driver interface (provider-specific, before adapter)
- */
-export interface PaymentProviderDriver {
-  readonly name: string;
-  configs: PaymentConfigs;
-
-  createPayment({
-    order,
-  }: {
-    order: PaymentOrder;
-  }): Promise<RawCheckoutSession>;
-
-  getPaymentSession({
-    sessionId,
-  }: {
-    sessionId: string;
-  }): Promise<RawPaymentSession>;
-
-  getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent>;
-
-  getPaymentInvoice?({
-    invoiceId,
-  }: {
-    invoiceId: string;
-  }): Promise<PaymentInvoice>;
-
-  getPaymentBilling?({
-    customerId,
-    returnUrl,
-  }: {
-    customerId: string;
-    returnUrl?: string;
-  }): Promise<PaymentBilling>;
-
-  cancelSubscription?({
-    subscriptionId,
-  }: {
-    subscriptionId: string;
-  }): Promise<RawPaymentSession>;
 }
 
 /**
@@ -476,7 +403,7 @@ export class PaymentManager {
   }: {
     sessionId: string;
     provider?: string;
-  }): Promise<PaymentSession | null> {
+  }): Promise<PaymentSession> {
     return this.resolveProvider(provider).getPaymentSession({ sessionId });
   }
 

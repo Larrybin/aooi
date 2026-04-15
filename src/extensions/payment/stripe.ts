@@ -7,8 +7,12 @@ import {
 } from '@/shared/lib/api/errors';
 
 import {
+  type CheckoutSession,
+  type PaymentEvent,
   PaymentEventType,
+  type PaymentProvider,
   PaymentStatus,
+  type PaymentSession,
   PaymentType,
   SubscriptionCycleType,
   SubscriptionStatus,
@@ -20,12 +24,12 @@ import {
   type PaymentInterval,
   type PaymentInvoice,
   type PaymentOrder,
-  type PaymentProviderDriver,
-  type RawCheckoutSession,
-  type RawPaymentEvent,
-  type RawPaymentSession,
   type SubscriptionInfo,
 } from '.';
+import {
+  assertSuccessfulPaymentSessionContract,
+  mapStripeEventTypeToCanonical,
+} from './provider-contract';
 
 /**
  * Stripe payment provider configs
@@ -43,7 +47,7 @@ export interface StripeConfigs extends PaymentConfigs {
  * Stripe payment provider implementation
  * @website https://stripe.com/
  */
-export class StripeProvider implements PaymentProviderDriver {
+export class StripeProvider implements PaymentProvider {
   readonly name = 'stripe';
   configs: StripeConfigs;
 
@@ -60,7 +64,7 @@ export class StripeProvider implements PaymentProviderDriver {
     order,
   }: {
     order: PaymentOrder;
-  }): Promise<RawCheckoutSession> {
+  }): Promise<CheckoutSession> {
     // check payment price
     if (!order.price) {
       throw new BadRequestError('price is required');
@@ -205,20 +209,24 @@ export class StripeProvider implements PaymentProviderDriver {
     sessionId,
   }: {
     sessionId: string;
-  }): Promise<RawPaymentSession> {
+  }): Promise<PaymentSession> {
     if (!sessionId) {
       throw new BadRequestError('sessionId is required');
     }
 
     const session = await this.client.checkout.sessions.retrieve(sessionId);
 
-    return await this.buildPaymentSessionFromCheckoutSession(session);
+    const paymentSession = await this.buildPaymentSessionFromCheckoutSession(
+      session
+    );
+    this.assertSuccessfulPaymentSession(paymentSession);
+    return paymentSession;
   }
 
   /**
    * Get payment event from webhook notification
    */
-  async getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent> {
+  async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
     const rawBody = await req.text();
     const signature = req.headers.get('stripe-signature') as string;
 
@@ -241,7 +249,7 @@ export class StripeProvider implements PaymentProviderDriver {
       throw new WebhookVerificationError('invalid webhook signature');
     }
 
-    let paymentSession: RawPaymentSession | undefined = undefined;
+    let paymentSession: PaymentSession | undefined;
 
     const eventType = this.mapStripeEventType(event.type);
 
@@ -263,15 +271,36 @@ export class StripeProvider implements PaymentProviderDriver {
       );
     }
 
+    if (eventType === PaymentEventType.UNKNOWN) {
+      return {
+        eventType,
+        eventResult: event,
+        paymentSession: {
+          provider: this.name,
+          paymentStatus: PaymentStatus.PROCESSING,
+          paymentResult: event,
+          metadata: {
+            event_type: event.type,
+            event_id: event.id,
+          },
+        },
+      };
+    }
+
     if (!paymentSession) {
       throw new WebhookPayloadError('invalid webhook event');
     }
+    this.assertSuccessfulPaymentSession(paymentSession);
 
     return {
-      eventType: eventType,
+      eventType,
       eventResult: event,
-      paymentSession: paymentSession,
+      paymentSession,
     };
+  }
+
+  private assertSuccessfulPaymentSession(session: PaymentSession): void {
+    assertSuccessfulPaymentSessionContract(session);
   }
 
   async getPaymentInvoice({
@@ -317,7 +346,7 @@ export class StripeProvider implements PaymentProviderDriver {
     subscriptionId,
   }: {
     subscriptionId: string;
-  }): Promise<RawPaymentSession> {
+  }): Promise<PaymentSession> {
     if (!subscriptionId) {
       throw new BadRequestError('subscriptionId is required');
     }
@@ -332,22 +361,7 @@ export class StripeProvider implements PaymentProviderDriver {
   }
 
   private mapStripeEventType(eventType: string): PaymentEventType {
-    switch (eventType) {
-      case 'checkout.session.completed':
-        return PaymentEventType.CHECKOUT_SUCCESS;
-      case 'invoice.payment_succeeded':
-        return PaymentEventType.PAYMENT_SUCCESS;
-      case 'invoice.payment_failed':
-        return PaymentEventType.PAYMENT_FAILED;
-      case 'customer.subscription.updated':
-        return PaymentEventType.SUBSCRIBE_UPDATED;
-      case 'customer.subscription.deleted':
-        return PaymentEventType.SUBSCRIBE_CANCELED;
-      default:
-        throw new WebhookPayloadError(
-          `Unknown Stripe event type: ${eventType}`
-        );
-    }
+    return mapStripeEventTypeToCanonical(eventType);
   }
 
   private mapStripeStatus(
@@ -388,7 +402,7 @@ export class StripeProvider implements PaymentProviderDriver {
   // build payment session from checkout session
   private async buildPaymentSessionFromCheckoutSession(
     session: Stripe.Response<Stripe.Checkout.Session>
-  ): Promise<RawPaymentSession> {
+  ): Promise<PaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
 
@@ -398,7 +412,7 @@ export class StripeProvider implements PaymentProviderDriver {
       );
     }
 
-    const result: RawPaymentSession = {
+    const result: PaymentSession = {
       provider: this.name,
       paymentStatus: this.mapStripeStatus(session),
       paymentInfo: {
@@ -436,7 +450,7 @@ export class StripeProvider implements PaymentProviderDriver {
   // build payment session from invoice
   private async buildPaymentSessionFromInvoice(
     invoice: Stripe.Response<Stripe.Invoice>
-  ): Promise<RawPaymentSession> {
+  ): Promise<PaymentSession> {
     let subscription: Stripe.Response<Stripe.Subscription> | undefined =
       undefined;
 
@@ -461,7 +475,7 @@ export class StripeProvider implements PaymentProviderDriver {
       }
     }
 
-    const result: RawPaymentSession = {
+    const result: PaymentSession = {
       provider: this.name,
 
       paymentStatus: PaymentStatus.SUCCESS,
@@ -503,8 +517,8 @@ export class StripeProvider implements PaymentProviderDriver {
   // build payment session from invoice
   private async buildPaymentSessionFromSubscription(
     subscription: Stripe.Response<Stripe.Subscription>
-  ): Promise<RawPaymentSession> {
-    const result: RawPaymentSession = {
+  ): Promise<PaymentSession> {
+    const result: PaymentSession = {
       provider: this.name,
     };
 

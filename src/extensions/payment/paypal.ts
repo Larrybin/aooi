@@ -6,8 +6,12 @@ import { safeJsonParse } from '@/shared/lib/json';
 import { logger } from '@/shared/lib/logger.server';
 
 import {
+  type CheckoutSession,
+  type PaymentEvent,
   PaymentEventType,
+  type PaymentProvider,
   PaymentStatus,
+  type PaymentSession,
   PaymentType,
   SubscriptionStatus,
   WebhookConfigError,
@@ -15,12 +19,12 @@ import {
   WebhookVerificationError,
   type PaymentConfigs,
   type PaymentOrder,
-  type PaymentProviderDriver,
-  type RawCheckoutSession,
-  type RawPaymentEvent,
-  type RawPaymentSession,
   type SubscriptionInfo,
 } from '.';
+import {
+  assertSuccessfulPaymentSessionContract,
+  mapPayPalEventTypeToCanonical,
+} from './provider-contract';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -267,7 +271,7 @@ export interface PayPalConfigs extends PaymentConfigs {
  * PayPal payment provider implementation
  * @website https://www.paypal.com/
  */
-export class PayPalProvider implements PaymentProviderDriver {
+export class PayPalProvider implements PaymentProvider {
   readonly name = 'paypal';
   configs: PayPalConfigs;
 
@@ -288,7 +292,7 @@ export class PayPalProvider implements PaymentProviderDriver {
     order,
   }: {
     order: PaymentOrder;
-  }): Promise<RawCheckoutSession> {
+  }): Promise<CheckoutSession> {
     if (order.type === PaymentType.SUBSCRIPTION) {
       return this.createSubscriptionPayment(order);
     }
@@ -382,7 +386,7 @@ export class PayPalProvider implements PaymentProviderDriver {
 
   async createSubscriptionPayment(
     order: PaymentOrder
-  ): Promise<RawCheckoutSession> {
+  ): Promise<CheckoutSession> {
     await this.ensureAccessToken();
 
     if (!order.price) {
@@ -565,7 +569,7 @@ export class PayPalProvider implements PaymentProviderDriver {
     sessionId,
   }: {
     sessionId: string;
-  }): Promise<RawPaymentSession> {
+  }): Promise<PaymentSession> {
     if (!sessionId) {
       throw new BadRequestError('sessionId is required');
     }
@@ -594,7 +598,7 @@ export class PayPalProvider implements PaymentProviderDriver {
     const transactionId = extractPayPalTransactionId(result);
     const invoiceId = extractPayPalInvoiceId(result);
 
-    return {
+    const paymentSession: PaymentSession = {
       provider: this.name,
       paymentStatus: this.mapPayPalStatus(
         extractPayPalStatus(result) || 'CREATED'
@@ -613,9 +617,11 @@ export class PayPalProvider implements PaymentProviderDriver {
       paymentResult: result,
       metadata: extractPayPalMetadata(result),
     };
+    this.assertSuccessfulPaymentSession(paymentSession);
+    return paymentSession;
   }
 
-  async getPaymentEvent({ req }: { req: Request }): Promise<RawPaymentEvent> {
+  async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
     const rawBody = await req.text();
     const headers = Object.fromEntries(req.headers.entries());
 
@@ -675,11 +681,9 @@ export class PayPalProvider implements PaymentProviderDriver {
       hasResource: Boolean(webhookEvent.resource),
     });
 
-    const mappedEventType =
-      this.mapPayPalEventType(webhookEvent.event_type) ??
-      PaymentEventType.PAYMENT_FAILED;
+    const mappedEventType = this.mapPayPalEventType(webhookEvent.event_type);
 
-    let paymentSession: RawPaymentSession | undefined = undefined;
+    let paymentSession: PaymentSession | undefined;
     const resourceId = readStringPath(webhookEvent.resource, ['id']);
 
     if (mappedEventType === PaymentEventType.CHECKOUT_SUCCESS) {
@@ -698,6 +702,16 @@ export class PayPalProvider implements PaymentProviderDriver {
         subscriptionId: resourceId,
         eventType: mappedEventType,
       });
+    } else if (mappedEventType === PaymentEventType.UNKNOWN) {
+      paymentSession = {
+        provider: this.name,
+        paymentStatus: PaymentStatus.PROCESSING,
+        paymentResult: webhookEvent.resource ?? webhookEvent,
+        metadata: {
+          event_type: webhookEvent.event_type,
+          event_id: webhookEvent.id,
+        },
+      };
     } else {
       paymentSession = {
         provider: this.name,
@@ -708,6 +722,7 @@ export class PayPalProvider implements PaymentProviderDriver {
     if (!paymentSession) {
       throw new WebhookPayloadError('payment session not found');
     }
+    this.assertSuccessfulPaymentSession(paymentSession);
 
     return {
       eventType: mappedEventType,
@@ -753,6 +768,10 @@ export class PayPalProvider implements PaymentProviderDriver {
         error instanceof Error ? error.message : 'PayPal authentication failed'
       );
     }
+  }
+
+  private assertSuccessfulPaymentSession(session: PaymentSession): void {
+    assertSuccessfulPaymentSessionContract(session);
   }
 
   private async makeRequest(
@@ -907,7 +926,7 @@ export class PayPalProvider implements PaymentProviderDriver {
   }: {
     subscriptionId: string;
     eventType: PayPalSubscriptionEventType;
-  }): Promise<RawPaymentSession> {
+  }): Promise<PaymentSession> {
     const subscription = await this.makeRequest(
       `/v1/billing/subscriptions/${subscriptionId}`,
       'GET'
@@ -931,25 +950,8 @@ export class PayPalProvider implements PaymentProviderDriver {
     };
   }
 
-  private mapPayPalEventType(eventType: string): PaymentEventType | undefined {
-    switch (eventType) {
-      case 'CHECKOUT.ORDER.APPROVED':
-      case 'CHECKOUT.ORDER.COMPLETED':
-        return PaymentEventType.CHECKOUT_SUCCESS;
-      case 'PAYMENT.CAPTURE.COMPLETED':
-      case 'PAYMENT.SALE.COMPLETED':
-        return PaymentEventType.PAYMENT_SUCCESS;
-      case 'PAYMENT.CAPTURE.DENIED':
-      case 'PAYMENT.CAPTURE.DECLINED':
-      case 'PAYMENT.SALE.DENIED':
-        return PaymentEventType.PAYMENT_FAILED;
-      case 'BILLING.SUBSCRIPTION.UPDATED':
-        return PaymentEventType.SUBSCRIBE_UPDATED;
-      case 'BILLING.SUBSCRIPTION.CANCELLED':
-        return PaymentEventType.SUBSCRIBE_CANCELED;
-      default:
-        return undefined;
-    }
+  private mapPayPalEventType(eventType: string): PaymentEventType {
+    return mapPayPalEventTypeToCanonical(eventType);
   }
 }
 

@@ -238,6 +238,27 @@ export const order = pgTable(
   ]
 );
 
+export const paymentWebhookAudit = pgTable(
+  'payment_webhook_audit',
+  {
+    id: text('id').primaryKey(),
+    provider: text('provider').notNull(),
+    eventType: text('event_type').notNull(),
+    eventId: text('event_id'),
+    rawDigest: text('raw_digest').notNull(),
+    receivedAt: timestamp('received_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('uq_payment_webhook_audit_provider_digest').on(
+      table.provider,
+      table.rawDigest
+    ),
+    index('idx_payment_webhook_audit_received_at').on(table.receivedAt),
+    index('idx_payment_webhook_audit_event_id').on(table.eventId),
+  ]
+);
+
 export const subscription = pgTable(
   'subscription',
   {

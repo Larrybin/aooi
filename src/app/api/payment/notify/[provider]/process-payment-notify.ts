@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 import {
   PaymentEventType,
   SubscriptionCycleType,
@@ -5,10 +7,21 @@ import {
   type PaymentSession,
 } from '@/extensions/payment';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
+import { toJsonValue } from '@/shared/lib/json';
 import { jsonOk } from '@/shared/lib/api/response';
 import type { Order } from '@/shared/models/order';
 import type { Subscription } from '@/shared/models/subscription';
 
+/**
+ * Payment notify processing pipeline
+ *
+ * [Webhook/API]
+ *    -> [Provider Parse+Map]
+ *    -> [Canonical PaymentEvent]
+ *    -> [processPaymentNotifyEvent]
+ *    -> [Payment Flow State Machine]
+ *    -> [Order/Subscription Tx + Credit Grant]
+ */
 type PaymentNotifyLog = {
   debug: (message: string, meta?: Record<string, unknown>) => void;
   info: (message: string, meta?: Record<string, unknown>) => void;
@@ -57,16 +70,81 @@ type HandleSubscriptionUpdated = (args: {
   log: PaymentNotifyLog;
 }) => Promise<void>;
 
+type RecordUnknownWebhookEvent = (args: {
+  provider: string;
+  eventType: string;
+  eventId?: string | null;
+  rawDigest: string;
+  receivedAt: Date;
+}) => Promise<void>;
+
 export type PaymentNotifyDeps = {
   findOrderByInvoiceId: FindOrderByInvoiceId;
   findOrderByOrderNo: FindOrderByOrderNo;
   findOrderByTransactionId: FindOrderByTransactionId;
   findSubscriptionByProviderSubscriptionId: FindSubscriptionByProviderSubscriptionId;
+  recordUnknownWebhookEvent: RecordUnknownWebhookEvent;
   handleCheckoutSuccess: HandleCheckoutSuccess;
   handleSubscriptionCanceled: HandleSubscriptionCanceled;
   handleSubscriptionRenewal: HandleSubscriptionRenewal;
   handleSubscriptionUpdated: HandleSubscriptionUpdated;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object';
+}
+
+function readNormalizedString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
+function readUnknownEventId({
+  event,
+  session,
+}: {
+  event: PaymentEvent;
+  session: PaymentSession;
+}): string | null {
+  const metadataEventId =
+    readNormalizedString(session.metadata?.event_id) ||
+    readNormalizedString(session.metadata?.eventId) ||
+    readNormalizedString(session.metadata?.id);
+  if (metadataEventId) {
+    return metadataEventId;
+  }
+
+  if (!isRecord(event.eventResult)) {
+    return null;
+  }
+
+  return (
+    readNormalizedString(event.eventResult.id) ||
+    readNormalizedString(event.eventResult.event_id) ||
+    readNormalizedString(event.eventResult.eventId) ||
+    null
+  );
+}
+
+function resolveUnknownEventType({
+  event,
+  session,
+}: {
+  event: PaymentEvent;
+  session: PaymentSession;
+}): string {
+  const metadataEventType =
+    readNormalizedString(session.metadata?.event_type) ||
+    readNormalizedString(session.metadata?.eventType);
+  return metadataEventType || event.eventType;
+}
+
+function buildEventResultRawDigest(eventResult: unknown): string {
+  const canonicalResult = toJsonValue(eventResult);
+  const canonicalPayload = JSON.stringify(canonicalResult);
+  return createHash('sha256').update(canonicalPayload).digest('hex');
+}
 
 function toISOStringOrNull(value: unknown): string | null {
   if (value instanceof Date) {
@@ -158,6 +236,47 @@ export async function processPaymentNotifyEvent({
   const session = event.paymentSession;
 
   switch (eventType) {
+    case PaymentEventType.UNKNOWN: {
+      const eventId = readUnknownEventId({ event, session });
+      const unknownEventType = resolveUnknownEventType({ event, session });
+      const rawDigest = buildEventResultRawDigest(event.eventResult);
+      const receivedAt = new Date();
+
+      try {
+        await deps.recordUnknownWebhookEvent({
+          provider,
+          eventType: unknownEventType,
+          eventId,
+          rawDigest,
+          receivedAt,
+        });
+      } catch (error: unknown) {
+        log.error('payment: notify failed to audit unknown event', {
+          provider,
+          eventType,
+          unknownEventType,
+          eventId,
+          rawDigest,
+          error,
+        });
+        throw error;
+      }
+
+      log.warn('payment: notify ignored unknown event', {
+        provider,
+        eventType,
+        sessionProvider: session.provider,
+        sessionStatus: session.paymentStatus,
+        unknownEventType,
+        eventId,
+        rawDigest,
+        receivedAt: receivedAt.toISOString(),
+        metadata: session.metadata,
+        eventResult: event.eventResult,
+      });
+      return jsonOk({ message: 'ignored' });
+    }
+
     case PaymentEventType.CHECKOUT_SUCCESS: {
       const orderNo = requireOrderNoFromSession(session);
 
@@ -356,9 +475,10 @@ export async function processPaymentNotifyEvent({
     }
 
     default:
-      log.debug('payment: notify ignored event type', {
+      log.warn('payment: notify ignored unsupported event type', {
         provider,
         eventType,
+        eventResult: event.eventResult,
       });
       break;
   }
