@@ -3,14 +3,14 @@
 // reason: marketing pricing page should stay statically prerenderable
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { locales } from '@/config/locale';
 import { getLocaleStaticParams } from '@/core/i18n/static-params';
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getThemePage } from '@/core/theme/landing';
+import { getThemePage } from '@/core/theme';
+import { locales } from '@/config/locale';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import { getMetadata } from '@/shared/lib/seo';
 import type {
@@ -63,7 +63,12 @@ export default async function PricingPage({
       locale={locale}
       namespaces={['pricing.page', 'common.payment']}
     >
-      <Page locale={locale} pricing={pricing} faq={faq} testimonials={testimonials} />
+      <Page
+        locale={locale}
+        pricing={pricing}
+        faq={faq}
+        testimonials={testimonials}
+      />
     </ScopedIntlProvider>
   );
 }

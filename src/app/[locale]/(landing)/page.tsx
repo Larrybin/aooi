@@ -3,7 +3,7 @@
 // reason: public marketing page; allow toggles without per-request db reads
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getThemeLayout, getThemePage } from '@/core/theme/landing';
+import { getThemeLayout, getThemePage } from '@/core/theme';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import {
   buildBrandPlaceholderValues,

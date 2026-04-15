@@ -4,8 +4,7 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getThemeLayout } from '@/core/theme/landing';
+import { getThemeLayout } from '@/core/theme';
 import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
@@ -13,6 +12,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import type {
   Footer as FooterType,

@@ -7,14 +7,14 @@ import { getActiveTheme, type ThemeName } from './active-theme';
 
 export { getActiveTheme } from './active-theme';
 
-type ThemePageName =
+export type ThemePageName =
   | 'landing'
   | 'pricing'
   | 'blog'
   | 'blog-detail'
   | 'page-detail';
-type ThemeLayoutName = 'landing' | 'landing-marketing';
-type ThemeBlockName =
+export type ThemeLayoutName = 'landing' | 'landing-marketing';
+export type ThemeBlockName =
   | 'header'
   | 'footer'
   | 'hero'
@@ -202,7 +202,7 @@ async function loadThemeEntry({
 /**
  * load theme page
  */
-export async function getThemePage(pageName: string, theme?: string) {
+export async function getThemePage(pageName: ThemePageName, theme?: string) {
   return await loadThemeEntry({
     kind: 'page',
     name: pageName,
@@ -216,7 +216,7 @@ export async function getThemePage(pageName: string, theme?: string) {
  * load theme layout
  */
 export async function getThemeLayout(
-  layoutName: string,
+  layoutName: ThemeLayoutName,
   theme?: string
 ): Promise<AnyComponent> {
   return await loadThemeEntry({
@@ -232,7 +232,7 @@ export async function getThemeLayout(
  * load theme block
  */
 export async function getThemeBlock(
-  blockName: string,
+  blockName: ThemeBlockName,
   theme?: string
 ): Promise<AnyComponent> {
   return await loadThemeEntry({
