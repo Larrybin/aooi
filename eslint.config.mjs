@@ -159,10 +159,13 @@ const eslintConfig = [
     ignores: [
       '**/.next/**',
       '**/.open-next/**',
+      '**/.tmp/**',
       '**/.wrangler/**',
       '**/node_modules/**',
       '**/.source/**',
       '**/.codex/**',
+      '**/.gstack/**',
+      '**/output/**',
       'src/shared/types/cloudflare.d.ts',
       'temp/**',
       'raphael-starterkit-v1-main/**',

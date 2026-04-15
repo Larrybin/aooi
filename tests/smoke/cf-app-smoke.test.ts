@@ -3,64 +3,51 @@ import test from 'node:test';
 
 import {
   getCloudflareAppSmokeChecks,
-  getCloudflareAppSmokeProtectedChecks,
+  resolveCloudflareAppSmokeUrl,
+  runCloudflareAppSmoke,
   validateCloudflareAppSmokeResponse,
 } from '../../scripts/run-cf-app-smoke.mjs';
 
-test('getCloudflareAppSmokeChecks 包含 full-app public 与 protected contract', () => {
+test('getCloudflareAppSmokeChecks 覆盖 default/docs/image/chat/member/admin 路由', () => {
   const checks = getCloudflareAppSmokeChecks({
-    baseUrlOrigin: 'http://127.0.0.1:8787',
+    baseUrlOrigin: 'https://mamamiya.pdfreprinting.net',
   }).map((check) => check.name);
 
   assert.deepEqual(checks, [
-    'landing-page',
-    'sign-in-page',
-    'sign-up-page',
-    'public-config-api',
-    'docs-page',
-    'sitemap',
-    'robots',
-    'settings-profile-protected',
-    'admin-settings-auth-protected',
+    'default-route',
+    'docs-route',
+    'image-route',
+    'chat-public-route',
+    'member-protected-route',
+    'admin-protected-route',
   ]);
 });
 
-test('validateCloudflareAppSmokeResponse 校验 public config api 结构', async () => {
+test('validateCloudflareAppSmokeResponse 校验图片响应 content-type', async () => {
   const check = getCloudflareAppSmokeChecks().find(
-    (item) => item.name === 'public-config-api'
+    (item) => item.name === 'image-route'
   );
   assert(check);
 
-  const response = new Response(
-    JSON.stringify({
-      code: 0,
-      message: 'ok',
-      data: { ok: true },
-    }),
-    {
-      status: 200,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-    }
-  );
+  const response = new Response('binary', {
+    status: 200,
+    headers: { 'content-type': 'image/png' },
+  });
 
-  await validateCloudflareAppSmokeResponse(
-    check,
-    response,
-    '{"code":0,"message":"ok","data":{"ok":true}}'
-  );
+  await validateCloudflareAppSmokeResponse(check, response, 'binary');
 });
 
 test('validateCloudflareAppSmokeResponse 校验 protected route 的同源重定向', async () => {
-  const check = getCloudflareAppSmokeProtectedChecks({
-    baseUrlOrigin: 'http://127.0.0.1:8787',
-  }).find((item) => item.name === 'settings-profile-protected');
+  const check = getCloudflareAppSmokeChecks({
+    baseUrlOrigin: 'https://mamamiya.pdfreprinting.net',
+  }).find((item) => item.name === 'member-protected-route');
   assert(check);
 
   const response = new Response(null, {
     status: 307,
     headers: {
       location:
-        'http://127.0.0.1:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile',
+        'https://mamamiya.pdfreprinting.net/sign-in?callbackUrl=%2Fsettings%2Fprofile',
     },
   });
 
@@ -68,9 +55,9 @@ test('validateCloudflareAppSmokeResponse 校验 protected route 的同源重定�
 });
 
 test('validateCloudflareAppSmokeResponse 支持相对 Location 重定向头', async () => {
-  const check = getCloudflareAppSmokeProtectedChecks({
-    baseUrlOrigin: 'http://127.0.0.1:8787',
-  }).find((item) => item.name === 'admin-settings-auth-protected');
+  const check = getCloudflareAppSmokeChecks({
+    baseUrlOrigin: 'https://mamamiya.pdfreprinting.net',
+  }).find((item) => item.name === 'admin-protected-route');
   assert(check);
 
   const response = new Response(null, {
@@ -82,143 +69,108 @@ test('validateCloudflareAppSmokeResponse 支持相对 Location 重定向头', as
 
   Object.defineProperty(response, 'url', {
     configurable: true,
-    value: 'http://127.0.0.1:8787/admin/settings/auth',
+    value: 'https://mamamiya.pdfreprinting.net/admin/settings/auth',
   });
 
   await validateCloudflareAppSmokeResponse(check, response, '');
 });
 
-test('validateCloudflareAppSmokeResponse 在 HTML 缺少关键内容时失败', async () => {
-  const check = getCloudflareAppSmokeChecks().find(
-    (item) => item.name === 'landing-page'
-  );
-  assert(check);
+test('resolveCloudflareAppSmokeUrl 优先使用显式 smoke url，其次 NEXT_PUBLIC_APP_URL', () => {
+  const originalSmokeUrl = process.env.CF_APP_SMOKE_URL;
+  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  const response = new Response('<html></html>', {
-    status: 200,
-    headers: { 'content-type': 'text/html; charset=utf-8' },
-  });
+  process.env.CF_APP_SMOKE_URL = 'https://smoke.example.com';
+  process.env.NEXT_PUBLIC_APP_URL = 'https://app.example.com';
+  assert.equal(resolveCloudflareAppSmokeUrl(), 'https://smoke.example.com');
 
-  await assert.rejects(
-    async () =>
-      validateCloudflareAppSmokeResponse(check, response, '<body></body>'),
-    /missing expected text/i
-  );
+  delete process.env.CF_APP_SMOKE_URL;
+  assert.equal(resolveCloudflareAppSmokeUrl(), 'https://app.example.com');
+
+  if (originalSmokeUrl === undefined) {
+    delete process.env.CF_APP_SMOKE_URL;
+  } else {
+    process.env.CF_APP_SMOKE_URL = originalSmokeUrl;
+  }
+
+  if (originalAppUrl === undefined) {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+  } else {
+    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+  }
 });
 
-test('main 在无 DATABASE_URL 时仍可完成只读 smoke', async () => {
-  const originalEnv = {
-    CF_PREVIEW_REUSE_SERVER: process.env.CF_PREVIEW_REUSE_SERVER,
-    CF_APP_SMOKE_URL: process.env.CF_APP_SMOKE_URL,
-    CF_PREVIEW_URL: process.env.CF_PREVIEW_URL,
-    CF_PREVIEW_APP_URL: process.env.CF_PREVIEW_APP_URL,
-    CF_APP_SMOKE_REQUEST_TIMEOUT_MS: process.env.CF_APP_SMOKE_REQUEST_TIMEOUT_MS,
-    CF_PREVIEW_REQUEST_TIMEOUT_MS: process.env.CF_PREVIEW_REQUEST_TIMEOUT_MS,
-    CF_PREVIEW_READY_TIMEOUT_MS: process.env.CF_PREVIEW_READY_TIMEOUT_MS,
-    CF_PREVIEW_READY_CONSECUTIVE_SUCCESSES:
-      process.env.CF_PREVIEW_READY_CONSECUTIVE_SUCCESSES,
-    DATABASE_URL: process.env.DATABASE_URL,
-    AUTH_SPIKE_DATABASE_URL: process.env.AUTH_SPIKE_DATABASE_URL,
-    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-    AUTH_SECRET: process.env.AUTH_SECRET,
-  };
-  const originalFetch = globalThis.fetch;
+test('runCloudflareAppSmoke 对生产只读 smoke 路由逐项校验', async () => {
+  const responses = new Map([
+    [
+      '/pricing',
+      new Response('<html><body>pricing</body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      }),
+    ],
+    [
+      '/docs',
+      new Response('<html><body>docs</body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      }),
+    ],
+    [
+      '/_next/image',
+      new Response('png', {
+        status: 200,
+        headers: { 'content-type': 'image/png' },
+      }),
+    ],
+    [
+      '/chat',
+      new Response('<html><body><button>Sign In</button></body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      }),
+    ],
+    [
+      '/settings/profile',
+      new Response(null, {
+        status: 307,
+        headers: {
+          location:
+            'https://mamamiya.pdfreprinting.net/sign-in?callbackUrl=%2Fsettings%2Fprofile',
+        },
+      }),
+    ],
+    [
+      '/admin/settings/auth',
+      new Response(null, {
+        status: 307,
+        headers: {
+          location:
+            'https://mamamiya.pdfreprinting.net/sign-in?callbackUrl=%2Fadmin%2Fsettings%2Fauth',
+        },
+      }),
+    ],
+  ]);
 
-  process.env.CF_PREVIEW_REUSE_SERVER = 'true';
-  process.env.CF_APP_SMOKE_URL = '';
-  process.env.CF_PREVIEW_URL = '';
-  process.env.CF_PREVIEW_APP_URL = 'http://127.0.0.1:8787';
-  process.env.CF_APP_SMOKE_REQUEST_TIMEOUT_MS = '1';
-  process.env.CF_PREVIEW_REQUEST_TIMEOUT_MS = '1';
-  process.env.CF_PREVIEW_READY_TIMEOUT_MS = '10';
-  process.env.CF_PREVIEW_READY_CONSECUTIVE_SUCCESSES = '1';
-  process.env.DATABASE_URL = '';
-  process.env.AUTH_SPIKE_DATABASE_URL = '';
-  process.env.BETTER_AUTH_SECRET = 'test-auth-secret';
-  process.env.AUTH_SECRET = 'test-auth-secret';
+  const visited = [];
 
-  globalThis.fetch = async (input) => {
-    const requestUrl = new URL(String(input));
+  await runCloudflareAppSmoke({
+    baseUrl: 'https://mamamiya.pdfreprinting.net',
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      visited.push(url.pathname);
+      const response = responses.get(url.pathname);
+      assert(response, `unexpected smoke request: ${url.pathname}`);
+      return response;
+    },
+    logger: { log() {} },
+  });
 
-    switch (requestUrl.pathname) {
-      case '/':
-        return new Response('<html><body>ok</body></html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-        });
-      case '/sign-up':
-        return new Response(
-          '<html><head><title>Sign Up - Roller Rabbit</title></head><body><form id="auth-sign-up-form"></form></body></html>',
-          {
-            status: 200,
-            headers: { 'content-type': 'text/html; charset=utf-8' },
-          }
-        );
-      case '/sign-in':
-        return new Response(
-          '<html><head><title>Sign In - Roller Rabbit</title></head><body><form id="auth-sign-in-form"></form></body></html>',
-          {
-            status: 200,
-            headers: { 'content-type': 'text/html; charset=utf-8' },
-          }
-        );
-      case '/api/config/get-configs':
-        return new Response(
-          JSON.stringify({
-            code: 0,
-            message: 'ok',
-            data: { app_name: 'Roller Rabbit' },
-            app_name: 'Roller Rabbit',
-          }),
-          {
-            status: 200,
-            headers: { 'content-type': 'application/json; charset=utf-8' },
-          }
-        );
-      case '/docs':
-        return new Response('<html><body>docs</body></html>', {
-          status: 200,
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-        });
-      case '/sitemap.xml':
-        return new Response('<urlset></urlset>', {
-          status: 200,
-          headers: { 'content-type': 'application/xml; charset=utf-8' },
-        });
-      case '/robots.txt':
-        return new Response('User-agent: *\nAllow: /', {
-          status: 200,
-          headers: { 'content-type': 'text/plain; charset=utf-8' },
-        });
-      case '/settings/profile':
-      case '/admin/settings/auth':
-        return new Response(null, {
-          status: 307,
-          headers: {
-            location: `http://127.0.0.1:8787/sign-in?callbackUrl=${encodeURIComponent(
-              requestUrl.pathname
-            )}`,
-          },
-        });
-      default:
-        return new Response('not found', { status: 404 });
-    }
-  };
-
-  try {
-    const { main: isolatedMain } = await import(
-      `../../scripts/run-cf-app-smoke.mjs?test=${Date.now()}`
-    );
-    await isolatedMain();
-  } finally {
-    globalThis.fetch = originalFetch;
-
-    for (const [key, value] of Object.entries(originalEnv)) {
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
-    }
-  }
+  assert.deepEqual(visited, [
+    '/pricing',
+    '/docs',
+    '/_next/image',
+    '/chat',
+    '/settings/profile',
+    '/admin/settings/auth',
+  ]);
 });

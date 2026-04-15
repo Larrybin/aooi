@@ -164,7 +164,7 @@ export async function main() {
   const lockedNodeInfo = await readLockedNodeInfo();
   const lockedNodeBaseUrl = lockedNodeInfo?.appUrl ?? null;
   const wranglerConfigPath =
-    process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
+    process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
     path.resolve(rootDir, 'wrangler.cloudflare.toml');
   const databaseUrl =
     process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||

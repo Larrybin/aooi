@@ -22,7 +22,7 @@ function resolveCliDatabaseUrl() {
   }
 
   const wranglerConfigPath =
-    process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
+    process.env.CF_LOCAL_WRANGLER_CONFIG_PATH?.trim() ||
     path.resolve(process.cwd(), 'wrangler.cloudflare.toml');
 
   try {
@@ -37,7 +37,7 @@ function resolveCliDatabaseUrl() {
   }
 
   throw new Error(
-    'DATABASE_URL is required; if you rely on Cloudflare preview local DB wiring, ensure wrangler.cloudflare.toml contains [[hyperdrive]].localConnectionString'
+    'DATABASE_URL is required; if you rely on Cloudflare local DB wiring, point CF_LOCAL_WRANGLER_CONFIG_PATH at a generated temporary Wrangler config with [[hyperdrive]].localConnectionString'
   );
 }
 

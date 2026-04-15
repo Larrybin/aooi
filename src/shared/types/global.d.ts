@@ -1,6 +1,9 @@
 export {};
 
 declare global {
+  var __NEXT_BASE_PATH__: string;
+  var __TRAILING_SLASH__: boolean;
+
   interface Window {
     Affonso?: {
       signup: (email: string) => void;

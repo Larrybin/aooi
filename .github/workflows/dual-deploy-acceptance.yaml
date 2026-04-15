@@ -35,10 +35,8 @@ jobs:
       DEPLOY_TARGET: ${{ matrix.deploy_target }}
       DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
-      AUTH_SPIKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
       AUTH_SECRET: ci-auth-secret-not-for-production
-      CF_PREVIEW_APP_URL: http://127.0.0.1:8787
 
     steps:
       - name: Checkout repository
@@ -61,45 +59,20 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Create CI-only Wrangler secrets
-        run: |
-          cat > .dev.vars <<'EOF'
-          AUTH_SECRET=ci-auth-secret-not-for-production
-          BETTER_AUTH_SECRET=ci-auth-secret-not-for-production
-          DEPLOY_TARGET=cloudflare
-          EOF
-
       - name: Run database migrations
         run: pnpm db:migrate
-
-      - name: Create CI preview Wrangler config
-        run: |
-          CONFIG_PATH="$(node scripts/create-ci-wrangler-config.mjs --out=.tmp/wrangler.cloudflare.ci.toml --database-url="$DATABASE_URL" --app-url="$CF_PREVIEW_APP_URL" --deploy-target=cloudflare)"
-          echo "CF_PREVIEW_WRANGLER_CONFIG_PATH=$CONFIG_PATH" >> "$GITHUB_ENV"
 
       - name: Run unit and contract tests
         run: pnpm test
 
-      - name: Run Vercel-mode auth parity gate
-        if: matrix.deploy_target == 'vercel'
-        run: pnpm test:local-auth-spike
+      - name: Run Cloudflare config gate
+        if: matrix.deploy_target == 'cloudflare'
+        run: pnpm cf:check
 
       - name: Run Cloudflare build gate
         if: matrix.deploy_target == 'cloudflare'
         run: pnpm cf:build
 
-      - name: Run Cloudflare auth spike
+      - name: Run Cloudflare local runtime smoke
         if: matrix.deploy_target == 'cloudflare'
-        run: pnpm test:cf-auth-spike
-
-      - name: Run Cloudflare OAuth spike
-        if: matrix.deploy_target == 'cloudflare'
-        run: pnpm test:cf-oauth-spike
-
-      - name: Run Cloudflare full-app smoke gate
-        if: matrix.deploy_target == 'cloudflare'
-        run: pnpm test:cf-app-smoke
-
-      - name: Run Cloudflare admin settings smoke gate
-        if: matrix.deploy_target == 'cloudflare'
-        run: pnpm test:cf-admin-settings-smoke
+        run: pnpm test:cf-local-smoke

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -7,20 +7,19 @@ import { spawn } from 'node:child_process';
 import * as localeModule from '../src/config/locale/index.ts';
 import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
 import * as adminSettingsSmokeModule from './lib/admin-settings-smoke.ts';
+import {
+  renderCloudflareLocalTopologyLogs,
+  resolveCloudflareLocalDatabaseUrl,
+  startCloudflareLocalDevTopology,
+} from './lib/cloudflare-local-topology.mjs';
 import { validateCloudflareAppSmokeResponse } from './run-cf-app-smoke.mjs';
 import {
-  createPreviewManager,
-  ensureCiDevVars,
   resolveAuthSecret,
   resolveConfiguredPreviewBaseUrl,
-  resolvePreviewBaseUrl,
   runCloudflarePreviewSmoke,
   waitForPreviewReady,
 } from './run-cf-preview-smoke.mjs';
-import {
-  buildNodeAuthSpikeEnv,
-  readWranglerLocalConnectionString,
-} from './run-local-auth-spike.mjs';
+import { buildNodeAuthSpikeEnv } from './run-local-auth-spike.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -258,37 +257,26 @@ async function runSuperAdminChecks({ harness, baseUrl }) {
 export async function main() {
   const fallbackBaseUrl = resolveConfiguredPreviewBaseUrl(
     process.env.CF_ADMIN_SETTINGS_SMOKE_URL,
-    process.env.CF_PREVIEW_URL,
-    process.env.CF_PREVIEW_APP_URL
+    process.env.CF_LOCAL_SMOKE_URL
   );
   const wranglerConfigPath =
-    process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
+    process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
     path.resolve(rootDir, 'wrangler.cloudflare.toml');
-  const databaseUrl =
-    process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
-    process.env.DATABASE_URL?.trim() ||
-    readWranglerLocalConnectionString(await readFile(wranglerConfigPath, 'utf8'));
-  const reuseServer = process.env.CF_PREVIEW_REUSE_SERVER === 'true';
+  const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
+    processEnv: process.env,
+    wranglerConfigPath,
+  });
+  const reuseServer = process.env.CF_LOCAL_SMOKE_REUSE_SERVER === 'true';
   const authSecret = resolveAuthSecret();
-
-  const devVars = reuseServer
+  const topology = reuseServer
     ? null
-    : await ensureCiDevVars({
+    : await startCloudflareLocalDevTopology({
+        databaseUrl,
+        routerTemplatePath: wranglerConfigPath,
+        routerBaseUrl: fallbackBaseUrl,
         authSecret,
-        extraVars: {
-          DEPLOY_TARGET: 'cloudflare',
-        },
       });
-  const preview = reuseServer
-    ? null
-    : createPreviewManager({ wranglerConfigPath });
-
-  const baseUrl = preview
-    ? await resolvePreviewBaseUrl({
-        preview,
-        fallbackBaseUrl,
-      })
-    : fallbackBaseUrl;
+  const baseUrl = topology ? topology.getRouterBaseUrl() : fallbackBaseUrl;
   const nodeEnv = buildNodeAuthSpikeEnv(process.env, {
     databaseUrl,
     authSecret,
@@ -297,7 +285,7 @@ export async function main() {
 
   try {
     await runPhase('preview-ready', async () => {
-      if (preview) {
+      if (topology) {
         await waitForPreviewReady({ baseUrl });
       }
     });
@@ -358,16 +346,14 @@ export async function main() {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Cloudflare admin settings smoke failed: ${message}`);
 
-    if (preview?.recentLogs?.length) {
-      console.error('--- recent preview logs ---');
-      console.error(preview.recentLogs.join(''));
-      console.error('--- end preview logs ---');
+    const recentLogs = renderCloudflareLocalTopologyLogs(topology);
+    if (recentLogs) {
+      console.error(recentLogs);
     }
 
     process.exitCode = 1;
   } finally {
-    await preview?.stop();
-    await devVars?.cleanup();
+    await topology?.stop();
   }
 }
 

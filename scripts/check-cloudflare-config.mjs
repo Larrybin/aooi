@@ -1,20 +1,37 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const isDeployCheck = process.argv.includes('--deploy');
-const configPath = path.resolve(process.cwd(), 'wrangler.cloudflare.toml');
+import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
+
+const {
+  CLOUDFLARE_ROUTER_WORKER_NAME,
+  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
+  CLOUDFLARE_SERVER_WORKERS,
+  CLOUDFLARE_SERVICE_BINDINGS,
+  CLOUDFLARE_VERSION_ID_VARS,
+  getServerWorkerMetadata,
+} = cloudflareWorkerSplits;
+
+const rootDir = process.cwd();
+const routerConfigPath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
+const serverConfigPaths = Object.fromEntries(
+  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+    target,
+    path.resolve(rootDir, getServerWorkerMetadata(target).wranglerConfigRelativePath),
+  ])
+);
 
 function fail(message) {
   console.error(`[cf:check] ${message}`);
   process.exit(1);
 }
 
-function readConfigFile() {
-  if (!fs.existsSync(configPath)) {
-    fail('missing wrangler.cloudflare.toml');
+function readFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    fail(`missing ${path.relative(rootDir, filePath)}`);
   }
 
-  return fs.readFileSync(configPath, 'utf8');
+  return fs.readFileSync(filePath, 'utf8');
 }
 
 function readQuotedValue(content, label, pattern) {
@@ -24,6 +41,15 @@ function readQuotedValue(content, label, pattern) {
   }
 
   return match[1].trim();
+}
+
+function readMaybeEmptyQuotedValue(content, label, pattern) {
+  const match = content.match(pattern);
+  if (!match) {
+    fail(`missing ${label}`);
+  }
+
+  return match[1] ?? '';
 }
 
 function readBooleanValue(content, label, pattern) {
@@ -56,253 +82,229 @@ function readSection(content, sectionName) {
   return match[1];
 }
 
-function includesFlag(content, flag) {
-  const flagsMatch = content.match(/^\s*compatibility_flags\s*=\s*\[(.+?)\]/m);
-  if (!flagsMatch?.[1]) {
+function readFlags(content) {
+  const match = content.match(/^\s*compatibility_flags\s*=\s*\[(.+?)\]/m);
+  if (!match?.[1]) {
     fail('missing compatibility_flags');
   }
 
-  return flagsMatch[1].includes(`"${flag}"`);
+  return Array.from(match[1].matchAll(/"([^"]+)"/g), (flag) => flag[1]).sort();
 }
 
-function isPlaceholderWorkerName(name) {
-  return ['', 'my-app', 'my-next-app'].includes(name);
-}
+function assertSharedSettings(content, label) {
+  const compatibilityDate = readQuotedValue(
+    content,
+    `${label}.compatibility_date`,
+    /^\s*compatibility_date\s*=\s*"([^"\n]+)"/m
+  );
+  const workersDev = readBooleanValue(
+    content,
+    `${label}.workers_dev`,
+    /^\s*workers_dev\s*=\s*(true|false)/m
+  );
+  const previewUrls = readBooleanValue(
+    content,
+    `${label}.preview_urls`,
+    /^\s*preview_urls\s*=\s*(true|false)/m
+  );
+  const flags = readFlags(content);
 
-function isLocalhostUrl(value) {
-  try {
-    const url = new URL(value);
-    return ['localhost', '127.0.0.1', '0.0.0.0'].includes(url.hostname);
-  } catch {
-    return true;
+  if (compatibilityDate !== '2025-03-01') {
+    fail(`${label}.compatibility_date must equal 2025-03-01`);
+  }
+
+  if (workersDev !== 'false') {
+    fail(`${label}.workers_dev must be false`);
+  }
+
+  if (previewUrls !== 'false') {
+    fail(`${label}.preview_urls must be false`);
+  }
+
+  const expectedFlags = ['global_fetch_strictly_public', 'nodejs_compat'];
+  if (JSON.stringify(flags) !== JSON.stringify(expectedFlags)) {
+    fail(
+      `${label}.compatibility_flags must equal ${expectedFlags.join(', ')}`
+    );
+  }
+
+  const observabilitySection = readSection(content, 'observability');
+  const observabilityEnabled = readBooleanValue(
+    observabilitySection,
+    `${label}.observability.enabled`,
+    /^\s*enabled\s*=\s*(true|false)/m
+  );
+  if (observabilityEnabled !== 'true') {
+    fail(`${label}.observability.enabled must be true`);
+  }
+
+  const assetsSection = readSection(content, 'assets');
+  const assetsBinding = readQuotedValue(
+    assetsSection,
+    `${label}.assets.binding`,
+    /^\s*binding\s*=\s*"([^"\n]+)"/m
+  );
+  if (assetsBinding !== 'ASSETS') {
+    fail(`${label}.assets.binding must equal ASSETS`);
+  }
+
+  const hyperdriveTables = readArrayTable(content, 'hyperdrive');
+  const hyperdrive = hyperdriveTables.find((table) =>
+    /^\s*binding\s*=\s*"HYPERDRIVE"/m.test(table)
+  );
+  if (!hyperdrive) {
+    fail(`${label} missing [[hyperdrive]] binding = "HYPERDRIVE"`);
+  }
+
+  const localConnectionString = readMaybeEmptyQuotedValue(
+    hyperdrive,
+    `${label}.hyperdrive.localConnectionString`,
+    /^\s*localConnectionString\s*=\s*"([^"\n]*)"/m
+  );
+  if (localConnectionString !== '') {
+    fail(`${label}.hyperdrive.localConnectionString must be empty in tracked templates`);
+  }
+
+  const varsSection = readSection(content, 'vars');
+  const deployTarget = readQuotedValue(
+    varsSection,
+    `${label}.vars.DEPLOY_TARGET`,
+    /^\s*DEPLOY_TARGET\s*=\s*"([^"\n]+)"/m
+  );
+  const appUrl = readQuotedValue(
+    varsSection,
+    `${label}.vars.NEXT_PUBLIC_APP_URL`,
+    /^\s*NEXT_PUBLIC_APP_URL\s*=\s*"([^"\n]+)"/m
+  );
+
+  if (deployTarget !== 'cloudflare') {
+    fail(`${label}.vars.DEPLOY_TARGET must equal cloudflare`);
+  }
+
+  if (appUrl !== 'https://mamamiya.pdfreprinting.net/') {
+    fail(
+      `${label}.vars.NEXT_PUBLIC_APP_URL must equal https://mamamiya.pdfreprinting.net/`
+    );
   }
 }
 
-function parseHttpOrigin(value, label, { requirePureOrigin = false } = {}) {
-  let url;
+function assertRouterConfig() {
+  const content = readFile(routerConfigPath);
+  assertSharedSettings(content, 'router');
 
-  try {
-    url = new URL(value);
-  } catch {
-    fail(`${label} must be a valid http/https origin`);
+  const workerName = readQuotedValue(
+    content,
+    'router.name',
+    /^\s*name\s*=\s*"([^"\n]+)"/m
+  );
+  const main = readQuotedValue(
+    content,
+    'router.main',
+    /^\s*main\s*=\s*"([^"\n]+)"/m
+  );
+
+  if (workerName !== CLOUDFLARE_ROUTER_WORKER_NAME) {
+    fail(`router.name must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`);
   }
 
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    fail(`${label} must use http/https`);
+  if (main !== 'cloudflare/workers/router.ts') {
+    fail('router.main must equal cloudflare/workers/router.ts');
   }
 
-  if (requirePureOrigin) {
-    if (url.pathname !== '/' || url.search || url.hash) {
-      fail(`${label} must be a pure origin without path/query/hash`);
+  const serviceTables = readArrayTable(content, 'services');
+  const expectedServices = new Map([
+    ['WORKER_SELF_REFERENCE', CLOUDFLARE_ROUTER_WORKER_NAME],
+    ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+      CLOUDFLARE_SERVICE_BINDINGS[target],
+      CLOUDFLARE_SERVER_WORKERS[target],
+    ]),
+  ]);
+
+  for (const [binding, expectedService] of expectedServices) {
+    const table = serviceTables.find((entry) =>
+      new RegExp(`^\\s*binding\\s*=\\s*"${binding}"`, 'm').test(entry)
+    );
+    if (!table) {
+      fail(`router missing [[services]] binding = "${binding}"`);
+    }
+
+    const service = readQuotedValue(
+      table,
+      `router.services.${binding}.service`,
+      /^\s*service\s*=\s*"([^"\n]+)"/m
+    );
+    if (service !== expectedService) {
+      fail(`router.services.${binding}.service must equal ${expectedService}`);
     }
   }
 
-  return url.origin;
+  const varsSection = readSection(content, 'vars');
+  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
+    readMaybeEmptyQuotedValue(
+      varsSection,
+      `router.vars.${CLOUDFLARE_VERSION_ID_VARS[target]}`,
+      new RegExp(
+        String.raw`^\s*${CLOUDFLARE_VERSION_ID_VARS[target]}\s*=\s*"([^"\n]*)"`,
+        'm'
+      )
+    );
+  }
 }
 
-const content = readConfigFile();
+function assertServerConfig(target, configPath) {
+  const content = readFile(configPath);
+  assertSharedSettings(content, `${target}`);
 
-if (/\bCF_FALLBACK_ORIGIN\b/.test(content)) {
-  fail('CF_FALLBACK_ORIGIN is not supported in single-origin Cloudflare mode');
-}
-
-const workerName = readQuotedValue(
-  content,
-  'name',
-  /^\s*name\s*=\s*"([^"\n]+)"/m
-);
-const compatibilityDate = readQuotedValue(
-  content,
-  'compatibility_date',
-  /^\s*compatibility_date\s*=\s*"([^"\n]+)"/m
-);
-const main = readQuotedValue(content, 'main', /^\s*main\s*=\s*"([^"\n]+)"/m);
-const workersDev = readBooleanValue(
-  content,
-  'workers_dev',
-  /^\s*workers_dev\s*=\s*(true|false)/m
-);
-const previewUrls = readBooleanValue(
-  content,
-  'preview_urls',
-  /^\s*preview_urls\s*=\s*(true|false)/m
-);
-
-if (workerName !== 'roller-rabbit') {
-  fail(`unexpected worker name: ${workerName}`);
-}
-
-if (main !== '.open-next/worker.js') {
-  fail(`unexpected main: ${main}`);
-}
-
-if (compatibilityDate !== '2025-03-01') {
-  fail(`unexpected compatibility_date: ${compatibilityDate}`);
-}
-
-if (workersDev !== 'false') {
-  fail('workers_dev must be false');
-}
-
-if (previewUrls !== 'false') {
-  fail('preview_urls must be false');
-}
-
-if (!includesFlag(content, 'nodejs_compat')) {
-  fail('compatibility_flags must include "nodejs_compat"');
-}
-
-if (!includesFlag(content, 'global_fetch_strictly_public')) {
-  fail('compatibility_flags must include "global_fetch_strictly_public"');
-}
-
-const assetsSection = readSection(content, 'assets');
-const assetsBinding = readQuotedValue(
-  assetsSection,
-  'assets.binding',
-  /^\s*binding\s*=\s*"([^"\n]+)"/m
-);
-const assetsDirectory = readQuotedValue(
-  assetsSection,
-  'assets.directory',
-  /^\s*directory\s*=\s*"([^"\n]+)"/m
-);
-
-if (assetsBinding !== 'ASSETS') {
-  fail(`unexpected assets binding: ${assetsBinding}`);
-}
-
-if (assetsDirectory !== '.open-next/assets') {
-  fail(`unexpected assets directory: ${assetsDirectory}`);
-}
-
-const serviceTables = readArrayTable(content, 'services');
-const selfReference = serviceTables.find((table) =>
-  /^\s*binding\s*=\s*"WORKER_SELF_REFERENCE"/m.test(table)
-);
-
-if (!selfReference) {
-  fail('missing [[services]] binding = "WORKER_SELF_REFERENCE"');
-}
-
-const selfReferenceService = readQuotedValue(
-  selfReference,
-  'services.WORKER_SELF_REFERENCE.service',
-  /^\s*service\s*=\s*"([^"\n]+)"/m
-);
-
-if (selfReferenceService !== workerName) {
-  fail(
-    `WORKER_SELF_REFERENCE.service must equal worker name (${workerName}), got ${selfReferenceService}`
+  const workerName = readQuotedValue(
+    content,
+    `${target}.name`,
+    /^\s*name\s*=\s*"([^"\n]+)"/m
   );
-}
-
-const hyperdriveTables = readArrayTable(content, 'hyperdrive');
-const hyperdrive = hyperdriveTables.find((table) =>
-  /^\s*binding\s*=\s*"HYPERDRIVE"/m.test(table)
-);
-
-if (!hyperdrive) {
-  fail('missing [[hyperdrive]] binding = "HYPERDRIVE"');
-}
-
-const localConnectionString = readQuotedValue(
-  hyperdrive,
-  'hyperdrive.localConnectionString',
-  /^\s*localConnectionString\s*=\s*"([^"\n]+)"/m
-);
-
-if (!localConnectionString) {
-  fail('hyperdrive.localConnectionString must be set');
-}
-
-const observabilitySection = readSection(content, 'observability');
-const observabilityEnabled = readBooleanValue(
-  observabilitySection,
-  'observability.enabled',
-  /^\s*enabled\s*=\s*(true|false)/m
-);
-
-if (observabilityEnabled !== 'true') {
-  fail('observability.enabled must be true');
-}
-
-const varsSection = readSection(content, 'vars');
-const deployTarget = readQuotedValue(
-  varsSection,
-  'vars.DEPLOY_TARGET',
-  /^\s*DEPLOY_TARGET\s*=\s*"([^"\n]+)"/m
-);
-const appUrl = readQuotedValue(
-  varsSection,
-  'vars.NEXT_PUBLIC_APP_URL',
-  /^\s*NEXT_PUBLIC_APP_URL\s*=\s*"([^"\n]+)"/m
-);
-readQuotedValue(
-  varsSection,
-  'vars.NEXT_PUBLIC_APP_NAME',
-  /^\s*NEXT_PUBLIC_APP_NAME\s*=\s*"([^"\n]+)"/m
-);
-readQuotedValue(
-  varsSection,
-  'vars.NEXT_PUBLIC_THEME',
-  /^\s*NEXT_PUBLIC_THEME\s*=\s*"([^"\n]+)"/m
-);
-readQuotedValue(
-  varsSection,
-  'vars.DATABASE_PROVIDER',
-  /^\s*DATABASE_PROVIDER\s*=\s*"([^"\n]+)"/m
-);
-readQuotedValue(
-  varsSection,
-  'vars.DB_SINGLETON_ENABLED',
-  /^\s*DB_SINGLETON_ENABLED\s*=\s*"([^"\n]+)"/m
-);
-
-if (deployTarget !== 'cloudflare') {
-  fail(`vars.DEPLOY_TARGET must equal "cloudflare", got ${deployTarget}`);
-}
-
-const appOrigin = parseHttpOrigin(appUrl, 'vars.NEXT_PUBLIC_APP_URL');
-const appHostname = new URL(appOrigin).hostname;
-const routeTables = readArrayTable(content, 'routes');
-const customDomainRoute = routeTables.find((table) => {
-  const pattern = table.match(/^\s*pattern\s*=\s*"([^"\n]+)"/m)?.[1]?.trim();
-  const customDomain = table.match(/^\s*custom_domain\s*=\s*(true|false)/m)?.[1];
-  return pattern === appHostname && customDomain === 'true';
-});
-
-if (!customDomainRoute) {
-  fail(`missing [[routes]] custom domain route for ${appHostname}`);
-}
-
-if (!isDeployCheck) {
-  console.log('[cf:check] wrangler.cloudflare.toml structure looks good');
-  process.exit(0);
-}
-
-if (isPlaceholderWorkerName(workerName)) {
-  fail(`worker name must not be a template value, got ${workerName}`);
-}
-
-const hyperdriveId = readQuotedValue(
-  hyperdrive,
-  'hyperdrive.id',
-  /^\s*id\s*=\s*"([^"\n]*)"/m
-);
-
-if (!hyperdriveId) {
-  fail('hyperdrive.id must be set for deploy/upload');
-}
-
-if (isLocalhostUrl(appUrl)) {
-  fail(
-    'vars.NEXT_PUBLIC_APP_URL must not point to localhost for deploy/upload'
+  const main = readQuotedValue(
+    content,
+    `${target}.main`,
+    /^\s*main\s*=\s*"([^"\n]+)"/m
   );
+  const expectedMain = getServerWorkerMetadata(target).workerEntryRelativePath.replace(
+    /^cloudflare\//,
+    ''
+  );
+
+  if (workerName !== CLOUDFLARE_SERVER_WORKERS[target]) {
+    fail(`${target}.name must equal ${CLOUDFLARE_SERVER_WORKERS[target]}`);
+  }
+
+  if (main !== expectedMain) {
+    fail(`${target}.main must equal ${expectedMain}`);
+  }
+
+  if (/^\s*\[\[routes\]\]/m.test(content)) {
+    fail(`${target} must not define [[routes]]`);
+  }
+
+  const serviceTables = readArrayTable(content, 'services');
+  const selfReference = serviceTables.find((table) =>
+    /^\s*binding\s*=\s*"WORKER_SELF_REFERENCE"/m.test(table)
+  );
+  if (!selfReference) {
+    fail(`${target} missing [[services]] binding = "WORKER_SELF_REFERENCE"`);
+  }
+
+  const service = readQuotedValue(
+    selfReference,
+    `${target}.services.WORKER_SELF_REFERENCE.service`,
+    /^\s*service\s*=\s*"([^"\n]+)"/m
+  );
+  if (service !== CLOUDFLARE_ROUTER_WORKER_NAME) {
+    fail(
+      `${target}.services.WORKER_SELF_REFERENCE.service must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`
+    );
+  }
 }
 
-parseHttpOrigin(appUrl, 'vars.NEXT_PUBLIC_APP_URL', {
-  requirePureOrigin: true,
-});
+assertRouterConfig();
+for (const [target, configPath] of Object.entries(serverConfigPaths)) {
+  assertServerConfig(target, configPath);
+}
 
-console.log('[cf:check] deploy configuration looks good');
+console.log('[cf:check] multi-worker Cloudflare config structure looks good');

@@ -222,7 +222,7 @@ test('resolvePreviewBaseUrl 优先使用 Wrangler ready url，端口不固定为
   assert.equal(baseUrl, 'http://127.0.0.1:8788');
 });
 
-test('resolveConfiguredPreviewBaseUrl 在日志解析失败时回退到 CF_PREVIEW_APP_URL', () => {
+test('resolveConfiguredPreviewBaseUrl 在日志解析失败时回退到 CF_LOCAL_SMOKE_URL', () => {
   assert.equal(
     resolveConfiguredPreviewBaseUrl('', 'http://127.0.0.1:9797'),
     'http://127.0.0.1:9797'

@@ -1,5 +1,5 @@
 name = "roller-rabbit"
-main = ".open-next/worker.js"
+main = "cloudflare/workers/router.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 workers_dev = false
@@ -17,10 +17,34 @@ directory = ".open-next/assets"
 binding = "WORKER_SELF_REFERENCE"
 service = "roller-rabbit"
 
+[[services]]
+binding = "PUBLIC_WEB_WORKER"
+service = "roller-rabbit-public-web"
+
+[[services]]
+binding = "AUTH_WORKER"
+service = "roller-rabbit-auth"
+
+[[services]]
+binding = "PAYMENT_WORKER"
+service = "roller-rabbit-payment"
+
+[[services]]
+binding = "MEMBER_WORKER"
+service = "roller-rabbit-member"
+
+[[services]]
+binding = "CHAT_WORKER"
+service = "roller-rabbit-chat"
+
+[[services]]
+binding = "ADMIN_WORKER"
+service = "roller-rabbit-admin"
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "d208cd72765b46a7b0849fc687e2fb61"
-localConnectionString = "postgresql://postgres.kylrqpbouoyxnkoubbum:5jU*&RFTv&HQMYB@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
+localConnectionString = ""
 
 [observability]
 enabled = true
@@ -32,3 +56,9 @@ NEXT_PUBLIC_APP_NAME = "Roller Rabbit"
 NEXT_PUBLIC_THEME = "default"
 DATABASE_PROVIDER = "postgresql"
 DB_SINGLETON_ENABLED = "true"
+PUBLIC_WEB_WORKER_VERSION_ID = ""
+AUTH_WORKER_VERSION_ID = ""
+PAYMENT_WORKER_VERSION_ID = ""
+MEMBER_WORKER_VERSION_ID = ""
+CHAT_WORKER_VERSION_ID = ""
+ADMIN_WORKER_VERSION_ID = ""
