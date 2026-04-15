@@ -6,10 +6,11 @@ import { and, desc, eq, ne } from 'drizzle-orm';
 import { db } from '@/core/db';
 import { verification } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
+import { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 import { normalizeEmail } from '@/shared/lib/email';
 import { getUuid } from '@/shared/lib/hash';
 
-export const SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
+export { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 
 const IDENTIFIER_PREFIX = 'settings-email-verify';
 
