@@ -40,12 +40,17 @@ import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { usePublicAppContext } from '@/shared/contexts/app';
 import {
+  type AIGenerationTaskTickResult,
+  useAIGenerationTask,
+} from '@/shared/hooks/use-ai-generation-task';
+import { useBlobDownload } from '@/shared/hooks/use-blob-download';
+import { useCreditsGate } from '@/shared/hooks/use-credits-gate';
+import {
   resolveSelfUserDetailsForAction,
   useSelfUserDetails,
 } from '@/shared/hooks/use-self-user-details';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
-import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
@@ -97,9 +102,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   const [generatedSongs, setGeneratedSongs] = useState<GeneratedSong[]>([]);
   const [currentPlayingSong, setCurrentPlayingSong] =
     useState<GeneratedSong | null>(null);
-  const [generationStartTime, setGenerationStartTime] = useState<number | null>(
-    null
-  );
 
   // Audio playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -108,13 +110,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
   // todo: get cost credits from settings
   const costCredits = 10;
-
-  // Client-side mounting state to prevent hydration mismatch
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -173,23 +168,15 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
     return result.details;
   }, [details, refreshDetails, setIsShowSignModal]);
+  const { ensureCredits } = useCreditsGate({
+    resolveDetails: resolveDetailsForGenerate,
+  });
+  const { downloadBlob } = useBlobDownload();
 
   // Task polling
   const pollTaskStatus = useCallback(
-    async (taskId: string) => {
+    async (taskId: string): Promise<AIGenerationTaskTickResult> => {
       try {
-        // Check timeout (3 minutes = 180000ms)
-        if (generationStartTime) {
-          const elapsedTime = Date.now() - generationStartTime;
-          if (elapsedTime > 180000) {
-            setProgress(0);
-            setIsGenerating(false);
-            setGenerationStartTime(null);
-            toast.error(t('generator.errors.timeout'));
-            return true; // Stop polling
-          }
-        }
-
         // request api to query task
         const data = await fetchJson<{ status: string; taskInfo: unknown }>(
           '/api/ai/query',
@@ -223,7 +210,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
         // task pending
         if (status === AITaskStatus.PENDING) {
           setProgress(10);
-          return false;
+          return { done: false };
         }
 
         // task processing
@@ -251,7 +238,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                 })
               )
             );
-            return false;
+            return { done: false };
           }
 
           // first success
@@ -272,18 +259,17 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                 })
               )
             );
-            return false;
+            return { done: false };
           }
 
           // final success
-          return false;
+          return { done: false };
         }
 
         // task failed, final status
         if (status === AITaskStatus.FAILED) {
           setProgress(0);
           setIsGenerating(false);
-          setGenerationStartTime(null);
           toast.error(
             t('generator.errors.generate_failed_with_reason', {
               reason: errorMessage || t('generator.errors.unknown_error'),
@@ -292,7 +278,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
           void refreshDetailsSafely();
 
-          return true;
+          return { done: true, terminalState: 'failed' };
         }
 
         // task success, final status
@@ -315,18 +301,16 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
           setProgress(100);
           setIsGenerating(false);
-          setGenerationStartTime(null);
-          return true;
+          return { done: true, terminalState: 'success' };
         }
 
         // Still processing - update progress
         setProgress((prev) => Math.min(prev + 3, 80));
-        return false;
+        return { done: false };
       } catch (error: unknown) {
         console.error('Error polling task:', error);
         setIsGenerating(false);
         setProgress(0);
-        setGenerationStartTime(null);
         toastFetchError(
           error,
           t('generator.errors.create_song_failed_with_reason', {
@@ -339,51 +323,31 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
         void refreshDetailsSafely();
 
-        return true; // Stop polling on error
+        return { done: true, terminalState: 'failed' };
       }
     },
-    [generationStartTime, refreshDetailsSafely, t]
+    [refreshDetailsSafely, t]
   );
 
-  // Start task polling
-  useEffect(() => {
-    if (!taskId || !isGenerating) {
-      return;
-    }
-
-    let cancelled = false;
-    let inFlight = false;
-
-    const interval = setInterval(async () => {
-      if (cancelled || inFlight) {
-        return;
-      }
-      inFlight = true;
-      try {
-        const completed = await pollTaskStatus(taskId);
-        if (completed) {
-          cancelled = true;
-          clearInterval(interval);
-        }
-      } finally {
-        inFlight = false;
-      }
-    }, 10000); // Poll every 10 seconds
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [taskId, isGenerating, pollTaskStatus]);
+  useAIGenerationTask({
+    taskId,
+    enabled: isGenerating,
+    pollIntervalMs: 10000,
+    timeoutMs: 180000,
+    onPoll: pollTaskStatus,
+    onTimeout: () => {
+      setProgress(0);
+      setIsGenerating(false);
+      toast.error(t('generator.errors.timeout'));
+    },
+  });
 
   const handleGenerate = async () => {
-    const nextDetails = await resolveDetailsForGenerate();
+    const nextDetails = await ensureCredits({
+      requiredCredits: costCredits,
+      insufficientCreditsMessage: t('generator.errors.insufficient_credits'),
+    });
     if (!nextDetails) {
-      return;
-    }
-
-    if ((nextDetails.credits?.remainingCredits ?? 0) < costCredits) {
-      toast.error(t('generator.errors.insufficient_credits'));
       return;
     }
 
@@ -448,7 +412,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     setProgress(10);
     setGeneratedSongs([]);
     setCurrentPlayingSong(null);
-    setGenerationStartTime(Date.now()); // Set generation start time
 
     try {
       const data = await fetchJson<{ id: string }>(
@@ -482,7 +445,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       );
       setIsGenerating(false);
       setProgress(0);
-      setGenerationStartTime(null);
     }
   };
 
@@ -546,30 +508,13 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   const downloadAudio = async (song: GeneratedSong) => {
     if (!song?.audioUrl) return;
 
-    try {
-      toast.info(t('generator.downloading'));
-
-      const blob = await fetchBlobWithTimeout(song.audioUrl, 20000);
-
-      // Create object URL
-      const blobUrl = URL.createObjectURL(blob);
-
-      // Create and trigger download
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `${song.title}.mp3`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Clean up object URL
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
-      toast.success(t('generator.download_success'));
-    } catch (error) {
-      console.error('Failed to download audio:', error);
-      toast.error(t('generator.download_failed'));
-    }
+    await downloadBlob({
+      id: song.id || song.title,
+      url: song.audioUrl,
+      fileName: `${song.title}.mp3`,
+      successMessage: t('generator.download_success'),
+      errorMessage: t('generator.download_failed'),
+    });
   };
 
   return (
@@ -680,12 +625,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                   </div>
                 )}
 
-                {!isMounted ? (
-                  <Button className="w-full" size="lg" disabled>
-                    <Music className="mr-2 h-4 w-4" />
-                    {t('generator.generate')}
-                  </Button>
-                ) : isLoadingDetails && !details && !isGenerating ? (
+                {isLoadingDetails && !details && !isGenerating ? (
                   <Button className="w-full" size="lg">
                     <Loader2 className="size-4 animate-spin" />{' '}
                     {t('generator.loading')}
@@ -711,16 +651,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                   </Button>
                 )}
 
-                {!isMounted ? (
-                  <div className="mb-6 flex items-center justify-between text-sm">
-                    <span className="text-primary">
-                      {t('generator.credits_cost', { credits: costCredits })}
-                    </span>
-                    <span className="text-foreground font-medium">
-                      {t('generator.sign_in_to_generate')}
-                    </span>
-                  </div>
-                ) : accountDetailsErrorMessage ? (
+                {accountDetailsErrorMessage ? (
                   <div className="mb-6 space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
                     <p className="text-destructive">{accountDetailsErrorMessage}</p>
                     <p className="text-muted-foreground">
