@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildTrustedAuthOrigins,
+  isExplicitLocalAuthRuntimeEnabled,
   isLocalAuthRuntimeOrigin,
   resolveRuntimeAuthBaseUrl,
 } from './runtime-origin';
@@ -30,7 +31,7 @@ test('buildTrustedAuthOrigins 会加入请求里的 localhost preview origin', (
     buildTrustedAuthOrigins({
       appUrl: 'https://mamamiya.pdfreprinting.net',
       request,
-      allowLocalMockOrigins: true,
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
     }).sort(),
     [
       'http://127.0.0.1:8787',
@@ -56,6 +57,7 @@ test('buildTrustedAuthOrigins 会从 Host 头识别 Wrangler preview origin', ()
     buildTrustedAuthOrigins({
       appUrl: 'https://mamamiya.pdfreprinting.net',
       request,
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
     }).includes('http://localhost:8787'),
     true
   );
@@ -72,6 +74,7 @@ test('resolveRuntimeAuthBaseUrl 优先使用请求里的 localhost preview origi
     resolveRuntimeAuthBaseUrl({
       defaultBaseUrl: 'https://mamamiya.pdfreprinting.net',
       request,
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
     }),
     'http://localhost:8788'
   );
@@ -91,8 +94,105 @@ test('resolveRuntimeAuthBaseUrl 在 request.url 是配置域时仍优先使用�
     resolveRuntimeAuthBaseUrl({
       defaultBaseUrl: 'https://mamamiya.pdfreprinting.net',
       request,
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
     }),
     'http://localhost:8787'
+  );
+});
+
+test('resolveRuntimeAuthBaseUrl 在请求头已提供本地 origin 时忽略异源 request.url', () => {
+  const request = new Request(
+    'https://mamamiya.pdfreprinting.net/api/auth/sign-in/social',
+    {
+      headers: {
+        origin: 'http://localhost:8787',
+        host: 'localhost:8787',
+      },
+    }
+  );
+
+  assert.equal(
+    resolveRuntimeAuthBaseUrl({
+      defaultBaseUrl: 'http://localhost:8787',
+      request,
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
+    }),
+    'http://localhost:8787'
+  );
+});
+
+test('buildTrustedAuthOrigins 在本地 canonical 与构建期 app origin 并存时接受构建期 origin', () => {
+  const request = new Request(
+    'http://mamamiya.pdfreprinting.net/api/auth/sign-up/email',
+    {
+      headers: {
+        origin: 'http://mamamiya.pdfreprinting.net',
+        host: 'mamamiya.pdfreprinting.net',
+        'x-forwarded-host': 'mamamiya.pdfreprinting.net',
+        'x-forwarded-proto': 'http',
+      },
+    }
+  );
+
+  assert.deepEqual(
+    buildTrustedAuthOrigins({
+      appUrl: 'http://localhost:8787',
+      additionalAllowedOrigins: ['https://mamamiya.pdfreprinting.net'],
+      request,
+    }).sort(),
+    [
+      'http://localhost:8787',
+      'https://accounts.google.com',
+      'https://mamamiya.pdfreprinting.net',
+    ].sort()
+  );
+});
+
+test('resolveRuntimeAuthBaseUrl 在本地 canonical 与构建期 app origin 并存时仍返回本地 canonical', () => {
+  const request = new Request(
+    'http://mamamiya.pdfreprinting.net/api/auth/sign-up/email',
+    {
+      headers: {
+        origin: 'http://mamamiya.pdfreprinting.net',
+        host: 'mamamiya.pdfreprinting.net',
+        'x-forwarded-host': 'mamamiya.pdfreprinting.net',
+        'x-forwarded-proto': 'http',
+      },
+    }
+  );
+
+  assert.equal(
+    resolveRuntimeAuthBaseUrl({
+      defaultBaseUrl: 'http://localhost:8787',
+      additionalAllowedOrigins: ['https://mamamiya.pdfreprinting.net'],
+      request,
+    }),
+    'http://localhost:8787'
+  );
+});
+
+test('buildTrustedAuthOrigins 在请求头已提供本地 origin 时忽略异源 request.url', () => {
+  const request = new Request(
+    'https://mamamiya.pdfreprinting.net/api/auth/get-session',
+    {
+      headers: {
+        origin: 'http://localhost:8787',
+        host: 'localhost:8787',
+      },
+    }
+  );
+
+  assert.deepEqual(
+    buildTrustedAuthOrigins({
+      appUrl: 'http://localhost:8787',
+      request,
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
+    }).sort(),
+    [
+      'http://127.0.0.1:8787',
+      'http://localhost:8787',
+      'https://accounts.google.com',
+    ].sort()
   );
 });
 
@@ -148,6 +248,71 @@ test('resolveRuntimeAuthBaseUrl 在 mock 模式优先使用请求 origin', () =>
       request,
     }),
     'http://localhost:8788'
+  );
+});
+
+test('isExplicitLocalAuthRuntimeEnabled 仅在显式本地模式下返回 true', () => {
+  assert.equal(isExplicitLocalAuthRuntimeEnabled({ env: {} }), false);
+  assert.equal(
+    isExplicitLocalAuthRuntimeEnabled({
+      env: { CF_LOCAL_SMOKE_WORKERS_DEV: 'true' },
+    }),
+    true
+  );
+  assert.equal(
+    isExplicitLocalAuthRuntimeEnabled({
+      env: { AUTH_SPIKE_OAUTH_MOCK: 'true' },
+    }),
+    true
+  );
+  assert.equal(
+    isExplicitLocalAuthRuntimeEnabled({
+      env: {},
+      preferRequestOrigin: true,
+    }),
+    true
+  );
+});
+
+test('buildTrustedAuthOrigins 默认忽略 localhost request origin，不把它加入 trusted origins', () => {
+  const request = new Request(
+    'https://mamamiya.pdfreprinting.net/api/auth/get-session',
+    {
+      headers: {
+        origin: 'http://localhost:9999',
+        host: 'localhost:9999',
+      },
+    }
+  );
+
+  assert.deepEqual(
+    buildTrustedAuthOrigins({
+      appUrl: 'https://mamamiya.pdfreprinting.net',
+      request,
+      env: {},
+    }).sort(),
+    ['https://accounts.google.com', 'https://mamamiya.pdfreprinting.net'].sort()
+  );
+});
+
+test('resolveRuntimeAuthBaseUrl 默认忽略 localhost request origin，继续返回 canonical origin', () => {
+  const request = new Request(
+    'https://mamamiya.pdfreprinting.net/api/auth/get-session',
+    {
+      headers: {
+        origin: 'http://localhost:9999',
+        host: 'localhost:9999',
+      },
+    }
+  );
+
+  assert.equal(
+    resolveRuntimeAuthBaseUrl({
+      defaultBaseUrl: 'https://mamamiya.pdfreprinting.net',
+      request,
+      env: {},
+    }),
+    'https://mamamiya.pdfreprinting.net'
   );
 });
 

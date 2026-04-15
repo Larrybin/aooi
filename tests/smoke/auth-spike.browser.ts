@@ -75,6 +75,31 @@ function isLocalNodeDevOrigin(baseUrl: string): boolean {
   );
 }
 
+function isTransientLocalDbFailure(
+  observation: SessionObservation,
+  baseUrl: string
+): boolean {
+  if (!isInsecureLocalPreviewOrigin(baseUrl)) {
+    return false;
+  }
+
+  if (observation.status !== 500) {
+    return false;
+  }
+
+  if (observation.bodySnippet === 'n/a' || observation.bodySnippet.trim() === '') {
+    return true;
+  }
+
+  return /DB_STARTUP_CHECK_FAILED|database temporarily unavailable|MaxClientsInSessionMode/i.test(
+    observation.bodySnippet
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 type ParsedCookie = ResponseCookieSummary & {
   value: string;
   expires: number | undefined;
@@ -304,26 +329,42 @@ export async function getSessionViaAuthApi(
   baseUrl: string
 ): Promise<SessionObservation> {
   const origin = new URL(baseUrl).origin;
-  const response = await context.request.get(`${baseUrl}/api/auth/get-session`, {
-    failOnStatusCode: false,
-    maxRedirects: 0,
-    headers: {
-      origin,
-      referer: `${origin}/`,
-    },
-  });
-  let bodyText = '';
+  const maxAttempts = isInsecureLocalPreviewOrigin(baseUrl) ? 3 : 1;
 
-  try {
-    bodyText = await response.text();
-  } catch {}
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await context.request.get(`${baseUrl}/api/auth/get-session`, {
+      failOnStatusCode: false,
+      maxRedirects: 0,
+      headers: {
+        origin,
+        referer: `${origin}/`,
+      },
+    });
+    let bodyText = '';
 
-  return buildSessionObservation({
-    url: response.url(),
-    status: response.status(),
-    headers: response.headers(),
-    bodyText,
-  });
+    try {
+      bodyText = await response.text();
+    } catch {}
+
+    const observation = buildSessionObservation({
+      url: response.url(),
+      status: response.status(),
+      headers: response.headers(),
+      bodyText,
+    });
+
+    if (
+      attempt < maxAttempts &&
+      isTransientLocalDbFailure(observation, baseUrl)
+    ) {
+      await sleep(1500);
+      continue;
+    }
+
+    return observation;
+  }
+
+  throw new Error('getSessionViaAuthApi exhausted all attempts unexpectedly');
 }
 
 export async function signOutViaAuthApi(

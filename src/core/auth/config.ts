@@ -22,6 +22,7 @@ import { getEmailService } from '@/shared/services/email';
 import { installAuthSpikeOAuthFetchMock } from './oauth-spike.mock';
 import {
   buildTrustedAuthOrigins,
+  isExplicitLocalAuthRuntimeEnabled,
   resolveRuntimeAuthBaseUrl,
 } from './runtime-origin';
 
@@ -58,18 +59,27 @@ function assertAuthEnv() {
 
 const isProduction = process.env.NODE_ENV === 'production';
 const normalizedAuthBaseUrl = new URL(serverEnv.authBaseUrl).origin;
+const compiledAppOrigin =
+  envConfigs.app_url && envConfigs.app_url !== normalizedAuthBaseUrl
+    ? new URL(envConfigs.app_url).origin
+    : null;
+const additionalAllowedAuthOrigins = compiledAppOrigin
+  ? [compiledAppOrigin]
+  : [];
 
 export function getAuthOriginDebug(request?: Request) {
   const isAuthSpikeOAuthMock = isAuthSpikeOAuthMockEnabled();
   const runtimeBaseUrl = resolveRuntimeAuthBaseUrl({
     defaultBaseUrl: normalizedAuthBaseUrl,
+    additionalAllowedOrigins: additionalAllowedAuthOrigins,
     preferRequestOrigin: isAuthSpikeOAuthMock,
     request,
   });
   const runtimeTrustedOrigins = buildTrustedAuthOrigins({
-    appUrl: envConfigs.app_url,
+    appUrl: normalizedAuthBaseUrl,
+    additionalAllowedOrigins: additionalAllowedAuthOrigins,
     request,
-    allowLocalMockOrigins: isAuthSpikeOAuthMock,
+    preferRequestOrigin: isAuthSpikeOAuthMock,
   });
 
   return {
@@ -91,8 +101,9 @@ export const authOptions = {
   baseURL: normalizedAuthBaseUrl,
   secret: serverEnv.authSecret,
   trustedOrigins: buildTrustedAuthOrigins({
-    appUrl: envConfigs.app_url,
-    allowLocalMockOrigins: process.env.AUTH_SPIKE_OAUTH_MOCK === 'true',
+    appUrl: normalizedAuthBaseUrl,
+    additionalAllowedOrigins: additionalAllowedAuthOrigins,
+    preferRequestOrigin: isExplicitLocalAuthRuntimeEnabled(),
   }),
   advanced: {
     disableOriginCheck: isAuthSpikeOAuthMockEnabled(),
@@ -130,6 +141,18 @@ export async function getAuthOptions(request?: Request) {
   const appName = (configs.app_name || envConfigs.app_name || '').trim();
   const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthOriginDebug(request);
   const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
+  if (process.env.CF_LOCAL_AUTH_DEBUG === 'true') {
+    logger.warn('[auth-debug] request origin resolution', {
+      runtimeBaseUrl,
+      runtimeTrustedOrigins,
+      requestUrl: request?.url || null,
+      requestOrigin: request?.headers.get('origin') || null,
+      requestReferer: request?.headers.get('referer') || null,
+      requestHost: request?.headers.get('host') || null,
+      requestForwardedHost: request?.headers.get('x-forwarded-host') || null,
+      requestForwardedProto: request?.headers.get('x-forwarded-proto') || null,
+    });
+  }
   if (isAuthSpikeOAuthMockEnabled()) {
     logger.info('[auth-spike-oauth] runtime auth origin', {
       runtimeBaseUrl,

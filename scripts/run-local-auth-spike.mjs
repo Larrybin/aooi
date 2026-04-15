@@ -1,13 +1,16 @@
 import { once } from 'node:events';
-import { readFile, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  createPreviewManager,
-  waitForPreviewReady,
-} from './run-cf-preview-smoke.mjs';
+  renderCloudflareLocalTopologyLogs,
+  resolveCloudflareLocalDatabaseUrl,
+  startCloudflareLocalDevTopology,
+} from './lib/cloudflare-local-topology.mjs';
+import { ensureCiDevVars } from './lib/cloudflare-dev-runtime.mjs';
+import { waitForPreviewReady } from './run-cf-preview-smoke.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -15,7 +18,7 @@ const rootDir = path.resolve(
 );
 
 const DEFAULT_NODE_BASE_URL = 'http://127.0.0.1:3000';
-const DEFAULT_CF_BASE_URL = 'http://127.0.0.1:8787';
+const DEFAULT_CF_BASE_URL = 'http://localhost:8787';
 const DEFAULT_AUTH_SPIKE_SECRET =
   'local-auth-spike-secret-0123456789abcdef';
 const NODE_READY_TIMEOUT_MS = Number.parseInt(
@@ -38,7 +41,7 @@ export function readWranglerLocalConnectionString(content) {
   );
   if (!match?.[1]?.trim()) {
     throw new Error(
-      'wrangler.cloudflare.toml 缺少 [[hyperdrive]].localConnectionString，无法为本地 Node auth spike 提供 DATABASE_URL'
+      '缺少可用的 [[hyperdrive]].localConnectionString；请传入 DATABASE_URL，或先生成临时 Wrangler 配置再运行本地 auth spike'
     );
   }
   return match[1].trim();
@@ -251,17 +254,29 @@ async function waitForManagerReady({
   return Promise.race([readyPromise, exitPromise]);
 }
 
-async function ensureCiDevVars(authSecret) {
-  const devVarsPath = path.resolve(rootDir, '.dev.vars');
+export async function prepareLocalAuthSpikeDevVars({
+  authSecret,
+  tmpRoot = path.resolve(rootDir, '.tmp'),
+}) {
+  await mkdir(tmpRoot, { recursive: true });
 
-  try {
-    await readFile(devVarsPath, 'utf8');
-    return { created: false, devVarsPath };
-  } catch {
-    const content = `AUTH_SECRET=${authSecret}\nBETTER_AUTH_SECRET=${authSecret}\n`;
-    await writeFile(devVarsPath, content, 'utf8');
-    return { created: true, devVarsPath };
-  }
+  const tempDir = await mkdtemp(path.join(tmpRoot, 'local-auth-spike-'));
+  const devVars = await ensureCiDevVars({
+    authSecret,
+    devVarsPath: path.join(tempDir, '.dev.vars'),
+    extraVars: {
+      DEPLOY_TARGET: 'cloudflare',
+    },
+  });
+
+  return {
+    tempDir,
+    devVarsPath: devVars.devVarsPath,
+    async cleanup() {
+      await devVars.cleanup();
+      await rm(tempDir, { recursive: true, force: true });
+    },
+  };
 }
 
 async function readLockedNodeBaseUrl() {
@@ -276,16 +291,12 @@ async function readLockedNodeBaseUrl() {
 
 async function main() {
   const wranglerConfigPath =
-    process.env.CF_PREVIEW_WRANGLER_CONFIG_PATH?.trim() ||
+    process.env.CF_LOCAL_WRANGLER_CONFIG_PATH?.trim() ||
     path.resolve(rootDir, 'wrangler.cloudflare.toml');
-  const wranglerContent = await readFile(
+  const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
+    processEnv: process.env,
     wranglerConfigPath,
-    'utf8'
-  );
-  const databaseUrl =
-    process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
-    process.env.DATABASE_URL?.trim() ||
-    readWranglerLocalConnectionString(wranglerContent);
+  });
   const authSecret =
     process.env.BETTER_AUTH_SECRET?.trim() ||
     process.env.AUTH_SECRET?.trim() ||
@@ -300,7 +311,7 @@ async function main() {
   const cloudflareBaseUrl =
     process.env.AUTH_SPIKE_LOCAL_CF_URL?.trim() || DEFAULT_CF_BASE_URL;
 
-  const devVars = await ensureCiDevVars(authSecret);
+  const devVars = await prepareLocalAuthSpikeDevVars({ authSecret });
   const reuseExistingNodeServer =
     process.env.AUTH_SPIKE_REUSE_NODE_SERVER !== 'false' &&
     (await detectReusableNodeServer({
@@ -320,14 +331,30 @@ async function main() {
   const nodeManager = reuseExistingNodeServer
     ? null
     : createNodeDevManager({ env: nodeEnv, port: nodePort });
-  const previewManager = createPreviewManager({
-    env: process.env,
-    wranglerConfigPath,
-  });
+  const reuseCloudflareServer =
+    process.env.CF_LOCAL_SMOKE_REUSE_SERVER === 'true';
+  const topology = reuseCloudflareServer
+    ? null
+    : await startCloudflareLocalDevTopology({
+        databaseUrl,
+        routerTemplatePath: wranglerConfigPath,
+        routerBaseUrl: cloudflareBaseUrl,
+        authSecret,
+        processEnv: process.env,
+      });
+  const resolvedCloudflareBaseUrl = topology
+    ? topology.getRouterBaseUrl()
+    : cloudflareBaseUrl;
+  let fatalError = null;
 
   try {
     if (reuseExistingNodeServer) {
       console.log(`Reusing local Node auth surface: ${nodeBaseUrl}`);
+    }
+    if (reuseCloudflareServer) {
+      console.log(
+        `Reusing Cloudflare preview server: ${resolvedCloudflareBaseUrl}`
+      );
     }
 
     await Promise.all(
@@ -339,11 +366,7 @@ async function main() {
               manager: nodeManager,
               ready: () => waitForNodeReady({ baseUrl: nodeBaseUrl }),
             }),
-        waitForManagerReady({
-          label: 'Cloudflare preview',
-          manager: previewManager,
-          ready: () => waitForPreviewReady({ baseUrl: cloudflareBaseUrl }),
-        }),
+        waitForPreviewReady({ baseUrl: resolvedCloudflareBaseUrl }),
       ].filter(Boolean)
     );
 
@@ -355,7 +378,7 @@ async function main() {
         env: {
           ...process.env,
           AUTH_SPIKE_VERCEL_URL: nodeBaseUrl,
-          AUTH_SPIKE_CF_URL: cloudflareBaseUrl,
+          AUTH_SPIKE_CF_URL: resolvedCloudflareBaseUrl,
           AUTH_SPIKE_EMAIL:
             process.env.AUTH_SPIKE_EMAIL?.trim() || 'auth-spike@example.com',
           AUTH_SPIKE_PASSWORD:
@@ -373,15 +396,23 @@ async function main() {
     });
 
     process.exit(typeof exitCode === 'number' ? exitCode : 1);
+  } catch (error) {
+    fatalError = error;
+    throw error;
   } finally {
+    if (fatalError) {
+      const topologyLogs = renderCloudflareLocalTopologyLogs(topology);
+      if (topologyLogs) {
+        process.stderr.write(`${topologyLogs}\n`);
+      }
+    }
+
     await Promise.allSettled([
-      previewManager.stop(),
+      ...(topology ? [topology.stop()] : []),
       ...(nodeManager ? [nodeManager.stop()] : []),
     ]);
 
-    if (devVars.created) {
-      await rm(devVars.devVarsPath, { force: true });
-    }
+    await devVars.cleanup();
   }
 }
 

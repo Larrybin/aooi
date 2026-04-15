@@ -8,11 +8,13 @@ import * as oauthSpikeScriptModule from './lib/cf-oauth-spike.ts';
 import * as oauthSpikeSharedModule from '../tests/smoke/oauth-spike.shared.ts';
 import * as oauthSpikeBrowserModule from '../tests/smoke/oauth-spike.browser.ts';
 import {
-  createPreviewManager,
-  ensureCiDevVars,
+  renderCloudflareLocalTopologyLogs,
+  resolveCloudflareLocalDatabaseUrl,
+  startCloudflareLocalDevTopology,
+} from './lib/cloudflare-local-topology.mjs';
+import {
   resolveAuthSecret,
   resolveConfiguredPreviewBaseUrl,
-  resolvePreviewBaseUrl,
   runCloudflarePreviewSmoke,
   waitForPreviewReady,
 } from './run-cf-preview-smoke.mjs';
@@ -35,12 +37,6 @@ const timestamp = new Date()
   .toISOString()
   .replace(/[-:]/g, '')
   .replace(/\..+/, '');
-const READY_URL_TIMEOUT_MS = Number.parseInt(
-  process.env.CF_OAUTH_SPIKE_READY_URL_TIMEOUT_MS ||
-    process.env.CF_PREVIEW_READY_URL_TIMEOUT_MS ||
-    '900000',
-  10
-);
 const reportDir = path.resolve(rootDir, '.gstack/projects/Larrybin-aooi');
 const reportBaseName = `cf-oauth-spike-report-${timestamp}`;
 const reportJsonPath = path.resolve(reportDir, `${reportBaseName}.json`);
@@ -227,17 +223,22 @@ async function main() {
   const lock = await oauthSpikeScript.acquireCfOAuthSpikeLock();
   const fallbackBaseUrl = resolveConfiguredPreviewBaseUrl(
     process.env.CF_OAUTH_SPIKE_URL,
-    process.env.CF_PREVIEW_URL,
-    process.env.CF_PREVIEW_APP_URL
+    process.env.CF_LOCAL_SMOKE_URL
   );
   const callbackPath = normalizeCallbackPath(
     process.env.CF_OAUTH_SPIKE_CALLBACK_PATH ||
       process.env.AUTH_SPIKE_CALLBACK_PATH
   );
   const runId = process.env.CF_OAUTH_SPIKE_RUN_ID?.trim() || timestamp;
+  const wranglerConfigPath =
+    process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
+    path.resolve(rootDir, 'wrangler.cloudflare.toml');
+  const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
+    processEnv: process.env,
+    wranglerConfigPath,
+  });
   let authSecret = '';
-  let devVars = null;
-  let preview = null;
+  let topology = null;
   let baseUrl = fallbackBaseUrl;
   let fatalError = null;
 
@@ -257,27 +258,20 @@ async function main() {
     });
 
     authSecret = resolveAuthSecret();
-    devVars = await ensureCiDevVars({
+    topology = await startCloudflareLocalDevTopology({
+      databaseUrl,
+      routerTemplatePath: wranglerConfigPath,
+      routerBaseUrl: fallbackBaseUrl,
       authSecret,
       extraVars: {
-        DEPLOY_TARGET: 'cloudflare',
         AUTH_SPIKE_OAUTH_MOCK: 'true',
       },
-    });
-    preview = createPreviewManager({
-      env: {
+      processEnv: {
         ...process.env,
         AUTH_SPIKE_OAUTH_MOCK: 'true',
-        AUTH_SECRET: authSecret,
-        BETTER_AUTH_SECRET: authSecret,
       },
     });
-    baseUrl = await resolvePreviewBaseUrl({
-      preview,
-      fallbackBaseUrl,
-      allowFallback: false,
-      timeoutMs: READY_URL_TIMEOUT_MS,
-    });
+    baseUrl = topology.getRouterBaseUrl();
 
     await waitForPreviewReady({ baseUrl });
     await runCloudflarePreviewSmoke({ baseUrl });
@@ -303,18 +297,10 @@ async function main() {
     const cleanupFailures = [];
 
     try {
-      await preview?.stop?.();
+      await topology?.stop?.();
     } catch (error) {
       cleanupFailures.push(
-        `cleanup:preview-stop:${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-
-    try {
-      await devVars?.cleanup?.();
-    } catch (error) {
-      cleanupFailures.push(
-        `cleanup:dev-vars:${error instanceof Error ? error.message : String(error)}`
+        `cleanup:topology-stop:${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -344,6 +330,10 @@ async function main() {
   }
 
   if (fatalError) {
+    const recentLogs = renderCloudflareLocalTopologyLogs(topology);
+    if (recentLogs) {
+      process.stderr.write(`${recentLogs}\n`);
+    }
     process.stderr.write(
       `${fatalError instanceof Error ? fatalError.stack || fatalError.message : String(fatalError)}\n`
     );

@@ -6,8 +6,13 @@ import { fileURLToPath } from 'node:url';
 import * as authSpikeSharedModule from '../tests/smoke/auth-spike.shared.ts';
 import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
 import {
-  createPreviewManager,
+  renderCloudflareLocalTopologyLogs,
+  resolveCloudflareLocalDatabaseUrl,
+  startCloudflareLocalDevTopology,
+} from './lib/cloudflare-local-topology.mjs';
+import {
   normalizePreviewBaseUrl,
+  resolveAuthSecret,
   runCloudflarePreviewSmoke,
   waitForPreviewReady,
 } from './run-cf-preview-smoke.mjs';
@@ -139,8 +144,8 @@ async function writeReports(report) {
 }
 
 async function main() {
-  const baseUrl = normalizePreviewBaseUrl(
-    process.env.CF_AUTH_SPIKE_URL || process.env.CF_PREVIEW_URL
+  const requestedBaseUrl = normalizePreviewBaseUrl(
+    process.env.CF_AUTH_SPIKE_URL || process.env.CF_LOCAL_SMOKE_URL
   );
   const callbackPath = normalizeCallbackPath(
     process.env.CF_AUTH_SPIKE_CALLBACK_PATH ||
@@ -161,7 +166,15 @@ async function main() {
     'Auth Spike User';
   const emails = authSpikeShared.buildSurfaceRunEmails(baseEmail, runId);
   const emailUsed = emails.cloudflare;
-  const reuseServer = process.env.CF_PREVIEW_REUSE_SERVER === 'true';
+  const reuseServer = process.env.CF_LOCAL_SMOKE_REUSE_SERVER === 'true';
+  const wranglerConfigPath =
+    process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
+    path.resolve(rootDir, 'wrangler.cloudflare.toml');
+  const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
+    processEnv: process.env,
+    wranglerConfigPath,
+  });
+  const authSecret = resolveAuthSecret();
 
   const report = authSpikeShared.createEmptyReport({
     callbackPath,
@@ -170,10 +183,18 @@ async function main() {
     runId,
   });
 
-  const preview = reuseServer ? null : createPreviewManager({});
+  const topology = reuseServer
+    ? null
+    : await startCloudflareLocalDevTopology({
+        databaseUrl,
+        routerTemplatePath: wranglerConfigPath,
+        routerBaseUrl: requestedBaseUrl,
+        authSecret,
+      });
+  const baseUrl = topology ? topology.getRouterBaseUrl() : requestedBaseUrl;
 
   try {
-    if (preview) {
+    if (topology) {
       await waitForPreviewReady({ baseUrl });
     }
 
@@ -199,6 +220,10 @@ async function main() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     report.failureSummary.push(`fatal:${message}`);
+    const recentLogs = renderCloudflareLocalTopologyLogs(topology);
+    if (recentLogs) {
+      process.stderr.write(`${recentLogs}\n`);
+    }
     throw error;
   } finally {
     const conclusion = authSpikeShared.deriveConclusion(report);
@@ -209,9 +234,7 @@ async function main() {
     );
     await writeReports(report);
 
-    if (preview) {
-      await preview.stop();
-    }
+    await topology?.stop();
   }
 
   process.stdout.write(

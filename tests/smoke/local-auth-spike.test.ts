@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, readFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
   buildNodeAuthSpikeEnv,
   detectReusableNodeServer,
+  prepareLocalAuthSpikeDevVars,
   readNextDevLockBaseUrl,
   readWranglerLocalConnectionString,
   waitForNodeReady,
@@ -132,4 +136,28 @@ test('detectReusableNodeServer 在目标地址未就绪时返回 false', async (
   });
 
   assert.equal(reusable, false);
+});
+
+test('prepareLocalAuthSpikeDevVars 默认写入 .tmp 临时文件且不污染仓库根 .dev.vars', async () => {
+  const tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'local-auth-spike-'));
+  const rootDevVarsPath = path.resolve(process.cwd(), '.dev.vars');
+  const rootBefore = await readFile(rootDevVarsPath, 'utf8');
+
+  const prepared = await prepareLocalAuthSpikeDevVars({
+    authSecret: 'local-auth-spike-secret',
+    tmpRoot,
+  });
+
+  assert.notEqual(prepared.devVarsPath, rootDevVarsPath);
+
+  const tempContent = await readFile(prepared.devVarsPath, 'utf8');
+  assert.equal(
+    tempContent,
+    'AUTH_SECRET=local-auth-spike-secret\nBETTER_AUTH_SECRET=local-auth-spike-secret\nDEPLOY_TARGET=cloudflare\n'
+  );
+  assert.equal(await readFile(rootDevVarsPath, 'utf8'), rootBefore);
+
+  await prepared.cleanup();
+  await assert.rejects(() => readFile(prepared.devVarsPath, 'utf8'));
+  assert.equal(await readFile(rootDevVarsPath, 'utf8'), rootBefore);
 });

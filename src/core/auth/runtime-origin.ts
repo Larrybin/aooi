@@ -1,3 +1,5 @@
+import { isCloudflareLocalWorkersDevRuntime } from '@/core/db/runtime-mode';
+
 function normalizeAuthOrigin(value: string, label: string): string {
   try {
     const url = new URL(value);
@@ -8,6 +10,23 @@ function normalizeAuthOrigin(value: string, label: string): string {
   } catch (error) {
     throw new Error(`Invalid ${label} origin: ${value} (${String(error)})`);
   }
+}
+
+function normalizeAllowedAuthOrigins(
+  canonicalAppUrl: string,
+  additionalAllowedOrigins: string[] | undefined,
+  label: string
+): string[] {
+  const origins = [normalizeAuthOrigin(canonicalAppUrl, label)];
+
+  for (const origin of additionalAllowedOrigins || []) {
+    const normalizedOrigin = normalizeAuthOrigin(origin, 'additional auth origin');
+    if (!origins.includes(normalizedOrigin)) {
+      origins.push(normalizedOrigin);
+    }
+  }
+
+  return origins;
 }
 
 function tryNormalizeAuthOrigin(value: string | null | undefined): string | null {
@@ -29,6 +48,37 @@ function addOriginCandidate(candidates: string[], value: string | null) {
   }
 }
 
+function shouldPrintAuthOriginDebug(): boolean {
+  return process.env.CF_LOCAL_AUTH_DEBUG === 'true';
+}
+
+function printAuthOriginDebug(
+  label: string,
+  params: {
+    allowedOrigins?: string[];
+    candidates?: string[];
+    origin?: string;
+    request?: Request;
+  }
+) {
+  if (!shouldPrintAuthOriginDebug()) {
+    return;
+  }
+
+  const request = params.request;
+  console.error('[auth-debug]', label, {
+    allowedOrigins: params.allowedOrigins || [],
+    origin: params.origin || null,
+    candidates: params.candidates || [],
+    requestUrl: request?.url || null,
+    requestOrigin: request?.headers.get('origin') || null,
+    requestHost: request?.headers.get('host') || null,
+    requestForwardedHost: request?.headers.get('x-forwarded-host') || null,
+    requestForwardedProto: request?.headers.get('x-forwarded-proto') || null,
+    requestReferer: request?.headers.get('referer') || null,
+  });
+}
+
 function isCanonicalHttpPreviewVariant(origin: string, canonicalOrigin: string) {
   try {
     const runtimeUrl = new URL(origin);
@@ -45,9 +95,11 @@ function isCanonicalHttpPreviewVariant(origin: string, canonicalOrigin: string) 
   }
 }
 
-function normalizeAllowedRuntimeOrigin(origin: string, canonicalOrigin: string) {
-  if (isCanonicalHttpPreviewVariant(origin, canonicalOrigin)) {
-    return canonicalOrigin;
+function normalizeAllowedRuntimeOrigin(origin: string, allowedOrigins: string[]) {
+  for (const allowedOrigin of allowedOrigins) {
+    if (isCanonicalHttpPreviewVariant(origin, allowedOrigin)) {
+      return allowedOrigin;
+    }
   }
 
   return origin;
@@ -94,13 +146,42 @@ export function isLocalAuthRuntimeOrigin(origin: string): boolean {
   }
 }
 
-function assertAllowedRuntimeOrigin(origin: string, canonicalOrigin: string) {
-  if (origin === canonicalOrigin || isLocalAuthRuntimeOrigin(origin)) {
-    return;
+export function isExplicitLocalAuthRuntimeEnabled(params: {
+  env?: NodeJS.ProcessEnv;
+  preferRequestOrigin?: boolean;
+} = {}): boolean {
+  const env = params.env || process.env;
+  return (
+    isCloudflareLocalWorkersDevRuntime(env) ||
+    env.AUTH_SPIKE_OAUTH_MOCK === 'true' ||
+    params.preferRequestOrigin === true
+  );
+}
+
+function resolveAllowedRuntimeOrigin(
+  origin: string,
+  allowedOrigins: string[],
+  allowLocalOrigin: boolean,
+  request?: Request,
+  candidates?: string[]
+) : string | null {
+  if (allowedOrigins.includes(origin)) {
+    return origin;
   }
 
+  if (isLocalAuthRuntimeOrigin(origin)) {
+    return allowLocalOrigin ? origin : null;
+  }
+
+  printAuthOriginDebug('reject-runtime-origin', {
+    allowedOrigins,
+    origin,
+    request,
+    candidates,
+  });
+
   throw new Error(
-    `Unexpected runtime auth origin: ${origin}. Expected ${canonicalOrigin} or localhost/127.0.0.1 preview origin.`
+    `Unexpected runtime auth origin: ${origin}. Expected one of ${allowedOrigins.join(', ')}${allowLocalOrigin ? ' or localhost/127.0.0.1 preview origin' : ''}.`
   );
 }
 
@@ -110,12 +191,17 @@ function readRequestOriginCandidates(request?: Request): string[] {
   }
 
   const candidates: string[] = [];
-  addOriginCandidate(
-    candidates,
-    tryNormalizeAuthOrigin(request.headers.get('origin'))
-  );
+  addOriginCandidate(candidates, tryNormalizeAuthOrigin(request.headers.get('origin')));
   addOriginCandidate(candidates, readRequestHostOrigin(request));
-  addOriginCandidate(candidates, tryNormalizeAuthOrigin(request.url));
+
+  if (candidates.length === 0) {
+    addOriginCandidate(candidates, tryNormalizeAuthOrigin(request.url));
+  }
+
+  printAuthOriginDebug('read-request-origin-candidates', {
+    candidates,
+    request,
+  });
 
   return candidates;
 }
@@ -126,27 +212,44 @@ export function readRequestOrigin(request?: Request): string | null {
 
 export function buildTrustedAuthOrigins(params: {
   appUrl: string;
+  additionalAllowedOrigins?: string[];
   request?: Request;
-  allowLocalMockOrigins?: boolean;
+  preferRequestOrigin?: boolean;
+  env?: NodeJS.ProcessEnv;
 }): string[] {
-  const canonicalOrigin = normalizeAuthOrigin(
+  const allowedOrigins = normalizeAllowedAuthOrigins(
     params.appUrl,
+    params.additionalAllowedOrigins,
     'NEXT_PUBLIC_APP_URL'
   );
-  const origins = new Set<string>([canonicalOrigin]);
+  const allowLocalOrigin = isExplicitLocalAuthRuntimeEnabled({
+    env: params.env,
+    preferRequestOrigin: params.preferRequestOrigin,
+  });
+  const origins = new Set<string>(allowedOrigins);
 
-  if (params.allowLocalMockOrigins) {
+  if (allowLocalOrigin) {
     origins.add('http://127.0.0.1:8787');
     origins.add('http://localhost:8787');
   }
 
-  for (const requestOrigin of readRequestOriginCandidates(params.request)) {
+  const requestOriginCandidates = readRequestOriginCandidates(params.request);
+
+  for (const requestOrigin of requestOriginCandidates) {
     const normalizedRequestOrigin = normalizeAllowedRuntimeOrigin(
       requestOrigin,
-      canonicalOrigin
+      allowedOrigins
     );
-    assertAllowedRuntimeOrigin(normalizedRequestOrigin, canonicalOrigin);
-    origins.add(normalizedRequestOrigin);
+    const resolvedRequestOrigin = resolveAllowedRuntimeOrigin(
+      normalizedRequestOrigin,
+      allowedOrigins,
+      allowLocalOrigin,
+      params.request,
+      requestOriginCandidates
+    );
+    if (resolvedRequestOrigin) {
+      origins.add(resolvedRequestOrigin);
+    }
   }
 
   origins.add('https://accounts.google.com');
@@ -155,25 +258,44 @@ export function buildTrustedAuthOrigins(params: {
 
 export function resolveRuntimeAuthBaseUrl(params: {
   defaultBaseUrl: string;
+  additionalAllowedOrigins?: string[];
   preferRequestOrigin?: boolean;
   request?: Request;
+  env?: NodeJS.ProcessEnv;
 }): string {
-  const canonicalOrigin = normalizeAuthOrigin(
+  const allowedOrigins = normalizeAllowedAuthOrigins(
     params.defaultBaseUrl,
+    params.additionalAllowedOrigins,
     'default auth base URL'
   );
+  const allowLocalOrigin = isExplicitLocalAuthRuntimeEnabled({
+    env: params.env,
+    preferRequestOrigin: params.preferRequestOrigin,
+  });
+  const canonicalOrigin = allowedOrigins[0];
 
-  for (const requestOrigin of readRequestOriginCandidates(params.request)) {
+  const requestOriginCandidates = readRequestOriginCandidates(params.request);
+
+  for (const requestOrigin of requestOriginCandidates) {
     const normalizedRequestOrigin = normalizeAllowedRuntimeOrigin(
       requestOrigin,
-      canonicalOrigin
+      allowedOrigins
     );
-    assertAllowedRuntimeOrigin(normalizedRequestOrigin, canonicalOrigin);
+    const resolvedRequestOrigin = resolveAllowedRuntimeOrigin(
+      normalizedRequestOrigin,
+      allowedOrigins,
+      allowLocalOrigin,
+      params.request,
+      requestOriginCandidates
+    );
+    if (!resolvedRequestOrigin) {
+      continue;
+    }
     if (
       params.preferRequestOrigin ||
-      isLocalAuthRuntimeOrigin(normalizedRequestOrigin)
+      isLocalAuthRuntimeOrigin(resolvedRequestOrigin)
     ) {
-      return normalizedRequestOrigin;
+      return resolvedRequestOrigin;
     }
   }
 
