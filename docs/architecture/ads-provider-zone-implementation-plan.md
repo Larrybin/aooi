@@ -172,7 +172,7 @@ function resolveAdsRuntime(configs: Configs): ResolvedAdsRuntime;
 - [`src/extensions/ads/adsense.tsx`](/Users/bin/Desktop/project/aooi/src/extensions/ads/adsense.tsx)
 - [`src/shared/services/ads.ts`](/Users/bin/Desktop/project/aooi/src/shared/services/ads.ts)
 - [`src/shared/services/settings/definitions/ads.ts`](/Users/bin/Desktop/project/aooi/src/shared/services/settings/definitions/ads.ts)
-- [`src/shared/services/settings/groups.ts`](/Users/bin/Desktop/project/aooi/src/shared/services/settings/groups.ts)
+- [`src/shared/services/settings/registry.ts`](/Users/bin/Desktop/project/aooi/src/shared/services/settings/registry.ts)
 - [`src/config/product-modules/index.ts`](/Users/bin/Desktop/project/aooi/src/config/product-modules/index.ts)
 - [`src/app/layout.tsx`](/Users/bin/Desktop/project/aooi/src/app/layout.tsx)
 - [`src/app/ads.txt/route.ts`](/Users/bin/Desktop/project/aooi/src/app/ads.txt/route.ts)
@@ -208,7 +208,7 @@ function resolveAdsRuntime(configs: Configs): ResolvedAdsRuntime;
 - `src/extensions/ads/adsense.tsx`
 - `src/shared/services/ads.ts`
 - `src/shared/services/settings/definitions/ads.ts`
-- `src/shared/services/settings/groups.ts`
+- `src/shared/services/settings/registry.ts`
 - `src/config/product-modules/index.ts`
 - `src/app/layout.tsx`
 - `src/app/ads.txt/route.ts`

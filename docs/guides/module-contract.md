@@ -66,6 +66,7 @@ Important boundary:
 - Admin Settings is a configuration surface.
 - It is not the truth source for module definitions.
 - The product module contract lives in `src/config/product-modules/**` and is documented here.
+- `settingKeys` inside that contract are derived from the admin settings registry, not hand-maintained per module.
 
 ## Deploy Contract
 

@@ -68,14 +68,16 @@ Admin pages are guarded in two layers:
 
 - Settings values are stored in the `config` table and loaded via `getConfigsSafe()` / saved via `saveConfigs()`.
 - After saving, the page triggers `revalidateTag(CONFIGS_CACHE_TAG, 'max')` and `revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max')`.
-- Some fields are validated/normalized on submit (e.g. JSON for social links / payment methods / product mapping).
-- The admin settings schema and UI definitions live in `src/shared/services/settings/definitions/*.ts` and are grouped/tabs in `src/shared/services/settings/groups.ts` / `src/shared/services/settings/tabs.ts`.
+- Some fields are validated/normalized on submit (e.g. JSON for social links / payment methods / product mapping), and those rules now live directly on each setting definition.
+- The single source of truth for setting-level contract is `src/shared/services/settings/definitions/*.ts`, aggregated by `src/shared/services/settings/registry.ts`.
+- Public/private exposure, group metadata, module ownership, and submit-time normalize/validate behavior are all derived from that registry. `tabs.ts` remains a separate route contract on purpose.
 
 ### Product Module Contract
 
 - Admin Settings is the operator-facing configuration surface for modules.
 - It is **not** the source of truth for module definitions, tiers, or verification levels.
 - The single source of truth is `src/config/product-modules/**`, and the human-readable matrix lives in `docs/guides/module-contract.md`.
+- Inside that module contract, `settingKeys` are no longer hand-maintained. They are derived from the settings registry by `moduleId`.
 - `general` is reserved for the Core Shell surface. AI / Docs / Blog module toggles no longer live there.
 - Header rows on `/admin/settings/<tab>` are a read-only projection of that module contract. A tab may project multiple owned/supporting modules.
 
@@ -85,7 +87,7 @@ Admin pages are guarded in two layers:
 - `src/app/[locale]/(landing)/settings/layout.tsx` - User settings shell (sidebar + layout)
 - `src/app/[locale]/(landing)/settings/page.tsx` - `/settings` canonical redirect
 - `src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx` - Admin settings page + Server Action submit
-- `src/shared/services/settings/index.ts` - Settings schema aggregation
+- `src/shared/services/settings/registry.ts` - Settings registry aggregation + derived public/group indexes
 - `src/shared/models/config.ts` - Config persistence and caching tags
 
 ## How to Verify

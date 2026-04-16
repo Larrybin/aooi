@@ -133,7 +133,7 @@
   - 在页面头部展示当前 tab 对应模块的 tier / verification / checklist 链接。
 - `src/shared/services/settings/definitions/general.ts`
   - 收敛与模块开关有关的文案，例如 AI/Blog/Docs 的说明。
-- `src/shared/constants/public-setting-names.ts`
+- `src/shared/services/settings/registry.ts`
   - 只在需要公开暴露的模块开关继续保留，不额外引入映射层。
 
 ## 6. 实现顺序
