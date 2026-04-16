@@ -419,7 +419,4 @@ export class PaymentManager {
   }
 }
 
-// Global payment manager instance
-export const paymentManager = new PaymentManager();
-
 // Providers are exported via `./providers` (server-only)

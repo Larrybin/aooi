@@ -166,6 +166,3 @@ export class AIManager {
     return this.registry.getDefault();
   }
 }
-
-// ai manager
-export const aiManager = new AIManager();

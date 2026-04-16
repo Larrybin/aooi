@@ -8,7 +8,10 @@ import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/vali
 
 import { buildServiceFromLatestConfigs } from '../config_refresh_policy';
 
-async function addStripeProvider(paymentManager: PaymentManager, configs: Configs) {
+async function addStripeProvider(
+  paymentManager: PaymentManager,
+  configs: Configs
+) {
   const { StripeProvider } = await import('@/extensions/payment/stripe');
   const defaultProvider = configs.default_payment_provider;
   const isProduction = process.env.NODE_ENV === 'production';
@@ -64,7 +67,10 @@ async function addStripeProvider(paymentManager: PaymentManager, configs: Config
   );
 }
 
-async function addCreemProvider(paymentManager: PaymentManager, configs: Configs) {
+async function addCreemProvider(
+  paymentManager: PaymentManager,
+  configs: Configs
+) {
   const { CreemProvider } = await import('@/extensions/payment/creem');
 
   paymentManager.addProvider(
@@ -115,11 +121,6 @@ export async function getPaymentServiceWithConfigs(configs: Configs) {
 }
 
 /**
- * Global payment service
- */
-let paymentService: PaymentManager | null = null;
-
-/**
  * Get payment service instance
  *
  * Note:
@@ -127,8 +128,5 @@ let paymentService: PaymentManager | null = null;
  * - This avoids stale configs after admin updates (strong consistency).
  */
 export async function getPaymentService(): Promise<PaymentManager> {
-  paymentService = await buildServiceFromLatestConfigs(
-    getPaymentServiceWithConfigs
-  );
-  return paymentService;
+  return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs);
 }
