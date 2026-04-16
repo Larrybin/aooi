@@ -1,7 +1,7 @@
 # Cloudflare OAuth Auth Spike Plan
 
 Current repo command: `pnpm test:cf-oauth-spike`.
-The landed harness injects deterministic Google + GitHub OAuth config in-process under `AUTH_SPIKE_OAUTH_MOCK=true`, drives the real `/sign-in` social buttons, mocks only provider authorize/token/userinfo responses, and still exercises Better Auth callback, state validation, denial handling, session establishment, and sign-out on Cloudflare preview without mutating the local `config` table.
+The landed harness injects deterministic Google + GitHub OAuth config in-process under `AUTH_SPIKE_OAUTH_CONFIG_SEED=true`, drives the real `/sign-in` social buttons, mocks only provider authorize/token/userinfo responses under `AUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true`, and still exercises Better Auth callback, state validation, denial handling, session establishment, and sign-out on Cloudflare preview without mutating the local `config` table.
 
 This plan is the next auth spike after Phase 1 email/password reached a trustworthy `PASS`.
 It is intentionally separate from the email/password harness so callback, state, and provider-failure behavior can be evaluated without muddying the current signal.
@@ -53,7 +53,7 @@ The spike is a `PASS` only when every in-scope provider:
 4. establishes a valid session,
 5. lands on the expected callback path,
 6. signs out cleanly,
-7. handles provider denial with an explicit, non-looping failure path,
+7. handles provider denial by landing on the final `/sign-in?...error=...` failure page, not by stopping on `/api/auth/callback/:provider`,
 8. rejects tampered or missing state without creating a session.
 
 ## Failure classification
@@ -85,7 +85,8 @@ Shared:
 - `NEXT_PUBLIC_APP_URL`
 - `BETTER_AUTH_SECRET` or `AUTH_SECRET`
 - migrated database for Better Auth runtime tables
-- `AUTH_SPIKE_OAUTH_MOCK=true` so the harness injects deterministic Google/GitHub OAuth config without local DB writes
+- `AUTH_SPIKE_OAUTH_CONFIG_SEED=true` so the harness injects deterministic Google/GitHub OAuth config without local DB writes
+- `AUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true` so the harness mocks only provider authorize/token/userinfo exchanges
 
 Test-only callback target:
 
@@ -129,7 +130,7 @@ Repeat the same four cases for GitHub:
 
 ## Execution order
 
-1. Start Cloudflare preview with `AUTH_SPIKE_OAUTH_MOCK=true`.
+1. Start Cloudflare preview with `AUTH_SPIKE_OAUTH_CONFIG_SEED=true` and `AUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true`.
 2. Let the app surface deterministic in-memory Google/GitHub OAuth config.
 3. Run Google cases.
 4. Run GitHub cases.

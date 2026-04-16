@@ -61,6 +61,7 @@ Notes:
 - Cloudflare preview is removed from the supported contract. The repo now targets a router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers with version affinity.
 - `pnpm cf:check` validates the router + server Wrangler configs against `src/shared/config/cloudflare-worker-splits.ts`.
 - `pnpm cf:build` runs the OpenNext multi-bundle build and hard-fails if any required Worker bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
+- `pnpm test:cf-admin-settings-smoke` is the Phase 2 admin/settings write-path gate. It always runs `pnpm cf:build` first so the smoke never validates stale `.open-next` artifacts.
 - `pnpm test:cf-local-smoke` is the canonical local Cloudflare runtime gate. It generates the full temporary topology, starts all server Workers with `wrangler dev`, then starts the router with `opennextjs-cloudflare preview`, and finally runs the read-only smoke against the router origin.
 - `pnpm cf:deploy` is the only supported Cloudflare deploy entry. It bootstraps brand-new Workers with `wrangler deploy`, and uses version-affinity rollout for steady-state deploys.
 - Multi-worker Cloudflare auth requires the same `BETTER_AUTH_SECRET` on the router Worker and every `cloudflare/wrangler.server-*.toml` Worker; missing the secret on any server Worker will surface as production 500s during instrumentation startup.
@@ -397,7 +398,7 @@ pnpm test:cf-oauth-spike
 说明：
 
 - 该命令只跑 Cloudflare 本地多 Worker 运行时上的 OAuth follow-up，不覆盖 email/password。
-- 该命令通过 `AUTH_SPIKE_OAUTH_MOCK=true` 注入内存内的 Google / GitHub OAuth 测试配置，不写入也不恢复本地 `config` 表，因此开箱可跑且不会持久污染本地 auth 设置。
+- 该命令通过 `AUTH_SPIKE_OAUTH_CONFIG_SEED=true` 注入内存内的 Google / GitHub OAuth 测试配置，并通过 `AUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true` 只 mock 上游 OAuth 交换，不写入也不恢复本地 `config` 表，因此开箱可跑且不会持久污染本地 auth 设置。
 - 该命令只 mock provider 的 authorize/token/userinfo，不依赖真实 Google/GitHub 凭证和外部账号交互。
 - 浏览器侧会从 `/sign-in` 页面真实点击 social button，Worker 侧仍真实经过 Better Auth 的 social sign-in、`/api/auth/callback/:provider`、state 校验、session 建立与 sign-out。
 - 该命令是单实例执行；若已有另一个 `pnpm test:cf-oauth-spike` 在跑，会直接失败退出。

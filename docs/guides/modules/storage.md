@@ -13,7 +13,7 @@ Storage adds managed asset upload and retrieval paths:
 - `r2_access_key`
 - `r2_secret_key`
 - `r2_bucket_name`
-- `r2_endpoint`
+- `r2_endpoint` or `r2_account_id`
 - `r2_domain`
 
 ## External Services
