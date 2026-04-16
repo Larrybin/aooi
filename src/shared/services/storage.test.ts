@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   canBuildR2StorageProvider,
+  canBuildS3StorageProvider,
   getConfiguredStorageProviderContracts,
 } from './storage-provider-contract';
 import {
@@ -77,12 +78,55 @@ test('canBuildR2StorageProvider 只有在关键 R2 配置完整时才返回 true
   );
 });
 
+test('canBuildS3StorageProvider 只有在关键 S3 配置完整时才返回 true', () => {
+  assert.equal(
+    canBuildS3StorageProvider({
+      s3_access_key: 'ak',
+      s3_secret_key: 'sk',
+      s3_bucket: 'bucket',
+      s3_endpoint: 'https://s3.us-east-1.amazonaws.com',
+    }),
+    false
+  );
+  assert.equal(
+    canBuildS3StorageProvider({
+      s3_access_key: 'ak',
+      s3_secret_key: 'sk',
+      s3_bucket: 'bucket',
+      s3_region: 'us-east-1',
+    }),
+    false
+  );
+  assert.equal(
+    canBuildS3StorageProvider({
+      s3_access_key: 'ak',
+      s3_secret_key: 'sk',
+      s3_bucket: 'bucket',
+      s3_endpoint: 'https://s3.us-east-1.amazonaws.com',
+      s3_region: 'us-east-1',
+    }),
+    true
+  );
+});
+
 test('getConfiguredStorageProviderContracts 在 R2 配置不完整时不返回 provider', () => {
   assert.deepEqual(
     getConfiguredStorageProviderContracts({
       r2_access_key: 'ak',
       r2_secret_key: 'sk',
       r2_bucket_name: 'bucket',
+    }),
+    []
+  );
+});
+
+test('getConfiguredStorageProviderContracts 在 S3 配置不完整时不返回 provider', () => {
+  assert.deepEqual(
+    getConfiguredStorageProviderContracts({
+      s3_access_key: 'ak',
+      s3_secret_key: 'sk',
+      s3_bucket: 'bucket',
+      s3_endpoint: 'https://s3.us-east-1.amazonaws.com',
     }),
     []
   );
@@ -108,6 +152,33 @@ test('getConfiguredStorageProviderContracts 在 R2 配置完整时返回默认 p
           bucket: 'bucket',
           region: 'auto',
           endpoint: 'https://account-id.r2.cloudflarestorage.com',
+          publicDomain: 'https://cdn.example.com',
+        },
+      },
+    ]
+  );
+});
+
+test('getConfiguredStorageProviderContracts 在 S3 配置完整时返回 S3 provider 契约', () => {
+  assert.deepEqual(
+    getConfiguredStorageProviderContracts({
+      s3_access_key: 'ak',
+      s3_secret_key: 'sk',
+      s3_bucket: 'bucket',
+      s3_endpoint: 'https://s3.us-east-1.amazonaws.com',
+      s3_region: 'us-east-1',
+      s3_domain: 'https://cdn.example.com',
+    }),
+    [
+      {
+        kind: 's3',
+        isDefault: false,
+        configs: {
+          endpoint: 'https://s3.us-east-1.amazonaws.com',
+          region: 'us-east-1',
+          accessKeyId: 'ak',
+          secretAccessKey: 'sk',
+          bucket: 'bucket',
           publicDomain: 'https://cdn.example.com',
         },
       },

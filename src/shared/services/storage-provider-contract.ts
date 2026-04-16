@@ -9,6 +9,16 @@ export function canBuildR2StorageProvider(configs: Configs) {
   );
 }
 
+export function canBuildS3StorageProvider(configs: Configs) {
+  return Boolean(
+    configs.s3_access_key &&
+      configs.s3_secret_key &&
+      configs.s3_bucket &&
+      configs.s3_endpoint &&
+      configs.s3_region
+  );
+}
+
 export type StorageProviderContract =
   | {
       kind: 'r2';
@@ -27,8 +37,8 @@ export type StorageProviderContract =
       kind: 's3';
       isDefault: false;
       configs: {
-        endpoint?: string;
-        region?: string;
+        endpoint: string;
+        region: string;
         accessKeyId: string;
         secretAccessKey: string;
         bucket: string;
@@ -57,13 +67,13 @@ export function getConfiguredStorageProviderContracts(
     });
   }
 
-  if (configs.s3_access_key && configs.s3_secret_key && configs.s3_bucket) {
+  if (canBuildS3StorageProvider(configs)) {
     providers.push({
       kind: 's3',
       isDefault: false,
       configs: {
-        endpoint: configs.s3_endpoint || undefined,
-        region: configs.s3_region || undefined,
+        endpoint: configs.s3_endpoint,
+        region: configs.s3_region,
         accessKeyId: configs.s3_access_key,
         secretAccessKey: configs.s3_secret_key,
         bucket: configs.s3_bucket,
