@@ -15,6 +15,7 @@ import {
 } from '@/shared/models/order';
 import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Crumb, Filter, Search, Tab } from '@/shared/types/blocks/common';
+import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
 export default async function PaymentsPage({
@@ -134,6 +135,14 @@ export default async function PaymentsPage({
     value: orderNo,
   };
 
+  const actions: Button[] = [
+    {
+      title: 'Webhook Replay',
+      url: '/admin/payments/replay',
+      variant: 'outline',
+    },
+  ];
+
   const total = await getOrdersCount({
     orderNo: orderNo ? (orderNo as string) : undefined,
     paymentType: type as PaymentType,
@@ -206,6 +215,7 @@ export default async function PaymentsPage({
           tabs={tabs}
           filters={filters}
           search={search}
+          actions={actions}
         />
         <TableCard table={table} />
       </Main>

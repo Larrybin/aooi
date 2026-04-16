@@ -112,6 +112,13 @@ const defaultPermissions = [
     title: 'Read Payments',
     description: 'View payment list and details',
   },
+  {
+    code: 'admin.payments.write',
+    resource: 'payments',
+    action: 'write',
+    title: 'Write Payments',
+    description: 'Replay and repair payment webhook processing',
+  },
 
   // Subscriptions management
   {

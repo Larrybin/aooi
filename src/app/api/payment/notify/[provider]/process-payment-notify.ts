@@ -90,6 +90,18 @@ export type PaymentNotifyDeps = {
   handleSubscriptionUpdated: HandleSubscriptionUpdated;
 };
 
+export type PaymentNotifyProcessOutcome =
+  | 'processed'
+  | 'ignored_unknown'
+  | 'already_processed'
+  | 'ignored';
+
+export type PaymentNotifyProcessResult = {
+  response: Response;
+  outcome: PaymentNotifyProcessOutcome;
+  eventType: PaymentEventType;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object';
 }
@@ -226,7 +238,7 @@ export async function processPaymentNotifyEvent({
   event: PaymentEvent;
   log: PaymentNotifyLog;
   deps: PaymentNotifyDeps;
-}) {
+}): Promise<PaymentNotifyProcessResult> {
   if (!event.eventType) throw new BadRequestError('event type not found');
   if (!event.paymentSession) {
     throw new BadRequestError('payment session not found');
@@ -274,7 +286,11 @@ export async function processPaymentNotifyEvent({
         metadata: session.metadata,
         eventResult: event.eventResult,
       });
-      return jsonOk({ message: 'ignored' });
+      return {
+        response: jsonOk({ message: 'ignored' }),
+        outcome: 'ignored_unknown',
+        eventType,
+      };
     }
 
     case PaymentEventType.CHECKOUT_SUCCESS: {
@@ -290,7 +306,11 @@ export async function processPaymentNotifyEvent({
         order.status === 'failed' ||
         order.status === 'completed'
       ) {
-        return jsonOk({ message: 'already processed' });
+        return {
+          response: jsonOk({ message: 'already processed' }),
+          outcome: 'already_processed',
+          eventType,
+        };
       }
 
       await deps.handleCheckoutSuccess({ order, session, log });
@@ -331,7 +351,11 @@ export async function processPaymentNotifyEvent({
             eventType,
             transactionId: rawTransactionId,
           });
-          return jsonOk({ message: 'already processed' });
+          return {
+            response: jsonOk({ message: 'already processed' }),
+            outcome: 'already_processed',
+            eventType,
+          };
         }
       }
 
@@ -346,7 +370,11 @@ export async function processPaymentNotifyEvent({
             eventType,
             invoiceId: rawInvoiceId,
           });
-          return jsonOk({ message: 'already processed' });
+          return {
+            response: jsonOk({ message: 'already processed' }),
+            outcome: 'already_processed',
+            eventType,
+          };
         }
       }
 
@@ -365,7 +393,11 @@ export async function processPaymentNotifyEvent({
           eventType,
           subscriptionId: session.subscriptionId,
         });
-        return jsonOk({ message: 'ignored' });
+        return {
+          response: jsonOk({ message: 'ignored' }),
+          outcome: 'ignored',
+          eventType,
+        };
       }
 
       if (!rawTransactionId && !rawInvoiceId) {
@@ -379,7 +411,11 @@ export async function processPaymentNotifyEvent({
             eventType,
             transactionId: dedupeTransactionId,
           });
-          return jsonOk({ message: 'already processed' });
+          return {
+            response: jsonOk({ message: 'already processed' }),
+            outcome: 'already_processed',
+            eventType,
+          };
         }
 
         log.warn('payment: renewal idempotency keys missing, using fallback', {
@@ -402,7 +438,11 @@ export async function processPaymentNotifyEvent({
           eventType,
           subscriptionId: session.subscriptionId,
         });
-        return jsonOk({ message: 'ignored' });
+        return {
+          response: jsonOk({ message: 'ignored' }),
+          outcome: 'ignored',
+          eventType,
+        };
       }
 
       const sessionForRenewal: PaymentSession = {
@@ -437,7 +477,11 @@ export async function processPaymentNotifyEvent({
           subscriptionId: session.subscriptionId,
           subscriptionNo: existingSubscription.subscriptionNo,
         });
-        return jsonOk({ message: 'already processed' });
+        return {
+          response: jsonOk({ message: 'already processed' }),
+          outcome: 'already_processed',
+          eventType,
+        };
       }
 
       await deps.handleSubscriptionUpdated({
@@ -463,7 +507,11 @@ export async function processPaymentNotifyEvent({
           subscriptionId: session.subscriptionId,
           subscriptionNo: existingSubscription.subscriptionNo,
         });
-        return jsonOk({ message: 'already processed' });
+        return {
+          response: jsonOk({ message: 'already processed' }),
+          outcome: 'already_processed',
+          eventType,
+        };
       }
 
       await deps.handleSubscriptionCanceled({
@@ -483,5 +531,9 @@ export async function processPaymentNotifyEvent({
       break;
   }
 
-  return jsonOk({ message: 'success' });
+  return {
+    response: jsonOk({ message: 'success' }),
+    outcome: 'processed',
+    eventType,
+  };
 }

@@ -259,6 +259,73 @@ export const paymentWebhookAudit = pgTable(
   ]
 );
 
+export const paymentWebhookInbox = pgTable(
+  'payment_webhook_inbox',
+  {
+    id: text('id').primaryKey(),
+    provider: text('provider').notNull(),
+    eventId: text('event_id'),
+    eventType: text('event_type'),
+    rawBody: text('raw_body').notNull(),
+    rawHeaders: text('raw_headers').notNull(),
+    rawDigest: text('raw_digest').notNull(),
+    canonicalEvent: text('canonical_event'),
+    status: text('status').notNull(),
+    source: text('source').notNull(),
+    operatorUserId: text('operator_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    operatorNote: text('operator_note'),
+    receivedAt: timestamp('received_at').notNull(),
+    lastProcessedAt: timestamp('last_processed_at'),
+    lastError: text('last_error'),
+    processingAttemptCount: integer('processing_attempt_count')
+      .default(0)
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('uq_payment_webhook_inbox_provider_digest').on(
+      table.provider,
+      table.rawDigest
+    ),
+    index('idx_payment_webhook_inbox_received_at').on(table.receivedAt),
+    index('idx_payment_webhook_inbox_event_id').on(table.eventId),
+    index('idx_payment_webhook_inbox_status').on(table.status),
+  ]
+);
+
+export const apiRateLimitState = pgTable(
+  'api_rate_limit_state',
+  {
+    id: text('id').primaryKey(),
+    bucket: text('bucket').notNull(),
+    scopeKey: text('scope_key').notNull(),
+    lastActionAt: timestamp('last_action_at'),
+    windowStartedAt: timestamp('window_started_at'),
+    count: integer('count').default(0).notNull(),
+    inflight: integer('inflight').default(0).notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('uq_api_rate_limit_state_bucket_scope').on(
+      table.bucket,
+      table.scopeKey
+    ),
+    index('idx_api_rate_limit_state_expires_at').on(table.expiresAt),
+    index('idx_api_rate_limit_state_bucket').on(table.bucket),
+  ]
+);
+
 export const subscription = pgTable(
   'subscription',
   {

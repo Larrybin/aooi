@@ -1,16 +1,15 @@
-import {
-  WebhookConfigError,
-  WebhookPayloadError,
-  WebhookVerificationError,
-  type PaymentEvent,
-} from '@/extensions/payment';
 import { createApiContext } from '@/shared/lib/api/context';
-import {
-  BadRequestError,
-  NotFoundError,
-  UnauthorizedError,
-} from '@/shared/lib/api/errors';
+import { NotFoundError } from '@/shared/lib/api/errors';
 import { withApi } from '@/shared/lib/api/route';
+import { logger } from '@/shared/lib/logger.server';
+import {
+  createPaymentWebhookInboxReceipt,
+  markPaymentWebhookInboxAttempt,
+  markPaymentWebhookInboxProcessFailed,
+  markPaymentWebhookInboxProcessed,
+  recordPaymentWebhookInboxCanonicalEvent,
+  serializePaymentWebhookHeaders,
+} from '@/shared/models/payment_webhook_inbox';
 import {
   findOrderByInvoiceId,
   findOrderByOrderNo,
@@ -29,48 +28,23 @@ import {
   handleSubscriptionUpdated,
 } from '@/shared/services/payment';
 import {
-  processPaymentNotifyEvent,
-  type PaymentNotifyDeps,
-} from './process-payment-notify';
+  handlePaymentNotifyRequest,
+  type PaymentNotifyFlowDeps,
+} from './payment-notify-flow';
+import type { PaymentNotifyDeps } from './process-payment-notify';
 
-async function getPaymentEventOrThrow({
-  provider,
-  paymentProvider,
-  req,
-  log,
-}: {
-  provider: string;
-  paymentProvider: {
-    getPaymentEvent(args: { req: Request }): Promise<PaymentEvent>;
-  };
-  req: Request;
-  log: ReturnType<typeof createApiContext>['log'];
-}): Promise<PaymentEvent> {
-  try {
-    return await paymentProvider.getPaymentEvent({ req });
-  } catch (err: unknown) {
-    if (err instanceof WebhookVerificationError) {
-      log.warn('payment: webhook verification failed', {
-        provider,
-        eventType: 'unknown',
-      });
-      throw new UnauthorizedError(err.message);
-    }
-    if (err instanceof WebhookPayloadError) {
-      log.warn('payment: webhook payload invalid', {
-        provider,
-        eventType: 'unknown',
-      });
-      throw new BadRequestError(err.message);
-    }
-    if (err instanceof WebhookConfigError) {
-      throw err;
-    }
-    throw err;
-  }
-}
+type PaymentNotifyRouteDeps = PaymentNotifyDeps & {
+  getPaymentService: typeof getPaymentService;
+  createPaymentWebhookInboxReceipt: typeof createPaymentWebhookInboxReceipt;
+  recordPaymentWebhookInboxCanonicalEvent: typeof recordPaymentWebhookInboxCanonicalEvent;
+  markPaymentWebhookInboxAttempt: typeof markPaymentWebhookInboxAttempt;
+  markPaymentWebhookInboxProcessFailed: typeof markPaymentWebhookInboxProcessFailed;
+  markPaymentWebhookInboxProcessed: typeof markPaymentWebhookInboxProcessed;
+  serializePaymentWebhookHeaders: typeof serializePaymentWebhookHeaders;
+  now: () => Date;
+};
 
-const paymentNotifyDeps: PaymentNotifyDeps = {
+const paymentNotifyDeps: PaymentNotifyRouteDeps = {
   findOrderByInvoiceId,
   findOrderByOrderNo,
   findOrderByTransactionId,
@@ -80,38 +54,60 @@ const paymentNotifyDeps: PaymentNotifyDeps = {
   handleSubscriptionCanceled,
   handleSubscriptionRenewal,
   handleSubscriptionUpdated,
+  getPaymentService,
+  createPaymentWebhookInboxReceipt,
+  recordPaymentWebhookInboxCanonicalEvent,
+  markPaymentWebhookInboxAttempt,
+  markPaymentWebhookInboxProcessFailed,
+  markPaymentWebhookInboxProcessed,
+  serializePaymentWebhookHeaders,
+  now: () => new Date(),
 };
 
-export const POST = withApi(
-  async (
+function buildPaymentNotifyPostLogic(
+  overrides: Partial<PaymentNotifyRouteDeps> = {}
+) {
+  const deps = { ...paymentNotifyDeps, ...overrides };
+
+  return async (
     req: Request,
     { params }: { params: Promise<{ provider: string }> }
   ) => {
     const api = createApiContext(req);
     const { log } = api;
-    const { provider } = await api.parseParams(
-      params,
-      PaymentNotifyParamsSchema
-    );
+    const { provider } = await api.parseParams(params, PaymentNotifyParamsSchema);
 
-    const paymentService = await getPaymentService();
+    const paymentService = await deps.getPaymentService();
     const paymentProvider = paymentService.getProvider(provider);
     if (!paymentProvider) {
       throw new NotFoundError('payment provider not found');
     }
 
-    const event = await getPaymentEventOrThrow({
+    const flowDeps: PaymentNotifyFlowDeps = {
+      ...deps,
+      getPaymentEvent: (inputReq) => paymentProvider.getPaymentEvent({ req: inputReq }),
+      onProcessFailure: ({ provider: failedProvider, inboxId, error }) => {
+        logger.error('payment: webhook inbox process failed', {
+          provider: failedProvider,
+          inboxId,
+          error,
+        });
+      },
+    };
+
+    return handlePaymentNotifyRequest({
       provider,
-      paymentProvider,
       req,
       log,
+      deps: flowDeps,
     });
-    if (!event) throw new BadRequestError('payment event not found');
-    return processPaymentNotifyEvent({
-      provider,
-      event,
-      log,
-      deps: paymentNotifyDeps,
-    });
-  }
-);
+  };
+}
+
+export function createPaymentNotifyPostHandler(
+  overrides: Partial<PaymentNotifyRouteDeps> = {}
+) {
+  return withApi(buildPaymentNotifyPostLogic(overrides));
+}
+
+export const POST = withApi(buildPaymentNotifyPostLogic());

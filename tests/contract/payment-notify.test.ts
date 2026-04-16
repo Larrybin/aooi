@@ -34,7 +34,7 @@ function createDeps(overrides: Record<string, unknown> = {}) {
 
 test('processPaymentNotifyEvent 在首次 checkout webhook 时处理成功', async () => {
   let handled = false;
-  const response = await processPaymentNotifyEvent({
+  const result = await processPaymentNotifyEvent({
     provider: 'creem',
     log: createLog() as never,
     event: {
@@ -57,8 +57,8 @@ test('processPaymentNotifyEvent 在首次 checkout webhook 时处理成功', asy
   });
 
   assert.equal(handled, true);
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(await result.response.json(), {
     code: 0,
     message: 'ok',
     data: { message: 'success' },
@@ -67,7 +67,7 @@ test('processPaymentNotifyEvent 在首次 checkout webhook 时处理成功', asy
 
 test('processPaymentNotifyEvent 对重复 renewal webhook 命中幂等', async () => {
   let renewalHandled = false;
-  const response = await processPaymentNotifyEvent({
+  const result = await processPaymentNotifyEvent({
     provider: 'creem',
     log: createLog() as never,
     event: {
@@ -99,8 +99,8 @@ test('processPaymentNotifyEvent 对重复 renewal webhook 命中幂等', async (
   });
 
   assert.equal(renewalHandled, false);
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(await result.response.json(), {
     code: 0,
     message: 'ok',
     data: { message: 'already processed' },
@@ -109,7 +109,7 @@ test('processPaymentNotifyEvent 对重复 renewal webhook 命中幂等', async (
 
 test('processPaymentNotifyEvent 在订阅取消后不重复处理 update 事件', async () => {
   let updateHandled = false;
-  const response = await processPaymentNotifyEvent({
+  const result = await processPaymentNotifyEvent({
     provider: 'creem',
     log: createLog() as never,
     event: {
@@ -137,7 +137,7 @@ test('processPaymentNotifyEvent 在订阅取消后不重复处理 update 事件'
   });
 
   assert.equal(updateHandled, false);
-  assert.deepEqual(await response.json(), {
+  assert.deepEqual(await result.response.json(), {
     code: 0,
     message: 'ok',
     data: { message: 'already processed' },
@@ -147,7 +147,7 @@ test('processPaymentNotifyEvent 在订阅取消后不重复处理 update 事件'
 test('processPaymentNotifyEvent 对 unknown 事件执行审计并忽略', async () => {
   const warns: Array<Record<string, unknown>> = [];
   const audits: Array<Record<string, unknown>> = [];
-  const response = await processPaymentNotifyEvent({
+  const result = await processPaymentNotifyEvent({
     provider: 'paypal',
     log: {
       ...createLog(),
@@ -183,7 +183,7 @@ test('processPaymentNotifyEvent 对 unknown 事件执行审计并忽略', async 
     }) as never,
   });
 
-  assert.equal(response.status, 200);
+  assert.equal(result.response.status, 200);
   assert.equal(warns.length, 1);
   assert.equal(audits.length, 1);
   assert.equal(audits[0]?.provider, 'paypal');
@@ -192,7 +192,7 @@ test('processPaymentNotifyEvent 对 unknown 事件执行审计并忽略', async 
   assert.match(String(audits[0]?.rawDigest || ''), /^[0-9a-f]{64}$/);
   assert.equal(warns[0]?.provider, 'paypal');
   assert.equal(warns[0]?.eventType, PaymentEventType.UNKNOWN);
-  assert.deepEqual(await response.json(), {
+  assert.deepEqual(await result.response.json(), {
     code: 0,
     message: 'ok',
     data: { message: 'ignored' },
