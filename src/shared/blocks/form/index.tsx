@@ -144,7 +144,7 @@ export function Form<
                 control={form.control}
                 name={item.name}
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem data-testid={`form-field-${item.name}`}>
                     <FormLabel>
                       {item.title}
                       {item.validation?.required && (
@@ -182,6 +182,7 @@ export function Form<
             className="flex cursor-pointer items-center justify-center gap-2 font-semibold"
             disabled={loading}
             size={submit.button.size || 'sm'}
+            data-testid="form-submit-button"
           >
             {loading ? (
               <Loader className="mr-2 h-4 w-4 animate-spin" />

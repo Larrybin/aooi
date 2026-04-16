@@ -10,7 +10,7 @@ import * as schema from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';
-import { isAuthSpikeOAuthMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
 import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
@@ -68,18 +68,18 @@ const additionalAllowedAuthOrigins = compiledAppOrigin
   : [];
 
 export function getAuthOriginDebug(request?: Request) {
-  const isAuthSpikeOAuthMock = isAuthSpikeOAuthMockEnabled();
+  const isAuthSpikeOAuthUpstreamMock = isAuthSpikeOAuthUpstreamMockEnabled();
   const runtimeBaseUrl = resolveRuntimeAuthBaseUrl({
     defaultBaseUrl: normalizedAuthBaseUrl,
     additionalAllowedOrigins: additionalAllowedAuthOrigins,
-    preferRequestOrigin: isAuthSpikeOAuthMock,
+    preferRequestOrigin: isAuthSpikeOAuthUpstreamMock,
     request,
   });
   const runtimeTrustedOrigins = buildTrustedAuthOrigins({
     appUrl: normalizedAuthBaseUrl,
     additionalAllowedOrigins: additionalAllowedAuthOrigins,
     request,
-    preferRequestOrigin: isAuthSpikeOAuthMock,
+    preferRequestOrigin: isAuthSpikeOAuthUpstreamMock,
   });
 
   return {
@@ -106,7 +106,7 @@ export const authOptions = {
     preferRequestOrigin: isExplicitLocalAuthRuntimeEnabled(),
   }),
   advanced: {
-    disableOriginCheck: isAuthSpikeOAuthMockEnabled(),
+    disableOriginCheck: isAuthSpikeOAuthUpstreamMockEnabled(),
     database: {
       generateId: () => getUuid(),
     },
@@ -117,7 +117,7 @@ export const authOptions = {
   logger: {
     verboseLogging: !isProduction,
     // Disable logs in production to reduce noise; keep debug in non-production
-    disabled: isProduction && !isAuthSpikeOAuthMockEnabled(),
+    disabled: isProduction && !isAuthSpikeOAuthUpstreamMockEnabled(),
   },
 };
 
@@ -139,6 +139,7 @@ export async function getAuthOptions(request?: Request) {
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled);
   const appName = (configs.app_name || envConfigs.app_name || '').trim();
+  const isAuthSpikeOAuthUpstreamMock = isAuthSpikeOAuthUpstreamMockEnabled();
   const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthOriginDebug(request);
   const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
   if (process.env.CF_LOCAL_AUTH_DEBUG === 'true') {
@@ -153,7 +154,7 @@ export async function getAuthOptions(request?: Request) {
       requestForwardedProto: request?.headers.get('x-forwarded-proto') || null,
     });
   }
-  if (isAuthSpikeOAuthMockEnabled()) {
+  if (isAuthSpikeOAuthUpstreamMock) {
     logger.info('[auth-spike-oauth] runtime auth origin', {
       runtimeBaseUrl,
       runtimeTrustedOrigins,

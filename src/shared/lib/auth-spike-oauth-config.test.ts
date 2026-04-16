@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  AUTH_SPIKE_OAUTH_MOCK_CONFIGS,
-  getAuthSpikeOAuthMockConfigs,
-  isAuthSpikeOAuthMockEnabled,
+  AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS,
+  getAuthSpikeOAuthConfigSeedConfigs,
+  isAuthSpikeOAuthConfigSeedEnabled,
+  isAuthSpikeOAuthUpstreamMockEnabled,
+  mergeAuthSpikeOAuthConfigSeedConfigs,
 } from './auth-spike-oauth-config';
 
 function createEnv(
@@ -16,27 +18,70 @@ function createEnv(
   };
 }
 
-test('isAuthSpikeOAuthMockEnabled 仅在显式 true 时启用', () => {
-  assert.equal(isAuthSpikeOAuthMockEnabled(createEnv()), false);
+test('isAuthSpikeOAuthConfigSeedEnabled 仅在显式 true 时启用', () => {
+  assert.equal(isAuthSpikeOAuthConfigSeedEnabled(createEnv()), false);
   assert.equal(
-    isAuthSpikeOAuthMockEnabled(createEnv({ AUTH_SPIKE_OAUTH_MOCK: 'false' })),
+    isAuthSpikeOAuthConfigSeedEnabled(
+      createEnv({ AUTH_SPIKE_OAUTH_CONFIG_SEED: 'false' })
+    ),
     false
   );
   assert.equal(
-    isAuthSpikeOAuthMockEnabled(createEnv({ AUTH_SPIKE_OAUTH_MOCK: 'true' })),
+    isAuthSpikeOAuthConfigSeedEnabled(
+      createEnv({ AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true' })
+    ),
     true
   );
 });
 
-test('getAuthSpikeOAuthMockConfigs 在 mock 模式返回独立副本', () => {
-  const configs = getAuthSpikeOAuthMockConfigs(
-    createEnv({ AUTH_SPIKE_OAUTH_MOCK: 'true' })
+test('isAuthSpikeOAuthUpstreamMockEnabled 仅在显式 true 时启用', () => {
+  assert.equal(isAuthSpikeOAuthUpstreamMockEnabled(createEnv()), false);
+  assert.equal(
+    isAuthSpikeOAuthUpstreamMockEnabled(
+      createEnv({ AUTH_SPIKE_OAUTH_UPSTREAM_MOCK: 'false' })
+    ),
+    false
   );
-
-  assert.deepEqual(configs, AUTH_SPIKE_OAUTH_MOCK_CONFIGS);
-  assert.notEqual(configs, AUTH_SPIKE_OAUTH_MOCK_CONFIGS);
+  assert.equal(
+    isAuthSpikeOAuthUpstreamMockEnabled(
+      createEnv({ AUTH_SPIKE_OAUTH_UPSTREAM_MOCK: 'true' })
+    ),
+    true
+  );
 });
 
-test('getAuthSpikeOAuthMockConfigs 在非 mock 模式返回空配置', () => {
-  assert.deepEqual(getAuthSpikeOAuthMockConfigs(createEnv()), {});
+test('getAuthSpikeOAuthConfigSeedConfigs 在 config seed 模式返回独立副本', () => {
+  const configs = getAuthSpikeOAuthConfigSeedConfigs(
+    createEnv({ AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true' })
+  );
+
+  assert.deepEqual(configs, AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS);
+  assert.notEqual(configs, AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS);
+});
+
+test('getAuthSpikeOAuthConfigSeedConfigs 在非 config seed 模式返回空配置', () => {
+  assert.deepEqual(getAuthSpikeOAuthConfigSeedConfigs(createEnv()), {});
+});
+
+test('mergeAuthSpikeOAuthConfigSeedConfigs 只覆盖 auth 相关 key，保留其余配置', () => {
+  assert.deepEqual(
+    mergeAuthSpikeOAuthConfigSeedConfigs(
+      {
+        app_name: 'Roller Rabbit',
+        google_client_id: 'db-google-client-id',
+        custom_flag: 'kept',
+      },
+      createEnv({ AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true' })
+    ),
+    {
+      app_name: 'Roller Rabbit',
+      google_auth_enabled: 'true',
+      google_client_id: 'oauth-spike-google-client-id',
+      google_client_secret: 'oauth-spike-google-client-secret',
+      github_auth_enabled: 'true',
+      github_client_id: 'oauth-spike-github-client-id',
+      github_client_secret: 'oauth-spike-github-client-secret',
+      custom_flag: 'kept',
+    }
+  );
 });

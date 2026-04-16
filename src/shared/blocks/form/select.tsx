@@ -26,7 +26,10 @@ export function Select({
       defaultValue={field.value as string | undefined}
       {...field.attributes}
     >
-      <SelectTrigger className="bg-background w-full rounded-md">
+      <SelectTrigger
+        className="bg-background w-full rounded-md"
+        data-testid={field.name ? `form-control-${field.name}` : undefined}
+      >
         <SelectValue placeholder={field.placeholder} />
       </SelectTrigger>
       <SelectContent className="bg-background rounded-md">

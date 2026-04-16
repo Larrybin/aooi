@@ -76,7 +76,9 @@ async function canListenOnPort(port) {
       resolve(false);
     });
 
-    server.listen(port, () => {
+    // Wrangler/workerd bind loopback ports, so probe the same host to avoid
+    // false positives from IPv6-only wildcard checks on macOS.
+    server.listen(port, '127.0.0.1', () => {
       server.close(() => resolve(true));
     });
   });

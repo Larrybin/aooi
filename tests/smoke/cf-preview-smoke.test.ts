@@ -132,7 +132,7 @@ test('ensureCiDevVars 能临时写入额外 Worker 变量并在 cleanup 后恢�
     authSecret: 'preview-secret',
     devVarsPath,
     extraVars: {
-      AUTH_SPIKE_OAUTH_MOCK: 'true',
+      AUTH_SPIKE_OAUTH_UPSTREAM_MOCK: 'true',
     },
   });
   assert.equal(prepared.created, false);
@@ -141,7 +141,7 @@ test('ensureCiDevVars 能临时写入额外 Worker 变量并在 cleanup 后恢�
   const nextContent = await readFile(devVarsPath, 'utf8');
   assert.equal(
     nextContent,
-    'FOO=bar\nAUTH_SECRET=existing-secret\nBETTER_AUTH_SECRET=existing-secret\nAUTH_SPIKE_OAUTH_MOCK=true\n'
+    'FOO=bar\nAUTH_SECRET=existing-secret\nBETTER_AUTH_SECRET=existing-secret\nAUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true\n'
   );
 
   await prepared.cleanup();

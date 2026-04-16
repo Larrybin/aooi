@@ -22,6 +22,7 @@
     "test": "node scripts/run-tests.mjs",
     "test:auth-spike": "node --import tsx scripts/run-auth-spike.mjs",
     "test:cf-app-smoke": "node --import tsx scripts/run-cf-app-smoke.mjs",
+    "test:cf-admin-settings-smoke": "pnpm cf:build && node --import tsx scripts/run-cf-admin-settings-smoke.mjs",
     "test:cf-local-smoke": "node --import tsx scripts/run-cf-local-smoke.mjs",
     "test:admin-settings-module-contract-smoke": "node --import tsx scripts/run-admin-settings-module-contract-smoke.mjs",
     "test:creem-webhook-spike": "node --test --import tsx \"src/extensions/payment/creem.test.ts\" \"tests/contract/payment-notify.test.ts\"",

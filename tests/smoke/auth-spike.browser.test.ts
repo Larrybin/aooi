@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getSessionViaAuthApi } from './auth-spike.browser';
+import {
+  getSessionViaAuthApi,
+  isTerminalAuthErrorUrl,
+  waitForTerminalAuthErrorPage,
+} from './auth-spike.browser';
 
 function createFakeResponse({
   status,
@@ -105,4 +109,42 @@ test('getSessionViaAuthApi 会对本地 preview 的空体 500 做重试', async 
 
   assert.equal(calls, 2);
   assert.equal(observation.status, 200);
+});
+
+test('isTerminalAuthErrorUrl 只接受最终 sign-in 错误页，不接受 callback 中间态', () => {
+  assert.equal(
+    isTerminalAuthErrorUrl(
+      'http://localhost:8787/api/auth/callback/google?error=access_denied'
+    ),
+    false
+  );
+  assert.equal(
+    isTerminalAuthErrorUrl(
+      'http://localhost:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile&error=access_denied'
+    ),
+    true
+  );
+});
+
+test('waitForTerminalAuthErrorPage 不会在 callback 中间态提前通过', async () => {
+  const seen: string[] = [];
+  const fakePage = {
+    async waitForURL(
+      predicate: (url: URL) => boolean,
+      options: { timeout: number; waitUntil: string }
+    ) {
+      const callbackUrl = new URL(
+        'http://localhost:8787/api/auth/callback/google?error=access_denied'
+      );
+      const finalUrl = new URL(
+        'http://localhost:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile&error=access_denied'
+      );
+      seen.push(`${predicate(callbackUrl)}`, `${predicate(finalUrl)}`);
+      assert.deepEqual(seen, ['false', 'true']);
+      assert.equal(options.timeout, 20_000);
+      assert.equal(options.waitUntil, 'commit');
+    },
+  };
+
+  await waitForTerminalAuthErrorPage(fakePage as never);
 });

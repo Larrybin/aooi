@@ -1,56 +1,21 @@
 import 'server-only';
 
-import { StorageManager } from '@/extensions/storage';
-import { R2Provider, S3Provider } from '@/extensions/storage/providers';
+import type { StorageManager } from '@/extensions/storage';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
+import { buildStorageServiceWithConfigs } from './storage-service-builder';
 
 /**
  * get storage service with configs
  */
-export function getStorageServiceWithConfigs(configs: Configs) {
-  const storageManager = new StorageManager();
-
-  // Add R2 provider if configured
-  if (
-    configs.r2_access_key &&
-    configs.r2_secret_key &&
-    configs.r2_bucket_name
-  ) {
-    // r2_region in settings stores the Cloudflare Account ID
-    // For R2, region is typically "auto" but can be customized
-    const accountId = configs.r2_account_id || '';
-
-    storageManager.addProvider(
-      new R2Provider({
-        accountId: accountId,
-        accessKeyId: configs.r2_access_key,
-        secretAccessKey: configs.r2_secret_key,
-        bucket: configs.r2_bucket_name,
-        region: 'auto', // R2 uses "auto" as region
-        endpoint: configs.r2_endpoint, // Optional custom endpoint
-        publicDomain: configs.r2_domain,
-      }),
-      true // Set R2 as default
-    );
+export function getStorageServiceWithConfigs(
+  configs: Configs,
+  options?: {
+    uploadMockEnabled?: boolean;
   }
-
-  // Add S3 provider if configured (future support)
-  if (configs.s3_access_key && configs.s3_secret_key && configs.s3_bucket) {
-    storageManager.addProvider(
-      new S3Provider({
-        endpoint: configs.s3_endpoint,
-        region: configs.s3_region,
-        accessKeyId: configs.s3_access_key,
-        secretAccessKey: configs.s3_secret_key,
-        bucket: configs.s3_bucket,
-        publicDomain: configs.s3_domain,
-      })
-    );
-  }
-
-  return storageManager;
+) {
+  return buildStorageServiceWithConfigs(configs, options);
 }
 
 /**

@@ -21,8 +21,10 @@ import {
   createAuthResponseRecorder,
   ensureProtectedPageNavigation,
   getSessionViaAuthApi,
+  isTerminalAuthErrorUrl,
   signOutViaAuthApi,
   stripOrigin,
+  waitForTerminalAuthErrorPage,
 } from './auth-spike.browser';
 import {
   type BrowserContextCookieSummary,
@@ -181,19 +183,6 @@ async function inspectProtectedRequest(params: {
     location: response.headers().location || null,
     bodySnippet,
   };
-}
-
-async function waitForErrorPage(page: Page) {
-  await page.waitForURL(
-    (url) => {
-      const current = new URL(url.toString());
-      return current.searchParams.has('error');
-    },
-    {
-      timeout: 20_000,
-      waitUntil: 'commit',
-    }
-  );
 }
 
 async function waitForSocialProviderButton(
@@ -744,9 +733,14 @@ async function runProviderCases(params: {
         },
       });
 
-      await waitForErrorPage(page);
+      await waitForTerminalAuthErrorPage(page);
       providerResult.finalUrlAfterDenied = stripOrigin(page.url());
 
+      assert.equal(
+        isTerminalAuthErrorUrl(providerResult.finalUrlAfterDenied),
+        true,
+        `[${providerResult.provider}] provider denied 必须最终回到 sign-in 错误页`
+      );
       assert.match(
         providerResult.finalUrlAfterDenied,
         /^\/(?:\?|\S*\?)(.+&)?error=access_denied(&|$)/,
@@ -806,9 +800,14 @@ async function runProviderCases(params: {
         },
       });
 
-      await waitForErrorPage(page);
+      await waitForTerminalAuthErrorPage(page);
       providerResult.finalUrlAfterStateTamper = stripOrigin(page.url());
 
+      assert.equal(
+        isTerminalAuthErrorUrl(providerResult.finalUrlAfterStateTamper),
+        true,
+        `[${providerResult.provider}] tampered state 必须最终回到 sign-in 错误页`
+      );
       assert.match(
         providerResult.finalUrlAfterStateTamper,
         /^\/(?:\?|\S*\?)(.+&)?error=(please_restart_the_process|state_mismatch)(&|$)/,

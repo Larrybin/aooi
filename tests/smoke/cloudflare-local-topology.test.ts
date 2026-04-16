@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 import {
+  findAvailablePort,
   prepareCloudflareLocalTopologyArtifacts,
   startCloudflareLocalDevTopology,
 } from '../../scripts/lib/cloudflare-local-topology.mjs';
@@ -14,6 +16,34 @@ const {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
   getServerWorkerMetadata,
 } = cloudflareWorkerSplits;
+
+test('findAvailablePort 会跳过仅占用 127.0.0.1 的端口', async () => {
+  const server = net.createServer();
+
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === 'object');
+
+    const nextPort = await findAvailablePort(address.port);
+    assert.notEqual(nextPort, address.port);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+});
 
 test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server worker 配置，并注入同一组本地值', async () => {
   const tempDir = await fs.mkdtemp(

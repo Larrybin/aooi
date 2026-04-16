@@ -261,7 +261,7 @@ test('isExplicitLocalAuthRuntimeEnabled 仅在显式本地模式下返回 true',
   );
   assert.equal(
     isExplicitLocalAuthRuntimeEnabled({
-      env: { AUTH_SPIKE_OAUTH_MOCK: 'true' },
+      env: { AUTH_SPIKE_OAUTH_UPSTREAM_MOCK: 'true' },
     }),
     true
   );

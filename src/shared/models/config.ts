@@ -7,7 +7,7 @@ import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { PUBLIC_SETTING_NAMES } from '@/shared/constants/public-setting-names';
-import { getAuthSpikeOAuthMockConfigs } from '@/shared/lib/auth-spike-oauth-config';
+import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
 import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
@@ -68,15 +68,10 @@ export async function addConfig(newConfig: NewConfig) {
 }
 
 async function getConfigsFromDb(): Promise<Configs> {
-  const authSpikeMockConfigs = getAuthSpikeOAuthMockConfigs();
-  if (Object.keys(authSpikeMockConfigs).length > 0) {
-    return authSpikeMockConfigs;
-  }
-
   const configs: Record<string, string> = {};
 
   if (!serverEnv.databaseUrl && !isCloudflareWorkersRuntime()) {
-    return configs;
+    return mergeAuthSpikeOAuthConfigSeedConfigs(configs);
   }
 
   const result = await db().select().from(config);
@@ -85,7 +80,7 @@ async function getConfigsFromDb(): Promise<Configs> {
     configs[config.name] = config.value ?? '';
   }
 
-  return configs;
+  return mergeAuthSpikeOAuthConfigSeedConfigs(configs);
 }
 
 const getConfigsCached = unstable_cache(

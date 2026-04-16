@@ -253,7 +253,7 @@ async function main() {
       name: 'oauth-test-config-source',
       status: 'passed',
       detail:
-        'AUTH_SPIKE_OAUTH_MOCK=true injects in-memory Google/GitHub OAuth config, so this harness performs no local config-table writes',
+        'AUTH_SPIKE_OAUTH_CONFIG_SEED=true injects in-memory Google/GitHub OAuth config, and AUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true mocks only upstream OAuth exchanges, so this harness performs no local config-table writes',
       surface: 'cloudflare',
     });
 
@@ -264,11 +264,13 @@ async function main() {
       routerBaseUrl: fallbackBaseUrl,
       authSecret,
       extraVars: {
-        AUTH_SPIKE_OAUTH_MOCK: 'true',
+        AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true',
+        AUTH_SPIKE_OAUTH_UPSTREAM_MOCK: 'true',
       },
       processEnv: {
         ...process.env,
-        AUTH_SPIKE_OAUTH_MOCK: 'true',
+        AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true',
+        AUTH_SPIKE_OAUTH_UPSTREAM_MOCK: 'true',
       },
     });
     baseUrl = topology.getRouterBaseUrl();

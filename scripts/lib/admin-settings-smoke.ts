@@ -36,6 +36,8 @@ export const ADMIN_SETTINGS_MODULE_CONTRACT_GUIDE_LINK_SELECTOR =
 export const ADMIN_SETTINGS_FORM_SHELL_SELECTOR =
   '[data-testid="admin-settings-form-shell"]';
 export const NO_PERMISSION_PAGE_SELECTOR = '[data-testid="no-permission-page"]';
+export const FORM_SUBMIT_BUTTON_SELECTOR =
+  '[data-testid="form-submit-button"]';
 
 export interface AdminSettingsModuleContractRowExpectation {
   moduleId: ProductModuleId;
@@ -92,6 +94,14 @@ export function buildLocalizedSignInPath(locale: string): string {
 
 export function buildLocalizedAdminNoPermissionPath(locale: string): string {
   return buildLocalizedAppPath(locale, '/admin/no-permission');
+}
+
+export function buildFormFieldSelector(fieldName: string): string {
+  return `[data-testid="form-field-${fieldName}"]`;
+}
+
+export function buildFormControlSelector(fieldName: string): string {
+  return `[data-testid="form-control-${fieldName}"]`;
 }
 
 export function buildExpectedModuleContractRows(

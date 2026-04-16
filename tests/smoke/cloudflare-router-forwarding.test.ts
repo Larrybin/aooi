@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildForwardedWorkerRequest } from '../../cloudflare/workers/router';
+import { buildForwardedWorkerRequest } from '../../cloudflare/workers/router-forwarding';
 
 test('router 转发会把 canonicalized middleware request 归一化回本地 preview origin', () => {
   const originalRequest = new Request(

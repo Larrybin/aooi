@@ -17,8 +17,10 @@ export function Input({
       value={formField.value as string}
       onChange={formField.onChange}
       type={field.type || 'text'}
+      name={field.name}
       placeholder={field.placeholder}
       className="bg-background placeholder:text-base-content/50 rounded-md"
+      data-testid={field.name ? `form-control-${field.name}` : undefined}
       {...field.attributes}
     />
   );

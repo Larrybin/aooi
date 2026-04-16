@@ -53,6 +53,11 @@ export function Checkbox({
             name={field.name}
             value={option.value}
             checked={value.includes(option.value)}
+            data-testid={
+              field.name
+                ? `form-control-${field.name}-${option.value}`
+                : undefined
+            }
           />
           <div className="grid gap-1">
             <Label>{option.title}</Label>

@@ -26,6 +26,48 @@ export function stripOrigin(url: string): string {
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 
+function toPathWithSearch(urlOrPath: string): string {
+  if (urlOrPath.startsWith('/')) {
+    return urlOrPath;
+  }
+
+  return stripOrigin(urlOrPath);
+}
+
+export function hasAuthErrorQuery(urlOrPath: string): boolean {
+  try {
+    const pathWithSearch = toPathWithSearch(urlOrPath);
+    const parsed = new URL(`https://auth-spike.local${pathWithSearch}`);
+    return parsed.searchParams.has('error');
+  } catch {
+    return false;
+  }
+}
+
+export function isSignInPath(urlOrPath: string): boolean {
+  try {
+    return /^\/sign-in(\?|$)/.test(toPathWithSearch(urlOrPath));
+  } catch {
+    return false;
+  }
+}
+
+export function isAuthCallbackPath(urlOrPath: string): boolean {
+  try {
+    return /^\/api\/auth\/callback\//.test(toPathWithSearch(urlOrPath));
+  } catch {
+    return false;
+  }
+}
+
+export function isTerminalAuthErrorUrl(urlOrPath: string): boolean {
+  return (
+    hasAuthErrorQuery(urlOrPath) &&
+    isSignInPath(urlOrPath) &&
+    !isAuthCallbackPath(urlOrPath)
+  );
+}
+
 export function toFailureDetail(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -484,6 +526,13 @@ export async function waitForSignInPage(page: Page) {
       waitUntil: 'commit',
     }
   );
+}
+
+export async function waitForTerminalAuthErrorPage(page: Page) {
+  await page.waitForURL((url) => isTerminalAuthErrorUrl(url.toString()), {
+    timeout: 20_000,
+    waitUntil: 'commit',
+  });
 }
 
 async function waitForProtectedOrSignInPage(

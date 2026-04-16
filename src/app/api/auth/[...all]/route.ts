@@ -13,7 +13,7 @@ function normalizeAuthSpikeRedirectLocation(
   response: Response,
   request: Request
 ): Response {
-  if (process.env.AUTH_SPIKE_OAUTH_MOCK !== 'true') {
+  if (process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK !== 'true') {
     return response;
   }
 

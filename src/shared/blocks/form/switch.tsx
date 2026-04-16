@@ -18,6 +18,7 @@ export function Switch({
       <SwitchComponent
         checked={Boolean(formField.value)}
         onCheckedChange={formField.onChange}
+        data-testid={_field.name ? `form-control-${_field.name}` : undefined}
       />
     </>
   );

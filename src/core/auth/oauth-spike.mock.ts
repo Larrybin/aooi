@@ -34,7 +34,7 @@ type GlobalFetchPatchState = typeof globalThis & {
 };
 
 function isOAuthSpikeMockEnabled() {
-  return process.env.AUTH_SPIKE_OAUTH_MOCK === 'true';
+  return process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true';
 }
 
 function createJsonResponse(body: unknown) {

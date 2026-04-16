@@ -156,7 +156,7 @@ export function isExplicitLocalAuthRuntimeEnabled(params: {
   const env = params.env || process.env;
   return (
     isCloudflareLocalWorkersDevRuntime(env) ||
-    env.AUTH_SPIKE_OAUTH_MOCK === 'true' ||
+    env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true' ||
     params.preferRequestOrigin === true
   );
 }
