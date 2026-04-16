@@ -198,11 +198,6 @@ function buildVersionSpec(versionId, percentage) {
   return `${versionId}@${percentage}%`;
 }
 
-function replaceQuotedTomlValue(content, key, nextValue) {
-  const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*")([^"\\n]*)(")`, 'm');
-  return content.replace(pattern, `$1${nextValue}$3`);
-}
-
 function readQuotedTomlValue(content, key) {
   const match = content.match(new RegExp(`^\\s*${key}\\s*=\\s*"([^"\\n]*)"`, 'm'));
   return match?.[1]?.trim() || '';

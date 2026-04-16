@@ -330,7 +330,7 @@ function normalizePathname(pathname: string) {
   return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
 }
 
-export default {
+const cloudflareWorkerSplits = {
   CLOUDFLARE_ROUTER_WORKER_NAME,
   CLOUDFLARE_SERVER_WORKERS,
   CLOUDFLARE_SERVICE_BINDINGS,
@@ -345,3 +345,5 @@ export default {
   getServerWorkerMetadata,
   buildVersionOverridesHeader,
 };
+
+export default cloudflareWorkerSplits;

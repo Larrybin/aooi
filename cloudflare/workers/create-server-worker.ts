@@ -1,4 +1,4 @@
-// @ts-ignore OpenNext generates this before Wrangler bundles the worker.
+// @ts-expect-error OpenNext generates this before Wrangler bundles the worker.
 import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
 
 type CloudflareFetchHandler<Env> = (

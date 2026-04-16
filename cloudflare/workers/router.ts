@@ -3,11 +3,8 @@ import {
   resolveWorkerTarget,
 } from '../../src/shared/config/cloudflare-worker-splits';
 import { buildForwardedWorkerRequest } from './router-forwarding';
-// @ts-ignore OpenNext generates this before Wrangler bundles the worker.
 import { handleCdnCgiImageRequest, handleImageRequest } from '../../.open-next/cloudflare/images.js';
-// @ts-ignore OpenNext generates this before Wrangler bundles the worker.
 import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
-// @ts-ignore OpenNext generates this before Wrangler bundles the worker.
 import { handler as middlewareHandler } from '../../.open-next/middleware/handler.mjs';
 
 type WorkerServiceBinding = {
@@ -26,7 +23,7 @@ type RouterEnv = Record<string, string | WorkerServiceBinding> & {
   CHAT_WORKER: WorkerServiceBinding;
 };
 
-export default {
+const routerWorker = {
   async fetch(request: Request, env: RouterEnv, ctx: ExecutionContext) {
     return runWithCloudflareRequestContext(request, env, ctx, async () => {
       const url = new URL(request.url);
@@ -73,3 +70,5 @@ export default {
     });
   },
 };
+
+export default routerWorker;

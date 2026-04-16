@@ -173,7 +173,9 @@ function Table(props: React.TableHTMLAttributes<HTMLTableElement>) {
 }
 
 function Image(props: React.ImgHTMLAttributes<HTMLImageElement>) {
-  return <img {...props} className={`rounded-lg ${props.className || ''}`} />;
+  // MDX content may not provide stable dimensions, so keep native img with safe alt fallback.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img {...props} alt={props.alt || ''} className={`rounded-lg ${props.className || ''}`} />;
 }
 
 export function createRelativeLink(
