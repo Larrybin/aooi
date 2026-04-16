@@ -32,6 +32,7 @@ type EmailTestRouteDeps = {
   buildVerificationCodeEmailPayload: (
     input: Parameters<BuildVerificationCodeEmailPayload>[0]
   ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
+  quotaLimiter: Pick<FixedWindowQuotaLimiter, 'acquire' | 'release'>;
   now: () => number;
   randomInt: typeof randomInt;
 };
@@ -50,6 +51,7 @@ function getDefaultEmailTestRouteDeps(): EmailTestRouteDeps {
       const mod = await import('@/shared/content/email/verification-code');
       return mod.buildVerificationCodeEmailPayload(input);
     },
+    quotaLimiter: new FixedWindowQuotaLimiter(EMAIL_TEST_QUOTA_LIMIT_CONFIG),
     now: Date.now,
     randomInt,
   };
@@ -63,22 +65,6 @@ function buildEmailTestPostLogic(
   overrides: Partial<EmailTestRouteDeps> = {}
 ) {
   const deps = { ...getDefaultEmailTestRouteDeps(), ...overrides };
-  const emailTestQuotaLimiter = new FixedWindowQuotaLimiter({
-    ...EMAIL_TEST_QUOTA_LIMIT_CONFIG,
-    now: deps.now,
-  });
-
-  function consumeEmailTestQuota(userId: string): {
-    allowed: boolean;
-    reason?: string;
-  } {
-    const result = emailTestQuotaLimiter.acquire(userId);
-    return result.allowed ? { allowed: true } : result;
-  }
-
-  function releaseEmailTestQuota(userId: string) {
-    emailTestQuotaLimiter.release(userId);
-  }
 
   return async (req: Request) => {
     const api = await deps.getApiContext(req);
@@ -86,7 +72,7 @@ function buildEmailTestPostLogic(
     const user = await api.requireUser();
     await api.requirePermission(user.id, PERMISSIONS.EMAIL_TEST);
 
-    const quota = consumeEmailTestQuota(user.id);
+    const quota = await deps.quotaLimiter.acquire(user.id);
     if (!quota.allowed) {
       log.warn('[API] email test throttled', {
         userId: user.id,
@@ -143,7 +129,7 @@ function buildEmailTestPostLogic(
       });
       return jsonOk(result);
     } finally {
-      releaseEmailTestQuota(user.id);
+      await deps.quotaLimiter.release(user.id);
     }
   };
 }

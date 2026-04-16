@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AITaskStatus } from '@/extensions/ai';
+import {
+  CooldownLimiter,
+  DualConcurrencyLimiter,
+  FixedWindowAttemptLimiter,
+  FixedWindowQuotaLimiter,
+} from '@/shared/lib/api/limiters';
+import { createMemoryRateLimitStore } from '@/shared/lib/api/rate-limit-store';
 
 import { createAiQueryPostHandler } from './ai/query/route';
 import { createSendEmailPostHandler } from './email/send-email/route';
@@ -75,6 +82,12 @@ test('send-email 路由限流契约: 冷却窗口内返回 429', async () => {
     deleteEmailVerificationCodeById: async () => undefined,
     deleteEmailVerificationCodesByIdentifierExceptId: async () => undefined,
     buildVerificationCodeEmailPayload: async () => ({}),
+    rateLimiter: new CooldownLimiter({
+      bucket: 'test.route.send-email',
+      minIntervalMs: 60_000,
+      ttlMs: 15 * 60 * 1000,
+      store: createMemoryRateLimitStore(),
+    }),
     randomInt: () => 123456,
     now: () => 1_000,
   });
@@ -128,6 +141,12 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
         },
       }),
     }),
+    rateLimiter: new CooldownLimiter({
+      bucket: 'test.route.ai-query',
+      minIntervalMs: 4_000,
+      ttlMs: 60 * 60 * 1000,
+      store: createMemoryRateLimitStore(),
+    }),
     now: () => 1_000,
   });
 
@@ -151,6 +170,12 @@ test('verify-code 路由限流契约: 达到失败上限后返回 429', async ()
     consumeSettingsEmailVerificationCode: async () => ({
       ok: false as const,
       reason: 'mismatch' as const,
+    }),
+    attemptLimiter: new FixedWindowAttemptLimiter({
+      bucket: 'test.route.verify-code',
+      windowMs: 15 * 60 * 1000,
+      maxAttempts: 5,
+      store: createMemoryRateLimitStore(),
     }),
     now: () => 1_000,
   });
@@ -199,6 +224,13 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
       },
     }),
     buildVerificationCodeEmailPayload: async () => ({}),
+    quotaLimiter: new FixedWindowQuotaLimiter({
+      bucket: 'test.route.email-test',
+      windowMs: 5 * 60 * 1000,
+      maxAttempts: 3,
+      maxConcurrent: 1,
+      store: createMemoryRateLimitStore(),
+    }),
     randomInt: () => 123456,
     now: () => 1_000,
   });
@@ -259,6 +291,13 @@ test('storage/upload-image 路由并发契约: 全局与单用户上限同时生
         key: 'k1',
         url: 'https://cdn.example.com/k1',
       }),
+    }),
+    concurrencyLimiter: new DualConcurrencyLimiter({
+      bucket: 'test.route.storage-upload',
+      maxGlobal: 4,
+      maxPerKey: 2,
+      leaseMs: 15 * 60 * 1000,
+      store: createMemoryRateLimitStore(),
     }),
   });
 

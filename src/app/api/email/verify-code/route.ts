@@ -21,6 +21,10 @@ type VerifyCodeRouteDeps = {
     email: string;
     code: string;
   }) => Promise<{ ok: true } | { ok: false; reason: 'not_found' | 'expired' | 'mismatch' }>;
+  attemptLimiter: Pick<
+    FixedWindowAttemptLimiter,
+    'check' | 'recordFailure' | 'clear'
+  >;
   now: () => number;
 };
 
@@ -34,6 +38,9 @@ function getDefaultVerifyCodeRouteDeps(): VerifyCodeRouteDeps {
       const mod = await import('@/shared/models/email_verification_code');
       return await mod.consumeSettingsEmailVerificationCode(input);
     },
+    attemptLimiter: new FixedWindowAttemptLimiter(
+      VERIFY_CODE_ATTEMPT_LIMIT_CONFIG
+    ),
     now: Date.now,
   };
 }
@@ -52,10 +59,6 @@ function buildVerifyCodePostLogic(
   overrides: Partial<VerifyCodeRouteDeps> = {}
 ) {
   const deps = { ...getDefaultVerifyCodeRouteDeps(), ...overrides };
-  const verifyCodeAttemptLimiter = new FixedWindowAttemptLimiter({
-    ...VERIFY_CODE_ATTEMPT_LIMIT_CONFIG,
-    now: deps.now,
-  });
 
   return async (req: Request) => {
     const api = await deps.getApiContext(req);
@@ -67,7 +70,7 @@ function buildVerifyCodePostLogic(
     const now = deps.now();
 
     const verifyKey = buildVerifyIdentifier(user.id, email);
-    const existing = verifyCodeAttemptLimiter.check(verifyKey, now);
+    const existing = await deps.attemptLimiter.check(verifyKey, now);
     if (!existing.allowed) {
       throw new TooManyRequestsError('too many attempts', {
         retryAfterSeconds: existing.retryAfterSeconds,
@@ -81,7 +84,7 @@ function buildVerifyCodePostLogic(
     });
 
     if (!result.ok) {
-      const attempt = verifyCodeAttemptLimiter.recordFailure(verifyKey, now);
+      const attempt = await deps.attemptLimiter.recordFailure(verifyKey, now);
       const retryAfterSeconds = attempt.retryAfterSeconds;
 
       log.warn('[API] verify email code failed', {
@@ -104,7 +107,7 @@ function buildVerifyCodePostLogic(
       throw new BadRequestError('invalid verification code');
     }
 
-    verifyCodeAttemptLimiter.clear(verifyKey);
+    await deps.attemptLimiter.clear(verifyKey);
 
     log.info('[API] verify email code ok', {
       userId: user.id,

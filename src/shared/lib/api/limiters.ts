@@ -1,4 +1,7 @@
-import { cleanupExpiringMap } from '@/shared/lib/map-cleanup';
+import {
+  type LockedRateLimitStore,
+  type RateLimitStore,
+} from '@/shared/lib/api/rate-limit-store';
 
 export type DeniedLimitResult = {
   allowed: false;
@@ -12,70 +15,107 @@ export type AllowedLimitResult = {
 
 export type LimitResult = AllowedLimitResult | DeniedLimitResult;
 
+type RateLimitBaseConfig = {
+  bucket: string;
+  store?: RateLimitStore;
+};
+
+function maxRetryAfterSeconds(remainingMs: number): number {
+  return Math.max(1, Math.ceil(remainingMs / 1000));
+}
+
+function getRateLimitStore(store?: RateLimitStore): RateLimitStore {
+  return store ?? createLazyDbRateLimitStore();
+}
+
 export class CooldownLimiter {
-  private readonly lastActionAtByKey = new Map<string, number>();
-  private cleanupTick = 0;
+  private readonly store: RateLimitStore;
 
   constructor(
-    private readonly config: {
+    private readonly config: RateLimitBaseConfig & {
       minIntervalMs: number;
       ttlMs: number;
-      maxEntries: number;
-      cleanupEvery?: number;
       now?: () => number;
     }
-  ) {}
+  ) {
+    this.store = getRateLimitStore(config.store);
+  }
 
-  check(key: string, now = this.getNow()): LimitResult {
-    this.maybeCleanup(now);
+  async check(key: string, now = this.getNow()): Promise<LimitResult> {
+    return this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.deleteExpired(now);
+      const state = await store.get(key);
+      if (!state?.lastActionAt) {
+        return { allowed: true };
+      }
+      if (now - state.lastActionAt >= this.config.minIntervalMs) {
+        return { allowed: true };
+      }
+      return {
+        allowed: false,
+        retryAfterSeconds: maxRetryAfterSeconds(
+          this.config.minIntervalMs - (now - state.lastActionAt)
+        ),
+      };
+    });
+  }
 
-    const lastActionAt = this.lastActionAtByKey.get(key);
-    if (!lastActionAt || now - lastActionAt >= this.config.minIntervalMs) {
+  async checkAndConsume(key: string, now = this.getNow()): Promise<LimitResult> {
+    return this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.deleteExpired(now);
+      const state = await store.get(key);
+      if (
+        state?.lastActionAt &&
+        now - state.lastActionAt < this.config.minIntervalMs
+      ) {
+        return {
+          allowed: false,
+          retryAfterSeconds: maxRetryAfterSeconds(
+            this.config.minIntervalMs - (now - state.lastActionAt)
+          ),
+        };
+      }
+
+      await store.set({
+        bucket: this.config.bucket,
+        scopeKey: key,
+        lastActionAt: now,
+        windowStartedAt: null,
+        count: 0,
+        inflight: 0,
+        expiresAt: now + this.config.ttlMs,
+      });
       return { allowed: true };
-    }
-
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.ceil(
-        (this.config.minIntervalMs - (now - lastActionAt)) / 1000
-      ),
-    };
+    });
   }
 
-  checkAndConsume(key: string, now = this.getNow()): LimitResult {
-    const result = this.check(key, now);
-    if (result.allowed) {
-      this.lastActionAtByKey.set(key, now);
-    }
-    return result;
-  }
-
-  consume(key: string, now = this.getNow()): number {
-    this.maybeCleanup(now);
-    this.lastActionAtByKey.set(key, now);
+  async consume(key: string, now = this.getNow()): Promise<number> {
+    await this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.set({
+        bucket: this.config.bucket,
+        scopeKey: key,
+        lastActionAt: now,
+        windowStartedAt: null,
+        count: 0,
+        inflight: 0,
+        expiresAt: now + this.config.ttlMs,
+      });
+    });
     return now;
   }
 
-  rollback(key: string, consumedAt: number): void {
-    if (this.lastActionAtByKey.get(key) === consumedAt) {
-      this.lastActionAtByKey.delete(key);
-    }
+  async rollback(key: string, consumedAt: number): Promise<void> {
+    await this.store.withLock(this.config.bucket, [key], async (store) => {
+      const state = await store.get(key);
+      if (state?.lastActionAt === consumedAt) {
+        await store.delete(key);
+      }
+    });
   }
 
-  clear(key: string): void {
-    this.lastActionAtByKey.delete(key);
-  }
-
-  private maybeCleanup(now: number): void {
-    const cleanupEvery = this.config.cleanupEvery ?? 0xff;
-    if ((this.cleanupTick++ & cleanupEvery) !== 0) return;
-
-    cleanupExpiringMap({
-      map: this.lastActionAtByKey,
-      now,
-      ttlMs: this.config.ttlMs,
-      maxEntries: this.config.maxEntries,
-      getTimestamp: (lastActionAt) => lastActionAt,
+  async clear(key: string): Promise<void> {
+    await this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.delete(key);
     });
   }
 
@@ -85,87 +125,84 @@ export class CooldownLimiter {
 }
 
 export class FixedWindowAttemptLimiter {
-  private readonly attemptsByKey = new Map<
-    string,
-    { count: number; firstAt: number }
-  >();
-  private cleanupTick = 0;
+  private readonly store: RateLimitStore;
 
   constructor(
-    private readonly config: {
+    private readonly config: RateLimitBaseConfig & {
       windowMs: number;
       maxAttempts: number;
-      maxEntries: number;
-      cleanupEvery?: number;
       now?: () => number;
     }
-  ) {}
-
-  check(key: string, now = this.getNow()): LimitResult {
-    this.maybeCleanup(now);
-
-    const current = this.attemptsByKey.get(key);
-    if (!current) return { allowed: true };
-
-    if (now - current.firstAt > this.config.windowMs) {
-      return { allowed: true };
-    }
-
-    if (current.count < this.config.maxAttempts) {
-      return { allowed: true };
-    }
-
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.max(
-        1,
-        Math.ceil((this.config.windowMs - (now - current.firstAt)) / 1000)
-      ),
-    };
+  ) {
+    this.store = getRateLimitStore(config.store);
   }
 
-  recordFailure(
+  async check(key: string, now = this.getNow()): Promise<LimitResult> {
+    return this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.deleteExpired(now);
+      const state = await store.get(key);
+      if (!state?.windowStartedAt) {
+        return { allowed: true };
+      }
+      if (now - state.windowStartedAt > this.config.windowMs) {
+        await store.delete(key);
+        return { allowed: true };
+      }
+      if (state.count < this.config.maxAttempts) {
+        return { allowed: true };
+      }
+      return {
+        allowed: false,
+        retryAfterSeconds: maxRetryAfterSeconds(
+          this.config.windowMs - (now - state.windowStartedAt)
+        ),
+      };
+    });
+  }
+
+  async recordFailure(
     key: string,
     now = this.getNow()
-  ): { attempts: number; retryAfterSeconds?: number } {
-    this.maybeCleanup(now);
+  ): Promise<{ attempts: number; retryAfterSeconds?: number }> {
+    return this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.deleteExpired(now);
+      const state = await store.get(key);
 
-    const current = this.attemptsByKey.get(key);
-    if (!current || now - current.firstAt > this.config.windowMs) {
-      this.attemptsByKey.set(key, { count: 1, firstAt: now });
-      return { attempts: 1 };
-    }
+      const nextState =
+        !state?.windowStartedAt || now - state.windowStartedAt > this.config.windowMs
+          ? {
+              bucket: this.config.bucket,
+              scopeKey: key,
+              lastActionAt: null,
+              windowStartedAt: now,
+              count: 1,
+              inflight: 0,
+              expiresAt: now + this.config.windowMs,
+            }
+          : {
+              ...state,
+              count: state.count + 1,
+              expiresAt: state.windowStartedAt + this.config.windowMs,
+            };
 
-    const next = { count: current.count + 1, firstAt: current.firstAt };
-    this.attemptsByKey.set(key, next);
+      await store.set(nextState);
 
-    if (next.count < this.config.maxAttempts) {
-      return { attempts: next.count };
-    }
+      if (nextState.count < this.config.maxAttempts) {
+        return { attempts: nextState.count };
+      }
 
-    return {
-      attempts: next.count,
-      retryAfterSeconds: Math.max(
-        1,
-        Math.ceil((this.config.windowMs - (now - next.firstAt)) / 1000)
-      ),
-    };
+      return {
+        attempts: nextState.count,
+        retryAfterSeconds: maxRetryAfterSeconds(
+          nextState.expiresAt - now
+        ),
+      };
+    });
   }
 
-  clear(key: string): void {
-    this.attemptsByKey.delete(key);
-  }
-
-  private maybeCleanup(now: number): void {
-    const cleanupEvery = this.config.cleanupEvery ?? 0xff;
-    if ((this.cleanupTick++ & cleanupEvery) !== 0) return;
-
-    cleanupExpiringMap({
-      map: this.attemptsByKey,
-      now,
-      ttlMs: this.config.windowMs,
-      maxEntries: this.config.maxEntries,
-      getTimestamp: (entry) => entry.firstAt,
+  async clear(key: string): Promise<void> {
+    await this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.delete(key);
     });
   }
 
@@ -174,76 +211,74 @@ export class FixedWindowAttemptLimiter {
   }
 }
 
-type FixedWindowQuotaState = {
-  windowStartedAt: number;
-  count: number;
-  inflight: number;
-};
-
 export class FixedWindowQuotaLimiter {
-  private readonly stateByKey = new Map<string, FixedWindowQuotaState>();
-  private cleanupTick = 0;
+  private readonly store: RateLimitStore;
 
   constructor(
-    private readonly config: {
+    private readonly config: RateLimitBaseConfig & {
       windowMs: number;
       maxAttempts: number;
       maxConcurrent: number;
-      maxEntries: number;
-      cleanupEvery?: number;
       now?: () => number;
     }
-  ) {}
+  ) {
+    this.store = getRateLimitStore(config.store);
+  }
 
-  acquire(
+  async acquire(
     key: string,
     now = this.getNow()
-  ): AllowedLimitResult | DeniedLimitResult {
-    this.maybeCleanup(now);
+  ): Promise<AllowedLimitResult | DeniedLimitResult> {
+    return this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.deleteExpired(now);
+      const state = await store.get(key);
+      const nextState =
+        !state?.windowStartedAt || now - state.windowStartedAt > this.config.windowMs
+          ? {
+              bucket: this.config.bucket,
+              scopeKey: key,
+              lastActionAt: null,
+              windowStartedAt: now,
+              count: 0,
+              inflight: 0,
+              expiresAt: now + this.config.windowMs,
+            }
+          : state;
 
-    const existing = this.stateByKey.get(key);
-    const state: FixedWindowQuotaState = existing
-      ? { ...existing }
-      : { windowStartedAt: now, count: 0, inflight: 0 };
+      if (nextState.count >= this.config.maxAttempts) {
+        return { allowed: false, reason: 'rate_limited' };
+      }
 
-    if (now - state.windowStartedAt > this.config.windowMs) {
-      state.windowStartedAt = now;
-      state.count = 0;
-      state.inflight = 0;
-    }
+      if (nextState.inflight >= this.config.maxConcurrent) {
+        return { allowed: false, reason: 'concurrency_limit' };
+      }
 
-    if (state.count >= this.config.maxAttempts) {
-      return { allowed: false, reason: 'rate_limited' };
-    }
+      await store.set({
+        ...nextState,
+        count: nextState.count + 1,
+        inflight: nextState.inflight + 1,
+      });
 
-    if (state.inflight >= this.config.maxConcurrent) {
-      return { allowed: false, reason: 'concurrency_limit' };
-    }
-
-    state.count += 1;
-    state.inflight += 1;
-    this.stateByKey.set(key, state);
-    return { allowed: true };
+      return { allowed: true };
+    });
   }
 
-  release(key: string): void {
-    const state = this.stateByKey.get(key);
-    if (!state) return;
+  async release(key: string, now = this.getNow()): Promise<void> {
+    await this.store.withLock(this.config.bucket, [key], async (store) => {
+      await store.deleteExpired(now);
+      const state = await store.get(key);
+      if (!state) return;
 
-    state.inflight = Math.max(0, state.inflight - 1);
-    this.stateByKey.set(key, state);
-  }
+      const nextInflight = Math.max(0, state.inflight - 1);
+      if (nextInflight === 0 && state.count === 0) {
+        await store.delete(key);
+        return;
+      }
 
-  private maybeCleanup(now: number): void {
-    const cleanupEvery = this.config.cleanupEvery ?? 0xff;
-    if ((this.cleanupTick++ & cleanupEvery) !== 0) return;
-
-    cleanupExpiringMap({
-      map: this.stateByKey,
-      now,
-      ttlMs: this.config.windowMs,
-      maxEntries: this.config.maxEntries,
-      getTimestamp: (state) => state.windowStartedAt,
+      await store.set({
+        ...state,
+        inflight: nextInflight,
+      });
     });
   }
 
@@ -253,40 +288,145 @@ export class FixedWindowQuotaLimiter {
 }
 
 export class DualConcurrencyLimiter {
-  private inflightGlobal = 0;
-  private readonly inflightByKey = new Map<string, number>();
+  private readonly store: RateLimitStore;
 
   constructor(
-    private readonly config: {
+    private readonly config: RateLimitBaseConfig & {
       maxGlobal: number;
       maxPerKey: number;
+      leaseMs: number;
+      now?: () => number;
     }
-  ) {}
-
-  acquire(key: string): boolean {
-    if (this.inflightGlobal >= this.config.maxGlobal) {
-      return false;
-    }
-
-    const currentByKey = this.inflightByKey.get(key) || 0;
-    if (currentByKey >= this.config.maxPerKey) {
-      return false;
-    }
-
-    this.inflightGlobal += 1;
-    this.inflightByKey.set(key, currentByKey + 1);
-    return true;
+  ) {
+    this.store = getRateLimitStore(config.store);
   }
 
-  release(key: string): void {
-    this.inflightGlobal = Math.max(0, this.inflightGlobal - 1);
+  async acquire(key: string, now = this.getNow()): Promise<boolean> {
+    return this.store.withLock(
+      this.config.bucket,
+      [GLOBAL_SCOPE_KEY, key],
+      async (store) => {
+        await store.deleteExpired(now);
+        const states = await store.getMany([GLOBAL_SCOPE_KEY, key]);
 
-    const currentByKey = this.inflightByKey.get(key) || 0;
-    if (currentByKey <= 1) {
-      this.inflightByKey.delete(key);
-      return;
-    }
+        const globalState =
+          states.get(GLOBAL_SCOPE_KEY) || createConcurrencyState(this.config.bucket, GLOBAL_SCOPE_KEY, now, this.config.leaseMs);
+        const perKeyState =
+          states.get(key) || createConcurrencyState(this.config.bucket, key, now, this.config.leaseMs);
 
-    this.inflightByKey.set(key, currentByKey - 1);
+        if (globalState.inflight >= this.config.maxGlobal) {
+          return false;
+        }
+
+        if (perKeyState.inflight >= this.config.maxPerKey) {
+          return false;
+        }
+
+        await store.set({
+          ...globalState,
+          inflight: globalState.inflight + 1,
+          expiresAt: now + this.config.leaseMs,
+        });
+        await store.set({
+          ...perKeyState,
+          inflight: perKeyState.inflight + 1,
+          expiresAt: now + this.config.leaseMs,
+        });
+        return true;
+      }
+    );
   }
+
+  async release(key: string, now = this.getNow()): Promise<void> {
+    await this.store.withLock(
+      this.config.bucket,
+      [GLOBAL_SCOPE_KEY, key],
+      async (store) => {
+        await store.deleteExpired(now);
+        const states = await store.getMany([GLOBAL_SCOPE_KEY, key]);
+
+        await releaseConcurrencyState({
+          store,
+          state: states.get(GLOBAL_SCOPE_KEY) || null,
+          scopeKey: GLOBAL_SCOPE_KEY,
+        });
+        await releaseConcurrencyState({
+          store,
+          state: states.get(key) || null,
+          scopeKey: key,
+        });
+      }
+    );
+  }
+
+  private getNow(): number {
+    return (this.config.now ?? Date.now)();
+  }
+}
+
+const GLOBAL_SCOPE_KEY = '__global__';
+
+function createLazyDbRateLimitStore(): RateLimitStore {
+  let dbStorePromise: Promise<RateLimitStore> | null = null;
+
+  return {
+    async withLock(bucket, scopeKeys, fn) {
+      dbStorePromise =
+        dbStorePromise ||
+        import('@/shared/lib/api/rate-limit-store.db').then((mod) =>
+          mod.createDbRateLimitStore()
+        );
+
+      const dbStore = await dbStorePromise;
+      return dbStore.withLock(bucket, scopeKeys, fn);
+    },
+  };
+}
+
+function createConcurrencyState(
+  bucket: string,
+  scopeKey: string,
+  now: number,
+  leaseMs: number
+) {
+  return {
+    bucket,
+    scopeKey,
+    lastActionAt: null,
+    windowStartedAt: null,
+    count: 0,
+    inflight: 0,
+    expiresAt: now + leaseMs,
+  };
+}
+
+async function releaseConcurrencyState({
+  store,
+  state,
+  scopeKey,
+}: {
+  store: LockedRateLimitStore;
+  state: {
+    bucket: string;
+    scopeKey: string;
+    lastActionAt: number | null;
+    windowStartedAt: number | null;
+    count: number;
+    inflight: number;
+    expiresAt: number;
+  } | null;
+  scopeKey: string;
+}) {
+  if (!state) return;
+
+  const nextInflight = Math.max(0, state.inflight - 1);
+  if (nextInflight === 0) {
+    await store.delete(scopeKey);
+    return;
+  }
+
+  await store.set({
+    ...state,
+    inflight: nextInflight,
+  });
 }

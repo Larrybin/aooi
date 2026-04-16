@@ -22,6 +22,7 @@ type StorageUploadRouteDeps = {
   }>;
   uploadImageFiles: typeof uploadImageFiles;
   getStorageService: typeof getStorageService;
+  concurrencyLimiter: Pick<DualConcurrencyLimiter, 'acquire' | 'release'>;
 };
 
 function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
@@ -42,6 +43,9 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
       const mod = await import('@/shared/services/storage');
       return await mod.getStorageService();
     },
+    concurrencyLimiter: new DualConcurrencyLimiter(
+      STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG
+    ),
   };
 }
 
@@ -55,15 +59,12 @@ function buildStorageUploadImagePostLogic(
   overrides: Partial<StorageUploadRouteDeps> = {}
 ) {
   const deps = { ...getDefaultStorageUploadRouteDeps(), ...overrides };
-  const storageUploadConcurrencyLimiter = new DualConcurrencyLimiter(
-    STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG
-  );
 
   return async (req: Request) => {
     const api = await deps.getApiContext(req);
     const { log } = api;
     const user = await api.requireUser();
-    if (!storageUploadConcurrencyLimiter.acquire(user.id)) {
+    if (!(await deps.concurrencyLimiter.acquire(user.id))) {
       throw new TooManyRequestsError('too many concurrent uploads');
     }
 
@@ -90,7 +91,7 @@ function buildStorageUploadImagePostLogic(
         results: uploadResults,
       });
     } finally {
-      storageUploadConcurrencyLimiter.release(user.id);
+      await deps.concurrencyLimiter.release(user.id);
     }
   };
 }

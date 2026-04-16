@@ -42,6 +42,7 @@ type AiQueryRouteDeps = {
   findAITaskById: (id: string) => Promise<AiTaskLike | undefined>;
   updateAITaskById: (id: string, updateAITask: UpdateAITask) => Promise<unknown>;
   getAIService: () => Promise<AiService>;
+  rateLimiter: Pick<CooldownLimiter, 'checkAndConsume' | 'clear'>;
   now: () => number;
 };
 
@@ -67,6 +68,7 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
       const mod = await import('@/shared/services/ai');
       return await mod.getAIService();
     },
+    rateLimiter: new CooldownLimiter(AI_QUERY_RATE_LIMIT_CONFIG),
     now: Date.now,
   };
 }
@@ -101,10 +103,6 @@ function buildAiQueryPostLogic(
   overrides: Partial<AiQueryRouteDeps> = {}
 ) {
   const deps = { ...getDefaultAiQueryRouteDeps(), ...overrides };
-  const aiQueryRateLimiter = new CooldownLimiter({
-    ...AI_QUERY_RATE_LIMIT_CONFIG,
-    now: deps.now,
-  });
 
   return async (req: Request) => {
     await deps.requireAiEnabled();
@@ -128,13 +126,13 @@ function buildAiQueryPostLogic(
     }
 
     if (isFinalTaskStatus(task.status)) {
-      aiQueryRateLimiter.clear(task.id);
+      await deps.rateLimiter.clear(task.id);
       return jsonOk(toTaskResponse(task), {
         headers: { 'Cache-Control': 'no-store' },
       });
     }
 
-    if (!aiQueryRateLimiter.checkAndConsume(task.id).allowed) {
+    if (!(await deps.rateLimiter.checkAndConsume(task.id)).allowed) {
       return jsonOk(toTaskResponse(task), {
         headers: { 'Cache-Control': 'no-store' },
       });

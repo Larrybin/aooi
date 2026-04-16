@@ -230,7 +230,7 @@ export async function getAuthOptions(request?: Request) {
                 error,
               });
             } finally {
-              await releaseResetPasswordQuota(quota.inflightId).catch(
+              await releaseResetPasswordQuota(quota.scopeKey).catch(
                 (error: unknown) => {
                   logger.error(
                     '[auth] sendResetPassword throttle release failed',

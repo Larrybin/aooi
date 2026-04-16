@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createMemoryRateLimitStore } from './rate-limit-store';
 import {
   CooldownLimiter,
   DualConcurrencyLimiter,
@@ -8,175 +9,145 @@ import {
   FixedWindowQuotaLimiter,
 } from './limiters';
 
-test('CooldownLimiter: 冷却窗口内拒绝并返回 retryAfterSeconds', () => {
+test('CooldownLimiter: 冷却窗口内拒绝并返回 retryAfterSeconds', async () => {
   let now = 1_000;
   const limiter = new CooldownLimiter({
+    bucket: 'test.cooldown.check',
     minIntervalMs: 1_000,
     ttlMs: 10_000,
-    maxEntries: 100,
     now: () => now,
+    store: createMemoryRateLimitStore(),
   });
 
-  assert.equal(limiter.checkAndConsume('u1').allowed, true);
+  assert.equal((await limiter.checkAndConsume('u1')).allowed, true);
 
   now = 1_500;
-  const denied = limiter.check('u1');
+  const denied = await limiter.check('u1');
   assert.equal(denied.allowed, false);
   assert.equal(denied.retryAfterSeconds, 1);
 
   now = 2_100;
-  assert.equal(limiter.check('u1').allowed, true);
+  assert.equal((await limiter.check('u1')).allowed, true);
 });
 
-test('CooldownLimiter: rollback 只撤销同一时间戳写入', () => {
+test('CooldownLimiter: rollback 只撤销同一时间戳写入', async () => {
   const limiter = new CooldownLimiter({
+    bucket: 'test.cooldown.rollback',
     minIntervalMs: 1_000,
     ttlMs: 10_000,
-    maxEntries: 100,
+    store: createMemoryRateLimitStore(),
   });
 
-  const first = limiter.consume('u1', 1_000);
-  const second = limiter.consume('u1', 2_000);
-  limiter.rollback('u1', first);
-  assert.equal(limiter.check('u1', 2_100).allowed, false);
+  const first = await limiter.consume('u1', 1_000);
+  const second = await limiter.consume('u1', 2_000);
+  await limiter.rollback('u1', first);
+  assert.equal((await limiter.check('u1', 2_100)).allowed, false);
 
-  limiter.rollback('u1', second);
-  assert.equal(limiter.check('u1', 2_100).allowed, true);
+  await limiter.rollback('u1', second);
+  assert.equal((await limiter.check('u1', 2_100)).allowed, true);
 });
 
-test('CooldownLimiter: TTL 过期后自动清理并放行', () => {
+test('CooldownLimiter: TTL 过期后自动清理并放行', async () => {
   let now = 1_000;
   const limiter = new CooldownLimiter({
+    bucket: 'test.cooldown.ttl',
     minIntervalMs: 10_000,
     ttlMs: 1_000,
-    maxEntries: 100,
-    cleanupEvery: 0,
     now: () => now,
+    store: createMemoryRateLimitStore(),
   });
 
-  limiter.consume('u1');
+  await limiter.consume('u1');
   now = 2_500;
-  assert.equal(limiter.check('u1').allowed, true);
+  assert.equal((await limiter.check('u1')).allowed, true);
 });
 
-test('CooldownLimiter: 超过 maxEntries 后会裁剪旧 key', () => {
-  let now = 1_000;
-  const limiter = new CooldownLimiter({
-    minIntervalMs: 10_000,
-    ttlMs: 60_000,
-    maxEntries: 2,
-    cleanupEvery: 0,
-    now: () => now,
-  });
-
-  limiter.consume('u1');
-  now = 1_001;
-  limiter.consume('u2');
-  now = 1_002;
-  limiter.consume('u3');
-
-  now = 1_003;
-  assert.equal(limiter.check('u1').allowed, true);
-});
-
-test('FixedWindowAttemptLimiter: 达到上限后拒绝，成功后可清空', () => {
+test('FixedWindowAttemptLimiter: 达到上限后拒绝，成功后可清空', async () => {
   let now = 1_000;
   const limiter = new FixedWindowAttemptLimiter({
+    bucket: 'test.attempt.window',
     windowMs: 10_000,
     maxAttempts: 3,
-    maxEntries: 100,
     now: () => now,
+    store: createMemoryRateLimitStore(),
   });
 
-  assert.equal(limiter.recordFailure('u1').attempts, 1);
-  assert.equal(limiter.recordFailure('u1').attempts, 2);
-  const third = limiter.recordFailure('u1');
+  assert.equal((await limiter.recordFailure('u1')).attempts, 1);
+  assert.equal((await limiter.recordFailure('u1')).attempts, 2);
+  const third = await limiter.recordFailure('u1');
   assert.equal(third.attempts, 3);
   assert.equal(typeof third.retryAfterSeconds, 'number');
 
-  const denied = limiter.check('u1');
+  const denied = await limiter.check('u1');
   assert.equal(denied.allowed, false);
   assert.equal(typeof denied.retryAfterSeconds, 'number');
 
-  limiter.clear('u1');
-  assert.equal(limiter.check('u1').allowed, true);
+  await limiter.clear('u1');
+  assert.equal((await limiter.check('u1')).allowed, true);
 
   now = 20_000;
-  assert.equal(limiter.check('u1').allowed, true);
+  assert.equal((await limiter.check('u1')).allowed, true);
 });
 
-test('FixedWindowAttemptLimiter: 窗口过期后自动放行', () => {
+test('FixedWindowAttemptLimiter: 窗口过期后自动放行', async () => {
   let now = 1_000;
   const limiter = new FixedWindowAttemptLimiter({
+    bucket: 'test.attempt.expire',
     windowMs: 1_000,
     maxAttempts: 1,
-    maxEntries: 100,
-    cleanupEvery: 0,
     now: () => now,
+    store: createMemoryRateLimitStore(),
   });
 
-  limiter.recordFailure('u1');
-  assert.equal(limiter.check('u1').allowed, false);
+  await limiter.recordFailure('u1');
+  assert.equal((await limiter.check('u1')).allowed, false);
 
   now = 2_001;
-  assert.equal(limiter.check('u1').allowed, true);
+  assert.equal((await limiter.check('u1')).allowed, true);
 });
 
-test('FixedWindowAttemptLimiter: 超过 maxEntries 后会裁剪旧 key', () => {
-  let now = 1_000;
-  const limiter = new FixedWindowAttemptLimiter({
-    windowMs: 10_000,
-    maxAttempts: 1,
-    maxEntries: 2,
-    cleanupEvery: 0,
-    now: () => now,
-  });
-
-  limiter.recordFailure('u1');
-  now = 1_001;
-  limiter.recordFailure('u2');
-  now = 1_002;
-  limiter.recordFailure('u3');
-
-  now = 1_003;
-  assert.equal(limiter.check('u1').allowed, true);
-});
-
-test('FixedWindowQuotaLimiter: 同时覆盖次数上限和并发上限', () => {
+test('FixedWindowQuotaLimiter: 同时覆盖次数上限和并发上限', async () => {
   let now = 1_000;
   const limiter = new FixedWindowQuotaLimiter({
+    bucket: 'test.quota.window',
     windowMs: 10_000,
     maxAttempts: 2,
     maxConcurrent: 1,
-    maxEntries: 100,
     now: () => now,
+    store: createMemoryRateLimitStore(),
   });
 
-  assert.equal(limiter.acquire('u1').allowed, true);
-  const concurrencyDenied = limiter.acquire('u1');
+  assert.equal((await limiter.acquire('u1')).allowed, true);
+  const concurrencyDenied = await limiter.acquire('u1');
   assert.equal(concurrencyDenied.allowed, false);
   assert.equal(concurrencyDenied.reason, 'concurrency_limit');
 
-  limiter.release('u1');
-  assert.equal(limiter.acquire('u1').allowed, true);
-  limiter.release('u1');
+  await limiter.release('u1');
+  assert.equal((await limiter.acquire('u1')).allowed, true);
+  await limiter.release('u1');
 
-  const rateDenied = limiter.acquire('u1');
+  const rateDenied = await limiter.acquire('u1');
   assert.equal(rateDenied.allowed, false);
   assert.equal(rateDenied.reason, 'rate_limited');
 
   now = 20_000;
-  assert.equal(limiter.acquire('u1').allowed, true);
+  assert.equal((await limiter.acquire('u1')).allowed, true);
 });
 
-test('DualConcurrencyLimiter: 同时限制全局并发和单 key 并发', () => {
-  const limiter = new DualConcurrencyLimiter({ maxGlobal: 2, maxPerKey: 1 });
+test('DualConcurrencyLimiter: 同时限制全局并发和单 key 并发', async () => {
+  const limiter = new DualConcurrencyLimiter({
+    bucket: 'test.concurrency.dual',
+    maxGlobal: 2,
+    maxPerKey: 1,
+    leaseMs: 5_000,
+    store: createMemoryRateLimitStore(),
+  });
 
-  assert.equal(limiter.acquire('u1'), true);
-  assert.equal(limiter.acquire('u1'), false);
-  assert.equal(limiter.acquire('u2'), true);
-  assert.equal(limiter.acquire('u3'), false);
+  assert.equal(await limiter.acquire('u1'), true);
+  assert.equal(await limiter.acquire('u1'), false);
+  assert.equal(await limiter.acquire('u2'), true);
+  assert.equal(await limiter.acquire('u3'), false);
 
-  limiter.release('u1');
-  assert.equal(limiter.acquire('u3'), true);
+  await limiter.release('u1');
+  assert.equal(await limiter.acquire('u3'), true);
 });

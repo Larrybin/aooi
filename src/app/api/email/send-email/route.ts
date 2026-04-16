@@ -44,6 +44,7 @@ type SendEmailRouteDeps = {
   buildVerificationCodeEmailPayload: (
     input: Parameters<BuildVerificationCodeEmailPayload>[0]
   ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
+  rateLimiter: Pick<CooldownLimiter, 'check' | 'consume' | 'rollback'>;
   now: () => number;
   randomInt: typeof randomInt;
 };
@@ -74,6 +75,7 @@ function getDefaultSendEmailRouteDeps(): SendEmailRouteDeps {
       const mod = await import('@/shared/content/email/verification-code');
       return mod.buildVerificationCodeEmailPayload(input);
     },
+    rateLimiter: new CooldownLimiter(SEND_EMAIL_RATE_LIMIT_CONFIG),
     now: Date.now,
     randomInt,
   };
@@ -95,10 +97,6 @@ function buildSendEmailPostLogic(
   overrides: Partial<SendEmailRouteDeps> = {}
 ) {
   const deps = { ...getDefaultSendEmailRouteDeps(), ...overrides };
-  const sendEmailRateLimiter = new CooldownLimiter({
-    ...SEND_EMAIL_RATE_LIMIT_CONFIG,
-    now: deps.now,
-  });
 
   return async (req: Request) => {
     const api = await deps.getApiContext(req);
@@ -119,15 +117,16 @@ function buildSendEmailPostLogic(
     const now = deps.now();
 
     const throttled = recipients
-      .map((email) => {
+      .map(async (email) => {
         const key = `${user.id}|${email}`;
-        const throttleCheck = sendEmailRateLimiter.check(key, now);
+        const throttleCheck = await deps.rateLimiter.check(key, now);
         if (throttleCheck.allowed) {
           return null;
         }
         return { email, retryAfterSeconds: throttleCheck.retryAfterSeconds ?? 1 };
       })
-      .filter(
+    const throttledResults = await Promise.all(throttled);
+    const throttledEmails = throttledResults.filter(
         (
           x
         ): x is {
@@ -136,9 +135,9 @@ function buildSendEmailPostLogic(
         } => x !== null
       );
 
-    if (throttled.length > 0) {
+    if (throttledEmails.length > 0) {
       const retryAfterSeconds = Math.max(
-        ...throttled.map((item) => item.retryAfterSeconds)
+        ...throttledEmails.map((item) => item.retryAfterSeconds)
       );
       log.warn('[API] send email throttled', {
         userId: user.id,
@@ -159,10 +158,10 @@ function buildSendEmailPostLogic(
 
     for (const email of recipients) {
       const rateLimitKey = `${user.id}|${email}`;
-      const consumedAt = sendEmailRateLimiter.consume(rateLimitKey, now);
+      const consumedAt = await deps.rateLimiter.consume(rateLimitKey, now);
 
       const rollbackRateLimit = () => {
-        sendEmailRateLimiter.rollback(rateLimitKey, consumedAt);
+        return deps.rateLimiter.rollback(rateLimitKey, consumedAt);
       };
 
       const code = String(deps.randomInt(0, 1_000_000)).padStart(6, '0');
@@ -175,7 +174,7 @@ function buildSendEmailPostLogic(
           code,
         });
       } catch (error: unknown) {
-        rollbackRateLimit();
+        await rollbackRateLimit();
         log.error('[API] persist verification code failed', {
           error,
           userId: user.id,
@@ -203,7 +202,7 @@ function buildSendEmailPostLogic(
           ...(await deps.buildVerificationCodeEmailPayload({ code })),
         });
       } catch (error: unknown) {
-        rollbackRateLimit();
+        await rollbackRateLimit();
         void deps.deleteEmailVerificationCodeById(verification.id).catch(
           (cleanupError: unknown) => {
             log.error('[API] rollback verification code failed', {
@@ -231,7 +230,7 @@ function buildSendEmailPostLogic(
       }
 
       if (!sendResult.success) {
-        rollbackRateLimit();
+        await rollbackRateLimit();
         void deps.deleteEmailVerificationCodeById(verification.id).catch(
           (cleanupError: unknown) => {
             log.error('[API] rollback verification code failed', {
