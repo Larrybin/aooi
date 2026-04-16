@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
-import { PUBLIC_SETTING_NAMES } from '@/shared/constants/public-setting-names';
+import {
+  ALL_SETTINGS,
+  type KnownSettingKey,
+} from '@/shared/services/settings/registry';
 import {
   SETTING_TAB_NAMES,
   type SettingTabName,
@@ -17,32 +17,6 @@ import {
   PRODUCT_MODULE_VERIFICATIONS,
   getProductModuleItemsByTab,
 } from './index';
-
-const currentDir = path.dirname(fileURLToPath(import.meta.url));
-const settingsDefinitionsDir = path.resolve(
-  currentDir,
-  '../../shared/services/settings/definitions'
-);
-
-async function getSettingDefinitionNames() {
-  const files = (await readdir(settingsDefinitionsDir)).filter((file) =>
-    file.endsWith('.ts')
-  );
-  const settingNames = new Set<string>();
-
-  for (const file of files) {
-    const content = await readFile(
-      path.resolve(settingsDefinitionsDir, file),
-      'utf8'
-    );
-
-    for (const match of content.matchAll(/name:\s*'([^']+)'/g)) {
-      settingNames.add(match[1]);
-    }
-  }
-
-  return settingNames;
-}
 
 test('PRODUCT_MODULES: module id 唯一', () => {
   const ids = PRODUCT_MODULES.map((module) => module.id);
@@ -81,20 +55,25 @@ test('PRODUCT_MODULES: ownedTabs / supportingTabs 只引用有效 tab 且不交�
   }
 });
 
-test('PRODUCT_MODULES: settingKeys 都能在 settings definitions 或 public settings 中找到', async () => {
-  const settingDefinitionNames = await getSettingDefinitionNames();
-  const validSettingKeys = new Set<string>([
-    ...settingDefinitionNames,
-    ...PUBLIC_SETTING_NAMES,
-  ]);
+test('PRODUCT_MODULES: settingKeys 精确等于 registry 按 moduleId 分组后的结果', () => {
+  const grouped = new Map<string, KnownSettingKey[]>();
+
+  for (const setting of ALL_SETTINGS) {
+    const existing = grouped.get(setting.moduleId);
+    if (existing) {
+      existing.push(setting.name);
+      continue;
+    }
+
+    grouped.set(setting.moduleId, [setting.name]);
+  }
 
   for (const productModule of PRODUCT_MODULES) {
-    for (const settingKey of productModule.settingKeys) {
-      assert.ok(
-        validSettingKeys.has(settingKey),
-        `${productModule.id} 引用了未知 setting key: ${settingKey}`
-      );
-    }
+    assert.deepEqual(
+      productModule.settingKeys,
+      grouped.get(productModule.id) ?? [],
+      `${productModule.id} 的 settingKeys 未与 settings registry 对齐`
+    );
   }
 });
 

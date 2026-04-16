@@ -1,22 +1,54 @@
-import 'server-only';
+import type { SettingDefinition } from '../types';
+import {
+  normalizeCreemProductIds,
+  normalizeStripePaymentMethods,
+} from '../value-rules';
 
-import type { Setting } from '../types';
+const basicPaymentGroup = {
+  id: 'basic_payment',
+  titleKey: 'groups.basic_payment',
+  description: 'custom your basic payment settings',
+} as const;
 
-export const paymentSettings: Setting[] = [
+const stripeGroup = {
+  id: 'stripe',
+  titleKey: 'groups.stripe',
+  description:
+    'custom your <a href="https://stripe.com" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Stripe</a> settings',
+} as const;
+
+const creemGroup = {
+  id: 'creem',
+  titleKey: 'groups.creem',
+  description:
+    'custom your <a href="https://www.creem.io" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Creem</a> settings',
+} as const;
+
+const paypalGroup = {
+  id: 'paypal',
+  titleKey: 'groups.paypal',
+  description: 'custom your paypal settings',
+} as const;
+
+export const paymentSettings = [
   {
     name: 'select_payment_enabled',
     title: 'Select Payment Method Enabled',
     type: 'switch',
+    moduleId: 'billing',
+    visibility: 'public',
     value: 'false',
     tip: 'whether allow users to select payment method, if disabled, the default payment provider will be used',
     placeholder: '',
-    group: 'basic_payment',
+    group: basicPaymentGroup,
     tab: 'payment',
   },
   {
     name: 'default_payment_provider',
     title: 'Default Payment Provider',
     type: 'select',
+    moduleId: 'billing',
+    visibility: 'public',
     value: 'stripe',
     options: [
       {
@@ -33,47 +65,57 @@ export const paymentSettings: Setting[] = [
       },
     ],
     tip: 'Choose the default payment provider to use',
-    group: 'basic_payment',
+    group: basicPaymentGroup,
     tab: 'payment',
   },
   {
     name: 'stripe_enabled',
     title: 'Stripe Enabled',
     type: 'switch',
+    moduleId: 'billing',
+    visibility: 'public',
     value: 'false',
     placeholder: '',
-    group: 'stripe',
+    group: stripeGroup,
     tab: 'payment',
   },
   {
     name: 'stripe_publishable_key',
     title: 'Stripe Publishable Key',
     type: 'text',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: 'pk_',
-    group: 'stripe',
+    group: stripeGroup,
     tab: 'payment',
   },
   {
     name: 'stripe_secret_key',
     title: 'Stripe Secret Key',
     type: 'password',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: 'sk_',
-    group: 'stripe',
+    group: stripeGroup,
     tab: 'payment',
   },
   {
     name: 'stripe_signing_secret',
     title: 'Stripe Signing Secret',
     type: 'password',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: 'whsec_',
     tip: 'Stripe Signing Secret is used to verify the webhook notification from Stripe',
-    group: 'stripe',
+    group: stripeGroup,
     tab: 'payment',
   },
   {
     name: 'stripe_payment_methods',
     title: 'Stripe Payment Methods',
     type: 'checkbox',
+    moduleId: 'billing',
+    visibility: 'private',
     tip: 'If not set, only card payment method will be enabled.',
     options: [
       { title: 'Card', value: 'card' },
@@ -81,43 +123,52 @@ export const paymentSettings: Setting[] = [
       { title: 'Alipay', value: 'alipay' },
     ],
     value: ['card'],
-    group: 'stripe',
+    group: stripeGroup,
     tab: 'payment',
+    normalizer: normalizeStripePaymentMethods,
   },
   {
     name: 'creem_enabled',
     title: 'Creem Enabled',
     type: 'switch',
+    moduleId: 'billing',
+    visibility: 'public',
     value: 'false',
-    group: 'creem',
+    group: creemGroup,
     tab: 'payment',
   },
   {
     name: 'creem_environment',
     title: 'Creem Environment',
     type: 'select',
+    moduleId: 'billing',
+    visibility: 'private',
     value: 'sandbox',
     options: [
       { title: 'Sandbox', value: 'sandbox' },
       { title: 'Production', value: 'production' },
     ],
-    group: 'creem',
+    group: creemGroup,
     tab: 'payment',
   },
   {
     name: 'creem_api_key',
     title: 'Creem API Key',
     type: 'password',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: 'creem_',
-    group: 'creem',
+    group: creemGroup,
     tab: 'payment',
   },
   {
     name: 'creem_signing_secret',
     title: 'Creem Signing Secret',
     type: 'password',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: 'whsec_',
-    group: 'creem',
+    group: creemGroup,
     tab: 'payment',
     tip: 'Creem Signing Secret is used to verify the webhook notification from Creem',
   },
@@ -125,6 +176,8 @@ export const paymentSettings: Setting[] = [
     name: 'creem_product_ids',
     title: 'Creem Product IDs Mapping',
     type: 'textarea',
+    moduleId: 'billing',
+    visibility: 'private',
     attributes: {
       rows: 6,
     },
@@ -133,53 +186,64 @@ export const paymentSettings: Setting[] = [
   "standard-monthly": "prod_",
   "premium-yearly": "prod_"
 }`,
-    group: 'creem',
+    group: creemGroup,
     tab: 'payment',
     tip: 'Map the product_id in pricing table to <a href="https://www.creem.io/dashboard/products" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">payment_product_id</a> created in Creem. Must be a valid JSON object.',
+    normalizer: normalizeCreemProductIds,
   },
   {
     name: 'paypal_enabled',
     title: 'Paypal Enabled',
     type: 'switch',
+    moduleId: 'billing',
+    visibility: 'public',
     value: 'false',
-    group: 'paypal',
+    group: paypalGroup,
     tab: 'payment',
   },
   {
     name: 'paypal_environment',
     title: 'Paypal Environment',
     type: 'select',
+    moduleId: 'billing',
+    visibility: 'private',
     value: 'sandbox',
     options: [
       { title: 'Sandbox', value: 'sandbox' },
       { title: 'Production', value: 'production' },
     ],
-    group: 'paypal',
+    group: paypalGroup,
     tab: 'payment',
   },
   {
     name: 'paypal_client_id',
     title: 'Paypal Client ID',
     type: 'text',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: '',
-    group: 'paypal',
+    group: paypalGroup,
     tab: 'payment',
   },
   {
     name: 'paypal_client_secret',
     title: 'Paypal Client Secret',
     type: 'password',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: '',
-    group: 'paypal',
+    group: paypalGroup,
     tab: 'payment',
   },
   {
     name: 'paypal_webhook_id',
     title: 'Paypal Webhook ID',
     type: 'text',
+    moduleId: 'billing',
+    visibility: 'private',
     placeholder: '',
-    group: 'paypal',
+    group: paypalGroup,
     tab: 'payment',
     tip: 'Paypal webhook id is used to verify webhook notification signatures.',
   },
-];
+] as const satisfies readonly SettingDefinition[];

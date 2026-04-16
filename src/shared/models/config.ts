@@ -6,11 +6,14 @@ import { db } from '@/core/db';
 import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
-import { PUBLIC_SETTING_NAMES } from '@/shared/constants/public-setting-names';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
 import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
+import {
+  PUBLIC_SETTING_NAMES,
+  type KnownSettingKey,
+} from '@/shared/services/settings/registry';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
@@ -18,14 +21,13 @@ export type UpdateConfig = Partial<Omit<NewConfig, 'name'>>;
 
 export type Configs = Record<string, string>;
 
-// Known keys help avoid cross-module typos; keep in sync with env/db usage
-export type KnownConfigKey =
-  | (typeof PUBLIC_SETTING_NAMES)[number]
+export type RuntimeConfigKey =
   | 'theme'
   | 'locale'
   | 'default_locale'
-  | 'creem_product_ids'
-  | 'default_payment_provider';
+
+// Known keys help avoid cross-module typos; keep in sync with env/db usage
+export type KnownConfigKey = KnownSettingKey | RuntimeConfigKey;
 
 export function getString(
   configs: Configs,

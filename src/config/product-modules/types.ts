@@ -46,14 +46,14 @@ export type ProductModuleVerification =
   (typeof PRODUCT_MODULE_VERIFICATIONS)[number];
 export type ModuleGuideSlug = (typeof MODULE_GUIDE_SLUGS)[number];
 
-export interface ProductModule {
+export interface ProductModule<SettingKey extends string = string> {
   id: ProductModuleId;
   title: string;
   tier: ProductModuleTier;
   verification: ProductModuleVerification;
   ownedTabs: SettingTabName[];
   supportingTabs: SettingTabName[];
-  settingKeys: string[];
+  settingKeys: SettingKey[];
   docSlug: ModuleGuideSlug;
   entryRoutes: string[];
   externalServices: string[];

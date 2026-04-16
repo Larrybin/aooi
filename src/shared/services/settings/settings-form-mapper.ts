@@ -1,6 +1,6 @@
 import type { Form as FormType, FormField } from '@/shared/types/blocks/form';
 
-import type { Setting, SettingGroup } from './types';
+import type { SettingDefinition, SettingGroup } from './types';
 
 export function mapSettingsToForms({
   tab,
@@ -12,7 +12,7 @@ export function mapSettingsToForms({
 }: {
   tab: string;
   groups: SettingGroup[];
-  settings: Setting[];
+  settings: readonly SettingDefinition[];
   configs: Record<string, unknown>;
   submitLabel: string;
   onSubmit: NonNullable<FormType['submit']>['handler'];
@@ -23,13 +23,13 @@ export function mapSettingsToForms({
       title: group.title,
       description: group.description,
       fields: settings
-        .filter((setting) => setting.group === group.name)
+        .filter((setting) => setting.group.id === group.name)
         .map((setting) => ({
           name: setting.name,
           title: setting.title,
           type: setting.type as FormField['type'],
           placeholder: setting.placeholder,
-          group: setting.group,
+          group: setting.group.id,
           options: setting.options,
           tip: setting.tip,
           value: setting.value,

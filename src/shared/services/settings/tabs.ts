@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { getTranslations } from 'next-intl/server';
 
 import type { Tab } from '@/shared/types/blocks/common';

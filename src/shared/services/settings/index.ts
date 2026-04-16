@@ -1,42 +1,25 @@
-import 'server-only';
+import { ALL_SETTINGS } from './registry';
 
-import { adsSettings } from './definitions/ads';
-import { affiliateSettings } from './definitions/affiliate';
-import { aiSettings } from './definitions/ai';
-import { analyticsSettings } from './definitions/analytics';
-import { authSettings } from './definitions/auth';
-import { contentSettings } from './definitions/content';
-import { customerServiceSettings } from './definitions/customer_service';
-import { emailSettings } from './definitions/email';
-import { generalSettings } from './definitions/general';
-import { paymentSettings } from './definitions/payment';
-import { storageSettings } from './definitions/storage';
-import type { Setting } from './types';
-
-export type { Setting, SettingGroup } from './types';
-
-export { getSettingGroups } from './groups';
+export type { SettingDefinition, SettingGroup } from './types';
+export {
+  ALL_SETTINGS,
+  KNOWN_SETTING_KEYS,
+  PUBLIC_SETTING_NAMES,
+  SETTING_DEFINITION_BY_NAME,
+  SETTING_GROUP_REGISTRY,
+  getSettingDefinition,
+  getSettingGroups,
+  getSettingGroupsFromRegistry,
+  isKnownSettingKey,
+  publicSettingNames,
+  type KnownSettingKey,
+  type PublicSettingKey,
+} from './registry';
 export { getSettingTabs } from './tabs';
 export { createSettingsSubmitAction } from './settings-actions';
 export { mapSettingsToForms } from './settings-form-mapper';
 export { normalizeSettingOverrides } from './settings-normalizers';
 
-const ALL_SETTINGS: Setting[] = [
-  ...generalSettings,
-  ...contentSettings,
-  ...authSettings,
-  ...paymentSettings,
-  ...analyticsSettings,
-  ...emailSettings,
-  ...storageSettings,
-  ...aiSettings,
-  ...adsSettings,
-  ...affiliateSettings,
-  ...customerServiceSettings,
-];
-
 export async function getSettings() {
   return ALL_SETTINGS;
 }
-
-export { PUBLIC_SETTING_NAMES as publicSettingNames } from '@/shared/constants/public-setting-names';

@@ -1,66 +1,98 @@
-import 'server-only';
+import type { SettingDefinition } from '../types';
 
-import type { Setting } from '../types';
+const adsBasicGroup = {
+  id: 'ads_basic',
+  titleKey: 'groups.ads_basic',
+  description: 'choose the active ads provider and enable the ads runtime',
+} as const;
 
-export const adsSettings: Setting[] = [
+const adsenseGroup = {
+  id: 'adsense',
+  titleKey: 'groups.adsense',
+  description:
+    'custom your <a href="https://adsense.google.com/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">AdSense</a> runtime and zone settings',
+} as const;
+
+const adsterraGroup = {
+  id: 'adsterra',
+  titleKey: 'groups.adsterra',
+  description:
+    'custom your <a href="https://adsterra.com/blog/set-up-publishers-dashboard/#add-your-first-website-and-start-monetizing" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Adsterra</a> snippet and zone settings',
+} as const;
+
+export const adsSettings = [
   {
     name: 'ads_enabled',
     title: 'Ads Enabled',
     type: 'switch',
+    moduleId: 'ads',
+    visibility: 'private',
     value: 'false',
     tip: 'Enable a single active ads provider for the current site.',
-    group: 'ads_basic',
+    group: adsBasicGroup,
     tab: 'ads',
   },
   {
     name: 'ads_provider',
     title: 'Active Provider',
     type: 'select',
+    moduleId: 'ads',
+    visibility: 'private',
     value: 'adsense',
     options: [
       { title: 'AdSense', value: 'adsense' },
       { title: 'Adsterra', value: 'adsterra' },
     ],
     tip: 'Only one ads provider can be active at a time.',
-    group: 'ads_basic',
+    group: adsBasicGroup,
     tab: 'ads',
   },
   {
     name: 'adsense_client_id',
     title: 'AdSense Client ID',
     type: 'text',
+    moduleId: 'ads',
+    visibility: 'private',
     placeholder: 'ca-pub-',
-    group: 'adsense',
+    group: adsenseGroup,
     tab: 'ads',
   },
   {
     name: 'adsense_slot_landing_inline_primary',
     title: 'AdSense Landing Inline Primary Slot',
     type: 'text',
+    moduleId: 'ads',
+    visibility: 'private',
     placeholder: '1234567890',
-    group: 'adsense',
+    group: adsenseGroup,
     tab: 'ads',
   },
   {
     name: 'adsense_slot_blog_post_inline',
     title: 'AdSense Blog Post Inline Slot',
     type: 'text',
+    moduleId: 'ads',
+    visibility: 'private',
     placeholder: '1234567890',
-    group: 'adsense',
+    group: adsenseGroup,
     tab: 'ads',
   },
   {
     name: 'adsense_slot_blog_post_footer',
     title: 'AdSense Blog Post Footer Slot',
     type: 'text',
+    moduleId: 'ads',
+    visibility: 'private',
     placeholder: '1234567890',
-    group: 'adsense',
+    group: adsenseGroup,
     tab: 'ads',
   },
   {
     name: 'adsterra_mode',
     title: 'Adsterra Mode',
     type: 'select',
+    moduleId: 'ads',
+    visibility: 'private',
     value: 'native_banner',
     options: [
       { title: 'Social Bar', value: 'social_bar' },
@@ -69,64 +101,74 @@ export const adsSettings: Setting[] = [
       { title: 'Display Banner', value: 'display_banner' },
     ],
     tip: 'Choose whether Adsterra runs as a global script mode or as in-page named zones.',
-    group: 'adsterra',
+    group: adsterraGroup,
     tab: 'ads',
   },
   {
     name: 'adsterra_global_snippet',
     title: 'Adsterra Global Snippet',
     type: 'textarea',
+    moduleId: 'ads',
+    visibility: 'private',
     attributes: {
       rows: 8,
     },
     placeholder: `<script type="text/javascript" src="https://example.com/adsterra-global.js"></script>`,
     tip: 'Paste the exact Adsterra code snippet for Social Bar or Popunder. The snippet is rendered into the SSR HTML as-is.',
-    group: 'adsterra',
+    group: adsterraGroup,
     tab: 'ads',
   },
   {
     name: 'adsterra_zone_landing_inline_primary_snippet',
     title: 'Adsterra Landing Inline Primary Snippet',
     type: 'textarea',
+    moduleId: 'ads',
+    visibility: 'private',
     attributes: {
       rows: 8,
     },
     placeholder: `<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script type="text/javascript" src="https://example.com/invoke.js"></script>`,
     tip: 'Paste the exact Adsterra zone snippet for this landing placement.',
-    group: 'adsterra',
+    group: adsterraGroup,
     tab: 'ads',
   },
   {
     name: 'adsterra_zone_blog_post_inline_snippet',
     title: 'Adsterra Blog Post Inline Snippet',
     type: 'textarea',
+    moduleId: 'ads',
+    visibility: 'private',
     attributes: {
       rows: 8,
     },
     placeholder: `<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script type="text/javascript" src="https://example.com/invoke.js"></script>`,
     tip: 'Paste the exact Adsterra zone snippet for the inline blog post placement.',
-    group: 'adsterra',
+    group: adsterraGroup,
     tab: 'ads',
   },
   {
     name: 'adsterra_zone_blog_post_footer_snippet',
     title: 'Adsterra Blog Post Footer Snippet',
     type: 'textarea',
+    moduleId: 'ads',
+    visibility: 'private',
     attributes: {
       rows: 8,
     },
     placeholder: `<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script type="text/javascript" src="https://example.com/invoke.js"></script>`,
     tip: 'Paste the exact Adsterra zone snippet for the footer blog post placement.',
-    group: 'adsterra',
+    group: adsterraGroup,
     tab: 'ads',
   },
   {
     name: 'adsterra_ads_txt_entry',
     title: 'Adsterra ads.txt Entry',
     type: 'text',
+    moduleId: 'ads',
+    visibility: 'private',
     placeholder: 'example.com, publisher-id, DIRECT',
     tip: 'Optional. Paste the exact ads.txt line if Adsterra provides one for your account.',
-    group: 'adsterra',
+    group: adsterraGroup,
     tab: 'ads',
   },
-];
+] as const satisfies readonly SettingDefinition[];

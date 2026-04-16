@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { mapSettingsToForms } from './settings-form-mapper';
+import type { SettingDefinition } from './types';
 
 test('mapSettingsToForms: 仅映射当前 tab 并绑定提交处理器', () => {
   const submitHandler = async () => ({
@@ -20,17 +21,27 @@ test('mapSettingsToForms: 仅映射当前 tab 并绑定提交处理器', () => {
         name: 'app_name',
         title: 'App Name',
         type: 'text',
-        group: 'general_brand',
+        moduleId: 'core_shell',
+        visibility: 'public',
+        group: {
+          id: 'general_brand',
+          titleKey: 'groups.general_brand',
+        },
         tab: 'general',
       },
       {
         name: 'stripe_key',
         title: 'Stripe Key',
         type: 'password',
-        group: 'payment_general',
+        moduleId: 'billing',
+        visibility: 'private',
+        group: {
+          id: 'payment_general',
+          titleKey: 'groups.payment_general',
+        },
         tab: 'payment',
       },
-    ],
+    ] satisfies readonly SettingDefinition[],
     configs: { app_name: 'Demo' },
     submitLabel: 'Save',
     onSubmit: submitHandler,

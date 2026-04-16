@@ -3,10 +3,10 @@
     "general_ui": "介面",
     "general_brand": "品牌",
     "content_modules": "內容模組",
-    "email_auth": "電子郵件驗證",
-    "google_auth": "Google 驗證",
-    "github_auth": "Github 驗證",
-    "basic_payment": "基礎付款",
+    "email_auth": "郵箱認證",
+    "google_auth": "Google 認證",
+    "github_auth": "Github 認證",
+    "basic_payment": "基礎支付",
     "stripe": "Stripe",
     "creem": "Creem",
     "paypal": "Paypal",
@@ -17,12 +17,13 @@
     "openrouter": "OpenRouter",
     "replicate": "Replicate",
     "fal": "Fal",
-    "google_analytics": "Google 分析",
+    "kie": "Kie",
+    "google_analytics": "Google Analytics",
     "clarity": "Clarity",
     "plausible": "Plausible",
     "openpanel": "OpenPanel",
     "vercel_analytics": "Vercel Analytics",
-    "ads_basic": "廣告執行時",
+    "ads_basic": "廣告執行環境",
     "adsense": "AdSense",
     "adsterra": "Adsterra",
     "affonso": "Affonso",
@@ -37,11 +38,11 @@
       "settings": "設定"
     },
     "tabs": {
-      "general": "一般",
+      "general": "通用",
       "content": "內容",
-      "auth": "驗證",
-      "payment": "付款",
-      "email": "電子郵件",
+      "auth": "認證",
+      "payment": "支付",
+      "email": "郵箱",
       "storage": "儲存",
       "ai": "AI",
       "analytics": "分析",
@@ -58,7 +59,7 @@
       "tier_label": "模組層級",
       "verification_label": "驗證狀態",
       "guide_label": "啟用說明",
-      "guide_cta": "打開文件",
+      "guide_cta": "開啟文件",
       "relationship_values": {
         "owned": "所屬",
         "supporting": "支援"
@@ -76,15 +77,15 @@
     },
     "errors": {
       "load_failed_title": "設定載入失敗",
-      "load_failed_desc": "部分配置無法從伺服器載入，相關內容可能無法正常儲存，但你仍然可以瀏覽並切換其他設定。",
-      "global_title": "設定模組發生錯誤",
-      "global_desc": "頁面載入時發生意外錯誤，請稍後重試或聯絡管理員。",
+      "load_failed_desc": "部分設定值無法從伺服器載入，相關內容可能無法正常儲存，但你仍然可以瀏覽和切換其他設定。",
+      "global_title": "設定模組出錯",
+      "global_desc": "頁面載入時發生非預期錯誤，請稍後再試或聯絡管理員。",
       "retry": "重試"
     }
   },
   "brand_preview": {
     "title": "即時預覽",
-    "description": "上傳完成後會立即反映在這裡。儲存後，前台品牌資源會依目前設定生效；若線上仍顯示舊圖，通常是快取造成的。",
+    "description": "上傳完成後會立即反映在這裡。儲存後，前台品牌資源會依照目前設定生效；若線上仍顯示舊圖，通常是快取造成，重新整理後即可看到。",
     "logo": {
       "alt": "Logo 預覽"
     },
@@ -98,7 +99,7 @@
     "preview_card": {
       "title": "分享卡片預覽",
       "headline": "更清楚地展示你的品牌形象",
-      "description": "這裡模擬 Open Graph / Twitter 卡片的展示效果，方便快速判斷標題、站點名稱與預覽圖的整體觀感。"
+      "description": "這裡模擬 Open Graph / Twitter 卡片的展示效果，用來預估分享時的標題、站點名稱與預覽圖觀感。"
     },
     "size_guide": {
       "title": "尺寸建議",

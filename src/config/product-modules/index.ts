@@ -1,4 +1,8 @@
 import type { SettingTabName } from '@/shared/services/settings/tab-names';
+import {
+  ALL_SETTINGS,
+  type KnownSettingKey,
+} from '@/shared/services/settings/registry';
 
 import type {
   ModuleGuideSlug,
@@ -47,7 +51,7 @@ export interface ProductModuleTabItem {
 export const PRODUCT_MODULE_GUIDE_REPO_BASE_URL =
   'https://github.com/Larrybin/aooi/blob/main/docs/guides/';
 
-export const PRODUCT_MODULES: ProductModule[] = [
+const PRODUCT_MODULE_BASES: Omit<ProductModule, 'settingKeys'>[] = [
   {
     id: 'core_shell',
     title: 'Core Shell',
@@ -55,17 +59,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'verified',
     ownedTabs: ['general'],
     supportingTabs: [],
-    settingKeys: [
-      'app_name',
-      'app_url',
-      'app_logo',
-      'app_favicon',
-      'app_og_image',
-      'general_support_email',
-      'general_locale_switcher_enabled',
-      'general_social_links_enabled',
-      'general_social_links',
-    ],
     docSlug: 'module-contract#core-shell',
     entryRoutes: ['/', '/pricing', '/sign-in', '/sign-up'],
     externalServices: [],
@@ -77,18 +70,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: ['auth'],
     supportingTabs: ['email'],
-    settingKeys: [
-      'email_auth_enabled',
-      'google_auth_enabled',
-      'google_one_tap_enabled',
-      'google_client_id',
-      'google_client_secret',
-      'github_auth_enabled',
-      'github_client_id',
-      'github_client_secret',
-      'resend_api_key',
-      'resend_sender_email',
-    ],
     docSlug: 'modules/auth',
     entryRoutes: ['/sign-in', '/sign-up', '/forgot-password'],
     externalServices: ['Google OAuth', 'GitHub OAuth', 'Resend'],
@@ -100,25 +81,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: ['payment'],
     supportingTabs: [],
-    settingKeys: [
-      'select_payment_enabled',
-      'default_payment_provider',
-      'stripe_enabled',
-      'stripe_publishable_key',
-      'stripe_secret_key',
-      'stripe_signing_secret',
-      'stripe_payment_methods',
-      'creem_enabled',
-      'creem_environment',
-      'creem_api_key',
-      'creem_signing_secret',
-      'creem_product_ids',
-      'paypal_enabled',
-      'paypal_environment',
-      'paypal_client_id',
-      'paypal_client_secret',
-      'paypal_webhook_id',
-    ],
     docSlug: 'modules/billing',
     entryRoutes: ['/pricing', '/api/payment/checkout', '/api/payment/notify'],
     externalServices: ['Stripe', 'Creem', 'PayPal'],
@@ -130,7 +92,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'verified',
     ownedTabs: [],
     supportingTabs: [],
-    settingKeys: [],
     docSlug: 'module-contract#admin-settings',
     entryRoutes: ['/admin/settings/general'],
     externalServices: [],
@@ -142,7 +103,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: [],
     supportingTabs: [],
-    settingKeys: [],
     docSlug: 'module-contract#deploy-contract',
     entryRoutes: ['/api/config/get-configs'],
     externalServices: ['Vercel', 'Cloudflare'],
@@ -154,7 +114,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: ['content'],
     supportingTabs: [],
-    settingKeys: ['general_docs_enabled'],
     docSlug: 'modules/docs-blog',
     entryRoutes: ['/docs'],
     externalServices: [],
@@ -166,7 +125,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: ['content'],
     supportingTabs: [],
-    settingKeys: ['general_blog_enabled'],
     docSlug: 'modules/docs-blog',
     entryRoutes: ['/blog'],
     externalServices: [],
@@ -178,13 +136,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: ['ai'],
     supportingTabs: [],
-    settingKeys: [
-      'general_ai_enabled',
-      'openrouter_api_key',
-      'replicate_api_token',
-      'fal_api_key',
-      'kie_api_key',
-    ],
     docSlug: 'modules/ai',
     entryRoutes: ['/ai-chatbot', '/api/ai/notify/test-provider'],
     externalServices: ['OpenRouter', 'Replicate', 'Fal', 'Kie'],
@@ -196,13 +147,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'partial',
     ownedTabs: ['storage'],
     supportingTabs: [],
-    settingKeys: [
-      'r2_access_key',
-      'r2_secret_key',
-      'r2_bucket_name',
-      'r2_endpoint',
-      'r2_domain',
-    ],
     docSlug: 'modules/storage',
     entryRoutes: ['/api/storage/upload-image'],
     externalServices: ['Cloudflare R2'],
@@ -214,14 +158,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'unverified',
     ownedTabs: ['analytics'],
     supportingTabs: [],
-    settingKeys: [
-      'google_analytics_id',
-      'clarity_id',
-      'plausible_domain',
-      'plausible_src',
-      'openpanel_client_id',
-      'vercel_analytics_enabled',
-    ],
     docSlug: 'modules/growth-support',
     entryRoutes: [],
     externalServices: [
@@ -239,7 +175,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'unverified',
     ownedTabs: ['affiliate'],
     supportingTabs: [],
-    settingKeys: ['affonso_enabled', 'promotekit_enabled'],
     docSlug: 'modules/growth-support',
     entryRoutes: [],
     externalServices: ['Affonso', 'PromoteKit'],
@@ -251,7 +186,6 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'unverified',
     ownedTabs: ['customer_service'],
     supportingTabs: ['email'],
-    settingKeys: ['crisp_enabled', 'tawk_enabled'],
     docSlug: 'modules/growth-support',
     entryRoutes: [],
     externalServices: ['Crisp', 'Tawk', 'Resend'],
@@ -263,25 +197,46 @@ export const PRODUCT_MODULES: ProductModule[] = [
     verification: 'unverified',
     ownedTabs: ['ads'],
     supportingTabs: [],
-    settingKeys: [
-      'ads_enabled',
-      'ads_provider',
-      'adsense_client_id',
-      'adsense_slot_landing_inline_primary',
-      'adsense_slot_blog_post_inline',
-      'adsense_slot_blog_post_footer',
-      'adsterra_mode',
-      'adsterra_global_snippet',
-      'adsterra_zone_landing_inline_primary_snippet',
-      'adsterra_zone_blog_post_inline_snippet',
-      'adsterra_zone_blog_post_footer_snippet',
-      'adsterra_ads_txt_entry',
-    ],
     docSlug: 'modules/growth-support',
     entryRoutes: ['/ads.txt'],
     externalServices: ['Google AdSense', 'Adsterra'],
   },
 ];
+
+const PRODUCT_MODULE_BASE_MAP = new Map(
+  PRODUCT_MODULE_BASES.map((module) => [module.id, module] as const)
+);
+
+function createSettingKeysByModuleId() {
+  const grouped = new Map<ProductModuleId, KnownSettingKey[]>();
+
+  for (const setting of ALL_SETTINGS) {
+    const productModuleMeta = PRODUCT_MODULE_BASE_MAP.get(setting.moduleId);
+    if (!productModuleMeta) {
+      throw new Error(
+        `Unknown product module id referenced by setting "${setting.name}": ${setting.moduleId}`
+      );
+    }
+
+    const settingKeys = grouped.get(setting.moduleId);
+    if (settingKeys) {
+      settingKeys.push(setting.name);
+      continue;
+    }
+
+    grouped.set(setting.moduleId, [setting.name]);
+  }
+
+  return grouped;
+}
+
+const SETTING_KEYS_BY_MODULE_ID = createSettingKeysByModuleId();
+
+export const PRODUCT_MODULES: ProductModule<KnownSettingKey>[] =
+  PRODUCT_MODULE_BASES.map((module) => ({
+    ...module,
+    settingKeys: SETTING_KEYS_BY_MODULE_ID.get(module.id) ?? [],
+  }));
 
 export function getProductModulesByTier(tier: ProductModuleTier) {
   return PRODUCT_MODULES.filter((module) => module.tier === tier);
@@ -298,7 +253,7 @@ const PRODUCT_MODULE_ORDER = new Map(
 );
 
 function createProductModuleTabItem(
-  module: ProductModule,
+  module: ProductModule<KnownSettingKey>,
   relationship: ProductModuleTabRelationship
 ): ProductModuleTabItem {
   return {
@@ -340,7 +295,7 @@ export function getProductModuleItemsByTab(tab: SettingTabName) {
 }
 
 export function getProductModuleGuideHref(
-  moduleOrSlug: ProductModule | ModuleGuideSlug
+  moduleOrSlug: ProductModule<KnownSettingKey> | ModuleGuideSlug
 ) {
   const docSlug =
     typeof moduleOrSlug === 'string' ? moduleOrSlug : moduleOrSlug.docSlug;

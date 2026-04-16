@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
 
@@ -19,6 +17,7 @@ import {
 } from '@/shared/models/config';
 
 import { normalizeSettingOverrides } from './settings-normalizers';
+import { mergeRegisteredSettingValues } from './settings-submit-merge';
 
 const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
 
@@ -64,10 +63,11 @@ export function createSettingsSubmitAction({
         return actionErr(normalizedOverrides.error);
       }
 
-      const nextConfigs: Configs = { ...initialConfigs };
-      for (const [name, value] of Object.entries(values)) {
-        nextConfigs[name] = normalizedOverrides.value[name] ?? value;
-      }
+      const nextConfigs = mergeRegisteredSettingValues({
+        initialConfigs,
+        values,
+        normalizedOverrides: normalizedOverrides.value,
+      });
 
       await saveConfigs(nextConfigs);
       revalidateTag(CONFIGS_CACHE_TAG, 'max');
