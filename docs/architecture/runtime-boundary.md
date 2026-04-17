@@ -44,7 +44,7 @@ Anything else stays runtime-agnostic until a new boundary is explicitly introduc
 - `src/shared/lib/api/parse.ts`
 - `src/app/api/ai/notify/[provider]/route.ts`
 - `src/app/api/storage/upload-image/route.ts`
-- `src/extensions/payment/creem-webhook.ts`
+- `src/core/payment/providers/creem-webhook.ts`
 
 ## Removed paths
 

@@ -124,7 +124,7 @@
   - 审查时确认：即便同一通知重复到达，也不会导致重复扣款或重复状态迁移。
 - 金额与币种：
   - 后端以 creem 通知/结算记录为准，前端金额仅用于展示，不参与最终决策。
-  - 金额与币种逻辑应集中在服务端编排层（例如 `src/shared/services/payment/**` + `src/extensions/payment/**`），避免散落在各个 Route / 组件中。
+  - 金额与币种逻辑应集中在服务端编排层（例如 `src/core/payment/flows/**` + `src/core/payment/providers/**`），避免散落在各个 Route / 组件中。
 
 ### 2.5 邮件（resend）
 

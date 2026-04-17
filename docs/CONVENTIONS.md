@@ -99,12 +99,12 @@
 - Server Actions：`src/shared/lib/action/errors.ts`、`src/shared/lib/action/with-action.ts`（`ActionError` / `withAction()`）
 - API 约定文档：`docs/api/reference.md`
 
-### 支付集成（extensions）
+### 支付集成（core/payment）
 
-- Provider 适配：`src/extensions/payment/creem.ts`、`src/extensions/payment/paypal.ts`、`src/extensions/payment/stripe.ts`
-- Provider Adapter（校验/映射）：`src/extensions/payment/adapter.ts`
-- 统一接口与类型：`src/extensions/payment/index.ts`
-- Providers server-only 入口：`src/extensions/payment/providers.ts`（避免 provider 实现被 Client 侧误导入）
+- Canonical 类型入口：`src/core/payment/domain/index.ts`
+- Provider 实现与 runtime：`src/core/payment/providers/creem.ts`、`src/core/payment/providers/paypal.ts`、`src/core/payment/providers/stripe.ts`、`src/core/payment/providers/service.ts`
+- Checkout / credit / pricing / subscription 流程：`src/core/payment/flows/**`
+- Webhook notify / replay pipeline：`src/core/payment/webhooks/**`
 
 ### Email / Storage 集成（extensions）
 

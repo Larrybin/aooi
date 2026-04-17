@@ -94,9 +94,10 @@ function discover(rootDir) {
     p.endsWith('/route.ts')
   );
 
-  const paymentProviders = walkFiles(rootDir, 'src/extensions/payment').filter(
-    (p) => p.endsWith('.ts')
-  );
+  const paymentProviders = walkFiles(
+    rootDir,
+    'src/core/payment/providers'
+  ).filter((p) => p.endsWith('.ts'));
 
   const singleSources = [
     'docs/CONVENTIONS.md',
@@ -172,7 +173,7 @@ function renderDraft(discovery) {
   }
 
   lines.push('');
-  lines.push('### 支付集成（extensions/payment）');
+  lines.push('### 支付集成（core/payment/providers）');
   const paymentSamples = discovery.paymentProviders.slice(0, 10);
   if (paymentSamples.length) {
     for (const p of paymentSamples) lines.push(`- \`${p}\``);

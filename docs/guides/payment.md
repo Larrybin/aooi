@@ -5,14 +5,11 @@ This guide covers the multi-provider payment system supporting one-time payments
 ## Architecture Overview
 
 ```
-src/extensions/payment/
-├── index.ts        # Core interfaces, PaymentManager, types
-├── adapter.ts      # Provider adapter (validation + mapping)
-├── providers.ts    # Provider exports (server-only)
-├── stripe.ts       # Stripe provider implementation
-├── paypal.ts       # PayPal provider implementation
-├── creem.ts        # Creem provider implementation
-└── types.ts        # Additional type definitions
+src/core/payment/
+├── domain/         # Canonical payment contracts and provider interface
+├── providers/      # Stripe / PayPal / Creem providers and runtime assembly
+├── flows/          # Checkout / billing / subscription business flows
+└── webhooks/       # Notify / replay pipelines and webhook orchestration
 
 src/app/api/payment/
 ├── checkout/route.ts              # Create checkout session
@@ -28,7 +25,7 @@ src/app/api/payment/
 In application code, prefer the service-assembled instance (built from the latest configs):
 
 ```typescript
-import { getPaymentService } from '@/shared/services/payment';
+import { getPaymentService } from '@/core/payment/providers/service';
 
 const paymentService = await getPaymentService();
 
@@ -77,10 +74,8 @@ interface PaymentProvider {
 }
 ```
 
-Provider implementations are treated as _drivers_ and are wrapped by `PaymentProviderAdapter` during service assembly (`src/shared/services/payment/manager.ts`). The adapter is responsible for:
-
-- Runtime validation (schema checks) at the provider boundary
-- Converting provider-specific raw payloads into JSON-serializable values before they are persisted/logged
+Provider implementations are treated as drivers under `src/core/payment/providers/**`.
+They depend on canonical contracts from `src/core/payment/domain`, and business flows only consume canonical `PaymentEvent` / `PaymentSession` values.
 
 ## Supported Providers
 
@@ -409,19 +404,19 @@ Pricing is defined in locale files (e.g., `src/config/locale/messages/en/pricing
 
 ## Related Files
 
-- `src/extensions/payment/index.ts` - Core interfaces and PaymentManager
-- `src/extensions/payment/adapter.ts` - Provider adapter (validation + mapping)
-- `src/extensions/payment/stripe.ts` - Stripe implementation
-- `src/extensions/payment/paypal.ts` - PayPal implementation
-- `src/extensions/payment/creem.ts` - Creem implementation
+- `src/core/payment/domain/index.ts` - Canonical types, enums, provider interface
+- `src/core/payment/providers/service.ts` - Payment runtime assembly (`getPaymentService`)
+- `src/core/payment/providers/stripe.ts` - Stripe implementation
+- `src/core/payment/providers/paypal.ts` - PayPal implementation
+- `src/core/payment/providers/creem.ts` - Creem implementation
+- `src/core/payment/webhooks/process-payment-notify.ts` - Notify pipeline
+- `src/core/payment/webhooks/replay.ts` - Replay pipeline
 - `src/app/api/payment/checkout/route.ts` - Checkout API
 - `src/app/api/payment/callback/route.ts` - Checkout callback/finalize
 - `src/app/api/payment/notify/[provider]/route.ts` - Webhook handler
-- `src/shared/services/payment.ts` - Payment service layer
-- `src/shared/services/payment/manager.ts` - Payment service assembly (configs → providers)
-- `src/shared/services/payment/checkout.ts` - Checkout orchestration
-- `src/shared/services/payment/flows.ts` - Order/subscription state transitions
-- `src/shared/services/payment/pricing.ts` - Pricing resolution + allowed providers
+- `src/core/payment/flows/checkout.ts` - Checkout orchestration
+- `src/core/payment/flows/flows.ts` - Order/subscription state transitions
+- `src/core/payment/flows/pricing.ts` - Pricing resolution + allowed providers
 - `src/shared/schemas/api/payment/*.ts` - API request/params schemas
 - `src/shared/blocks/payment/payment-callback.tsx` - Client-side callback finalization
 - `src/shared/services/settings/definitions/payment.ts` - Payment config keys/settings schema

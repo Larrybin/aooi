@@ -180,7 +180,7 @@ export const POST = withApi(async (req: Request) => {
 ### Service Pattern
 
 ```typescript
-// src/shared/services/payment.ts
+// src/core/payment/providers/service.ts
 export async function getPaymentService() {
   const configs = await getAllConfigs();
   const manager = new PaymentManager();

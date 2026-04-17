@@ -32,9 +32,9 @@ Optional modules today:
 src/
 ├── app/           # Route-only: Next.js routes, layouts, route handlers
 ├── features/      # Product surfaces: admin / web / docs
-├── core/          # Foundation: auth, database, i18n, docs source, theme
+├── core/          # Foundation: auth, database, i18n, payment, docs source, theme
 ├── shared/        # Cross-surface primitives, services, utilities, types
-├── extensions/    # Third-party integrations (payment, AI, storage)
+├── extensions/    # Third-party integrations (AI, storage, etc.)
 ├── config/        # Configuration, DB schema, locale messages
 └── themes/        # UI themes
 
@@ -49,8 +49,9 @@ scripts/           # Maintenance and automation scripts
 - `src/features/admin/**`：管理后台面，固定为 `server/` + `schemas/`。
 - `src/features/web/**`：终端用户面，当前承载 `auth/`、`chat/`，各自再分 `components/` 与 `server/`。
 - `src/features/docs/**`：docs/blog 本地内容流水线与 docs 面逻辑，内容入口在 `server/content/**`。
+- `src/core/payment/**`：支付唯一实现根，固定分为 `domain / providers / flows / webhooks`；app 层只做 HTTP 入口与依赖装配。
 - `src/shared/**`：只保留跨面的 UI primitives、hooks/utils/constants/types、以及确认跨面复用的 shell。
-- `src/shared/services/payment/**`、`src/shared/services/settings/**`：继续作为跨面域服务保留在 shared。
+- `src/shared/services/settings/**`：继续作为跨面域服务保留在 shared。
 - `src/shared/content/**`：仅保留跨面的 server-only 内容资产（如邮件模板），不再承载 docs/blog 本地内容流水线。
 
 ## Quick Start
@@ -119,6 +120,13 @@ Read `content/docs` to start your AI SaaS project.
 | [Settings Guide](docs/guides/settings.md)         | User and admin settings surfaces              |
 | [Payment Guide](docs/guides/payment.md)           | Multi-provider payment integration            |
 | [Database Guide](docs/guides/database.md)         | Drizzle ORM and migrations                    |
+
+### Smoke Harness
+
+- `scripts/lib/harness/runtime.mjs`：统一管理 env 校验、子进程生命周期、ready/exit 行为和失败日志采样。
+- `scripts/lib/harness/scenario.mjs`：只承载 smoke phase 编排与 cleanup 语义。
+- `scripts/lib/harness/reporter.mjs`：统一 JSON/Markdown/latest report 输出和 harness exit code 规则。
+- `scripts/run-auth-spike.mjs`、`scripts/run-local-auth-spike.mjs`、`scripts/run-cf-auth-spike.mjs`、`scripts/run-cf-admin-settings-smoke.mjs`、`scripts/run-cf-oauth-spike.mjs`、`scripts/run-cf-local-smoke.mjs` 现在都是薄入口，只声明 scenario + runtime 组合。
 
 ### Code Quality
 
