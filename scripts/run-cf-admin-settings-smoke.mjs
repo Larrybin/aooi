@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 
 import * as localeModule from '../src/config/locale/index.ts';
 import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
@@ -12,6 +12,7 @@ import {
   resolveCloudflareLocalDatabaseUrl,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
+import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import { validateCloudflareAppSmokeResponse } from './run-cf-app-smoke.mjs';
 import {
   resolveAuthSecret,
@@ -50,7 +51,8 @@ const SOCIAL_PROVIDER_CONFIGS = {
 
 const localeConfig = localeModule.default ?? localeModule;
 const { defaultLocale, locales } = localeConfig;
-const authSpikeBrowser = authSpikeBrowserModule.default ?? authSpikeBrowserModule;
+const authSpikeBrowser =
+  authSpikeBrowserModule.default ?? authSpikeBrowserModule;
 const {
   assertSignedInSession,
   assertSignedOutSession,
@@ -201,11 +203,15 @@ function safeParseJson(bodyText) {
 }
 
 async function runNodeScript(scriptPath, args, env) {
-  const child = spawn(process.execPath, ['--import', 'tsx', scriptPath, ...args], {
-    cwd: rootDir,
-    env,
-    stdio: 'inherit',
-  });
+  const child = spawn(
+    process.execPath,
+    ['--import', 'tsx', scriptPath, ...args],
+    {
+      cwd: rootDir,
+      env,
+      stdio: 'inherit',
+    }
+  );
 
   const exitCode = await new Promise((resolve) => {
     child.on('exit', (code) => resolve(code ?? 1));
@@ -225,54 +231,6 @@ async function captureFailureScreenshot(page, label) {
     return screenshotPath;
   } catch {
     return null;
-  }
-}
-
-async function runPhase(label, action) {
-  try {
-    return await action();
-  } catch (error) {
-    throw new Error(
-      `[${label}] ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error instanceof Error ? error : undefined }
-    );
-  }
-}
-
-export async function runPhaseSequence({ phases, cleanup }) {
-  let phaseError = null;
-  let cleanupError = null;
-
-  for (const phase of phases) {
-    try {
-      await runPhase(phase.label, phase.action);
-    } catch (error) {
-      phaseError = error instanceof Error ? error : new Error(String(error));
-      break;
-    }
-  }
-
-  if (cleanup) {
-    try {
-      await cleanup();
-    } catch (error) {
-      cleanupError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  if (phaseError && cleanupError) {
-    throw new Error(
-      `${phaseError.message}; [cleanup] ${cleanupError.message}`,
-      { cause: phaseError }
-    );
-  }
-
-  if (phaseError) {
-    throw phaseError;
-  }
-
-  if (cleanupError) {
-    throw cleanupError;
   }
 }
 
@@ -296,13 +254,7 @@ async function withFailureScreenshot(page, label, action) {
   }
 }
 
-async function signUpSmokeUser({
-  harness,
-  baseUrl,
-  email,
-  userName,
-  label,
-}) {
+async function signUpSmokeUser({ harness, baseUrl, email, userName, label }) {
   await signUpWithAuthBrowserHarness({
     harness,
     baseUrl,
@@ -640,8 +592,14 @@ async function assertGeneralReadback({
   await withFreshPage(context, async (page) => {
     await withFailureScreenshot(page, label, async () => {
       await openSettingsTab(page, baseUrl, 'general');
-      assert.equal(await readTextField(page, 'app_name'), expectedValues.app_name);
-      assert.equal(await readTextField(page, 'app_url'), expectedValues.app_url);
+      assert.equal(
+        await readTextField(page, 'app_name'),
+        expectedValues.app_name
+      );
+      assert.equal(
+        await readTextField(page, 'app_url'),
+        expectedValues.app_url
+      );
       assert.equal(
         await readTextField(page, 'general_support_email'),
         expectedValues.general_support_email
@@ -704,7 +662,11 @@ async function runGeneralWriteFailure({ harness, baseUrl, expectedValues }) {
 async function saveAuthConfig({ page, baseUrl, values }) {
   await withFailureScreenshot(page, 'auth-config-save-google', async () => {
     await openSettingsTab(page, baseUrl, 'auth');
-    await setSwitchField(page, 'google_auth_enabled', values.google_auth_enabled);
+    await setSwitchField(
+      page,
+      'google_auth_enabled',
+      values.google_auth_enabled
+    );
     await fillTextField(page, 'google_client_id', values.google_client_id);
     await fillTextField(
       page,
@@ -717,7 +679,11 @@ async function saveAuthConfig({ page, baseUrl, values }) {
 
   await withFailureScreenshot(page, 'auth-config-save-github', async () => {
     await openSettingsTab(page, baseUrl, 'auth');
-    await setSwitchField(page, 'github_auth_enabled', values.github_auth_enabled);
+    await setSwitchField(
+      page,
+      'github_auth_enabled',
+      values.github_auth_enabled
+    );
     await fillTextField(page, 'github_client_id', values.github_client_id);
     await fillTextField(
       page,
@@ -863,7 +829,10 @@ async function runOAuthCase({ baseUrl, mode, provider }) {
         }
 
         await waitForTerminalAuthErrorPage(harness.page);
-        assert(callbackResponse, `[${provider}] denied flow should hit callback`);
+        assert(
+          callbackResponse,
+          `[${provider}] denied flow should hit callback`
+        );
         const callbackLocation = await callbackResponse.headerValue('location');
         assert.equal(
           callbackResponse.status(),
@@ -882,7 +851,9 @@ async function runOAuthCase({ baseUrl, mode, provider }) {
           `[${provider}] denied callback location should expose explicit error semantics`
         );
         assert.equal(
-          new URL(callbackLocation, callbackResponse.url()).searchParams.get('error'),
+          new URL(callbackLocation, callbackResponse.url()).searchParams.get(
+            'error'
+          ),
           'access_denied',
           `[${provider}] denied callback location should preserve access_denied error`
         );
@@ -1202,7 +1173,10 @@ export async function main() {
                 await openSettingsTab(writerHarness.page, baseUrl, 'storage');
                 await fillTextField(writerHarness.page, 'r2_bucket_name', '');
                 await submitFormForField(writerHarness.page, 'r2_access_key');
-                await waitForToastMessage(writerHarness.page, 'Settings updated');
+                await waitForToastMessage(
+                  writerHarness.page,
+                  'Settings updated'
+                );
               }
             );
             await assertStorageUploadDenied({
@@ -1258,7 +1232,8 @@ export async function main() {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   void main().catch((error) => {
-    const message = error instanceof Error ? error.stack || error.message : String(error);
+    const message =
+      error instanceof Error ? error.stack || error.message : String(error);
     console.error(message);
     process.exitCode = 1;
   });

@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { hasAuthErrorQuery, isTerminalAuthErrorUrl } from './auth-spike.browser';
+import { runPhaseSequence } from '../../scripts/lib/harness/scenario.mjs';
 import {
   buildMockProviderCallbackUrl,
   resolveSmokeLocales,
-  runPhaseSequence,
 } from '../../scripts/run-cf-admin-settings-smoke.mjs';
+import {
+  hasAuthErrorQuery,
+  isTerminalAuthErrorUrl,
+} from './auth-spike.browser';
 
 test('runPhaseSequence 按声明顺序执行 phase 并在最后执行 cleanup', async () => {
   const steps: string[] = [];
@@ -149,6 +152,9 @@ test('isTerminalAuthErrorUrl 只在 sign-in 最终错误页返回 true', () => {
     ),
     false
   );
-  assert.equal(isTerminalAuthErrorUrl('http://localhost:8787/settings/profile'), false);
+  assert.equal(
+    isTerminalAuthErrorUrl('http://localhost:8787/settings/profile'),
+    false
+  );
   assert.equal(isTerminalAuthErrorUrl('not-a-url'), false);
 });

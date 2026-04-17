@@ -1,5 +1,3 @@
-import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,6 +14,15 @@ import {
   runCloudflarePreviewSmoke,
   waitForPreviewReady,
 } from './run-cf-preview-smoke.mjs';
+import {
+  createReportArtifacts,
+  formatHarnessSummaryLines,
+  writeReportArtifacts,
+} from './lib/harness/reporter.mjs';
+import {
+  createTimestamp,
+  readCommitShaSafely,
+} from './lib/harness/runtime.mjs';
 
 const authSpikeShared = authSpikeSharedModule.default ?? authSpikeSharedModule;
 const authSpikeBrowser = authSpikeBrowserModule.default ?? authSpikeBrowserModule;
@@ -25,35 +32,13 @@ const rootDir = path.resolve(
   '..'
 );
 
-const timestamp = new Date()
-  .toISOString()
-  .replace(/[-:]/g, '')
-  .replace(/\..+/, '');
-const reportDir = path.resolve(rootDir, '.gstack/projects/Larrybin-aooi');
-const reportBaseName = `cf-auth-spike-report-${timestamp}`;
-const reportJsonPath = path.resolve(reportDir, `${reportBaseName}.json`);
-const reportMarkdownPath = path.resolve(reportDir, `${reportBaseName}.md`);
-const latestJsonPath = path.resolve(reportDir, 'cf-auth-spike-report.latest.json');
-const latestMarkdownPath = path.resolve(
-  reportDir,
-  'cf-auth-spike-report.latest.md'
-);
-const artifactDir = path.resolve(
+const timestamp = createTimestamp();
+const reportPaths = createReportArtifacts({
   rootDir,
-  'output/playwright/cf-auth-spike',
-  timestamp
-);
-
-function readCommitShaSafely() {
-  try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: rootDir,
-      encoding: 'utf8',
-    }).trim();
-  } catch {
-    return 'unknown';
-  }
-}
+  timestamp,
+  reportPrefix: 'cf-auth-spike-report',
+  artifactSubdir: 'cf-auth-spike',
+});
 
 function normalizeCallbackPath(pathname) {
   const raw = pathname?.trim() || '/settings/profile';
@@ -135,12 +120,11 @@ ${surface ? '\n' : ''}${renderResponseSummary('sign-out auth responses', surface
 }
 
 async function writeReports(report) {
-  await mkdir(reportDir, { recursive: true });
-  const markdown = renderMarkdown(report);
-  await writeFile(reportJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  await writeFile(reportMarkdownPath, markdown, 'utf8');
-  await writeFile(latestJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  await writeFile(latestMarkdownPath, markdown, 'utf8');
+  await writeReportArtifacts({
+    paths: reportPaths,
+    report,
+    renderMarkdown,
+  });
 }
 
 async function main() {
@@ -214,7 +198,7 @@ async function main() {
         password,
         callbackPath,
         userName,
-        artifactDir,
+        artifactDir: reportPaths.artifactDir,
       })
     );
   } catch (error) {
@@ -238,12 +222,13 @@ async function main() {
   }
 
   process.stdout.write(
-    [
-      `[cf-auth-spike] report: ${path.relative(rootDir, reportMarkdownPath)}`,
-      `[cf-auth-spike] harness: ${report.harnessStatus}`,
-      `[cf-auth-spike] raw conclusion: ${report.rawConclusion}`,
-      `[cf-auth-spike] email: ${emailUsed}`,
-    ].join('\n') + '\n'
+    `${formatHarnessSummaryLines({
+      label: 'cf-auth-spike',
+      rootDir,
+      reportMarkdownPath: reportPaths.reportMarkdownPath,
+      report,
+      extras: [`[cf-auth-spike] email: ${emailUsed}`],
+    }).join('\n')}\n`
   );
 
   process.exit(report.harnessStatus === 'PASS' ? 0 : 1);

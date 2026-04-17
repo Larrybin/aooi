@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { resolveHarnessExitCode } from '../../scripts/lib/harness/reporter.mjs';
 import {
   renderMarkdown,
-  resolveHarnessExitCode,
   runPreflightChecks,
 } from '../../scripts/run-auth-spike.mjs';
 import { buildSurfaceRunEmails, createEmptyReport } from './auth-spike.shared';

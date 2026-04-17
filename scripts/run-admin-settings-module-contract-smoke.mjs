@@ -1,9 +1,7 @@
-import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 
 import * as adminSettingsSmokeModule from './lib/admin-settings-smoke.ts';
 import {
@@ -14,6 +12,10 @@ import {
   waitForNodeReady,
 } from './run-local-auth-spike.mjs';
 import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
+import {
+  runNodeScript,
+  stopChild,
+} from './lib/harness/runtime.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -42,10 +44,6 @@ function createTempEmail() {
   return `module-contract-smoke+${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function canListenOnPort(port) {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -68,48 +66,6 @@ async function findAvailablePort(startPort) {
   }
 
   throw new Error(`No available local port found from ${startPort}`);
-}
-
-async function waitForChildExit(child, timeoutMs) {
-  if (child.exitCode !== null) {
-    return true;
-  }
-
-  const exitPromise = once(child, 'exit')
-    .then(() => true)
-    .catch(() => false);
-
-  return Promise.race([exitPromise, sleep(timeoutMs).then(() => false)]);
-}
-
-function killChild(child, signal) {
-  if (!child.pid) {
-    return;
-  }
-
-  if (process.platform !== 'win32') {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch {
-      // ignore
-    }
-  }
-
-  child.kill(signal);
-}
-
-async function stopChild(child) {
-  if (!child || child.exitCode !== null) {
-    return;
-  }
-
-  killChild(child, 'SIGINT');
-  const exited = await waitForChildExit(child, 10_000);
-  if (!exited && child.exitCode === null) {
-    killChild(child, 'SIGKILL');
-    await waitForChildExit(child, 5_000);
-  }
 }
 
 async function readLockedNodeInfo() {
@@ -141,22 +97,6 @@ function isProcessAlive(pid) {
     return true;
   } catch {
     return false;
-  }
-}
-
-async function runNodeScript(scriptPath, args, env) {
-  const child = spawn(process.execPath, ['--import', 'tsx', scriptPath, ...args], {
-    cwd: rootDir,
-    env,
-    stdio: 'inherit',
-  });
-
-  const exitCode = await new Promise((resolve) => {
-    child.on('exit', (code) => resolve(code ?? 1));
-  });
-
-  if (exitCode !== 0) {
-    throw new Error(`${scriptPath} exited with code ${exitCode}`);
   }
 }
 
@@ -209,7 +149,11 @@ export async function main() {
 
   try {
     await waitForNodeReady({ baseUrl });
-    await runNodeScript('scripts/init-rbac.ts', [], nodeEnv);
+    await runNodeScript({
+      cwd: rootDir,
+      scriptPath: 'scripts/init-rbac.ts',
+      env: nodeEnv,
+    });
     await signUpWithAuthBrowserHarness({
       harness,
       baseUrl,
@@ -218,11 +162,12 @@ export async function main() {
       callbackPath: '/settings/profile',
       userName: DEFAULT_NAME,
     });
-    await runNodeScript(
-      'scripts/assign-role.ts',
-      [`--email=${email}`, '--role=super_admin'],
-      nodeEnv
-    );
+    await runNodeScript({
+      cwd: rootDir,
+      scriptPath: 'scripts/assign-role.ts',
+      args: [`--email=${email}`, '--role=super_admin'],
+      env: nodeEnv,
+    });
 
     for (const check of getAdminSettingsModuleContractChecks()) {
       await harness.page.goto(`${baseUrl}${check.path}`, {

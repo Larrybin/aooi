@@ -1,9 +1,20 @@
-import { execFileSync, spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import * as authSpikeSharedModule from '../tests/smoke/auth-spike.shared.ts';
+import {
+  createReportArtifacts,
+  formatHarnessSummaryLines,
+  resolveHarnessExitCode,
+  writeReportArtifacts,
+} from './lib/harness/reporter.mjs';
+import {
+  createTimestamp,
+  readCommitShaSafely,
+  sleep,
+} from './lib/harness/runtime.mjs';
 
 const authSpikeShared = authSpikeSharedModule.default ?? authSpikeSharedModule;
 
@@ -11,24 +22,13 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..'
 );
-const reportDir = path.resolve(rootDir, '.gstack/projects/Larrybin-aooi');
-const timestamp = new Date()
-  .toISOString()
-  .replace(/[-:]/g, '')
-  .replace(/\..+/, '');
-const reportBaseName = `auth-spike-report-${timestamp}`;
-const reportJsonPath = path.resolve(reportDir, `${reportBaseName}.json`);
-const reportMarkdownPath = path.resolve(reportDir, `${reportBaseName}.md`);
-const latestJsonPath = path.resolve(reportDir, 'auth-spike-report.latest.json');
-const latestMarkdownPath = path.resolve(
-  reportDir,
-  'auth-spike-report.latest.md'
-);
-const artifactDir = path.resolve(
+const timestamp = createTimestamp();
+const reportPaths = createReportArtifacts({
   rootDir,
-  'output/playwright/auth-spike',
-  timestamp
-);
+  timestamp,
+  reportPrefix: 'auth-spike-report',
+  artifactSubdir: 'auth-spike',
+});
 const PREFLIGHT_CHECK_RETRY_ATTEMPTS = Number.parseInt(
   process.env.AUTH_SPIKE_PREFLIGHT_RETRY_ATTEMPTS || '8',
   10
@@ -37,17 +37,6 @@ const PREFLIGHT_CHECK_RETRY_DELAY_MS = Number.parseInt(
   process.env.AUTH_SPIKE_PREFLIGHT_RETRY_DELAY_MS || '1000',
   10
 );
-
-function readCommitShaSafely() {
-  try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: rootDir,
-      encoding: 'utf8',
-    }).trim();
-  } catch {
-    return 'unknown';
-  }
-}
 
 function getMissingEnvNames() {
   return authSpikeShared.AUTH_SPIKE_REQUIRED_ENV_NAMES.filter(
@@ -66,10 +55,6 @@ function renderCaseRows(surface) {
 
 function escapeTable(value) {
   return String(value).replace(/\|/g, '\\|').replace(/\n/g, '<br>');
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function renderResponseSummary(title, responses) {
@@ -197,20 +182,11 @@ ${responseBlocks}
 }
 
 async function writeReports(report) {
-  await mkdir(reportDir, { recursive: true });
-  const markdown = renderMarkdown(report);
-  await writeFile(
-    reportJsonPath,
-    `${JSON.stringify(report, null, 2)}\n`,
-    'utf8'
-  );
-  await writeFile(reportMarkdownPath, markdown, 'utf8');
-  await writeFile(latestMarkdownPath, markdown, 'utf8');
-  await writeFile(
-    latestJsonPath,
-    `${JSON.stringify(report, null, 2)}\n`,
-    'utf8'
-  );
+  await writeReportArtifacts({
+    paths: reportPaths,
+    report,
+    renderMarkdown,
+  });
 }
 
 async function fetchSurfaceCheck(
@@ -361,14 +337,6 @@ export async function runPreflightChecks(
   return { checks, normalizedCallbackPath };
 }
 
-export function resolveHarnessExitCode(report, childExitCode) {
-  if (typeof childExitCode === 'number' && childExitCode !== 0) {
-    return childExitCode;
-  }
-
-  return report.harnessStatus === 'PASS' ? 0 : 1;
-}
-
 async function main() {
   const missing = getMissingEnvNames();
   if (missing.length > 0) {
@@ -413,19 +381,20 @@ async function main() {
     await writeReports(report);
 
     process.stdout.write(
-      [
-        `[auth-spike] report: ${path.relative(rootDir, reportMarkdownPath)}`,
-        `[auth-spike] harness: ${report.harnessStatus}`,
-        `[auth-spike] raw conclusion: ${report.rawConclusion}`,
-      ].join('\n') + '\n'
+      `${formatHarnessSummaryLines({
+        label: 'auth-spike',
+        rootDir,
+        reportMarkdownPath: reportPaths.reportMarkdownPath,
+        report,
+      }).join('\n')}\n`
     );
     process.exit(resolveHarnessExitCode(report, 0));
   }
 
   const childEnv = {
     ...process.env,
-    AUTH_SPIKE_REPORT_JSON: reportJsonPath,
-    AUTH_SPIKE_ARTIFACT_DIR: artifactDir,
+    AUTH_SPIKE_REPORT_JSON: reportPaths.reportJsonPath,
+    AUTH_SPIKE_ARTIFACT_DIR: reportPaths.artifactDir,
     AUTH_SPIKE_COMMIT_SHA: report.commitSha,
     AUTH_SPIKE_RUN_ID: runId,
     AUTH_SPIKE_CALLBACK_PATH: preflight.normalizedCallbackPath,
@@ -449,7 +418,9 @@ async function main() {
 
   let childReport;
   try {
-    childReport = JSON.parse(await readFile(reportJsonPath, 'utf8'));
+    childReport = JSON.parse(
+      await readFile(reportPaths.reportJsonPath, 'utf8')
+    );
   } catch (error) {
     process.stderr.write(
       `Auth spike test finished with code ${exitCode}, but report JSON is missing: ${String(error)}\n`
@@ -462,11 +433,12 @@ async function main() {
   await writeReports(childReport);
 
   process.stdout.write(
-    [
-      `[auth-spike] report: ${path.relative(rootDir, reportMarkdownPath)}`,
-      `[auth-spike] harness: ${childReport.harnessStatus}`,
-      `[auth-spike] raw conclusion: ${childReport.rawConclusion}`,
-    ].join('\n') + '\n'
+    `${formatHarnessSummaryLines({
+      label: 'auth-spike',
+      rootDir,
+      reportMarkdownPath: reportPaths.reportMarkdownPath,
+      report: childReport,
+    }).join('\n')}\n`
   );
 
   process.exit(resolveHarnessExitCode(childReport, exitCode));

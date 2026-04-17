@@ -1,4 +1,3 @@
-import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -10,6 +9,11 @@ import {
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
 import { ensureCiDevVars } from './lib/cloudflare-dev-runtime.mjs';
+import {
+  sleep,
+  stopChild,
+  waitForManagerReady,
+} from './lib/harness/runtime.mjs';
 import { waitForPreviewReady } from './run-cf-preview-smoke.mjs';
 
 const rootDir = path.resolve(
@@ -82,39 +86,6 @@ export function buildNodeAuthSpikeEnv(baseEnv, options) {
     BETTER_AUTH_SECRET: authSecret,
     AUTH_SECRET: authSecret,
   };
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForChildExit(child, timeoutMs) {
-  if (child.exitCode !== null) {
-    return true;
-  }
-
-  const exitPromise = once(child, 'exit')
-    .then(() => true)
-    .catch(() => false);
-
-  return Promise.race([exitPromise, sleep(timeoutMs).then(() => false)]);
-}
-
-function killChild(child, signal) {
-  if (!child.pid) {
-    return;
-  }
-
-  if (process.platform !== 'win32') {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch {
-      // fall through
-    }
-  }
-
-  child.kill(signal);
 }
 
 export async function waitForNodeReady({
@@ -221,37 +192,10 @@ export function createNodeDevManager({
     child,
     recentLogs,
     async stop() {
-      if (child.exitCode !== null) {
-        return;
-      }
-
       stopping = true;
-      killChild(child, 'SIGINT');
-      const exitedAfterSigint = await waitForChildExit(child, 10_000);
-
-      if (!exitedAfterSigint && child.exitCode === null) {
-        killChild(child, 'SIGKILL');
-        await waitForChildExit(child, 5_000);
-      }
+      await stopChild(child);
     },
   };
-}
-
-async function waitForManagerReady({
-  label,
-  manager,
-  ready,
-}) {
-  const readyPromise = ready();
-  const exitPromise = once(manager.child, 'exit').then(([code, signal]) => {
-    const recentLogs = manager.recentLogs.join('').trim();
-    const details = recentLogs ? `\nRecent logs:\n${recentLogs}` : '';
-    throw new Error(
-      `${label} exited before readiness (code=${code ?? 'null'}, signal=${signal ?? 'null'})${details}`
-    );
-  });
-
-  return Promise.race([readyPromise, exitPromise]);
 }
 
 export async function prepareLocalAuthSpikeDevVars({

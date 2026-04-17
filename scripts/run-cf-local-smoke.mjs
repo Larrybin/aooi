@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { resolveCloudflareAuthSecretValue } from './create-cf-secrets-file.mjs';
 import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
+import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
@@ -55,8 +56,22 @@ export async function runCloudflareLocalSmoke(
   const resolvedBaseUrl = topology.getRouterBaseUrl();
 
   try {
-    await waitForPreviewReadyImpl({ baseUrl: resolvedBaseUrl });
-    await runCloudflareAppSmokeImpl({ baseUrl: resolvedBaseUrl });
+    await runPhaseSequence({
+      phases: [
+        {
+          label: 'preview-ready',
+          action: async () => {
+            await waitForPreviewReadyImpl({ baseUrl: resolvedBaseUrl });
+          },
+        },
+        {
+          label: 'app-smoke',
+          action: async () => {
+            await runCloudflareAppSmokeImpl({ baseUrl: resolvedBaseUrl });
+          },
+        },
+      ],
+    });
   } catch (error) {
     const recentLogs = renderCloudflareLocalTopologyLogs(topology);
     if (recentLogs) {
