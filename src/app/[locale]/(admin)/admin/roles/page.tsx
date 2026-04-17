@@ -1,16 +1,16 @@
 // data: admin session (RBAC) + roles list (db) + includeDeleted flag (query)
 // cache: no-store (request-bound auth/RBAC)
 // reason: role management is permission-gated; avoid caching across admins
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import {
+  AdminRolesListQuerySchema,
+  type AdminRolesListQuery,
+} from '@/features/admin/schemas/list';
 import { desc } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { listRoles, type RoleRecord } from '@/core/rbac';
 import { role } from '@/config/db/schema';
-import { createAdminTablePage } from '@/features/admin/server';
-import {
-  AdminRolesListQuerySchema,
-  type AdminRolesListQuery,
-} from '@/features/admin/schemas/list';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
 export default createAdminTablePage<RoleRecord, AdminRolesListQuery>({

@@ -10,16 +10,16 @@ import { withApi } from '@/shared/lib/api/route';
 import type { getUuid } from '@/shared/lib/hash';
 import type {
   createAITask,
-  updateAITaskById,
   NewAITask,
+  updateAITaskById,
 } from '@/shared/models/ai_task';
 import type { getAllConfigs } from '@/shared/models/config';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
 } from '@/shared/schemas/api/ai/generate';
-import type { resolveConfiguredAICapability } from '@/shared/services/ai-capabilities';
 import type { getAIManagerWithConfigs } from '@/shared/services/ai';
+import type { resolveConfiguredAICapability } from '@/shared/services/ai-capabilities';
 
 type AiGenerateApiContext = {
   log: {
@@ -58,10 +58,8 @@ export type AiGenerateRouteDeps = {
   getUuid: typeof getUuid;
 };
 
-export function createAiGeneratePostHandler(
-  deps: AiGenerateRouteDeps
-) {
-  return withApi(async (request: Request) => {
+export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
+  return async (request: Request) => {
     await deps.requireAiEnabled();
 
     const api = deps.createApiContext(request);
@@ -158,7 +156,9 @@ export function createAiGeneratePostHandler(
       throw new UpstreamError(502, 'ai generate failed');
     }
 
-    const nextTaskInfo = result.taskInfo ? JSON.stringify(result.taskInfo) : null;
+    const nextTaskInfo = result.taskInfo
+      ? JSON.stringify(result.taskInfo)
+      : null;
     const nextTaskResult = result.taskResult
       ? JSON.stringify(result.taskResult)
       : null;
@@ -170,5 +170,9 @@ export function createAiGeneratePostHandler(
     });
 
     return jsonOk(updated, { headers: { 'Cache-Control': 'no-store' } });
-  });
+  };
+}
+
+export function createAiGeneratePostHandler(deps: AiGenerateRouteDeps) {
+  return withApi(createAiGeneratePostAction(deps));
 }

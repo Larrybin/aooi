@@ -1,15 +1,19 @@
 // data: admin session (RBAC) + permissions list (db)
 // cache: no-store (request-bound auth/RBAC)
 // reason: permission catalog is admin-only; avoid caching across users/roles
-import { listPermissions, type PermissionRecord } from '@/core/rbac';
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminPermissionsListQuerySchema,
   type AdminPermissionsListQuery,
 } from '@/features/admin/schemas/list';
+
+import { listPermissions, type PermissionRecord } from '@/core/rbac';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<PermissionRecord, AdminPermissionsListQuery>({
+export default createAdminTablePage<
+  PermissionRecord,
+  AdminPermissionsListQuery
+>({
   namespace: 'admin.permissions',
   permission: PERMISSIONS.PERMISSIONS_READ,
   crumbs: [

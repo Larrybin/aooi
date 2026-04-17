@@ -64,7 +64,10 @@ type AIGenerationTaskHandlerContext<
 };
 
 export type AIGenerationTaskAdapter<
-  TPayload extends Record<string, unknown> | null = Record<string, unknown> | null,
+  TPayload extends Record<string, unknown> | null = Record<
+    string,
+    unknown
+  > | null,
 > = {
   initialProgress?: number;
   pollIntervalMs?: number;
@@ -72,7 +75,9 @@ export type AIGenerationTaskAdapter<
   onStart?: () => void;
   parsePollingPayload?: (task: AIGenerationTaskResponse) => TPayload;
   handlePending?: (context: AIGenerationTaskHandlerContext<TPayload>) => void;
-  handleProcessing?: (context: AIGenerationTaskHandlerContext<TPayload>) => void;
+  handleProcessing?: (
+    context: AIGenerationTaskHandlerContext<TPayload>
+  ) => void;
   handleSuccess?: (context: AIGenerationTaskHandlerContext<TPayload>) => void;
   handleFailed?: (
     context: AIGenerationTaskHandlerContext<TPayload>
@@ -172,7 +177,7 @@ export function resolveAICapabilitySelection(
     matchingProviderCapabilities.length > 0
       ? matchingProviderCapabilities
       : providerCapabilities.filter((capability) => capability.isDefault)
-          .length > 0
+            .length > 0
         ? providerCapabilities.filter((capability) => capability.isDefault)
         : providerCapabilities;
   const resolvedProvider =
@@ -233,7 +238,9 @@ export function useAiGenerationController<
   const [capabilityError, setCapabilityError] = useState<unknown>(null);
   const [isLoadingCapabilities, setIsLoadingCapabilities] = useState(true);
   const [scene, setSceneState] = useState(initialSelection?.scene ?? '');
-  const [provider, setProviderState] = useState(initialSelection?.provider ?? '');
+  const [provider, setProviderState] = useState(
+    initialSelection?.provider ?? ''
+  );
   const [model, setModelState] = useState(initialSelection?.model ?? '');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -350,7 +357,11 @@ export function useAiGenerationController<
 
       toastFetchError(error, messages.refreshAccountDetailsFailed);
     }
-  }, [messages.refreshAccountDetailsFailed, refreshDetails, setIsShowSignModal]);
+  }, [
+    messages.refreshAccountDetailsFailed,
+    refreshDetails,
+    setIsShowSignModal,
+  ]);
 
   const resolveDetailsForGenerate = useCallback(async () => {
     const result = await resolveSelfUserDetailsForAction({
@@ -471,14 +482,7 @@ export function useAiGenerationController<
         return { done: true as const, terminalState: 'failed' as const };
       }
     },
-    [
-      adapter,
-      finishTask,
-      messages.queryTaskFailed,
-      messages.queryTaskFailedWithReason,
-      messages.unknownError,
-      refreshDetailsSafely,
-    ]
+    [adapter, finishTask, messages, refreshDetailsSafely]
   );
 
   useAIGenerationTask({
@@ -557,11 +561,7 @@ export function useAiGenerationController<
       buildRequestBody,
       capabilityErrorMessage,
       ensureCredits,
-      messages.createTaskFailed,
-      messages.createTaskFailedWithReason,
-      messages.insufficientCredits,
-      messages.invalidProviderOrModel,
-      messages.unknownError,
+      messages,
       refreshDetailsSafely,
       reset,
       resolvedSelection.capability,

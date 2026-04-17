@@ -1,12 +1,13 @@
 // data: admin session (RBAC) + users list (db) + roles/credits (db) + pagination/search
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin data is user/role-specific; avoid caching across users
-import { listUserRoles } from '@/core/rbac';
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminUsersListQuerySchema,
   type AdminUsersListQuery,
 } from '@/features/admin/schemas/list';
+
+import { listUserRoles } from '@/core/rbac';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getRemainingCredits } from '@/shared/models/credit';

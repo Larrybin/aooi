@@ -2,7 +2,6 @@ import 'server-only';
 
 export { setupAdminPage } from './page-setup';
 export { buildAdminCrumbs, type CrumbSegment } from './crumbs';
-export { createAdminTablePage } from './create-admin-table-page';
 export {
   buildAdminQueryUrl,
   isAdminTabActive,

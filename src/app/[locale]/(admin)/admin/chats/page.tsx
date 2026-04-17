@@ -2,12 +2,12 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: chat logs are sensitive; avoid caching across users/roles
 import { notFound } from 'next/navigation';
-
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminChatsListQuerySchema,
   type AdminChatsListQuery,
 } from '@/features/admin/schemas/list';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';

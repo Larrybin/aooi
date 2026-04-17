@@ -10,12 +10,12 @@ import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Button, Filter, Search, Tab } from '@/shared/types/blocks/common';
 import type { Table, TableColumn } from '@/shared/types/blocks/table';
 
-import { buildAdminCrumbs, type CrumbSegment } from './crumbs';
 import {
   buildAdminQueryUrl,
   isAdminTabActive,
   normalizeAdminSearchParams,
-} from './create-admin-table-page.helpers';
+} from './server/create-admin-table-page.helpers';
+import { buildAdminCrumbs, type CrumbSegment } from './server/crumbs';
 
 type TranslationFunction = Awaited<ReturnType<typeof getTranslations>>;
 type SearchParamInput = Record<
@@ -76,8 +76,9 @@ function getTabMatchKeys<TQuery extends Record<string, unknown>>(
 ) {
   return Array.from(
     new Set(
-      tabs.flatMap((tab) =>
-        Object.keys(tab.queryPatch ?? {}) as Array<keyof TQuery & string>
+      tabs.flatMap(
+        (tab) =>
+          Object.keys(tab.queryPatch ?? {}) as Array<keyof TQuery & string>
       )
     )
   );

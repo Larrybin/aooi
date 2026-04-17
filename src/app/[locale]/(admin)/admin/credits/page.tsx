@@ -1,11 +1,12 @@
 // data: admin session (RBAC) + credits ledger (db) + pagination/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing/credits data is sensitive; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminCreditsListQuerySchema,
   type AdminCreditsListQuery,
 } from '@/features/admin/schemas/list';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   CreditStatus,

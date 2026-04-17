@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import {
   adminPaginationQuerySchema,
@@ -18,4 +18,6 @@ export const AdminPaymentsListQuerySchema = adminPaginationQuerySchema.extend({
   orderNo: optionalTrimmedQueryStringSchema,
 });
 
-export type AdminPaymentsListQuery = z.infer<typeof AdminPaymentsListQuerySchema>;
+export type AdminPaymentsListQuery = z.infer<
+  typeof AdminPaymentsListQuerySchema
+>;

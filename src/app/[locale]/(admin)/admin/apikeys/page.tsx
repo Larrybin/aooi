@@ -1,11 +1,12 @@
 // data: admin session (RBAC) + api keys list (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: api keys are sensitive; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminApikeysListQuerySchema,
   type AdminApikeysListQuery,
 } from '@/features/admin/schemas/list';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getApikeys,

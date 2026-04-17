@@ -1,11 +1,12 @@
 // data: admin session (RBAC) + posts list (db) + categories lookup (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin content management; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminPostsListQuerySchema,
   type AdminPostsListQuery,
 } from '@/features/admin/schemas/list';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getPosts,

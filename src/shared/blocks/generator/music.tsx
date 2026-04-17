@@ -39,8 +39,8 @@ import {
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
 import {
-  type AIGenerationTaskAdapter,
   useAiGenerationController,
+  type AIGenerationTaskAdapter,
 } from '@/shared/hooks/use-ai-generation-controller';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
 import { cn } from '@/shared/lib/utils';
@@ -103,7 +103,9 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     errorMessage?: string;
   };
 
-  const songTaskAdapter = useMemo<AIGenerationTaskAdapter<MusicTaskInfo | null>>(
+  const songTaskAdapter = useMemo<
+    AIGenerationTaskAdapter<MusicTaskInfo | null>
+  >(
     () => ({
       initialProgress: 10,
       pollIntervalMs: 10000,
@@ -186,7 +188,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
   const {
     details,
-    remainingCredits,
     costCredits,
     capabilities,
     scene,
@@ -506,7 +507,8 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                 )}
 
                 {((isLoadingDetails && !details && !isGenerating) ||
-                  isLoadingCapabilities) && !effectiveCapabilityErrorMessage ? (
+                  isLoadingCapabilities) &&
+                !effectiveCapabilityErrorMessage ? (
                   <Button className="w-full" size="lg">
                     <Loader2 className="size-4 animate-spin" />{' '}
                     {t('generator.loading')}
@@ -514,7 +516,11 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                 ) : (
                   <Button
                     onClick={handleGenerate}
-                    disabled={isGenerating || !selectedCapability || isLoadingCapabilities}
+                    disabled={
+                      isGenerating ||
+                      !selectedCapability ||
+                      isLoadingCapabilities
+                    }
                     className="w-full"
                     size="lg"
                   >
@@ -533,14 +539,14 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                 )}
 
                 {accountErrorMessage ? (
-                  <div className="mb-6 space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                  <div className="border-destructive/30 mb-6 space-y-2 rounded-lg border p-4 text-sm">
                     <p className="text-destructive">{accountErrorMessage}</p>
                     <p className="text-muted-foreground">
                       {t('generator.loading')}
                     </p>
                   </div>
                 ) : effectiveCapabilityErrorMessage ? (
-                  <div className="mb-6 space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                  <div className="border-destructive/30 mb-6 space-y-2 rounded-lg border p-4 text-sm">
                     <p className="text-destructive">
                       {effectiveCapabilityErrorMessage}
                     </p>
@@ -548,14 +554,14 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                       {t('generator.loading')}
                     </p>
                   </div>
-                ) : (details?.credits?.remainingCredits ?? 0) > 0 ? (
+                ) : remainingCredits > 0 ? (
                   <div className="mb-6 flex items-center justify-between text-sm">
                     <span className="text-primary">
                       {t('generator.credits_cost', { credits: costCredits })}
                     </span>
                     <span className="text-foreground font-medium">
                       {t('generator.credits_remaining', {
-                        credits: details?.credits?.remainingCredits ?? 0,
+                        credits: remainingCredits,
                       })}
                     </span>
                   </div>
@@ -564,7 +570,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                     <span className="text-primary">
                       {t('generator.credits_cost', { credits: costCredits })},{' '}
                       {t('generator.credits_remaining', {
-                        credits: details?.credits?.remainingCredits || 0,
+                        credits: remainingCredits,
                       })}
                     </span>
                     <Link href="/pricing">
