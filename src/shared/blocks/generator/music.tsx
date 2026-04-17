@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle,
@@ -17,7 +17,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Link } from '@/core/i18n/navigation';
-import { AITaskStatus, type AISong } from '@/extensions/ai';
+import { AIMediaType, type AISong } from '@/extensions/ai';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -38,24 +38,11 @@ import {
 } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { usePublicAppContext } from '@/shared/contexts/app';
 import {
-  type AIGenerationTaskTickResult,
-  useAIGenerationTask,
-} from '@/shared/hooks/use-ai-generation-task';
+  type AIGenerationTaskAdapter,
+  useAiGenerationController,
+} from '@/shared/hooks/use-ai-generation-controller';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
-import { useCreditsGate } from '@/shared/hooks/use-credits-gate';
-import {
-  resolveSelfUserDetailsForAction,
-  useSelfUserDetails,
-} from '@/shared/hooks/use-self-user-details';
-import { isPlainObject } from '@/shared/lib/api/client';
-import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
-import {
-  formatMessageWithRequestId,
-  getRequestIdFromError,
-  RequestIdError,
-} from '@/shared/lib/request-id';
 import { cn } from '@/shared/lib/utils';
 
 interface GeneratedSong {
@@ -77,17 +64,8 @@ interface SongGeneratorProps {
 
 export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   const t = useTranslations('ai.music');
-  const { setIsShowSignModal } = usePublicAppContext();
-  const {
-    data: details,
-    error: detailsError,
-    isLoading: isLoadingDetails,
-    refresh: refreshDetails,
-  } = useSelfUserDetails();
 
   // Form state
-  const [provider] = useState('kie');
-  const [model, setModel] = useState('V5');
   const [customMode, setCustomMode] = useState(false);
   const [title, setTitle] = useState('');
   const [style, setStyle] = useState('');
@@ -95,10 +73,6 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   const [lyrics, setLyrics] = useState('');
   const [prompt, setPrompt] = useState('');
 
-  // Generation state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [generatedSongs, setGeneratedSongs] = useState<GeneratedSong[]>([]);
   const [currentPlayingSong, setCurrentPlayingSong] =
     useState<GeneratedSong | null>(null);
@@ -107,9 +81,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // todo: get cost credits from settings
-  const costCredits = 10;
+  const { downloadBlob } = useBlobDownload();
 
   useEffect(() => {
     return () => {
@@ -126,236 +98,179 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     };
   }, []);
 
-  const accountDetailsErrorMessage = useMemo(() => {
-    if (!detailsError) {
-      return null;
-    }
+  type MusicTaskInfo = Record<string, unknown> & {
+    songs?: AISong[];
+    errorMessage?: string;
+  };
 
-    return formatMessageWithRequestId(
-      'Failed to load account details',
-      getRequestIdFromError(detailsError)
-    );
-  }, [detailsError]);
+  const songTaskAdapter = useMemo<AIGenerationTaskAdapter<MusicTaskInfo | null>>(
+    () => ({
+      initialProgress: 10,
+      pollIntervalMs: 10000,
+      timeoutMs: 180000,
+      parsePollingPayload: (task) => task.taskInfo as MusicTaskInfo,
+      onStart: () => {
+        setGeneratedSongs([]);
+        setCurrentPlayingSong(null);
+      },
+      handlePending: ({ helpers: { setProgress } }) => {
+        setProgress(10);
+      },
+      handleProcessing: ({ payload, helpers: { setProgress } }) => {
+        const songs = Array.isArray(payload?.songs) ? payload.songs : [];
 
-  const refreshDetailsSafely = useCallback(async () => {
-    try {
-      await refreshDetails();
-    } catch (error) {
-      if (error instanceof RequestIdError && error.status === 401) {
-        setIsShowSignModal(true);
-        return;
-      }
-
-      toastFetchError(error, 'Failed to refresh account details');
-    }
-  }, [refreshDetails, setIsShowSignModal]);
-
-  const resolveDetailsForGenerate = useCallback(async () => {
-    const result = await resolveSelfUserDetailsForAction({
-      currentDetails: details,
-      loadDetails: refreshDetails,
-    });
-
-    if (result.status === 'auth_required') {
-      setIsShowSignModal(true);
-      return null;
-    }
-
-    if (result.status === 'error') {
-      toastFetchError(result.error, 'Failed to load account details');
-      return null;
-    }
-
-    return result.details;
-  }, [details, refreshDetails, setIsShowSignModal]);
-  const { ensureCredits } = useCreditsGate({
-    resolveDetails: resolveDetailsForGenerate,
-  });
-  const { downloadBlob } = useBlobDownload();
-
-  // Task polling
-  const pollTaskStatus = useCallback(
-    async (taskId: string): Promise<AIGenerationTaskTickResult> => {
-      try {
-        // request api to query task
-        const data = await fetchJson<{ status: string; taskInfo: unknown }>(
-          '/api/ai/query',
-          { method: 'POST', body: { taskId } },
-          {
-            validate: (value): value is { status: string; taskInfo: unknown } =>
-              isPlainObject(value) &&
-              typeof (value as { status?: unknown }).status === 'string' &&
-              Boolean((value as { status: string }).status) &&
-              isPlainObject((value as { taskInfo?: unknown }).taskInfo),
-            invalidDataMessage: t('generator.errors.query_task_failed'),
-          }
-        );
-
-        const { status, taskInfo } = data;
-
-        const task = taskInfo as {
-          errorCode?: string;
-          errorMessage?: string;
-          songs?: AISong[];
-        };
-        const { errorCode, errorMessage, songs } = task;
-        if (errorCode || errorMessage) {
-          throw new RequestIdError(
-            errorMessage || t('generator.errors.query_task_failed')
-          );
+        if (songs.length === 0) {
+          setProgress((prev) => Math.min(prev + 3, 80));
+          return;
         }
 
-        // handle task status
-
-        // task pending
-        if (status === AITaskStatus.PENDING) {
-          setProgress(10);
-          return { done: false };
-        }
-
-        // task processing
-        if (status === AITaskStatus.PROCESSING && songs && songs.length > 0) {
-          setProgress(20);
-
-          const isTextSuccess = songs.some((song) => !!song.imageUrl);
-          const isFirstSuccess = songs.some((song) => !!song.audioUrl);
-
-          // text success
-          if (isTextSuccess) {
-            setProgress(60);
-            setGeneratedSongs(
-              songs.map(
-                (song): GeneratedSong => ({
-                  id: song.id ?? '',
-                  title: song.title ?? '',
-                  duration: song.duration,
-                  audioUrl: song.audioUrl,
-                  imageUrl: song.imageUrl ?? '',
-                  artist: song.artist ?? '',
-                  style: song.style ?? '',
-                  status: '',
-                  prompt: song.prompt,
-                })
-              )
-            );
-            return { done: false };
-          }
-
-          // first success
-          if (isFirstSuccess) {
-            setProgress(85);
-            setGeneratedSongs(
-              songs.map(
-                (song): GeneratedSong => ({
-                  id: song.id ?? '',
-                  title: song.title ?? '',
-                  duration: song.duration,
-                  audioUrl: song.audioUrl,
-                  imageUrl: song.imageUrl ?? '',
-                  artist: song.artist ?? '',
-                  style: song.style ?? '',
-                  status: '',
-                  prompt: song.prompt,
-                })
-              )
-            );
-            return { done: false };
-          }
-
-          // final success
-          return { done: false };
-        }
-
-        // task failed, final status
-        if (status === AITaskStatus.FAILED) {
-          setProgress(0);
-          setIsGenerating(false);
-          toast.error(
-            t('generator.errors.generate_failed_with_reason', {
-              reason: errorMessage || t('generator.errors.unknown_error'),
-            })
-          );
-
-          void refreshDetailsSafely();
-
-          return { done: true, terminalState: 'failed' };
-        }
-
-        // task success, final status
-        if (status === AITaskStatus.SUCCESS && songs && songs.length > 0) {
-          setGeneratedSongs(
-            songs.map(
-              (song): GeneratedSong => ({
-                id: song.id ?? '',
-                title: song.title ?? '',
-                duration: song.duration,
-                audioUrl: song.audioUrl,
-                imageUrl: song.imageUrl ?? '',
-                artist: song.artist ?? '',
-                style: song.style ?? '',
-                status: '',
-                prompt: song.prompt,
-              })
-            )
-          );
-
-          setProgress(100);
-          setIsGenerating(false);
-          return { done: true, terminalState: 'success' };
-        }
-
-        // Still processing - update progress
-        setProgress((prev) => Math.min(prev + 3, 80));
-        return { done: false };
-      } catch (error: unknown) {
-        console.error('Error polling task:', error);
-        setIsGenerating(false);
-        setProgress(0);
-        toastFetchError(
-          error,
-          t('generator.errors.create_song_failed_with_reason', {
-            reason:
-              error instanceof Error && error.message
-                ? error.message
-                : t('generator.errors.unknown_error'),
+        const nextSongs = songs.map(
+          (song): GeneratedSong => ({
+            id: song.id ?? '',
+            title: song.title ?? '',
+            duration: song.duration,
+            audioUrl: song.audioUrl,
+            imageUrl: song.imageUrl ?? '',
+            artist: song.artist ?? '',
+            style: song.style ?? '',
+            status: '',
+            prompt: song.prompt,
           })
         );
 
-        void refreshDetailsSafely();
+        setGeneratedSongs(nextSongs);
 
-        return { done: true, terminalState: 'failed' };
-      }
-    },
-    [refreshDetailsSafely, t]
+        if (songs.some((song) => !!song.audioUrl)) {
+          setProgress(85);
+          return;
+        }
+
+        if (songs.some((song) => !!song.imageUrl)) {
+          setProgress(60);
+          return;
+        }
+
+        setProgress(20);
+      },
+      handleSuccess: ({ payload }) => {
+        const songs = Array.isArray(payload?.songs) ? payload.songs : [];
+
+        setGeneratedSongs(
+          songs.map(
+            (song): GeneratedSong => ({
+              id: song.id ?? '',
+              title: song.title ?? '',
+              duration: song.duration,
+              audioUrl: song.audioUrl,
+              imageUrl: song.imageUrl ?? '',
+              artist: song.artist ?? '',
+              style: song.style ?? '',
+              status: '',
+              prompt: song.prompt,
+            })
+          )
+        );
+      },
+      handleFailed: ({ payload }) => {
+        const errorMessage = payload?.errorMessage;
+        return t('generator.errors.generate_failed_with_reason', {
+          reason:
+            typeof errorMessage === 'string' && errorMessage.trim()
+              ? errorMessage
+              : t('generator.errors.unknown_error'),
+        });
+      },
+    }),
+    [t]
   );
 
-  useAIGenerationTask({
-    taskId,
-    enabled: isGenerating,
-    pollIntervalMs: 10000,
-    timeoutMs: 180000,
-    onPoll: pollTaskStatus,
-    onTimeout: () => {
-      setProgress(0);
-      setIsGenerating(false);
-      toast.error(t('generator.errors.timeout'));
+  const {
+    details,
+    remainingCredits,
+    costCredits,
+    capabilities,
+    scene,
+    provider,
+    model,
+    setProvider,
+    setModel,
+    selectedCapability,
+    isLoadingCapabilities,
+    isLoadingDetails,
+    accountErrorMessage,
+    capabilityErrorMessage,
+    isGenerating,
+    progress,
+    run,
+  } = useAiGenerationController<{
+    prompt?: string;
+    options: {
+      customMode: boolean;
+      style?: string;
+      title?: string;
+      instrumental?: boolean;
+      lyrics?: string;
+    };
+  }>({
+    mediaType: AIMediaType.MUSIC,
+    buildRequestBody: ({ formState, capability }) => ({
+      mediaType: AIMediaType.MUSIC,
+      scene: capability.scene,
+      provider: capability.provider,
+      model: capability.model,
+      prompt: formState.prompt,
+      options: formState.options,
+    }),
+    adapter: songTaskAdapter,
+    messages: {
+      loadAccountDetailsFailed: 'Failed to load account details',
+      refreshAccountDetailsFailed: 'Failed to refresh account details',
+      loadCapabilitiesFailed: 'Failed to load AI capabilities',
+      invalidProviderOrModel: t('generator.errors.invalid_provider_or_model'),
+      insufficientCredits: t('generator.errors.insufficient_credits'),
+      createTaskFailed: t('generator.errors.create_task_failed'),
+      queryTaskFailed: t('generator.errors.query_task_failed'),
+      timeout: t('generator.errors.timeout'),
+      unknownError: t('generator.errors.unknown_error'),
+      createTaskFailedWithReason: (reason) =>
+        t('generator.errors.generate_failed_with_reason', { reason }),
+      queryTaskFailedWithReason: (reason) =>
+        t('generator.errors.create_song_failed_with_reason', { reason }),
     },
   });
 
+  const modelOptions = useMemo(() => {
+    return capabilities
+      .filter(
+        (capability) =>
+          capability.scene === scene && capability.provider === provider
+      )
+      .map((capability) => ({
+        value: capability.model,
+        label: capability.label,
+      }));
+  }, [capabilities, provider, scene]);
+
+  const providerOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        capabilities
+          .filter((capability) => capability.scene === scene)
+          .map((capability) => capability.provider)
+      )
+    ).map((value) => ({
+      value,
+      label: value,
+    }));
+  }, [capabilities, scene]);
+
+  const effectiveCapabilityErrorMessage =
+    capabilityErrorMessage ||
+    (!isLoadingCapabilities && capabilities.length === 0
+      ? t('generator.errors.invalid_provider_or_model')
+      : null);
+
   const handleGenerate = async () => {
-    const nextDetails = await ensureCredits({
-      requiredCredits: costCredits,
-      insufficientCreditsMessage: t('generator.errors.insufficient_credits'),
-    });
-    if (!nextDetails) {
-      return;
-    }
-
-    if (!provider || !model) {
-      toast.error(t('generator.errors.invalid_provider_or_model'));
-      return;
-    }
-
     if (customMode) {
       if (!title || !style) {
         toast.error(t('generator.errors.title_and_style_required'));
@@ -372,80 +287,32 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       }
     }
 
-    const params: {
-      mediaType: 'music';
-      provider: string;
-      model: string;
-      prompt?: string;
-      options?: {
-        customMode: boolean;
-        style?: string;
-        title?: string;
-        instrumental?: boolean;
-        lyrics?: string;
-      };
+    let nextPrompt: string | undefined;
+    const options: {
+      customMode: boolean;
+      style?: string;
+      title?: string;
+      instrumental?: boolean;
+      lyrics?: string;
     } = {
-      mediaType: 'music',
-      provider: provider,
-      model: model,
+      customMode,
+      instrumental,
     };
 
     if (customMode) {
-      params.options = {
-        customMode: true,
-        style,
-        title,
-        instrumental,
-      };
+      options.style = style;
+      options.title = title;
       if (!instrumental) {
-        params.options.lyrics = lyrics;
+        options.lyrics = lyrics;
       }
     } else {
-      params.prompt = prompt;
-      params.options = {
-        customMode: false,
-        instrumental,
-      };
+      nextPrompt = prompt;
     }
 
-    setIsGenerating(true);
-    setProgress(10);
-    setGeneratedSongs([]);
-    setCurrentPlayingSong(null);
-
-    try {
-      const data = await fetchJson<{ id: string }>(
-        '/api/ai/generate',
-        { method: 'POST', body: params },
-        {
-          validate: (value): value is { id: string } =>
-            isPlainObject(value) &&
-            typeof (value as { id?: unknown }).id === 'string' &&
-            Boolean((value as { id: string }).id.trim()),
-          invalidDataMessage: t('generator.errors.create_task_failed'),
-        }
-      );
-
-      const taskId = data.id.trim();
-
-      // refresh user credits
-      await refreshDetailsSafely();
-
-      setTaskId(taskId);
-      setProgress(20);
-    } catch (err: unknown) {
-      toastFetchError(
-        err,
-        t('generator.errors.generate_failed_with_reason', {
-          reason:
-            err instanceof Error && err.message
-              ? err.message
-              : t('generator.errors.unknown_error'),
-        })
-      );
-      setIsGenerating(false);
-      setProgress(0);
-    }
+    await run({
+      prompt: nextPrompt,
+      options,
+    });
   };
 
   const togglePlay = async (song: GeneratedSong) => {
@@ -541,17 +408,30 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                   </div>
                   <div className="flex-1"></div>
                   <div className="flex items-center gap-4">
+                    <Label>{t('generator.form.provider')}</Label>
+                    <Select value={provider} onValueChange={setProvider}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {providerOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Label>{t('generator.form.model')}</Label>
                     <Select value={model} onValueChange={setModel}>
                       <SelectTrigger className="w-32">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="V5">Suno V5</SelectItem>
-                        <SelectItem value="V4_5PLUS">Suno V4.5+</SelectItem>
-                        <SelectItem value="V4_5">Suno V4.5</SelectItem>
-                        <SelectItem value="V4">Suno V4</SelectItem>
-                        <SelectItem value="V3_5">Suno V3.5</SelectItem>
+                        {modelOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -625,7 +505,8 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                   </div>
                 )}
 
-                {isLoadingDetails && !details && !isGenerating ? (
+                {((isLoadingDetails && !details && !isGenerating) ||
+                  isLoadingCapabilities) && !effectiveCapabilityErrorMessage ? (
                   <Button className="w-full" size="lg">
                     <Loader2 className="size-4 animate-spin" />{' '}
                     {t('generator.loading')}
@@ -633,7 +514,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                 ) : (
                   <Button
                     onClick={handleGenerate}
-                    disabled={isGenerating}
+                    disabled={isGenerating || !selectedCapability || isLoadingCapabilities}
                     className="w-full"
                     size="lg"
                   >
@@ -651,9 +532,18 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
                   </Button>
                 )}
 
-                {accountDetailsErrorMessage ? (
+                {accountErrorMessage ? (
                   <div className="mb-6 space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
-                    <p className="text-destructive">{accountDetailsErrorMessage}</p>
+                    <p className="text-destructive">{accountErrorMessage}</p>
+                    <p className="text-muted-foreground">
+                      {t('generator.loading')}
+                    </p>
+                  </div>
+                ) : effectiveCapabilityErrorMessage ? (
+                  <div className="mb-6 space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                    <p className="text-destructive">
+                      {effectiveCapabilityErrorMessage}
+                    </p>
                     <p className="text-muted-foreground">
                       {t('generator.loading')}
                     </p>

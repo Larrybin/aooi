@@ -36,24 +36,11 @@ import {
 } from '@/shared/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { usePublicAppContext } from '@/shared/contexts/app';
 import {
-  resolveSelfUserDetailsForAction,
-  useSelfUserDetails,
-} from '@/shared/hooks/use-self-user-details';
-import {
-  type AIGenerationTaskTickResult,
-  useAIGenerationTask,
-} from '@/shared/hooks/use-ai-generation-task';
+  type AIGenerationTaskAdapter,
+  useAiGenerationController,
+} from '@/shared/hooks/use-ai-generation-controller';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
-import { useCreditsGate } from '@/shared/hooks/use-credits-gate';
-import { isPlainObject } from '@/shared/lib/api/client';
-import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
-import {
-  formatMessageWithRequestId,
-  getRequestIdFromError,
-  RequestIdError,
-} from '@/shared/lib/request-id';
 
 interface ImageGeneratorProps {
   allowMultipleImages?: boolean;
@@ -70,47 +57,9 @@ interface GeneratedImage {
   prompt?: string;
 }
 
-interface BackendTask {
-  id: string;
-  status: string;
-  provider: string;
-  model: string;
-  prompt: string | null;
-  taskInfo: BackendTaskInfo | null;
-}
-
-type ImageGeneratorTab = 'text-to-image' | 'image-to-image';
-
-const POLL_INTERVAL = 5000;
-const GENERATION_TIMEOUT = 180000;
 const MAX_PROMPT_LENGTH = 2000;
 
-const MODEL_OPTIONS = [
-  {
-    value: 'black-forest-labs/flux-schnell',
-    label: 'FLUX Schnell',
-    scenes: ['text-to-image'],
-  },
-  {
-    value: 'google/nano-banana',
-    label: 'Nano Banana',
-    scenes: ['text-to-image', 'image-to-image'],
-  },
-  {
-    value: 'bytedance/seedream-4',
-    label: 'Seedream 4',
-    scenes: ['text-to-image', 'image-to-image'],
-  },
-];
-
-const PROVIDER_OPTIONS = [
-  {
-    value: 'replicate',
-    label: 'Replicate',
-  },
-];
-
-interface ImageTaskResult {
+interface ImageTaskResult extends Record<string, unknown> {
   images?: Array<
     | {
         imageUrl?: string;
@@ -155,91 +104,174 @@ export function ImageGenerator({
 }: ImageGeneratorProps) {
   const t = useTranslations('ai.image.generator');
 
-  const [activeTab, setActiveTab] =
-    useState<ImageGeneratorTab>('text-to-image');
-
-  const [provider, setProvider] = useState(PROVIDER_OPTIONS[0]?.value ?? '');
-  const [model, setModel] = useState(MODEL_OPTIONS[0]?.value ?? '');
   const [prompt, setPrompt] = useState('');
   const [referenceImageItems, setReferenceImageItems] = useState<
     ImageUploaderValue[]
   >([]);
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [taskStatus, setTaskStatus] = useState<AITaskStatus | null>(null);
-
-  const { setIsShowSignModal } = usePublicAppContext();
-  const {
-    data: details,
-    error: detailsError,
-    isLoading: isLoadingDetails,
-    refresh: refreshDetails,
-  } = useSelfUserDetails();
-
-  const promptLength = prompt.trim().length;
-  const costCredits = activeTab === 'text-to-image' ? 2 : 4;
-  const remainingCredits = details?.credits?.remainingCredits ?? 0;
-  const isPromptTooLong = promptLength > MAX_PROMPT_LENGTH;
-  const isTextToImageMode = activeTab === 'text-to-image';
-  const accountDetailsErrorMessage = useMemo(() => {
-    if (!detailsError) {
-      return null;
-    }
-
-    return formatMessageWithRequestId(
-      'Failed to load account details',
-      getRequestIdFromError(detailsError)
-    );
-  }, [detailsError]);
-
-  const refreshDetailsSafely = useCallback(async () => {
-    try {
-      await refreshDetails();
-    } catch (error) {
-      if (error instanceof RequestIdError && error.status === 401) {
-        setIsShowSignModal(true);
-        return;
-      }
-
-      toastFetchError(error, 'Failed to refresh account details');
-    }
-  }, [refreshDetails, setIsShowSignModal]);
-
-  const resolveDetailsForGenerate = useCallback(async () => {
-    const result = await resolveSelfUserDetailsForAction({
-      currentDetails: details,
-      loadDetails: refreshDetails,
-    });
-
-    if (result.status === 'auth_required') {
-      setIsShowSignModal(true);
-      return null;
-    }
-
-    if (result.status === 'error') {
-      toastFetchError(result.error, 'Failed to load account details');
-      return null;
-    }
-
-    return result.details;
-  }, [details, refreshDetails, setIsShowSignModal]);
-  const { ensureCredits } = useCreditsGate({
-    resolveDetails: resolveDetailsForGenerate,
-  });
   const { downloadingId: downloadingImageId, downloadBlob } = useBlobDownload();
 
+  const imageTaskAdapter = useMemo<AIGenerationTaskAdapter<BackendTaskInfo | null>>(
+    () => ({
+      initialProgress: 15,
+      pollIntervalMs: 5000,
+      timeoutMs: 180000,
+      parsePollingPayload: (task) => task.taskInfo as BackendTaskInfo | null,
+      onStart: () => {
+        setGeneratedImages([]);
+      },
+      handlePending: ({ helpers: { setProgress } }) => {
+        setProgress((prev) => Math.max(prev, 20));
+      },
+      handleProcessing: ({ task, payload, helpers: { setProgress } }) => {
+        const imageUrls = extractImageUrlsFromTaskInfo(payload);
+
+        if (imageUrls.length > 0) {
+          setGeneratedImages(
+            imageUrls.map((url, index) => ({
+              id: `${task.id}-${index}`,
+              url,
+              provider: task.provider,
+              model: task.model ?? undefined,
+              prompt: task.prompt ?? undefined,
+            }))
+          );
+          setProgress((prev) => Math.max(prev, 85));
+          return;
+        }
+
+        setProgress((prev) => Math.min(prev + 10, 80));
+      },
+      handleSuccess: ({ task, payload }) => {
+        const imageUrls = extractImageUrlsFromTaskInfo(payload);
+
+        if (imageUrls.length === 0) {
+          toast.error(t('errors.no_images_returned'));
+          return;
+        }
+
+        setGeneratedImages(
+          imageUrls.map((url, index) => ({
+            id: `${task.id}-${index}`,
+            url,
+            provider: task.provider,
+            model: task.model ?? undefined,
+            prompt: task.prompt ?? undefined,
+          }))
+        );
+        toast.success(t('messages.generated_success'));
+      },
+      handleFailed: ({ payload }) => {
+        const errorMessage = payload?.errorMessage;
+        return typeof errorMessage === 'string' && errorMessage.trim()
+          ? errorMessage
+          : t('errors.generate_failed');
+      },
+    }),
+    [t]
+  );
+
+  const {
+    details,
+    remainingCredits,
+    costCredits,
+    capabilities,
+    scene,
+    provider,
+    model,
+    setScene,
+    setProvider,
+    setModel,
+    selectedCapability,
+    isLoadingCapabilities,
+    isLoadingDetails,
+    accountErrorMessage,
+    capabilityErrorMessage,
+    isGenerating,
+    progress,
+    taskStatus,
+    run,
+  } = useAiGenerationController<{
+    prompt: string;
+    referenceImageUrls: string[];
+  }>({
+    mediaType: AIMediaType.IMAGE,
+    buildRequestBody: ({ formState, capability }) => {
+      const options: { image_input?: string[] } = {};
+
+      if (capability.scene === 'image-to-image') {
+        options.image_input = formState.referenceImageUrls;
+      }
+
+      return {
+        mediaType: AIMediaType.IMAGE,
+        scene: capability.scene,
+        provider: capability.provider,
+        model: capability.model,
+        prompt: formState.prompt,
+        options,
+      };
+    },
+    adapter: imageTaskAdapter,
+    messages: {
+      loadAccountDetailsFailed: 'Failed to load account details',
+      refreshAccountDetailsFailed: 'Failed to refresh account details',
+      loadCapabilitiesFailed: 'Failed to load AI capabilities',
+      invalidProviderOrModel: t('errors.invalid_provider_or_model'),
+      insufficientCredits: t('errors.insufficient_credits'),
+      createTaskFailed: t('errors.create_task_failed'),
+      queryTaskFailed: t('errors.query_task_failed'),
+      timeout: t('errors.timeout'),
+      unknownError: t('errors.unknown_error'),
+      createTaskFailedWithReason: (reason) =>
+        t('errors.generate_failed_with_reason', { reason }),
+      queryTaskFailedWithReason: (reason) =>
+        t('errors.query_task_failed_with_reason', { reason }),
+    },
+  });
+
+  const promptLength = prompt.trim().length;
+  const isPromptTooLong = promptLength > MAX_PROMPT_LENGTH;
+  const isTextToImageMode = scene === 'text-to-image';
+  const effectiveCapabilityErrorMessage =
+    capabilityErrorMessage ||
+    (!isLoadingCapabilities && capabilities.length === 0
+      ? t('errors.invalid_provider_or_model')
+      : null);
+
+  const providerOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        capabilities
+          .filter((capability) => capability.scene === scene)
+          .map((capability) => capability.provider)
+      )
+    ).map((value) => ({
+      value,
+      label: value,
+    }));
+  }, [capabilities, scene]);
+
+  const modelOptions = useMemo(() => {
+    return capabilities
+      .filter(
+        (capability) =>
+          capability.scene === scene && capability.provider === provider
+      )
+      .map((capability) => ({
+        value: capability.model,
+        label: capability.label,
+      }));
+  }, [capabilities, provider, scene]);
+
+  const sceneOptions = useMemo(() => {
+    return Array.from(new Set(capabilities.map((capability) => capability.scene)));
+  }, [capabilities]);
+
   const handleTabChange = useCallback((value: string) => {
-    const nextTab = value as ImageGeneratorTab;
-    setActiveTab(nextTab);
-    setModel(
-      nextTab === 'text-to-image'
-        ? 'black-forest-labs/flux-schnell'
-        : 'google/nano-banana'
-    );
-  }, []);
+    setScene(value);
+  }, [setScene]);
 
   const taskStatusLabel = useMemo(() => {
     if (!taskStatus) {
@@ -281,142 +313,10 @@ export function ImageGenerator({
     [referenceImageItems]
   );
 
-  const resetTaskState = useCallback(() => {
-    setIsGenerating(false);
-    setProgress(0);
-    setTaskId(null);
-    setTaskStatus(null);
-  }, []);
-
-  const pollTaskStatus = useCallback(
-    async (id: string): Promise<AIGenerationTaskTickResult> => {
-      try {
-        const task = await fetchJson<BackendTask>(
-          '/api/ai/query',
-          { method: 'POST', body: { taskId: id } },
-          {
-            validate: (value): value is BackendTask =>
-              isPlainObject(value) &&
-              typeof (value as { id?: unknown }).id === 'string' &&
-              typeof (value as { status?: unknown }).status === 'string' &&
-              typeof (value as { provider?: unknown }).provider === 'string' &&
-              typeof (value as { model?: unknown }).model === 'string',
-            invalidDataMessage: t('errors.query_task_failed'),
-          }
-        );
-
-        const currentStatus = task.status as AITaskStatus;
-        setTaskStatus(currentStatus);
-
-        const imageUrls = extractImageUrlsFromTaskInfo(task.taskInfo);
-
-        if (currentStatus === AITaskStatus.PENDING) {
-          setProgress((prev) => Math.max(prev, 20));
-          return { done: false };
-        }
-
-        if (currentStatus === AITaskStatus.PROCESSING) {
-          if (imageUrls.length > 0) {
-            setGeneratedImages(
-              imageUrls.map((url, index) => ({
-                id: `${task.id}-${index}`,
-                url,
-                provider: task.provider,
-                model: task.model,
-                prompt: task.prompt ?? undefined,
-              }))
-            );
-            setProgress((prev) => Math.max(prev, 85));
-          } else {
-            setProgress((prev) => Math.min(prev + 10, 80));
-          }
-          return { done: false };
-        }
-
-        if (currentStatus === AITaskStatus.SUCCESS) {
-          if (imageUrls.length === 0) {
-            toast.error(t('errors.no_images_returned'));
-          } else {
-            setGeneratedImages(
-              imageUrls.map((url, index) => ({
-                id: `${task.id}-${index}`,
-                url,
-                provider: task.provider,
-                model: task.model,
-                prompt: task.prompt ?? undefined,
-              }))
-            );
-            toast.success(t('messages.generated_success'));
-          }
-
-          setProgress(100);
-          resetTaskState();
-          return { done: true, terminalState: 'success' };
-        }
-
-        if (currentStatus === AITaskStatus.FAILED) {
-          const errorMessage =
-            task.taskInfo?.errorMessage || t('errors.generate_failed');
-          toast.error(errorMessage);
-          resetTaskState();
-
-          void refreshDetailsSafely();
-
-          return { done: true, terminalState: 'failed' };
-        }
-
-        setProgress((prev) => Math.min(prev + 5, 95));
-        return { done: false };
-      } catch (error: unknown) {
-        console.error('Error polling image task:', error);
-        toastFetchError(
-          error,
-          t('errors.query_task_failed_with_reason', {
-            reason:
-              error instanceof Error && error.message
-                ? error.message
-                : t('errors.unknown_error'),
-          })
-        );
-        resetTaskState();
-
-        void refreshDetailsSafely();
-
-        return { done: true, terminalState: 'failed' };
-      }
-    },
-    [refreshDetailsSafely, resetTaskState, t]
-  );
-
-  useAIGenerationTask({
-    taskId,
-    enabled: isGenerating,
-    pollIntervalMs: POLL_INTERVAL,
-    timeoutMs: GENERATION_TIMEOUT,
-    onPoll: pollTaskStatus,
-    onTimeout: () => {
-      resetTaskState();
-      toast.error(t('errors.timeout'));
-    },
-  });
-
   const handleGenerate = async () => {
-    const nextDetails = await ensureCredits({
-      requiredCredits: costCredits,
-      insufficientCreditsMessage: t('errors.insufficient_credits'),
-    });
-    if (!nextDetails) {
-      return;
-    }
-
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
       toast.error(t('errors.prompt_required'));
-      return;
-    }
-
-    if (!provider || !model) {
-      toast.error(t('errors.invalid_provider_or_model'));
       return;
     }
 
@@ -425,59 +325,10 @@ export function ImageGenerator({
       return;
     }
 
-    setIsGenerating(true);
-    setProgress(15);
-    setTaskStatus(AITaskStatus.PENDING);
-    setGeneratedImages([]);
-
-    try {
-      const options: { image_input?: string[] } = {};
-
-      if (!isTextToImageMode) {
-        options.image_input = referenceImageUrls;
-      }
-
-      const data = await fetchJson<{ id: string }>(
-        '/api/ai/generate',
-        {
-          method: 'POST',
-          body: {
-            mediaType: AIMediaType.IMAGE,
-            scene: isTextToImageMode ? 'text-to-image' : 'image-to-image',
-            provider,
-            model,
-            prompt: trimmedPrompt,
-            options,
-          },
-        },
-        {
-          validate: (value): value is { id: string } =>
-            isPlainObject(value) &&
-            typeof (value as { id?: unknown }).id === 'string' &&
-            Boolean((value as { id: string }).id.trim()),
-          invalidDataMessage: t('errors.create_task_failed'),
-        }
-      );
-
-      const newTaskId = data.id.trim();
-
-      setTaskId(newTaskId);
-      setProgress(25);
-
-      await refreshDetailsSafely();
-    } catch (error: unknown) {
-      console.error('Failed to generate image:', error);
-      toastFetchError(
-        error,
-        t('errors.generate_failed_with_reason', {
-          reason:
-            error instanceof Error && error.message
-              ? error.message
-              : t('errors.unknown_error'),
-        })
-      );
-      resetTaskState();
-    }
+    await run({
+      prompt: trimmedPrompt,
+      referenceImageUrls,
+    });
   };
 
   const handleDownloadImage = async (image: GeneratedImage) => {
@@ -507,19 +358,22 @@ export function ImageGenerator({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6 pb-8">
-                <Tabs
-                  value={activeTab}
-                  onValueChange={handleTabChange}
-                >
-                  <TabsList className="bg-primary/10 grid w-full grid-cols-2">
-                    <TabsTrigger value="text-to-image">
-                      {t('tabs.text-to-image')}
-                    </TabsTrigger>
-                    <TabsTrigger value="image-to-image">
-                      {t('tabs.image-to-image')}
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                {sceneOptions.length > 0 && (
+                  <Tabs value={scene} onValueChange={handleTabChange}>
+                    <TabsList
+                      className="bg-primary/10 grid w-full"
+                      style={{
+                        gridTemplateColumns: `repeat(${sceneOptions.length}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {sceneOptions.map((sceneOption) => (
+                        <TabsTrigger key={sceneOption} value={sceneOption}>
+                          {t(`tabs.${sceneOption}`)}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -529,7 +383,7 @@ export function ImageGenerator({
                         <SelectValue placeholder={t('form.select_provider')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {PROVIDER_OPTIONS.map((option) => (
+                        {providerOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -545,9 +399,7 @@ export function ImageGenerator({
                         <SelectValue placeholder={t('form.select_model')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {MODEL_OPTIONS.filter((option) =>
-                          option.scenes.includes(activeTab)
-                        ).map((option) => (
+                        {modelOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -597,7 +449,8 @@ export function ImageGenerator({
                   </div>
                 </div>
 
-                {isLoadingDetails && !details && !isGenerating ? (
+                {((isLoadingDetails && !details && !isGenerating) ||
+                  isLoadingCapabilities) && !effectiveCapabilityErrorMessage ? (
                   <Button className="w-full" disabled size="lg">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {t('checking_account')}
@@ -612,7 +465,9 @@ export function ImageGenerator({
                       !prompt.trim() ||
                       isPromptTooLong ||
                       isReferenceUploading ||
-                      hasReferenceUploadError
+                      hasReferenceUploadError ||
+                      !selectedCapability ||
+                      isLoadingCapabilities
                     }
                   >
                     {isGenerating ? (
@@ -629,9 +484,16 @@ export function ImageGenerator({
                   </Button>
                 )}
 
-                {accountDetailsErrorMessage ? (
+                {accountErrorMessage ? (
                   <div className="space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
-                    <p className="text-destructive">{accountDetailsErrorMessage}</p>
+                    <p className="text-destructive">{accountErrorMessage}</p>
+                    <p className="text-muted-foreground">{t('checking_account')}</p>
+                  </div>
+                ) : effectiveCapabilityErrorMessage ? (
+                  <div className="space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                    <p className="text-destructive">
+                      {effectiveCapabilityErrorMessage}
+                    </p>
                     <p className="text-muted-foreground">{t('checking_account')}</p>
                   </div>
                 ) : details && remainingCredits > 0 ? (
