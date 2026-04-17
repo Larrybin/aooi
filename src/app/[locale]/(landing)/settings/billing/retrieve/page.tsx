@@ -12,7 +12,7 @@ import {
   findSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNo,
 } from '@/shared/models/subscription';
-import { getPaymentService } from '@/shared/services/payment';
+import { getPaymentService } from '@/core/payment/providers/service';
 
 export default async function RetrieveBillingPage({
   params,

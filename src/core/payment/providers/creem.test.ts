@@ -3,14 +3,14 @@ import { createHmac } from 'node:crypto';
 import test from 'node:test';
 
 import {
+  WebhookPayloadError,
+  WebhookVerificationError,
+} from '@/core/payment/domain';
+import {
   generateCreemWebhookSignature,
   normalizeCreemWebhookSignature,
   verifyAndParseCreemWebhookEvent,
-} from '@/extensions/payment/creem-webhook';
-import {
-  WebhookPayloadError,
-  WebhookVerificationError,
-} from '@/extensions/payment';
+} from '@/core/payment/providers/creem-webhook';
 
 test('generateCreemWebhookSignature 生成与 HMAC-SHA256 一致的签名', async () => {
   const payload = JSON.stringify({

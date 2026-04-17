@@ -21,17 +21,17 @@ import {
 } from '@/shared/models/subscription';
 import { PaymentNotifyParamsSchema } from '@/shared/schemas/api/payment/notify';
 import {
-  getPaymentService,
   handleCheckoutSuccess,
   handleSubscriptionCanceled,
   handleSubscriptionRenewal,
   handleSubscriptionUpdated,
-} from '@/shared/services/payment';
+} from '@/core/payment/flows/flows';
+import { getPaymentService } from '@/core/payment/providers/service';
 import {
   handlePaymentNotifyRequest,
   type PaymentNotifyFlowDeps,
-} from './payment-notify-flow';
-import type { PaymentNotifyDeps } from './process-payment-notify';
+} from '@/core/payment/webhooks/payment-notify-flow';
+import type { PaymentNotifyDeps } from '@/core/payment/webhooks/process-payment-notify';
 
 type PaymentNotifyRouteDeps = PaymentNotifyDeps & {
   getPaymentService: typeof getPaymentService;

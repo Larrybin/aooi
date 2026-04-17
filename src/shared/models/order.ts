@@ -4,7 +4,7 @@ import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { credit, order, subscription } from '@/config/db/schema';
-import type { PaymentType } from '@/extensions/payment';
+import type { PaymentType } from '@/shared/types/payment';
 
 import type { NewCredit } from './credit';
 import {

@@ -7,7 +7,8 @@ import {
   type CheckoutInfo,
   type PaymentOrder,
   type PaymentPrice,
-} from '@/extensions/payment';
+} from '@/core/payment/domain';
+import { getPaymentService } from '@/core/payment/providers/service';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -23,11 +24,10 @@ import {
   updateOrderByOrderNo,
   type NewOrder,
 } from '@/shared/models/order';
-import { resolveCheckoutPricingContext } from '@/shared/services/payment/pricing';
 import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
 
-import { getPaymentService } from './manager';
+import { resolveCheckoutPricingContext } from './pricing';
 
 type LogLike = {
   debug(message: string, meta?: unknown): void;

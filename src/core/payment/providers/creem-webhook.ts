@@ -3,12 +3,11 @@ import { z } from 'zod';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { tryJsonParse } from '@/shared/lib/json';
 import { signHmacSha256Hex } from '@/shared/lib/runtime/crypto';
-
 import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
-} from '.';
+} from '@/core/payment/domain';
 
 const creemSignaturePattern = /^[0-9a-f]{64}$/;
 
@@ -51,7 +50,7 @@ export async function generateCreemWebhookSignature(
 ): Promise<string> {
   try {
     return await signHmacSha256Hex(payload, secret, subtleCrypto);
-  } catch (_error: unknown) {
+  } catch (_error) {
     throw new ServiceUnavailableError('failed to generate signature');
   }
 }
@@ -87,7 +86,7 @@ export async function verifyAndParseCreemWebhookEvent({
     throw new WebhookVerificationError('invalid webhook signature');
   }
 
-  const parsedEvent = tryJsonParse<unknown>(rawBody);
+  const parsedEvent = tryJsonParse(rawBody);
   if (!parsedEvent.ok) {
     throw new WebhookPayloadError('invalid webhook payload');
   }

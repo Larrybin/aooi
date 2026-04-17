@@ -24,13 +24,13 @@ import {
   handleSubscriptionCanceled,
   handleSubscriptionRenewal,
   handleSubscriptionUpdated,
-} from '@/shared/services/payment';
-import type { PaymentNotifyDeps } from '@/app/api/payment/notify/[provider]/process-payment-notify';
-import { processPaymentNotifyEvent } from '@/app/api/payment/notify/[provider]/process-payment-notify';
+} from '@/core/payment/flows/flows';
+import type { PaymentNotifyDeps } from '@/core/payment/webhooks/process-payment-notify';
+import { processPaymentNotifyEvent } from '@/core/payment/webhooks/process-payment-notify';
 import {
   runPaymentWebhookReplay,
   type PaymentWebhookReplaySummary,
-} from './payment-webhook-replay';
+} from '@/core/payment/webhooks/replay';
 import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
 
 const ReplayActionSchema = z.object({

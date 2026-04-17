@@ -1,18 +1,17 @@
 import 'server-only';
 
-import { PaymentManager } from '@/extensions/payment';
+import { PaymentManager } from '@/core/payment/providers/manager';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { logger } from '@/shared/lib/logger.server';
 import type { Configs } from '@/shared/models/config';
+import { buildServiceFromLatestConfigs } from '@/shared/services/config_refresh_policy';
 import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
-
-import { buildServiceFromLatestConfigs } from '../config_refresh_policy';
 
 async function addStripeProvider(
   paymentManager: PaymentManager,
   configs: Configs
 ) {
-  const { StripeProvider } = await import('@/extensions/payment/stripe');
+  const { StripeProvider } = await import('@/core/payment/providers/stripe');
   const defaultProvider = configs.default_payment_provider;
   const isProduction = process.env.NODE_ENV === 'production';
   const signingSecret = configs.stripe_signing_secret || '';
@@ -23,7 +22,7 @@ async function addStripeProvider(
     );
   }
 
-  let allowedPaymentMethods: string[] = ['card'];
+  let allowedPaymentMethods = ['card'];
   const stripePaymentMethodsConfig = configs.stripe_payment_methods;
 
   if (typeof stripePaymentMethodsConfig === 'string') {
@@ -71,7 +70,7 @@ async function addCreemProvider(
   paymentManager: PaymentManager,
   configs: Configs
 ) {
-  const { CreemProvider } = await import('@/extensions/payment/creem');
+  const { CreemProvider } = await import('@/core/payment/providers/creem');
 
   paymentManager.addProvider(
     new CreemProvider({
@@ -88,7 +87,7 @@ async function addPayPalProvider(
   paymentManager: PaymentManager,
   configs: Configs
 ) {
-  const { PayPalProvider } = await import('@/extensions/payment/paypal');
+  const { PayPalProvider } = await import('@/core/payment/providers/paypal');
 
   paymentManager.addProvider(
     new PayPalProvider({
@@ -120,13 +119,6 @@ export async function getPaymentServiceWithConfigs(configs: Configs) {
   return paymentManager;
 }
 
-/**
- * Get payment service instance
- *
- * Note:
- * - Keep current behavior: rebuild service from latest configs each call.
- * - This avoids stale configs after admin updates (strong consistency).
- */
 export async function getPaymentService(): Promise<PaymentManager> {
   return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs);
 }

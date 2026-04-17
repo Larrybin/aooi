@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { handlePaymentNotifyRequest } from '@/app/api/payment/notify/[provider]/payment-notify-flow';
+import { handlePaymentNotifyRequest } from '@/core/payment/webhooks/payment-notify-flow';
 import {
   PaymentEventType,
   WebhookPayloadError,
   WebhookVerificationError,
   type PaymentEvent,
-} from '@/extensions/payment';
+} from '@/core/payment/domain';
 import { PayloadTooLargeError } from '@/shared/lib/api/errors';
 
 function createInboxRecord(overrides: Record<string, unknown> = {}) {

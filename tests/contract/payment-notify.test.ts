@@ -4,9 +4,9 @@ import test from 'node:test';
 import {
   PaymentEventType,
   SubscriptionCycleType,
-} from '@/extensions/payment';
+} from '@/core/payment/domain';
 
-import { processPaymentNotifyEvent } from '@/app/api/payment/notify/[provider]/process-payment-notify';
+import { processPaymentNotifyEvent } from '@/core/payment/webhooks/process-payment-notify';
 
 function createLog() {
   return {

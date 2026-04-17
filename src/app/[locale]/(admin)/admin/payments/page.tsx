@@ -1,12 +1,13 @@
 // data: admin session (RBAC) + payments/orders list (db) + pagination/search/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing data is sensitive; avoid caching across users/roles
-import { PaymentType } from '@/extensions/payment';
-import { createAdminTablePage } from '@/features/admin/server';
+import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
 import {
   AdminPaymentsListQuerySchema,
   type AdminPaymentsListQuery,
 } from '@/features/admin/schemas/list';
+
+import { PaymentType } from '@/core/payment/domain';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getOrders,
@@ -41,7 +42,10 @@ export default createAdminTablePage<Order, AdminPaymentsListQuery>({
       titleKey: 'list.filters.status.title',
       options: [
         { value: 'all', labelKey: 'list.filters.status.options.all' },
-        { value: OrderStatus.PAID, labelKey: 'list.filters.status.options.paid' },
+        {
+          value: OrderStatus.PAID,
+          labelKey: 'list.filters.status.options.paid',
+        },
         {
           value: OrderStatus.CREATED,
           labelKey: 'list.filters.status.options.created',

@@ -1,30 +1,29 @@
 import { z } from 'zod';
 
-import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
-import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
-import { safeJsonParse } from '@/shared/lib/json';
-import { logger } from '@/shared/lib/logger.server';
-
 import {
-  type CheckoutSession,
-  type PaymentEvent,
   PaymentEventType,
-  type PaymentProvider,
   PaymentStatus,
-  type PaymentSession,
   PaymentType,
   SubscriptionStatus,
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
+  type CheckoutSession,
   type PaymentConfigs,
+  type PaymentEvent,
   type PaymentOrder,
+  type PaymentProvider,
+  type PaymentSession,
   type SubscriptionInfo,
-} from '.';
+} from '@/core/payment/domain';
 import {
   assertSuccessfulPaymentSessionContract,
   mapPayPalEventTypeToCanonical,
-} from './provider-contract';
+} from '@/core/payment/providers/provider-contract';
+import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
+import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
+import { safeJsonParse } from '@/shared/lib/json';
+import { logger } from '@/shared/lib/logger.server';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

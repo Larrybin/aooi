@@ -4,7 +4,7 @@ import {
   PaymentStatus,
   PaymentType,
   type PaymentSession,
-} from '@/extensions/payment';
+} from '@/core/payment/domain';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import type { NewCredit } from '@/shared/models/credit';
 import {
@@ -27,15 +27,6 @@ import {
 
 import { buildGrantCreditForOrder } from './credit';
 
-/**
- * Payment flow state machine
- *
- * [Webhook/API]
- *    -> [Provider Parse+Map]
- *    -> [Canonical PaymentSession]
- *    -> [Checkout/Payment/Subscription Flow]
- *    -> [Order/Subscription Tx + Credit Grant]
- */
 type LogLike = {
   debug(message: string, meta?: unknown): void;
   info(message: string, meta?: unknown): void;
@@ -374,16 +365,13 @@ function buildSubscriptionRenewalOrder({
   };
 }
 
-/**
- * Handle checkout success (one-time payment or subscription first payment)
- */
 export async function handleCheckoutSuccess({
   order,
   session,
   log,
 }: {
-  order: Order; // checkout order
-  session: PaymentSession; // payment session
+  order: Order;
+  session: PaymentSession;
   log?: LogLike;
 }) {
   const orderNo = assertOrderNo(order);
@@ -426,16 +414,13 @@ export async function handleCheckoutSuccess({
   }
 }
 
-/**
- * Handle payment success
- */
 export async function handlePaymentSuccess({
   order,
   session,
   log,
 }: {
-  order: Order; // checkout order
-  session: PaymentSession; // payment session
+  order: Order;
+  session: PaymentSession;
   log?: LogLike;
 }) {
   assertOrderNo(order);
@@ -460,8 +445,8 @@ export async function handleSubscriptionRenewal({
   session,
   log,
 }: {
-  subscription: Subscription; // subscription
-  session: PaymentSession; // payment session
+  subscription: Subscription;
+  session: PaymentSession;
   log?: LogLike;
 }) {
   assertValidSubscriptionBasics(subscription);
@@ -506,7 +491,6 @@ export async function handleSubscriptionRenewal({
     currentTime,
   });
 
-  // NOTE: renewal credits must be tagged as `renewal` for audit/reporting.
   const newCredit: NewCredit | undefined = buildGrantCreditForOrder({
     order: {
       userId: order.userId,
@@ -538,8 +522,8 @@ export async function handleSubscriptionUpdated({
   session,
   log,
 }: {
-  subscription: Subscription; // subscription
-  session: PaymentSession; // payment session
+  subscription: Subscription;
+  session: PaymentSession;
   log?: LogLike;
 }) {
   assertValidSubscriptionBasics(subscription);
@@ -589,8 +573,8 @@ export async function handleSubscriptionCanceled({
   session,
   log,
 }: {
-  subscription: Subscription; // subscription
-  session: PaymentSession; // payment session
+  subscription: Subscription;
+  session: PaymentSession;
   log?: LogLike;
 }) {
   assertValidSubscriptionBasics(subscription);

@@ -1,5 +1,5 @@
-import { type PaymentEvent } from '@/extensions/payment';
 import { toJsonValue } from '@/shared/lib/json';
+import { type PaymentEvent } from '@/shared/types/payment';
 
 function toJsonString(value: unknown): string {
   return JSON.stringify(toJsonValue(value));

@@ -1,34 +1,34 @@
 import { z } from 'zod';
 
 import {
-  BadRequestError,
-  UpstreamError,
-} from '@/shared/lib/api/errors';
-import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
-import { toJsonValue, type JsonObject, type JsonValue } from '@/shared/lib/json';
-
-import {
-  type CheckoutSession,
-  type PaymentEvent,
   PaymentEventType,
   PaymentInterval,
-  type PaymentProvider,
   PaymentStatus,
-  type PaymentSession,
   SubscriptionCycleType,
   SubscriptionStatus,
   WebhookPayloadError,
+  type CheckoutSession,
   type PaymentBilling,
   type PaymentConfigs,
   type PaymentCustomField,
+  type PaymentEvent,
   type PaymentOrder,
+  type PaymentProvider,
+  type PaymentSession,
   type SubscriptionInfo,
-} from '.';
-import { verifyAndParseCreemWebhookEvent } from './creem-webhook';
+} from '@/core/payment/domain';
+import { verifyAndParseCreemWebhookEvent } from '@/core/payment/providers/creem-webhook';
 import {
   assertSuccessfulPaymentSessionContract,
   mapCreemEventTypeToCanonical,
-} from './provider-contract';
+} from '@/core/payment/providers/provider-contract';
+import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
+import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
+import {
+  toJsonValue,
+  type JsonObject,
+  type JsonValue,
+} from '@/shared/lib/json';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -272,9 +272,8 @@ export class CreemProvider implements PaymentProvider {
       throw new UpstreamError(502, errorMessage || 'get payment failed');
     }
 
-    const paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-      session
-    );
+    const paymentSession =
+      await this.buildPaymentSessionFromCheckoutSession(session);
     this.assertSuccessfulPaymentSession(paymentSession);
     return paymentSession;
   }

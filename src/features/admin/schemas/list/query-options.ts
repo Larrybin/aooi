@@ -1,5 +1,5 @@
 import { AIMediaType } from '@/extensions/ai';
-import { PaymentType } from '@/extensions/payment';
+import { PaymentType } from '@/core/payment/domain';
 
 export const ADMIN_AI_TASK_MEDIA_TYPES = [
   AIMediaType.MUSIC,

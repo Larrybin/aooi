@@ -1,6 +1,9 @@
 import 'server-only';
 
-import { PaymentType, type SubscriptionInfo } from '@/extensions/payment';
+import {
+  PaymentType,
+  type SubscriptionInfo,
+} from '@/core/payment/domain';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import {
   calculateCreditExpirationTime,

@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PaymentEventType, PaymentStatus, WebhookPayloadError } from '.';
+import {
+  PaymentEventType,
+  PaymentStatus,
+  WebhookPayloadError,
+} from '@/core/payment/domain';
 import {
   assertSuccessfulPaymentSessionContract,
   mapCreemEventTypeToCanonical,
   mapPayPalEventTypeToCanonical,
   mapStripeEventTypeToCanonical,
-} from './provider-contract';
+} from '@/core/payment/providers/provider-contract';
 
 test('payment providers: 三家 provider 的未知事件映射均返回 UNKNOWN', () => {
   assert.equal(

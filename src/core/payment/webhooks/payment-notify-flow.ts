@@ -3,7 +3,7 @@ import {
   WebhookPayloadError,
   WebhookVerificationError,
   type PaymentEvent,
-} from '@/extensions/payment';
+} from '@/core/payment/domain';
 import {
   BadRequestError,
   PayloadTooLargeError,

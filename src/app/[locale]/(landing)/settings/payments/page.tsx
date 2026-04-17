@@ -3,7 +3,7 @@
 // reason: user-specific payment history and invoices
 import { getTranslations } from 'next-intl/server';
 
-import type { PaymentType } from '@/extensions/payment';
+import type { PaymentType } from '@/core/payment/domain';
 import { Empty } from '@/shared/blocks/common/empty';
 import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
 import { TableCard } from '@/shared/blocks/table';

@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 
 import { envConfigs } from '@/config';
-import { PaymentType } from '@/extensions/payment';
+import { PaymentType } from '@/core/payment/domain';
+import { handleCheckoutSuccess } from '@/core/payment/flows/flows';
+import { getPaymentService } from '@/core/payment/providers/service';
 import { createApiContext } from '@/shared/lib/api/context';
 import {
   BadRequestError,
@@ -17,10 +19,6 @@ import {
   PaymentCallbackBodySchema,
   PaymentCallbackQuerySchema,
 } from '@/shared/schemas/api/payment/callback';
-import {
-  getPaymentService,
-  handleCheckoutSuccess,
-} from '@/shared/services/payment';
 
 function appendOrderNoToUrl(
   url: string,

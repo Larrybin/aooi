@@ -6,8 +6,8 @@ import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { paymentWebhookInbox } from '@/config/db/schema';
-import { PaymentEventType, type PaymentEvent } from '@/extensions/payment';
 import { getUuid } from '@/shared/lib/hash';
+import { PaymentEventType, type PaymentEvent } from '@/shared/types/payment';
 import {
   PAYMENT_WEBHOOK_INBOX_STATUS,
   type PaymentWebhookInboxStatus,

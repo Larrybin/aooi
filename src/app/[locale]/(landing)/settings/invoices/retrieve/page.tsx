@@ -10,7 +10,7 @@ import {
   findOrderByOrderNo,
   updateOrderByOrderNo,
 } from '@/shared/models/order';
-import { getPaymentService } from '@/shared/services/payment';
+import { getPaymentService } from '@/core/payment/providers/service';
 
 export default async function RetrieveInvoicePage({
   params,

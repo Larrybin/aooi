@@ -3,7 +3,7 @@ import {
   PaymentStatus,
   WebhookPayloadError,
   type PaymentSession,
-} from '.';
+} from '@/core/payment/domain';
 
 export function assertSuccessfulPaymentSessionContract(
   session: PaymentSession

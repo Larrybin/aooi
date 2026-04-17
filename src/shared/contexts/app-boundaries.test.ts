@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
 import fs from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -92,7 +92,9 @@ test('根 locale layout 默认不注入全量 messages，也不再挂全局动�
   const content = await readRepoFile('src/app/[locale]/layout.tsx');
 
   assert.equal(
-    content.includes('<NextIntlClientProvider locale={locale} messages={null}>'),
+    content.includes(
+      '<NextIntlClientProvider locale={locale} messages={null}>'
+    ),
     true
   );
   assert.equal(content.includes('generateMetadata = getMetadata()'), false);
@@ -115,15 +117,11 @@ test('shared/common 不再持有 markdown-it 解析器实现', async () => {
 
 test('非 payment surface 不允许直接 import payment provider 实现', async () => {
   const srcRoot = path.resolve(repoRoot, 'src');
-  const allowedPrefixes = [
-    path.resolve(srcRoot, 'extensions/payment'),
-    path.resolve(srcRoot, 'shared/services/payment'),
-  ];
+  const allowedPrefixes = [path.resolve(srcRoot, 'core/payment')];
   const providerImportPatterns = [
-    "@/extensions/payment/providers",
-    "@/extensions/payment/stripe",
-    "@/extensions/payment/paypal",
-    "@/extensions/payment/creem",
+    '@/core/payment/providers/stripe',
+    '@/core/payment/providers/paypal',
+    '@/core/payment/providers/creem',
   ];
 
   for (const file of await collectSourceFiles(srcRoot)) {
@@ -131,7 +129,9 @@ test('非 payment surface 不允许直接 import payment provider 实现', async
       continue;
     }
 
-    if (allowedPrefixes.some((allowedPrefix) => file.startsWith(allowedPrefix))) {
+    if (
+      allowedPrefixes.some((allowedPrefix) => file.startsWith(allowedPrefix))
+    ) {
       continue;
     }
 

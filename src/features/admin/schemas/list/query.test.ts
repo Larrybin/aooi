@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AIMediaType } from '@/extensions/ai';
-import { PaymentType } from '@/extensions/payment';
+import { PaymentType } from '@/core/payment/domain';
 
 import {
   AdminAiTasksListQuerySchema,

@@ -5,23 +5,13 @@ import {
   SubscriptionCycleType,
   type PaymentEvent,
   type PaymentSession,
-} from '@/extensions/payment';
+} from '@/core/payment/domain';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
-import { toJsonValue } from '@/shared/lib/json';
 import { jsonOk } from '@/shared/lib/api/response';
+import { toJsonValue } from '@/shared/lib/json';
 import type { Order } from '@/shared/models/order';
 import type { Subscription } from '@/shared/models/subscription';
 
-/**
- * Payment notify processing pipeline
- *
- * [Webhook/API]
- *    -> [Provider Parse+Map]
- *    -> [Canonical PaymentEvent]
- *    -> [processPaymentNotifyEvent]
- *    -> [Payment Flow State Machine]
- *    -> [Order/Subscription Tx + Credit Grant]
- */
 type PaymentNotifyLog = {
   debug: (message: string, meta?: Record<string, unknown>) => void;
   info: (message: string, meta?: Record<string, unknown>) => void;

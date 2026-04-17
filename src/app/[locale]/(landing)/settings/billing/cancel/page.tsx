@@ -18,7 +18,7 @@ import {
   SubscriptionStatus,
   updateSubscriptionBySubscriptionNo,
 } from '@/shared/models/subscription';
-import { getPaymentService } from '@/shared/services/payment';
+import { getPaymentService } from '@/core/payment/providers/service';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form } from '@/shared/types/blocks/form';
 

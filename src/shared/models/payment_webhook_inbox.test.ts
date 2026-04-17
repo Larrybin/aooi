@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   PaymentEventType,
   SubscriptionCycleType,
-} from '@/extensions/payment';
+} from '@/shared/types/payment';
 
 import {
   deserializePaymentWebhookCanonicalEvent,

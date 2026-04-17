@@ -6,9 +6,9 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { getAllConfigs } from '@/shared/models/config';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
-import { createPaymentCheckoutSession } from '@/shared/services/payment';
-import { findPricingItemByProductId } from '@/shared/services/payment/pricing';
 import type { Pricing } from '@/shared/types/blocks/pricing';
+import { createPaymentCheckoutSession } from '@/core/payment/flows/checkout';
+import { findPricingItemByProductId } from '@/core/payment/flows/pricing';
 
 export const POST = withApi(async (req: Request) => {
   const api = createApiContext(req);

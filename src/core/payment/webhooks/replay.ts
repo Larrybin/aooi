@@ -1,5 +1,8 @@
-import { type PaymentNotifyDeps, type PaymentNotifyProcessResult } from '@/app/api/payment/notify/[provider]/process-payment-notify';
-import { type PaymentEvent } from '@/extensions/payment';
+import {
+  type PaymentNotifyDeps,
+  type PaymentNotifyProcessResult,
+} from '@/core/payment/webhooks/process-payment-notify';
+import { type PaymentEvent } from '@/core/payment/domain';
 import { type PaymentWebhookOperationKind } from '@/shared/models/payment_webhook_inbox.shared';
 
 export type PaymentWebhookReplayRow = {

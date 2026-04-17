@@ -1,35 +1,34 @@
 import Stripe from 'stripe';
 
 import {
-  BadRequestError,
-  NotFoundError,
-  UpstreamError,
-} from '@/shared/lib/api/errors';
-
-import {
-  type CheckoutSession,
-  type PaymentEvent,
   PaymentEventType,
-  type PaymentProvider,
   PaymentStatus,
-  type PaymentSession,
   PaymentType,
   SubscriptionCycleType,
   SubscriptionStatus,
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
+  type CheckoutSession,
   type PaymentBilling,
   type PaymentConfigs,
+  type PaymentEvent,
   type PaymentInterval,
   type PaymentInvoice,
   type PaymentOrder,
+  type PaymentProvider,
+  type PaymentSession,
   type SubscriptionInfo,
-} from '.';
+} from '@/core/payment/domain';
 import {
   assertSuccessfulPaymentSessionContract,
   mapStripeEventTypeToCanonical,
-} from './provider-contract';
+} from '@/core/payment/providers/provider-contract';
+import {
+  BadRequestError,
+  NotFoundError,
+  UpstreamError,
+} from '@/shared/lib/api/errors';
 
 /**
  * Stripe payment provider configs
@@ -216,9 +215,8 @@ export class StripeProvider implements PaymentProvider {
 
     const session = await this.client.checkout.sessions.retrieve(sessionId);
 
-    const paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-      session
-    );
+    const paymentSession =
+      await this.buildPaymentSessionFromCheckoutSession(session);
     this.assertSuccessfulPaymentSession(paymentSession);
     return paymentSession;
   }

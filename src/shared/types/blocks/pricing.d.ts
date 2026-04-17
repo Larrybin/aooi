@@ -1,6 +1,6 @@
 import type { Button } from '@/types/blocks/base/button';
 
-import type { PaymentInterval } from '@/extensions/payment';
+import type { PaymentInterval } from '@/shared/types/payment';
 
 export interface PricingGroup {
   name?: string;
