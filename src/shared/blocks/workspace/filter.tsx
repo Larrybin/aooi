@@ -27,8 +27,9 @@ export function Filter({ filter }: { filter: FilterType }) {
     setValue(value);
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
 
-    if (value) {
+    if (value && value !== 'all') {
       params.set(filter.name, value);
     } else {
       params.delete(filter.name);

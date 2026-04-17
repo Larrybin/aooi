@@ -19,6 +19,7 @@ export function Search({ search }: { search: SearchType }) {
     setValue(value);
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
 
     params.set(search.name, value);
 

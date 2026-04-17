@@ -1,81 +1,45 @@
 // data: admin session (RBAC) + api keys list (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: api keys are sensitive; avoid caching across users/roles
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { TableCard } from '@/shared/blocks/table';
-import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
+import { createAdminTablePage } from '@/features/admin/server';
+import {
+  AdminApikeysListQuerySchema,
+  type AdminApikeysListQuery,
+} from '@/features/admin/schemas/list';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getApikeys,
   getApikeysCount,
   type Apikey,
 } from '@/shared/models/apikey';
-import { requirePermission } from '@/shared/services/rbac_guard';
-import type { Button, Crumb } from '@/shared/types/blocks/common';
-import { type Table } from '@/shared/types/blocks/table';
 
-export default async function ApiKeysPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ locale: string }>;
-  searchParams: Promise<{ page?: number; pageSize?: number }>;
-}) {
-  const { locale } = await params;
-  setRequestLocale(locale);
+export default createAdminTablePage<Apikey, AdminApikeysListQuery>({
+  namespace: 'admin.apikeys',
+  permission: PERMISSIONS.APIKEYS_READ,
+  crumbs: [
+    { key: 'list.crumbs.admin', url: '/admin' },
+    { key: 'list.crumbs.apikeys' },
+  ],
+  query: {
+    schema: AdminApikeysListQuerySchema,
+    load: async ({ page, pageSize }) => {
+      const [rows, total] = await Promise.all([
+        getApikeys({
+          getUser: true,
+          page,
+          limit: pageSize,
+        }),
+        getApikeysCount({}),
+      ]);
 
-  // Check if user has permission to read api keys
-  await requirePermission({
-    code: PERMISSIONS.APIKEYS_READ,
-    redirectUrl: '/admin/no-permission',
-    locale,
-  });
-
-  const t = await getTranslations('admin.apikeys');
-
-  const { page: pageNum, pageSize } = await searchParams;
-  const page = pageNum || 1;
-  const limit = pageSize || 30;
-
-  const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
-    { title: t('list.crumbs.apikeys'), is_active: true },
-  ];
-
-  const total = await getApikeysCount({});
-
-  const apiKeys = await getApikeys({
-    getUser: true,
-    page,
-    limit,
-  });
-
-  const table: Table<Apikey> = {
-    columns: [
-      { name: 'title', title: t('fields.title') },
-      { name: 'key', title: t('fields.key'), type: 'copy' },
-      { name: 'user', title: t('fields.user'), type: 'user' },
-      { name: 'status', title: t('fields.status'), type: 'label' },
-      { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
-    ],
-    data: apiKeys,
-    pagination: {
-      total,
-      page,
-      limit,
+      return { rows, total };
     },
-  };
-
-  const actions: Button[] = [];
-
-  return (
-    <>
-      <Header crumbs={crumbs} />
-      <Main>
-        <MainHeader title={t('list.title')} actions={actions} />
-        <TableCard table={table} />
-      </Main>
-    </>
-  );
-}
+  },
+  columns: ({ t }) => [
+    { name: 'title', title: t('fields.title') },
+    { name: 'key', title: t('fields.key'), type: 'copy' },
+    { name: 'user', title: t('fields.user'), type: 'user' },
+    { name: 'status', title: t('fields.status'), type: 'label' },
+    { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
+  ],
+});

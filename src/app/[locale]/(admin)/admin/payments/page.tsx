@@ -1,11 +1,12 @@
 // data: admin session (RBAC) + payments/orders list (db) + pagination/search/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing data is sensitive; avoid caching across users/roles
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import type { PaymentType } from '@/extensions/payment';
-import { TableCard } from '@/shared/blocks/table';
-import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
+import { PaymentType } from '@/extensions/payment';
+import { createAdminTablePage } from '@/features/admin/server';
+import {
+  AdminPaymentsListQuerySchema,
+  type AdminPaymentsListQuery,
+} from '@/features/admin/schemas/list';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getOrders,
@@ -13,212 +14,123 @@ import {
   OrderStatus,
   type Order,
 } from '@/shared/models/order';
-import { requirePermission } from '@/shared/services/rbac_guard';
-import type { Crumb, Filter, Search, Tab } from '@/shared/types/blocks/common';
-import type { Button } from '@/shared/types/blocks/common';
-import { type Table } from '@/shared/types/blocks/table';
 
-export default async function PaymentsPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ locale: string }>;
-  searchParams: Promise<{
-    page?: number;
-    pageSize?: number;
-    type?: string;
-    status?: string;
-    provider?: string;
-    orderNo?: string;
-  }>;
-}) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  // Check if user has permission to read payments
-  await requirePermission({
-    code: PERMISSIONS.PAYMENTS_READ,
-    redirectUrl: '/admin/no-permission',
-    locale,
-  });
-
-  const t = await getTranslations('admin.payments');
-
-  const {
-    page: pageNum,
-    pageSize,
-    type,
-    status,
-    provider,
-    orderNo,
-  } = await searchParams;
-  const page = pageNum || 1;
-  const limit = pageSize || 30;
-
-  const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
-    { title: t('list.crumbs.payments'), is_active: true },
-  ];
-
-  const tabs: Tab[] = [
-    {
-      name: 'all',
-      title: t('list.tabs.all'),
-      url: '/admin/payments',
-      is_active: !type || type === 'all',
-    },
+export default createAdminTablePage<Order, AdminPaymentsListQuery>({
+  namespace: 'admin.payments',
+  permission: PERMISSIONS.PAYMENTS_READ,
+  crumbs: [
+    { key: 'list.crumbs.admin', url: '/admin' },
+    { key: 'list.crumbs.payments' },
+  ],
+  tabs: [
+    { name: 'all', titleKey: 'list.tabs.all' },
     {
       name: 'subscription',
-      title: t('list.tabs.subscription'),
-      url: '/admin/payments?type=subscription',
-      is_active: type === 'subscription',
+      titleKey: 'list.tabs.subscription',
+      queryPatch: { type: PaymentType.SUBSCRIPTION },
     },
     {
       name: 'one-time',
-      title: t('list.tabs.one-time'),
-      url: '/admin/payments?type=one-time',
-      is_active: type === 'one-time',
+      titleKey: 'list.tabs.one-time',
+      queryPatch: { type: PaymentType.ONE_TIME },
     },
-  ];
-
-  const filters: Filter[] = [
+  ],
+  filters: [
     {
       name: 'status',
-      title: t('list.filters.status.title'),
-      value: status,
+      titleKey: 'list.filters.status.title',
       options: [
-        { value: 'all', label: t('list.filters.status.options.all') },
-        {
-          value: OrderStatus.PAID,
-          label: t('list.filters.status.options.paid'),
-        },
+        { value: 'all', labelKey: 'list.filters.status.options.all' },
+        { value: OrderStatus.PAID, labelKey: 'list.filters.status.options.paid' },
         {
           value: OrderStatus.CREATED,
-          label: t('list.filters.status.options.created'),
+          labelKey: 'list.filters.status.options.created',
         },
         {
           value: OrderStatus.FAILED,
-          label: t('list.filters.status.options.failed'),
+          labelKey: 'list.filters.status.options.failed',
         },
       ],
     },
     {
       name: 'provider',
-      title: t('list.filters.provider.title'),
-      value: provider,
+      titleKey: 'list.filters.provider.title',
       options: [
-        { value: 'all', label: t('list.filters.provider.options.all') },
-        {
-          value: 'stripe',
-          label: t('list.filters.provider.options.stripe'),
-        },
-        {
-          value: 'creem',
-          label: t('list.filters.provider.options.creem'),
-        },
+        { value: 'all', labelKey: 'list.filters.provider.options.all' },
+        { value: 'stripe', labelKey: 'list.filters.provider.options.stripe' },
+        { value: 'creem', labelKey: 'list.filters.provider.options.creem' },
         {
           value: 'lemonsqueezy',
-          label: t('list.filters.provider.options.lemonsqueezy'),
+          labelKey: 'list.filters.provider.options.lemonsqueezy',
         },
-        {
-          value: 'paypal',
-          label: t('list.filters.provider.options.paypal'),
-        },
+        { value: 'paypal', labelKey: 'list.filters.provider.options.paypal' },
       ],
     },
-  ];
-
-  const search: Search = {
+  ],
+  search: {
     name: 'orderNo',
-    title: t('list.search.order_no.title'),
-    placeholder: t('list.search.order_no.placeholder'),
-    value: orderNo,
-  };
-
-  const actions: Button[] = [
+    titleKey: 'list.search.order_no.title',
+    placeholderKey: 'list.search.order_no.placeholder',
+  },
+  actions: [
     {
       title: 'Webhook Replay',
       url: '/admin/payments/replay',
       variant: 'outline',
     },
-  ];
+  ],
+  query: {
+    schema: AdminPaymentsListQuerySchema,
+    load: async ({ page, pageSize, orderNo, provider, status, type }) => {
+      const params = {
+        orderNo,
+        paymentType: type as PaymentType | undefined,
+        paymentProvider: provider,
+        status: status as OrderStatus | undefined,
+      };
 
-  const total = await getOrdersCount({
-    orderNo: orderNo ? (orderNo as string) : undefined,
-    paymentType: type as PaymentType,
-    paymentProvider:
-      provider && provider !== 'all' ? (provider as string) : undefined,
-    status: status && status !== 'all' ? (status as OrderStatus) : undefined,
-  });
+      const [rows, total] = await Promise.all([
+        getOrders({
+          ...params,
+          getUser: true,
+          page,
+          limit: pageSize,
+        }),
+        getOrdersCount(params),
+      ]);
 
-  const payments = await getOrders({
-    orderNo: orderNo ? (orderNo as string) : undefined,
-    paymentType: type as PaymentType,
-    paymentProvider:
-      provider && provider !== 'all' ? (provider as string) : undefined,
-    status: status && status !== 'all' ? (status as OrderStatus) : undefined,
-    getUser: true,
-    page,
-    limit,
-  });
-
-  const table: Table<Order> = {
-    columns: [
-      { name: 'orderNo', title: t('fields.order_no'), type: 'copy' },
-      { name: 'user', title: t('fields.user'), type: 'user' },
-      {
-        title: t('fields.amount'),
-        callback: (item) => {
-          return (
-            <div className="text-primary">{`${item.amount / 100} ${
-              item.currency
-            }`}</div>
-          );
-        },
-        type: 'copy',
-      },
-      { name: 'status', title: t('fields.status'), type: 'label' },
-      {
-        name: 'paymentType',
-        title: t('fields.type'),
-        type: 'label',
-        placeholder: '-',
-      },
-      {
-        name: 'productId',
-        title: t('fields.product'),
-        type: 'label',
-        placeholder: '-',
-      },
-      { name: 'description', title: t('fields.description'), placeholder: '-' },
-      {
-        name: 'paymentProvider',
-        title: t('fields.provider'),
-        type: 'label',
-      },
-      { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
-    ],
-    data: payments,
-    pagination: {
-      total,
-      page,
-      limit,
+      return { rows, total };
     },
-  };
-
-  return (
-    <>
-      <Header crumbs={crumbs} />
-      <Main>
-        <MainHeader
-          title={t('list.title')}
-          tabs={tabs}
-          filters={filters}
-          search={search}
-          actions={actions}
-        />
-        <TableCard table={table} />
-      </Main>
-    </>
-  );
-}
+  },
+  columns: ({ t }) => [
+    { name: 'orderNo', title: t('fields.order_no'), type: 'copy' },
+    { name: 'user', title: t('fields.user'), type: 'user' },
+    {
+      title: t('fields.amount'),
+      callback: (item) => (
+        <div className="text-primary">{`${item.amount / 100} ${item.currency}`}</div>
+      ),
+      type: 'copy',
+    },
+    { name: 'status', title: t('fields.status'), type: 'label' },
+    {
+      name: 'paymentType',
+      title: t('fields.type'),
+      type: 'label',
+      placeholder: '-',
+    },
+    {
+      name: 'productId',
+      title: t('fields.product'),
+      type: 'label',
+      placeholder: '-',
+    },
+    { name: 'description', title: t('fields.description'), placeholder: '-' },
+    {
+      name: 'paymentProvider',
+      title: t('fields.provider'),
+      type: 'label',
+    },
+    { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
+  ],
+});

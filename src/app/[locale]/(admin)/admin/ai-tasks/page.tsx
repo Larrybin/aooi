@@ -2,10 +2,13 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: task logs are sensitive; avoid caching across users/roles
 import { notFound } from 'next/navigation';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { TableCard } from '@/shared/blocks/table';
-import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
+import { createAdminTablePage } from '@/features/admin/server';
+import {
+  AdminAiTasksListQuerySchema,
+  type AdminAiTasksListQuery,
+} from '@/features/admin/schemas/list';
+import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import {
@@ -13,124 +16,77 @@ import {
   getAITasksCount,
   type AITask,
 } from '@/shared/models/ai_task';
-import { requirePermission } from '@/shared/services/rbac_guard';
-import type { Button, Crumb, Tab } from '@/shared/types/blocks/common';
-import { type Table } from '@/shared/types/blocks/table';
 
-export default async function AiTasksPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ locale: string }>;
-  searchParams: Promise<{ page?: number; pageSize?: number; type?: string }>;
-}) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  if (!(await isAiEnabledCached())) {
-    notFound();
-  }
-
-  // Check if user has permission to read api keys
-  await requirePermission({
-    code: PERMISSIONS.AITASKS_READ,
-    redirectUrl: '/admin/no-permission',
-    locale,
-  });
-
-  const t = await getTranslations('admin.ai-tasks');
-
-  const { page: pageNum, pageSize, type } = await searchParams;
-  const page = pageNum || 1;
-  const limit = pageSize || 30;
-
-  const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
-    { title: t('list.crumbs.ai-tasks'), is_active: true },
-  ];
-
-  const total = await getAITasksCount({
-    mediaType: type,
-  });
-
-  const aiTasks = await getAITasks({
-    getUser: true,
-    page,
-    limit,
-    mediaType: type,
-  });
-
-  const table: Table<AITask> = {
-    columns: [
-      { name: 'id', title: t('fields.task_id'), type: 'copy' },
-      { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
-      { name: 'user', title: t('fields.user'), type: 'user' },
-      { name: 'status', title: t('fields.status'), type: 'label' },
-      { name: 'costCredits', title: t('fields.cost_credits'), type: 'label' },
-      { name: 'mediaType', title: t('fields.media_type'), type: 'label' },
-      { name: 'scene', title: t('fields.scene'), type: 'label' },
-      { name: 'provider', title: t('fields.provider'), type: 'label' },
-      { name: 'model', title: t('fields.model'), type: 'label' },
-      { name: 'prompt', title: t('fields.prompt'), type: 'copy' },
-      { name: 'options', title: t('fields.options'), type: 'json_preview' },
-      { name: 'taskResult', title: t('fields.result'), type: 'json_preview' },
-    ],
-    data: aiTasks,
-    pagination: {
-      total,
-      page,
-      limit,
-    },
-  };
-
-  const actions: Button[] = [];
-
-  const tabs: Tab[] = [
+export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
+  namespace: 'admin.ai-tasks',
+  permission: PERMISSIONS.AITASKS_READ,
+  beforeLoad: async () => {
+    if (!(await isAiEnabledCached())) {
+      notFound();
+    }
+  },
+  crumbs: [
+    { key: 'list.crumbs.admin', url: '/admin' },
+    { key: 'list.crumbs.ai-tasks' },
+  ],
+  tabs: [
+    { name: 'all', titleKey: 'list.tabs.all' },
     {
-      title: t('list.tabs.all'),
-      name: 'all',
-      url: '/admin/ai-tasks',
-      is_active: true,
+      name: AIMediaType.MUSIC,
+      titleKey: 'list.tabs.music',
+      queryPatch: { type: AIMediaType.MUSIC },
     },
     {
-      title: t('list.tabs.music'),
-      name: 'music',
-      url: '/admin/ai-tasks?type=music',
-      is_active: false,
+      name: AIMediaType.IMAGE,
+      titleKey: 'list.tabs.image',
+      queryPatch: { type: AIMediaType.IMAGE },
     },
     {
-      title: t('list.tabs.image'),
-      name: 'image',
-      url: '/admin/ai-tasks?type=image',
-      is_active: false,
+      name: AIMediaType.VIDEO,
+      titleKey: 'list.tabs.video',
+      queryPatch: { type: AIMediaType.VIDEO },
     },
     {
-      title: t('list.tabs.video'),
-      name: 'video',
-      url: '/admin/ai-tasks?type=video',
-      is_active: false,
+      name: AIMediaType.SPEECH,
+      titleKey: 'list.tabs.audio',
+      queryPatch: { type: AIMediaType.SPEECH },
     },
     {
-      title: t('list.tabs.audio'),
-      name: 'audio',
-      url: '/admin/ai-tasks?type=audio',
-      is_active: false,
+      name: AIMediaType.TEXT,
+      titleKey: 'list.tabs.text',
+      queryPatch: { type: AIMediaType.TEXT },
     },
-    {
-      title: t('list.tabs.text'),
-      name: 'text',
-      url: '/admin/ai-tasks?type=text',
-      is_active: false,
-    },
-  ];
+  ],
+  query: {
+    schema: AdminAiTasksListQuerySchema,
+    load: async ({ page, pageSize, type }) => {
+      const [rows, total] = await Promise.all([
+        getAITasks({
+          getUser: true,
+          page,
+          limit: pageSize,
+          mediaType: type,
+        }),
+        getAITasksCount({
+          mediaType: type,
+        }),
+      ]);
 
-  return (
-    <>
-      <Header crumbs={crumbs} />
-      <Main>
-        <MainHeader title={t('list.title')} tabs={tabs} actions={actions} />
-        <TableCard table={table} />
-      </Main>
-    </>
-  );
-}
+      return { rows, total };
+    },
+  },
+  columns: ({ t }) => [
+    { name: 'id', title: t('fields.task_id'), type: 'copy' },
+    { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
+    { name: 'user', title: t('fields.user'), type: 'user' },
+    { name: 'status', title: t('fields.status'), type: 'label' },
+    { name: 'costCredits', title: t('fields.cost_credits'), type: 'label' },
+    { name: 'mediaType', title: t('fields.media_type'), type: 'label' },
+    { name: 'scene', title: t('fields.scene'), type: 'label' },
+    { name: 'provider', title: t('fields.provider'), type: 'label' },
+    { name: 'model', title: t('fields.model'), type: 'label' },
+    { name: 'prompt', title: t('fields.prompt'), type: 'copy' },
+    { name: 'options', title: t('fields.options'), type: 'json_preview' },
+    { name: 'taskResult', title: t('fields.result'), type: 'json_preview' },
+  ],
+});

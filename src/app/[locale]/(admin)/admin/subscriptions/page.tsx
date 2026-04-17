@@ -1,149 +1,101 @@
 // data: admin session (RBAC) + subscriptions list (db) + pagination/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing data is sensitive; avoid caching across users/roles
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { TableCard } from '@/shared/blocks/table';
-import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
+import { createAdminTablePage } from '@/features/admin/server';
+import {
+  AdminSubscriptionsListQuerySchema,
+  type AdminSubscriptionsListQuery,
+} from '@/features/admin/schemas/list';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getSubscriptions,
   getSubscriptionsCount,
   type Subscription,
 } from '@/shared/models/subscription';
-import { requirePermission } from '@/shared/services/rbac_guard';
-import type { Crumb, Tab } from '@/shared/types/blocks/common';
-import { type Table } from '@/shared/types/blocks/table';
 
-export default async function SubscriptionsPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ locale: string }>;
-  searchParams: Promise<{
-    page?: number;
-    pageSize?: number;
-    interval?: string;
-  }>;
-}) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  // Check if user has permission to read subscriptions
-  await requirePermission({
-    code: PERMISSIONS.SUBSCRIPTIONS_READ,
-    redirectUrl: '/admin/no-permission',
-    locale,
-  });
-
-  const t = await getTranslations('admin.subscriptions');
-
-  const { page: pageNum, pageSize, interval } = await searchParams;
-  const page = pageNum || 1;
-  const limit = pageSize || 30;
-
-  const crumbs: Crumb[] = [
-    { title: t('list.crumbs.admin'), url: '/admin' },
-    { title: t('list.crumbs.subscriptions'), is_active: true },
-  ];
-
-  const tabs: Tab[] = [
-    {
-      name: 'all',
-      title: t('list.tabs.all'),
-      url: '/admin/subscriptions',
-      is_active: !interval || interval === 'all',
-    },
+export default createAdminTablePage<Subscription, AdminSubscriptionsListQuery>({
+  namespace: 'admin.subscriptions',
+  permission: PERMISSIONS.SUBSCRIPTIONS_READ,
+  crumbs: [
+    { key: 'list.crumbs.admin', url: '/admin' },
+    { key: 'list.crumbs.subscriptions' },
+  ],
+  tabs: [
+    { name: 'all', titleKey: 'list.tabs.all' },
     {
       name: 'month',
-      title: t('list.tabs.month'),
-      url: '/admin/subscriptions?interval=month',
-      is_active: interval === 'month',
+      titleKey: 'list.tabs.month',
+      queryPatch: { interval: 'month' },
     },
     {
       name: 'year',
-      title: t('list.tabs.year'),
-      url: '/admin/subscriptions?interval=year',
-      is_active: interval === 'year',
+      titleKey: 'list.tabs.year',
+      queryPatch: { interval: 'year' },
     },
-  ];
+  ],
+  query: {
+    schema: AdminSubscriptionsListQuerySchema,
+    load: async ({ page, pageSize, interval }) => {
+      const [rows, total] = await Promise.all([
+        getSubscriptions({
+          interval,
+          getUser: true,
+          page,
+          limit: pageSize,
+        }),
+        getSubscriptionsCount({
+          interval,
+        }),
+      ]);
 
-  const total = await getSubscriptionsCount({
-    interval,
-  });
-
-  const subscriptions = await getSubscriptions({
-    interval,
-    getUser: true,
-    page,
-    limit,
-  });
-
-  const table: Table<Subscription> = {
-    columns: [
-      {
-        name: 'subscriptionNo',
-        title: t('fields.subscription_no'),
-        type: 'copy',
-      },
-      { name: 'user', title: t('fields.user'), type: 'user' },
-      {
-        title: t('fields.amount'),
-        callback: (item: Subscription) => {
-          if (item.amount == null) {
-            return '-';
-          }
-
-          return (
-            <div className="text-primary">{`${item.amount / 100} ${
-              item.currency
-            }`}</div>
-          );
-        },
-        type: 'copy',
-      },
-      {
-        name: 'interval',
-        title: t('fields.interval'),
-        type: 'label',
-        placeholder: '-',
-      },
-      {
-        name: 'paymentProvider',
-        title: t('fields.provider'),
-        type: 'label',
-      },
-      { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
-      {
-        name: 'currentPeriodStart',
-        title: t('fields.current_period_start'),
-        type: 'time',
-        metadata: { format: 'YYYY-MM-DD HH:mm:ss' },
-      },
-      {
-        name: 'currentPeriodEnd',
-        title: t('fields.current_period_end'),
-        type: 'time',
-        metadata: { format: 'YYYY-MM-DD HH:mm:ss' },
-      },
-      { name: 'status', title: t('fields.status'), type: 'label' },
-      { name: 'description', title: t('fields.description'), placeholder: '-' },
-    ],
-    data: subscriptions,
-    pagination: {
-      total,
-      page,
-      limit,
+      return { rows, total };
     },
-  };
+  },
+  columns: ({ t }) => [
+    {
+      name: 'subscriptionNo',
+      title: t('fields.subscription_no'),
+      type: 'copy',
+    },
+    { name: 'user', title: t('fields.user'), type: 'user' },
+    {
+      title: t('fields.amount'),
+      callback: (item) => {
+        if (item.amount == null) {
+          return '-';
+        }
 
-  return (
-    <>
-      <Header crumbs={crumbs} />
-      <Main>
-        <MainHeader title={t('list.title')} tabs={tabs} />
-        <TableCard table={table} />
-      </Main>
-    </>
-  );
-}
+        return (
+          <div className="text-primary">{`${item.amount / 100} ${item.currency}`}</div>
+        );
+      },
+      type: 'copy',
+    },
+    {
+      name: 'interval',
+      title: t('fields.interval'),
+      type: 'label',
+      placeholder: '-',
+    },
+    {
+      name: 'paymentProvider',
+      title: t('fields.provider'),
+      type: 'label',
+    },
+    { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
+    {
+      name: 'currentPeriodStart',
+      title: t('fields.current_period_start'),
+      type: 'time',
+      metadata: { format: 'YYYY-MM-DD HH:mm:ss' },
+    },
+    {
+      name: 'currentPeriodEnd',
+      title: t('fields.current_period_end'),
+      type: 'time',
+      metadata: { format: 'YYYY-MM-DD HH:mm:ss' },
+    },
+    { name: 'status', title: t('fields.status'), type: 'label' },
+    { name: 'description', title: t('fields.description'), placeholder: '-' },
+  ],
+});
