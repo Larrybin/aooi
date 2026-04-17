@@ -51,6 +51,7 @@
       "instrumental": "纯乐器",
       "prompt": "提示词",
       "prompt_placeholder": "一首关于爱情的乡村民谣",
+      "provider": "服务商",
       "model": "模型",
       "lyrics": "歌词",
       "lyrics_placeholder": "写自己的歌词，两段（8行）最佳结果"

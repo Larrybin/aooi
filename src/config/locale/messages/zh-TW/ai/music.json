@@ -51,6 +51,7 @@
       "instrumental": "純樂器",
       "prompt": "提示詞",
       "prompt_placeholder": "一首關於愛情的鄉村民謠",
+      "provider": "服務商",
       "model": "模型",
       "lyrics": "歌詞",
       "lyrics_placeholder": "寫自己的歌詞，兩段（8 行）效果最佳"

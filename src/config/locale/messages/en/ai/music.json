@@ -51,6 +51,7 @@
       "instrumental": "Instrumental",
       "prompt": "Prompt",
       "prompt_placeholder": "A country folk song about love",
+      "provider": "Provider",
       "model": "Model",
       "lyrics": "Lyrics",
       "lyrics_placeholder": "Write your own lyrics, two verses (8 lines) for the best result"
