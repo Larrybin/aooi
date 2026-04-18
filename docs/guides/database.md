@@ -283,11 +283,11 @@ Cloudflare helper commands:
 
 - `pnpm cf:build`
 - `pnpm test:cf-local-smoke`
-- `pnpm test:cf-auth-spike`
 - `pnpm test:cf-app-smoke`
 - `pnpm cf:deploy`
+- `pnpm test:auth-spike`
 
-`pnpm test:cf-auth-spike` is the full local Workers auth harness. It boots the canonical local multi-worker topology, verifies the DB-backed auth shell still renders, then exercises fresh sign-up, sign-in, protected session read, invalid-session redirect, and sign-out against the same router origin.
+Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, production read-only app smoke uses `cf-app`, and dual-surface auth uses `auth-spike`.
 
 `pnpm cf:build` now validates deployable Worker bundles through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
 

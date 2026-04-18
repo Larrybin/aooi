@@ -33,6 +33,7 @@
 - `pnpm cf:build` validates OpenNext multi-bundle generation and hard-fails if any required bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
 - `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: all server Workers start under `wrangler dev`, the router starts under `opennextjs-cloudflare preview`, and the read-only smoke runs against the router origin.
 - `pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
+- Public smoke package command names are stable. Internally, `scripts/smoke.mjs <scenario>` dispatches `cf-local`, `cf-app`, `cf-admin-settings`, and `auth-spike` to their concrete runner scripts.
 
 ## Raw Conclusion Governance
 

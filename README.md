@@ -126,7 +126,8 @@ Read `content/docs` to start your AI SaaS project.
 - `scripts/lib/harness/runtime.mjs`：统一管理 env 校验、子进程生命周期、ready/exit 行为和失败日志采样。
 - `scripts/lib/harness/scenario.mjs`：只承载 smoke phase 编排与 cleanup 语义。
 - `scripts/lib/harness/reporter.mjs`：统一 JSON/Markdown/latest report 输出和 harness exit code 规则。
-- `scripts/run-auth-spike.mjs`、`scripts/run-local-auth-spike.mjs`、`scripts/run-cf-auth-spike.mjs`、`scripts/run-cf-admin-settings-smoke.mjs`、`scripts/run-cf-oauth-spike.mjs`、`scripts/run-cf-local-smoke.mjs` 现在都是薄入口，只声明 scenario + runtime 组合。
+- 公共 package 命令名保持稳定；内部统一由 `scripts/smoke.mjs <scenario>` 调度到底层 runner。当前场景包括 `auth-spike`、`cf-app`、`cf-local`、`cf-admin-settings`。
+- 底层 runner（如 `scripts/run-auth-spike.mjs`、`scripts/run-cf-app-smoke.mjs`、`scripts/run-cf-local-smoke.mjs`、`scripts/run-cf-admin-settings-smoke.mjs`）继续承载具体断言，供测试直接导入。
 
 ### Code Quality
 
@@ -178,6 +179,11 @@ Read `content/docs` to start your AI SaaS project.
   - `pnpm test:cf-local-smoke`
   - `pnpm test:cf-app-smoke`
   - `pnpm cf:deploy`
+- Smoke runner scenarios:
+  - `pnpm test:auth-spike` -> `scripts/smoke.mjs auth-spike`
+  - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
+  - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
+  - `pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && scripts/smoke.mjs cf-admin-settings`
 - `.github/workflows/dual-deploy-acceptance.yaml` keeps Cloudflare CI on `pnpm cf:check`, `pnpm cf:build`, and `pnpm test:cf-local-smoke`.
 - Single-origin deployment governance is documented in `docs/architecture/dual-deploy-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.

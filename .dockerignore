@@ -1,10 +1,15 @@
 .next
+.next/cache
+.open-next
 .vercel
 .vscode
 .wrangler
+coverage
 data
 debug
 node_modules
+output
+*.tsbuildinfo
 .cursorrules
 .git
 vercel.json

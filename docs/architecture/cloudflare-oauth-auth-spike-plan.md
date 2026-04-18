@@ -76,7 +76,7 @@ pnpm test:cf-oauth-spike
 ```
 
 This command should own the entire OAuth spike.
-Do not bolt OAuth cases onto `pnpm test:cf-auth-spike` or `pnpm test:local-auth-spike`.
+Do not bolt OAuth cases onto `pnpm test:auth-spike`.
 
 ## Required env/config for the spike
 

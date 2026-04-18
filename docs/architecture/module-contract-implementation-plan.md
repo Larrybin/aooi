@@ -227,8 +227,7 @@
 
 首批直接可引用的验证命令：
 
-- `pnpm test:local-auth-spike`
-- `pnpm test:cf-auth-spike`
+- `pnpm test:auth-spike`
 - `pnpm test:cf-oauth-spike`
 - `pnpm test:cf-app-smoke`
 - `pnpm test:cf-local-smoke`

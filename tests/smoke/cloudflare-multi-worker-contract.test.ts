@@ -10,7 +10,9 @@ import {
   CLOUDFLARE_SERVER_WORKERS,
   CLOUDFLARE_SERVICE_BINDINGS,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
+  getServerWorkerMetadata,
 } from '../../src/shared/config/cloudflare-worker-splits';
+import { readOpenNextGeneratedModules } from '../../scripts/sync-open-next-generated-types.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -49,6 +51,60 @@ test('server worker 公共入口会把字符串 env 绑定同步到 process.env'
 
   assert.match(source, /syncWorkerStringBindingsToProcessEnv/);
   assert.match(source, /process\.env\[key\] = value/);
+});
+
+test('build tsconfig 覆盖 Cloudflare worker 与声明文件输入', async () => {
+  const tsconfig = JSON.parse(
+    await fs.readFile(path.join(rootDir, 'tsconfig.json'), 'utf8')
+  ) as {
+    include?: string[];
+  };
+  const includes = tsconfig.include || [];
+
+  assert.ok(includes.includes('src/**/*.d.ts'));
+  assert.ok(includes.includes('cloudflare/**/*.ts'));
+});
+
+test('router 依赖的 OpenNext 模块声明文件存在并被 build tsconfig 覆盖', async () => {
+  const tsconfig = JSON.parse(
+    await fs.readFile(path.join(rootDir, 'tsconfig.json'), 'utf8')
+  ) as {
+    include?: string[];
+  };
+  const declaredModules = await readOpenNextGeneratedModules();
+  const declaredModulePaths = new Set(
+    declaredModules.map(({ moduleSpecifier }) => moduleSpecifier)
+  );
+
+  assert.ok((tsconfig.include || []).includes('src/**/*.d.ts'));
+  assert.ok(
+    declaredModulePaths.has('../../.open-next/cloudflare/images.js'),
+    '缺少 router images 声明'
+  );
+  assert.ok(
+    declaredModulePaths.has('../../.open-next/cloudflare/init.js'),
+    '缺少 router init 声明'
+  );
+  assert.ok(
+    declaredModulePaths.has('../../.open-next/middleware/handler.mjs'),
+    '缺少 middleware handler 声明'
+  );
+  const serverHandlerPaths = new Set([
+    '../../.open-next/server-functions/default/handler.mjs',
+    ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => {
+      const metadata = getServerWorkerMetadata(target);
+      return `../../${path
+        .join(path.dirname(metadata.bundleEntryRelativePath), 'handler.mjs')
+        .replaceAll(path.sep, '/')}`;
+    }),
+  ]);
+
+  for (const handlerPath of serverHandlerPaths) {
+    assert.ok(
+      declaredModulePaths.has(handlerPath),
+      `缺少 ${handlerPath} 声明`
+    );
+  }
 });
 
 test('router wrangler services 与 split manifest 一致', async () => {

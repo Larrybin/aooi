@@ -49,7 +49,7 @@ Notes:
 
 - This endpoint is a contract exception: it bypasses `withApi()` and does not return the standard `{code,message,data}` envelope (Better Auth controls redirects/cookies/status codes).
 - The route is `force-dynamic`, and responses are marked `Cache-Control: no-store`.
-- This route is exercised by the shared dual-runtime auth spike (`pnpm test:local-auth-spike`) plus the Cloudflare-only auth spike (`pnpm test:cf-auth-spike`).
+- This route is exercised by the auth spike smoke (`pnpm test:auth-spike`, internally `scripts/smoke.mjs auth-spike`).
 - Runtime parity now uses a fixed diff/whitelist helper: `status`, `cache-control`, `content-type` MIME, same-origin `location` path+query, `set-cookie` presence/count, and cookie security semantics must match; only `date`, `x-request-id`, `x-vercel-id`, and `cf-ray` are ignored.
 - The local dual-runtime harness depends on a generated temporary Wrangler config whose `localConnectionString` points at a migrated Postgres instance. Tracked Wrangler templates keep `localConnectionString = ""`.
 

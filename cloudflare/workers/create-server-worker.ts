@@ -1,4 +1,3 @@
-// @ts-expect-error OpenNext generates this before Wrangler bundles the worker.
 import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
 
 type CloudflareFetchHandler<Env> = (
@@ -55,10 +54,11 @@ export function createServerWorker<Env>(
     async fetch(request: Request, env: Env, ctx: ExecutionContext) {
       syncWorkerStringBindingsToProcessEnv(env);
       printServerWorkerAuthDebug(request);
-      handlerPromise ??= loadModule().then(({ handler }) => handler);
+      const handler =
+        (handlerPromise ??= loadModule().then(({ handler }) => handler));
 
       return runWithCloudflareRequestContext(request, env, ctx, async () =>
-        (await handlerPromise)(request, env, ctx, request.signal)
+        (await handler)(request, env, ctx, request.signal)
       );
     },
   };

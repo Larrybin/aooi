@@ -177,7 +177,7 @@ Deployment options:
 
 - Vercel/Node (recommended for full features: auth/payment/admin)
 - Docker (see `Dockerfile`; starts with `next start`)
-- Cloudflare Workers (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`; dual-surface auth is tracked by `pnpm test:local-auth-spike`, which is currently blocked until local Hyperdrive can reach a migrated Postgres instance.)
+- Cloudflare Workers (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`; dual-surface auth is tracked by `pnpm test:auth-spike`, routed internally through `scripts/smoke.mjs auth-spike`.)
 
 ## Feature Configuration
 

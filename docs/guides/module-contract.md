@@ -74,8 +74,7 @@ Deploy Contract stays in mainline because the template promise depends on one de
 
 Current evidence points:
 
-- `pnpm test:local-auth-spike`
-- `pnpm test:cf-auth-spike`
+- `pnpm test:auth-spike`
 - `pnpm test:cf-oauth-spike`
 - `pnpm test:cf-app-smoke`
 - `pnpm test:cf-local-smoke`

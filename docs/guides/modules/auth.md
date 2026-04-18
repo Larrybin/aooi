@@ -30,8 +30,7 @@ Auth covers the mainline account lifecycle:
 
 ## Minimum Verification Commands
 
-- `pnpm test:local-auth-spike`
-- `pnpm test:cf-auth-spike`
+- `pnpm test:auth-spike`
 - `pnpm test:cf-oauth-spike`
 
 ## Common Failure Modes

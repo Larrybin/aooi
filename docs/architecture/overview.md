@@ -182,14 +182,7 @@ export const POST = withApi(async (req: Request) => {
 ```typescript
 // src/core/payment/providers/service.ts
 export async function getPaymentService() {
-  const configs = await getAllConfigs();
-  const manager = new PaymentManager();
-
-  if (configs.stripe_enabled) {
-    manager.addProvider(new StripeProvider(configs));
-  }
-
-  return manager;
+  return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs);
 }
 ```
 

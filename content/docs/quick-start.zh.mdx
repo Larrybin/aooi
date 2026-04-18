@@ -177,7 +177,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 - Vercel/Node（推荐跑全功能：鉴权/支付/管理后台）
 - Docker（参考 `Dockerfile`，默认 `next start` 启动）
-- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate；鉴权双面验收仍通过 `pnpm test:local-auth-spike` 跟踪，但当前在本地 Hyperdrive 无法连到已迁移 Postgres 时会被正式判定为 blocked）
+- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate；鉴权双面验收通过 `pnpm test:auth-spike` 跟踪，并由 `scripts/smoke.mjs auth-spike` 内部调度）
 
 ## 功能配置
 

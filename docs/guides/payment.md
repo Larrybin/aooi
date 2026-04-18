@@ -19,22 +19,20 @@ src/app/api/payment/
 
 ## Core Concepts
 
-### PaymentManager
+### PaymentService
 
-`PaymentManager` is the in-memory registry for all payment providers.
-In application code, prefer the service-assembled instance (built from the latest configs):
+`PaymentService` is assembled from the latest configs and backed by the shared `ProviderRegistry`.
+Application code should call the semantic service methods instead of managing providers directly:
 
 ```typescript
 import { getPaymentService } from '@/core/payment/providers/service';
 
 const paymentService = await getPaymentService();
 
-// Get a specific provider (or fallback to default)
-const provider =
-  paymentService.getProvider('stripe') ?? paymentService.getDefaultProvider();
-
-if (!provider) throw new Error('payment provider not configured');
-const session = await provider.createPayment({ order: checkoutOrder });
+const session = await paymentService.createPayment({
+  order: checkoutOrder,
+  provider: 'stripe',
+});
 ```
 
 ### PaymentProvider Interface
