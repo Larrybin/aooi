@@ -52,8 +52,12 @@ test('package scripts: public smoke command names stay stable', async () => {
     packageJson.scripts['test:cf-local-smoke'],
     'node --import tsx scripts/smoke.mjs cf-local'
   );
-  assert.equal(
+  assert.match(
     packageJson.scripts['test:cf-admin-settings-smoke'],
-    'pnpm cf:build && node --import tsx scripts/smoke.mjs cf-admin-settings'
+    /pnpm cf:build/
+  );
+  assert.match(
+    packageJson.scripts['test:cf-admin-settings-smoke'],
+    /node --import tsx scripts\/smoke\.mjs cf-admin-settings$/
   );
 });

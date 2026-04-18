@@ -6,6 +6,7 @@ import {
 } from './public-env';
 
 export type ConfigMap = Record<string, string>;
+export { resolveAppUrl } from './public-env';
 
 function isBuildTime(): boolean {
   return isBuildTimeEnv();
