@@ -96,7 +96,7 @@
     "motion": "^12.23.12",
     "nanoid": "^5.1.6",
     "next": "16.2.2",
-    "next-intl": "^4.3.4",
+    "next-intl": "^4.9.1",
     "nextjs-toploader": "^3.9.17",
     "overtype": "^1.2.6",
     "parse5": "^7.3.0",
