@@ -1,18 +1,20 @@
 import 'server-only';
 
-import { FixedWindowQuotaLimiter } from '@/shared/lib/api/limiters';
+import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { normalizeEmail } from '@/shared/lib/email';
 
 const RESET_PASSWORD_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const RESET_PASSWORD_MAX_ATTEMPTS = 3;
 const RESET_PASSWORD_MAX_CONCURRENT = 1;
 
-const resetPasswordQuotaLimiter = new FixedWindowQuotaLimiter({
-  bucket: 'auth.reset-password',
-  windowMs: RESET_PASSWORD_WINDOW_MS,
-  maxAttempts: RESET_PASSWORD_MAX_ATTEMPTS,
-  maxConcurrent: RESET_PASSWORD_MAX_CONCURRENT,
-});
+const resetPasswordQuotaLimiter = createLimiterFactory({
+  resetPasswordQuotaConfig: {
+    bucket: 'auth.reset-password',
+    windowMs: RESET_PASSWORD_WINDOW_MS,
+    maxAttempts: RESET_PASSWORD_MAX_ATTEMPTS,
+    maxConcurrent: RESET_PASSWORD_MAX_CONCURRENT,
+  },
+}).createResetPasswordQuotaLimiter();
 
 export type ConsumeResetPasswordQuotaResult =
   | {

@@ -1,4 +1,5 @@
 import {
+  createMemoryRateLimitStore,
   type LockedRateLimitStore,
   type RateLimitStore,
 } from '@/shared/lib/api/rate-limit-store';
@@ -25,7 +26,7 @@ function maxRetryAfterSeconds(remainingMs: number): number {
 }
 
 function getRateLimitStore(store?: RateLimitStore): RateLimitStore {
-  return store ?? createLazyDbRateLimitStore();
+  return store ?? createMemoryRateLimitStore();
 }
 
 export class CooldownLimiter {
@@ -365,23 +366,6 @@ export class DualConcurrencyLimiter {
 }
 
 const GLOBAL_SCOPE_KEY = '__global__';
-
-function createLazyDbRateLimitStore(): RateLimitStore {
-  let dbStorePromise: Promise<RateLimitStore> | null = null;
-
-  return {
-    async withLock(bucket, scopeKeys, fn) {
-      dbStorePromise =
-        dbStorePromise ||
-        import('@/shared/lib/api/rate-limit-store.db').then((mod) =>
-          mod.createDbRateLimitStore()
-        );
-
-      const dbStore = await dbStorePromise;
-      return dbStore.withLock(bucket, scopeKeys, fn);
-    },
-  };
-}
 
 function createConcurrencyState(
   bucket: string,

@@ -1,8 +1,7 @@
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import type { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
-import { FixedWindowAttemptLimiter } from '@/shared/lib/api/limiters';
-import { VERIFY_CODE_ATTEMPT_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
+import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
@@ -21,10 +20,17 @@ type VerifyCodeRouteDeps = {
     email: string;
     code: string;
   }) => Promise<{ ok: true } | { ok: false; reason: 'not_found' | 'expired' | 'mismatch' }>;
-  attemptLimiter: Pick<
-    FixedWindowAttemptLimiter,
-    'check' | 'recordFailure' | 'clear'
-  >;
+  attemptLimiter: {
+    check: (key: string, now?: number) => Promise<{
+      allowed: boolean;
+      retryAfterSeconds?: number;
+    }>;
+    recordFailure: (
+      key: string,
+      now?: number
+    ) => Promise<{ attempts: number; retryAfterSeconds?: number }>;
+    clear: (key: string) => Promise<void>;
+  };
   now: () => number;
 };
 
@@ -38,9 +44,7 @@ function getDefaultVerifyCodeRouteDeps(): VerifyCodeRouteDeps {
       const mod = await import('@/shared/models/email_verification_code');
       return await mod.consumeSettingsEmailVerificationCode(input);
     },
-    attemptLimiter: new FixedWindowAttemptLimiter(
-      VERIFY_CODE_ATTEMPT_LIMIT_CONFIG
-    ),
+    attemptLimiter: createLimiterFactory().createVerifyCodeAttemptLimiter(),
     now: Date.now,
   };
 }

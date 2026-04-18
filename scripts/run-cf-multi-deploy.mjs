@@ -266,6 +266,7 @@ async function createTempDeployArtifacts({
           ])
         )
       : {},
+    validateTemplateContract: true,
   });
 
   await writeFile(tempConfigPath, content, 'utf8');

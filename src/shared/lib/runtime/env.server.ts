@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import { isCloudflareWorker } from '@/shared/lib/env';
@@ -10,22 +8,18 @@ export type CloudflareBindings = {
   HYPERDRIVE?: {
     connectionString?: string;
   };
+  NEXT_INC_CACHE_R2_BUCKET?: R2Bucket;
+  APP_STORAGE_R2_BUCKET?: R2Bucket;
+  NEXT_CACHE_DO_QUEUE?: unknown;
+  NEXT_TAG_CACHE_DO_SHARDED?: unknown;
+  STATEFUL_LIMITERS?: unknown;
 } & Record<string, unknown>;
 
-let cachedBindings: CloudflareBindings | null | undefined;
-
 export function getCloudflareBindings(): CloudflareBindings | null {
-  if (cachedBindings !== undefined) {
-    return cachedBindings;
-  }
-
   try {
     const { env } = getCloudflareContext();
-    const bindings: CloudflareBindings = { ...env };
-    cachedBindings = bindings;
-    return bindings;
+    return { ...env };
   } catch {
-    cachedBindings = null;
     return null;
   }
 }

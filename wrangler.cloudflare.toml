@@ -13,6 +13,17 @@ custom_domain = true
 binding = "ASSETS"
 directory = ".open-next/assets"
 
+[images]
+binding = "IMAGES"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "roller-rabbit-opennext-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "roller-rabbit-storage"
+
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
 service = "roller-rabbit"
@@ -45,6 +56,26 @@ service = "roller-rabbit-admin"
 binding = "HYPERDRIVE"
 id = "d208cd72765b46a7b0849fc687e2fb61"
 localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "NEXT_CACHE_DO_QUEUE"
+class_name = "DOQueueHandler"
+
+[[durable_objects.bindings]]
+name = "NEXT_TAG_CACHE_DO_SHARDED"
+class_name = "DOShardedTagCache"
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+
+[[migrations]]
+tag = "cloudflare-only-v1"
+new_sqlite_classes = [
+  "DOQueueHandler",
+  "DOShardedTagCache",
+  "StatefulLimitersDurableObject",
+]
 
 [observability]
 enabled = true

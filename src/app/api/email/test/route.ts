@@ -8,8 +8,7 @@ import {
   TooManyRequestsError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
-import { FixedWindowQuotaLimiter } from '@/shared/lib/api/limiters';
-import { EMAIL_TEST_QUOTA_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
+import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
@@ -32,7 +31,13 @@ type EmailTestRouteDeps = {
   buildVerificationCodeEmailPayload: (
     input: Parameters<BuildVerificationCodeEmailPayload>[0]
   ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
-  quotaLimiter: Pick<FixedWindowQuotaLimiter, 'acquire' | 'release'>;
+  quotaLimiter: {
+    acquire: (key: string, now?: number) => Promise<{
+      allowed: boolean;
+      reason?: string;
+    }>;
+    release: (key: string, now?: number) => Promise<void>;
+  };
   now: () => number;
   randomInt: typeof randomInt;
 };
@@ -51,7 +56,7 @@ function getDefaultEmailTestRouteDeps(): EmailTestRouteDeps {
       const mod = await import('@/shared/content/email/verification-code');
       return mod.buildVerificationCodeEmailPayload(input);
     },
-    quotaLimiter: new FixedWindowQuotaLimiter(EMAIL_TEST_QUOTA_LIMIT_CONFIG),
+    quotaLimiter: createLimiterFactory().createEmailTestQuotaLimiter(),
     now: Date.now,
     randomInt,
   };

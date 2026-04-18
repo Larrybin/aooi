@@ -9,8 +9,7 @@ import {
   TooManyRequestsError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
-import { CooldownLimiter } from '@/shared/lib/api/limiters';
-import { SEND_EMAIL_RATE_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
+import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
@@ -44,7 +43,14 @@ type SendEmailRouteDeps = {
   buildVerificationCodeEmailPayload: (
     input: Parameters<BuildVerificationCodeEmailPayload>[0]
   ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
-  rateLimiter: Pick<CooldownLimiter, 'check' | 'consume' | 'rollback'>;
+  rateLimiter: {
+    check: (key: string, now?: number) => Promise<{
+      allowed: boolean;
+      retryAfterSeconds?: number;
+    }>;
+    consume: (key: string, now?: number) => Promise<number>;
+    rollback: (key: string, consumedAt: number) => Promise<void>;
+  };
   now: () => number;
   randomInt: typeof randomInt;
 };
@@ -75,7 +81,7 @@ function getDefaultSendEmailRouteDeps(): SendEmailRouteDeps {
       const mod = await import('@/shared/content/email/verification-code');
       return mod.buildVerificationCodeEmailPayload(input);
     },
-    rateLimiter: new CooldownLimiter(SEND_EMAIL_RATE_LIMIT_CONFIG),
+    rateLimiter: createLimiterFactory().createSendEmailCooldownLimiter(),
     now: Date.now,
     randomInt,
   };

@@ -1,0 +1,192 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  buildStatefulLimiterObjectName,
+} from '@/shared/platform/cloudflare/stateful-limiters';
+import { StatefulLimitersDurableObject } from '../../cloudflare/workers/stateful-limiters';
+
+type FakeStorage = {
+  deleteCalls: string[][];
+  getCalls: string[];
+  listCallCount: number;
+  map: Map<string, unknown>;
+  putCalls: Array<{ key: string; value: unknown }>;
+};
+
+function createFakeStorage(
+  initialEntries: Array<[string, unknown]> = []
+): DurableObjectStorage & FakeStorage {
+  const map = new Map(initialEntries);
+  const getCalls: string[] = [];
+  const putCalls: Array<{ key: string; value: unknown }> = [];
+  const deleteCalls: string[][] = [];
+
+  return {
+    map,
+    getCalls,
+    putCalls,
+    deleteCalls,
+    listCallCount: 0,
+    async get(key: string) {
+      getCalls.push(key);
+      return map.get(key);
+    },
+    async put(key: string, value: unknown) {
+      putCalls.push({ key, value });
+      map.set(key, value);
+    },
+    async delete(keys: string | string[]) {
+      const list = Array.isArray(keys) ? keys : [keys];
+      deleteCalls.push(list);
+      for (const key of list) {
+        map.delete(key);
+      }
+    },
+    async list() {
+      this.listCallCount += 1;
+      return new Map(map);
+    },
+  } as DurableObjectStorage & FakeStorage;
+}
+
+function createDurableObject(storage: DurableObjectStorage) {
+  return new StatefulLimitersDurableObject(
+    { storage } as DurableObjectState,
+    {} as CloudflareEnv
+  );
+}
+
+function createRequest(body: Record<string, unknown>) {
+  return new Request('https://stateful-limiters.internal', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+test('buildStatefulLimiterObjectName 为单 key 与 bucket 级 limiter 生成不同 DO 名称', () => {
+  assert.equal(
+    buildStatefulLimiterObjectName('api.send-email', 'user-1'),
+    'scope:api.send-email:user-1'
+  );
+  assert.equal(
+    buildStatefulLimiterObjectName('api.storage-upload'),
+    'bucket:api.storage-upload'
+  );
+});
+
+test('STATEFUL_LIMITERS 单 key 路径只对当前 key 做惰性过期，不再扫描全桶', async () => {
+  const storage = createFakeStorage([
+    [
+      'user-1',
+      {
+        bucket: 'api.email-test',
+        scopeKey: 'user-1',
+        lastActionAt: null,
+        windowStartedAt: 1_000,
+        count: 2,
+        inflight: 0,
+        expiresAt: 1_500,
+      },
+    ],
+    [
+      'user-2',
+      {
+        bucket: 'api.email-test',
+        scopeKey: 'user-2',
+        lastActionAt: null,
+        windowStartedAt: 1_000,
+        count: 1,
+        inflight: 0,
+        expiresAt: 1_500,
+      },
+    ],
+  ]);
+  const durableObject = createDurableObject(storage);
+
+  const response = await durableObject.fetch(
+    createRequest({
+      action: 'quota.acquire',
+      bucket: 'api.email-test',
+      key: 'user-1',
+      now: 2_000,
+      config: {
+        windowMs: 5 * 60 * 1000,
+        maxAttempts: 3,
+        maxConcurrent: 1,
+      },
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { allowed: true });
+  assert.equal(storage.listCallCount, 0);
+  assert.deepEqual(storage.getCalls, ['user-1']);
+  assert.equal(storage.map.has('user-2'), true);
+  assert.equal(storage.map.has('user-1'), true);
+});
+
+test('STATEFUL_LIMITERS dual concurrency 只访问 __global__ 与当前 key，不再扫描全桶', async () => {
+  const storage = createFakeStorage([
+    [
+      '__global__',
+      {
+        bucket: 'api.storage-upload',
+        scopeKey: '__global__',
+        lastActionAt: null,
+        windowStartedAt: null,
+        count: 0,
+        inflight: 1,
+        expiresAt: 5_000,
+      },
+    ],
+    [
+      'user-1',
+      {
+        bucket: 'api.storage-upload',
+        scopeKey: 'user-1',
+        lastActionAt: null,
+        windowStartedAt: null,
+        count: 0,
+        inflight: 1,
+        expiresAt: 5_000,
+      },
+    ],
+    [
+      'user-2',
+      {
+        bucket: 'api.storage-upload',
+        scopeKey: 'user-2',
+        lastActionAt: null,
+        windowStartedAt: null,
+        count: 0,
+        inflight: 1,
+        expiresAt: 1_000,
+      },
+    ],
+  ]);
+  const durableObject = createDurableObject(storage);
+
+  const response = await durableObject.fetch(
+    createRequest({
+      action: 'dual.release',
+      bucket: 'api.storage-upload',
+      key: 'user-1',
+      now: 2_000,
+      config: {
+        maxGlobal: 4,
+        maxPerKey: 2,
+        leaseMs: 15 * 60 * 1000,
+      },
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true });
+  assert.equal(storage.listCallCount, 0);
+  assert.deepEqual(storage.getCalls, ['__global__', 'user-1']);
+  assert.equal(storage.map.has('user-2'), true);
+});

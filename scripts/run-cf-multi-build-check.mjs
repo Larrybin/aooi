@@ -186,6 +186,7 @@ async function main() {
         template,
         templatePath: target.configPath,
         outputPath: tempConfigPath,
+        validateTemplateContract: true,
       }).replace(
         /(^\s*directory\s*=\s*")([^"\n]*)(")/m,
         `$1${emptyAssetsDir}$3`

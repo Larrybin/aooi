@@ -7,8 +7,7 @@ import {
   ServiceUnavailableError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
-import { CooldownLimiter } from '@/shared/lib/api/limiters';
-import { AI_QUERY_RATE_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
+import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { safeJsonParse } from '@/shared/lib/json';
@@ -42,7 +41,13 @@ type AiQueryRouteDeps = {
   findAITaskById: (id: string) => Promise<AiTaskLike | undefined>;
   updateAITaskById: (id: string, updateAITask: UpdateAITask) => Promise<unknown>;
   getAIService: () => Promise<AiService>;
-  rateLimiter: Pick<CooldownLimiter, 'checkAndConsume' | 'clear'>;
+  rateLimiter: {
+    checkAndConsume: (key: string, now?: number) => Promise<{
+      allowed: boolean;
+      retryAfterSeconds?: number;
+    }>;
+    clear: (key: string) => Promise<void>;
+  };
   now: () => number;
 };
 
@@ -68,7 +73,7 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
       const mod = await import('@/shared/services/ai');
       return await mod.getAIService();
     },
-    rateLimiter: new CooldownLimiter(AI_QUERY_RATE_LIMIT_CONFIG),
+    rateLimiter: createLimiterFactory().createAiQueryCooldownLimiter(),
     now: Date.now,
   };
 }
