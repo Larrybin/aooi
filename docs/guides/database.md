@@ -312,7 +312,7 @@ Set `DB_SINGLETON_ENABLED=true` for connection pooling.
 1. **Always use Drizzle ORM** - Avoid raw SQL unless absolutely necessary
 2. **Use `server-only`** - Add to model files to prevent client imports
 3. **Type your functions** - Use inferred types from schema
-4. **Apply migrations in CI/CD** - Run `pnpm db:migrate` before deployment
+4. **Apply migrations in CI/CD** - Run `pnpm db:migrate` before deployment. In this repo, Cloudflare production auto-deploy calls `.github/workflows/cloudflare-production-migrate.yaml` first whenever accepted release metadata reports schema changes.
 5. **Use transactions** - For multi-table operations
 6. **Reuse `db()` per request** - Avoid calling `db()` many times in the same request; share the instance
 7. **Index appropriately** - Add indexes in schema for common queries

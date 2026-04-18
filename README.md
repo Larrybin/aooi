@@ -184,7 +184,9 @@ Read `content/docs` to start your AI SaaS project.
   - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
   - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
   - `pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && scripts/smoke.mjs cf-admin-settings`
-- `.github/workflows/dual-deploy-acceptance.yaml` keeps Cloudflare CI on `pnpm cf:check`, `pnpm cf:build`, and `pnpm test:cf-local-smoke`.
+- `.github/workflows/dual-deploy-acceptance.yaml` remains the only acceptance gate. On `push main`, it now also uploads `release-metadata.json` for the exact accepted `head_sha`; `.github/workflows/cloudflare-production-deploy.yaml` consumes that artifact and deploys the same commit to Cloudflare production.
+- `.github/workflows/cloudflare-production-migrate.yaml` is the production schema gate. When `release-metadata.json` reports `schema_changed=true`, the deploy workflow runs the migrate workflow first, then proceeds to `pnpm cf:deploy`.
+- `.github/workflows/cloudflare-production-deploy.yaml` only runs from successful `Single Origin Deploy Acceptance` workflow runs on `main`. Historical acceptance reruns are rejected if their `head_sha` is no longer the current `main` head.
 - Single-origin deployment governance is documented in `docs/architecture/dual-deploy-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
@@ -193,12 +195,14 @@ Read `content/docs` to start your AI SaaS project.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
 - Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and canonical `NEXT_PUBLIC_APP_URL`.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
+- GitHub Environment `cloudflare-production` must define `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `BETTER_AUTH_SECRET`, and `PRODUCTION_DATABASE_URL`.
+- Any change to `src/config/db/schema.ts` must ship with committed files under `src/config/db/migrations/**`; acceptance fails otherwise and blocks auto-deploy.
 
 ### Cloudflare Deployment Runbook
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` is the canonical local runtime gate, and final production acceptance is decided by `pnpm cf:deploy` plus `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` is the canonical local runtime gate, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production migrate workflow -> `pnpm cf:deploy` -> post-deploy `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -297,6 +301,13 @@ DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
 
 Run this before the first production deploy and before any later deploy that includes schema changes.
 
+For GitHub Actions auto-deploy:
+
+- `cloudflare-production-deploy` reuses the accepted `head_sha` from `release-metadata.json`; it never deploys `main` blindly.
+- `cloudflare-production-deploy` only accepts the current `main` head. Re-running an older successful acceptance workflow will be rejected before migrate/deploy starts.
+- If `release-metadata.json` marks `schema_changed=true`, GitHub Actions first calls `cloudflare-production-migrate`, which runs `pnpm db:migrate` against `PRODUCTION_DATABASE_URL`.
+- The only manual recovery path kept in-repo is `cloudflare-production-migrate` with `target_sha`. Manual production deploy by arbitrary SHA is intentionally unsupported.
+
 #### 5. Run the build gates
 
 Start with the cheap checks:
@@ -317,6 +328,8 @@ pnpm cf:deploy
 ```
 
 This command runs config checks, builds the OpenNext multi-worker bundles, bootstraps brand-new workers when needed, and otherwise uploads server worker versions plus the router version with version-affinity overrides before deploying the batch.
+
+In normal operation you should not need to run it locally anymore: GitHub Actions executes `pnpm cf:deploy` automatically after `push main` acceptance succeeds. Local `pnpm cf:deploy` remains the manual escape hatch.
 
 #### 7. Verify production immediately
 
