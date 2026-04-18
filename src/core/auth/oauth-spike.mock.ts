@@ -1,3 +1,5 @@
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
+
 type MockProfile = {
   email: string;
   id: string;
@@ -34,7 +36,7 @@ type GlobalFetchPatchState = typeof globalThis & {
 };
 
 function isOAuthSpikeMockEnabled() {
-  return process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true';
+  return isAuthSpikeOAuthUpstreamMockEnabled();
 }
 
 function createJsonResponse(body: unknown) {

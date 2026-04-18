@@ -1,4 +1,5 @@
 import { isCloudflareLocalWorkersDevRuntime } from '@/core/db/runtime-mode';
+import { isRuntimeEnvEnabled } from '@/shared/lib/runtime/env.server';
 
 function normalizeAuthOrigin(value: string, label: string): string {
   try {
@@ -49,7 +50,7 @@ function addOriginCandidate(candidates: string[], value: string | null) {
 }
 
 function shouldPrintAuthOriginDebug(): boolean {
-  return process.env.CF_LOCAL_AUTH_DEBUG === 'true';
+  return isRuntimeEnvEnabled('CF_LOCAL_AUTH_DEBUG');
 }
 
 function printAuthOriginDebug(
@@ -153,10 +154,14 @@ export function isExplicitLocalAuthRuntimeEnabled(params: {
   env?: NodeJS.ProcessEnv;
   preferRequestOrigin?: boolean;
 } = {}): boolean {
-  const env = params.env || process.env;
+  const env = params.env;
   return (
-    isCloudflareLocalWorkersDevRuntime(env) ||
-    env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true' ||
+    (env
+      ? isCloudflareLocalWorkersDevRuntime(env)
+      : isRuntimeEnvEnabled('CF_LOCAL_SMOKE_WORKERS_DEV')) ||
+    (env
+      ? env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true'
+      : isRuntimeEnvEnabled('AUTH_SPIKE_OAUTH_UPSTREAM_MOCK')) ||
     params.preferRequestOrigin === true
   );
 }

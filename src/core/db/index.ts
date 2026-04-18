@@ -5,11 +5,11 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
-import { serverEnv } from '@/config/server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { logger } from '@/shared/lib/logger.server';
 import {
   getCloudflareBindings,
+  getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
 } from '@/shared/lib/runtime/env.server';
 
@@ -238,7 +238,8 @@ const getWorkersDbForRequest = cache(
 );
 
 export function db() {
-  let databaseUrl = serverEnv.databaseUrl;
+  const runtimeEnv = getServerRuntimeEnv();
+  let databaseUrl = runtimeEnv.databaseUrl;
 
   const cloudflareEnv = getCloudflareBindings();
   const hasCloudflareWorkersEnv = cloudflareEnv !== null;
@@ -296,7 +297,7 @@ export function db() {
   }
 
   // Singleton mode: reuse existing connection (good for traditional servers)
-  if (serverEnv.dbSingletonEnabled === 'true') {
+  if (runtimeEnv.dbSingletonEnabled) {
     // Return existing instance if already initialized
     if (dbInstance) {
       return dbInstance;

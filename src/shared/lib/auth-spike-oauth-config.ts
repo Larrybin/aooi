@@ -1,3 +1,5 @@
+import { isRuntimeEnvEnabled } from '@/shared/lib/runtime/env.server';
+
 export const AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS = Object.freeze({
   google_auth_enabled: 'true',
   google_client_id: 'oauth-spike-google-client-id',
@@ -8,19 +10,27 @@ export const AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS = Object.freeze({
 });
 
 export function isAuthSpikeOAuthConfigSeedEnabled(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ) {
-  return env.AUTH_SPIKE_OAUTH_CONFIG_SEED === 'true';
+  if (env) {
+    return env.AUTH_SPIKE_OAUTH_CONFIG_SEED === 'true';
+  }
+
+  return isRuntimeEnvEnabled('AUTH_SPIKE_OAUTH_CONFIG_SEED');
 }
 
 export function isAuthSpikeOAuthUpstreamMockEnabled(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ) {
-  return env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true';
+  if (env) {
+    return env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true';
+  }
+
+  return isRuntimeEnvEnabled('AUTH_SPIKE_OAUTH_UPSTREAM_MOCK');
 }
 
 export function getAuthSpikeOAuthConfigSeedConfigs(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ) {
   if (!isAuthSpikeOAuthConfigSeedEnabled(env)) {
     return {};
@@ -31,7 +41,7 @@ export function getAuthSpikeOAuthConfigSeedConfigs(
 
 export function mergeAuthSpikeOAuthConfigSeedConfigs(
   configs: Record<string, string>,
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ) {
   return {
     ...configs,

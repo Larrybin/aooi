@@ -53,6 +53,21 @@ test('isCloudflareAdminSettingsSmokeNextCacheBypassEnabled 仅在 admin/settings
   );
 });
 
+test('isCloudflareAdminSettingsSmokeNextCacheBypassEnabled 默认读取当前 runtime env', () => {
+  const previous = process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE;
+  process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE = 'true';
+
+  try {
+    assert.equal(isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(), true);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE;
+    } else {
+      process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE = previous;
+    }
+  }
+});
+
 test('getCloudflareLocalSmokeConfigSeedConfigs 在本地 smoke worker 模式返回独立副本', () => {
   const configs = getCloudflareLocalSmokeConfigSeedConfigs(
     createEnv({ CF_LOCAL_SMOKE_WORKERS_DEV: 'true' })
