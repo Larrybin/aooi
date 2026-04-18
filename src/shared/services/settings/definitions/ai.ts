@@ -1,4 +1,5 @@
 import type { SettingDefinition } from '../types';
+import { defineSettingsGroup } from './builder';
 
 const aiModuleGroup = {
   id: 'ai_module',
@@ -34,58 +35,94 @@ const kieGroup = {
     'Custom <a href="https://kie.ai" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Kie</a> settings',
 } as const;
 
-export const aiSettings = [
+const aiModuleSettings = defineSettingsGroup(
   {
-    name: 'general_ai_enabled',
-    title: 'AI Module Enabled',
-    type: 'switch',
     moduleId: 'ai',
-    visibility: 'public',
-    value: 'false',
-    tip: 'When disabled, the AI module is globally unavailable (AI pages and APIs return 404).',
+    tab: 'ai',
     group: aiModuleGroup,
-    tab: 'ai',
+    defaultVisibility: 'public',
   },
+  [
+    {
+      name: 'general_ai_enabled',
+      title: 'AI Module Enabled',
+      type: 'switch',
+      value: 'false',
+      tip: 'When disabled, the AI module is globally unavailable (AI pages and APIs return 404).',
+    },
+  ] as const
+);
+
+const openrouterSettings = defineSettingsGroup(
   {
-    name: 'openrouter_api_key',
-    title: 'OpenRouter API Key',
-    type: 'password',
     moduleId: 'ai',
-    visibility: 'private',
-    placeholder: 'sk-or-',
+    tab: 'ai',
     group: openrouterGroup,
-    tab: 'ai',
   },
+  [
+    {
+      name: 'openrouter_api_key',
+      title: 'OpenRouter API Key',
+      type: 'password',
+      placeholder: 'sk-or-',
+    },
+  ] as const
+);
+
+const replicateSettings = defineSettingsGroup(
   {
-    name: 'replicate_api_token',
-    title: 'Replicate API Token',
-    type: 'password',
     moduleId: 'ai',
-    visibility: 'private',
-    placeholder: 'r8_',
+    tab: 'ai',
     group: replicateGroup,
-    tab: 'ai',
   },
+  [
+    {
+      name: 'replicate_api_token',
+      title: 'Replicate API Token',
+      type: 'password',
+      placeholder: 'r8_',
+    },
+  ] as const
+);
+
+const falSettings = defineSettingsGroup(
   {
-    name: 'fal_api_key',
-    title: 'Fal API Key',
-    type: 'password',
     moduleId: 'ai',
-    visibility: 'private',
-    placeholder: 'fal_',
+    tab: 'ai',
     group: falGroup,
-    tip: 'Fal API Key is used to access the Fal API',
-    tab: 'ai',
   },
+  [
+    {
+      name: 'fal_api_key',
+      title: 'Fal API Key',
+      type: 'password',
+      placeholder: 'fal_',
+      tip: 'Fal API Key is used to access the Fal API',
+    },
+  ] as const
+);
+
+const kieSettings = defineSettingsGroup(
   {
-    name: 'kie_api_key',
-    title: 'Kie API Key',
-    type: 'password',
     moduleId: 'ai',
-    visibility: 'private',
-    placeholder: '',
-    group: kieGroup,
-    tip: 'Kie API Key is used to access the Kie API',
     tab: 'ai',
+    group: kieGroup,
   },
+  [
+    {
+      name: 'kie_api_key',
+      title: 'Kie API Key',
+      type: 'password',
+      placeholder: '',
+      tip: 'Kie API Key is used to access the Kie API',
+    },
+  ] as const
+);
+
+export const aiSettings = [
+  ...aiModuleSettings,
+  ...openrouterSettings,
+  ...replicateSettings,
+  ...falSettings,
+  ...kieSettings,
 ] as const satisfies readonly SettingDefinition[];

@@ -1,4 +1,5 @@
 import type { SettingDefinition } from '../types';
+import { defineSettingsGroup } from './builder';
 
 const crispGroup = {
   id: 'crisp',
@@ -14,56 +15,62 @@ const tawkGroup = {
     'custom your <a href="https://www.tawk.to" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Tawk</a> settings',
 } as const;
 
+const crispSettings = defineSettingsGroup(
+  {
+    moduleId: 'customer_service',
+    tab: 'customer_service',
+    group: crispGroup,
+    defaultVisibility: 'private',
+  },
+  [
+    {
+      name: 'crisp_enabled',
+      title: 'Crisp Enabled',
+      type: 'switch',
+      visibility: 'public',
+      value: 'false',
+    },
+    {
+      name: 'crisp_website_id',
+      title: 'Crisp Website ID',
+      type: 'text',
+      placeholder: '',
+    },
+  ] as const
+);
+
+const tawkSettings = defineSettingsGroup(
+  {
+    moduleId: 'customer_service',
+    tab: 'customer_service',
+    group: tawkGroup,
+    defaultVisibility: 'private',
+  },
+  [
+    {
+      name: 'tawk_enabled',
+      title: 'Tawk Enabled',
+      type: 'switch',
+      visibility: 'public',
+      value: 'false',
+    },
+    {
+      name: 'tawk_property_id',
+      title: 'Tawk Property ID',
+      type: 'text',
+      placeholder: '',
+      tip: 'Tawk Property ID is associated with your Tawk account',
+    },
+    {
+      name: 'tawk_widget_id',
+      title: 'Tawk Widget ID',
+      type: 'text',
+      placeholder: '',
+    },
+  ] as const
+);
+
 export const customerServiceSettings = [
-  {
-    name: 'crisp_enabled',
-    title: 'Crisp Enabled',
-    type: 'switch',
-    moduleId: 'customer_service',
-    visibility: 'public',
-    value: 'false',
-    group: crispGroup,
-    tab: 'customer_service',
-  },
-  {
-    name: 'crisp_website_id',
-    title: 'Crisp Website ID',
-    type: 'text',
-    moduleId: 'customer_service',
-    visibility: 'private',
-    placeholder: '',
-    group: crispGroup,
-    tab: 'customer_service',
-  },
-  {
-    name: 'tawk_enabled',
-    title: 'Tawk Enabled',
-    type: 'switch',
-    moduleId: 'customer_service',
-    visibility: 'public',
-    value: 'false',
-    group: tawkGroup,
-    tab: 'customer_service',
-  },
-  {
-    name: 'tawk_property_id',
-    title: 'Tawk Property ID',
-    tip: 'Tawk Property ID is associated with your Tawk account',
-    type: 'text',
-    moduleId: 'customer_service',
-    visibility: 'private',
-    placeholder: '',
-    group: tawkGroup,
-    tab: 'customer_service',
-  },
-  {
-    name: 'tawk_widget_id',
-    title: 'Tawk Widget ID',
-    type: 'text',
-    moduleId: 'customer_service',
-    visibility: 'private',
-    placeholder: '',
-    group: tawkGroup,
-    tab: 'customer_service',
-  },
+  ...crispSettings,
+  ...tawkSettings,
 ] as const satisfies readonly SettingDefinition[];

@@ -36,7 +36,7 @@ type DerivedSettingGroup = {
   tab: RegistryEntry['tab'];
 };
 
-function deriveRegistry(settings: readonly SettingDefinition[]) {
+export function deriveSettingsRegistry(settings: readonly SettingDefinition[]) {
   const names = new Set<string>();
   const groups = new Map<string, DerivedSettingGroup>();
   const byName = new Map<string, SettingDefinition>();
@@ -78,7 +78,7 @@ function deriveRegistry(settings: readonly SettingDefinition[]) {
   };
 }
 
-const derivedRegistry = deriveRegistry(SETTINGS_REGISTRY);
+const derivedRegistry = deriveSettingsRegistry(SETTINGS_REGISTRY);
 
 export const ALL_SETTINGS = SETTINGS_REGISTRY;
 

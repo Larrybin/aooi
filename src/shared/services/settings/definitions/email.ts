@@ -1,4 +1,5 @@
 import type { SettingDefinition } from '../types';
+import { defineSettingsGroup } from './builder';
 
 const resendGroup = {
   id: 'resend',
@@ -6,25 +7,24 @@ const resendGroup = {
   description: 'custom your resend settings',
 } as const;
 
-export const emailSettings = [
+export const emailSettings = defineSettingsGroup(
   {
-    name: 'resend_api_key',
-    title: 'Resend API Key',
-    type: 'password',
     moduleId: 'auth',
-    visibility: 'private',
-    placeholder: '',
-    group: resendGroup,
     tab: 'email',
-  },
-  {
-    name: 'resend_sender_email',
-    title: 'Resend Sender Email',
-    type: 'email',
-    moduleId: 'auth',
-    visibility: 'private',
-    placeholder: '',
     group: resendGroup,
-    tab: 'email',
   },
-] as const satisfies readonly SettingDefinition[];
+  [
+    {
+      name: 'resend_api_key',
+      title: 'Resend API Key',
+      type: 'password',
+      placeholder: '',
+    },
+    {
+      name: 'resend_sender_email',
+      title: 'Resend Sender Email',
+      type: 'email',
+      placeholder: '',
+    },
+  ] as const
+) satisfies readonly SettingDefinition[];

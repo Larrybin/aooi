@@ -12,11 +12,7 @@ import {
   uploadFileToS3CompatibleStorage,
 } from './s3-compat';
 
-/**
- * S3 storage provider configs
- * @docs https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html
- */
-export interface S3Configs extends StorageConfigs {
+export interface S3CompatibleStorageConfigs extends StorageConfigs {
   endpoint: string;
   region: string;
   accessKeyId: string;
@@ -25,15 +21,12 @@ export interface S3Configs extends StorageConfigs {
   publicDomain?: string;
 }
 
-/**
- * S3 storage provider implementation
- * @website https://aws.amazon.com/s3/
- */
-export class S3Provider implements StorageProvider {
-  readonly name = 's3';
-  configs: S3Configs;
+export class S3CompatibleStorageProvider implements StorageProvider {
+  readonly name: string;
+  configs: S3CompatibleStorageConfigs;
 
-  constructor(configs: S3Configs) {
+  constructor(name: string, configs: S3CompatibleStorageConfigs) {
+    this.name = name;
     this.configs = configs;
   }
 
@@ -49,10 +42,9 @@ export class S3Provider implements StorageProvider {
       };
     }
 
-    const url = `${this.configs.endpoint}/${uploadBucket}/${options.key}`;
     return await uploadFileToS3CompatibleStorage({
       provider: this.name,
-      url,
+      url: `${this.configs.endpoint}/${uploadBucket}/${options.key}`,
       bucket: uploadBucket,
       key: options.key,
       body: options.body,
@@ -76,11 +68,4 @@ export class S3Provider implements StorageProvider {
       upload: (uploadOptions) => this.uploadFile(uploadOptions),
     });
   }
-}
-
-/**
- * Create S3 provider with configs
- */
-export function createS3Provider(configs: S3Configs): S3Provider {
-  return new S3Provider(configs);
 }

@@ -21,20 +21,19 @@ export function canBuildS3StorageProvider(configs: Configs) {
 
 export type StorageProviderContract =
   | {
-      kind: 'r2';
+      name: 'r2';
       isDefault: true;
       configs: {
-        accountId: string;
+        endpoint: string;
+        region: 'auto';
         accessKeyId: string;
         secretAccessKey: string;
         bucket: string;
-        region: 'auto';
-        endpoint?: string;
         publicDomain?: string;
       };
     }
   | {
-      kind: 's3';
+      name: 's3';
       isDefault: false;
       configs: {
         endpoint: string;
@@ -46,6 +45,14 @@ export type StorageProviderContract =
       };
     };
 
+function resolveR2Endpoint(configs: Configs) {
+  if (configs.r2_endpoint) {
+    return configs.r2_endpoint;
+  }
+
+  return `https://${configs.r2_account_id}.r2.cloudflarestorage.com`;
+}
+
 export function getConfiguredStorageProviderContracts(
   configs: Configs
 ): StorageProviderContract[] {
@@ -53,15 +60,14 @@ export function getConfiguredStorageProviderContracts(
 
   if (canBuildR2StorageProvider(configs)) {
     providers.push({
-      kind: 'r2',
+      name: 'r2',
       isDefault: true,
       configs: {
-        accountId: configs.r2_account_id || '',
+        endpoint: resolveR2Endpoint(configs),
+        region: 'auto',
         accessKeyId: configs.r2_access_key,
         secretAccessKey: configs.r2_secret_key,
         bucket: configs.r2_bucket_name,
-        region: 'auto',
-        endpoint: configs.r2_endpoint || undefined,
         publicDomain: configs.r2_domain || undefined,
       },
     });
@@ -69,7 +75,7 @@ export function getConfiguredStorageProviderContracts(
 
   if (canBuildS3StorageProvider(configs)) {
     providers.push({
-      kind: 's3',
+      name: 's3',
       isDefault: false,
       configs: {
         endpoint: configs.s3_endpoint,

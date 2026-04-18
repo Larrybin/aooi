@@ -1,4 +1,5 @@
 import type { SettingDefinition } from '../types';
+import { defineSettingsGroup } from './builder';
 
 const emailAuthGroup = {
   id: 'email_auth',
@@ -18,84 +19,91 @@ const githubAuthGroup = {
   description: 'custom your github auth settings',
 } as const;
 
-export const authSettings = [
+const emailAuthSettings = defineSettingsGroup(
   {
-    name: 'email_auth_enabled',
-    title: 'Enabled',
-    type: 'switch',
     moduleId: 'auth',
-    visibility: 'public',
-    value: 'true',
+    tab: 'auth',
     group: emailAuthGroup,
-    tab: 'auth',
+    defaultVisibility: 'public',
   },
+  [
+    {
+      name: 'email_auth_enabled',
+      title: 'Enabled',
+      type: 'switch',
+      value: 'true',
+    },
+  ] as const
+);
+
+const googleAuthSettings = defineSettingsGroup(
   {
-    name: 'google_auth_enabled',
-    title: 'Auth Enabled',
-    type: 'switch',
     moduleId: 'auth',
-    visibility: 'public',
-    value: 'false',
+    tab: 'auth',
     group: googleAuthGroup,
-    tab: 'auth',
+    defaultVisibility: 'private',
   },
+  [
+    {
+      name: 'google_auth_enabled',
+      title: 'Auth Enabled',
+      type: 'switch',
+      visibility: 'public',
+      value: 'false',
+    },
+    {
+      name: 'google_one_tap_enabled',
+      title: 'OneTap Enabled',
+      type: 'switch',
+      visibility: 'public',
+      value: 'false',
+    },
+    {
+      name: 'google_client_id',
+      title: 'Google Client ID',
+      type: 'text',
+      visibility: 'public',
+      placeholder: '',
+    },
+    {
+      name: 'google_client_secret',
+      title: 'Google Client Secret',
+      type: 'password',
+      placeholder: '',
+    },
+  ] as const
+);
+
+const githubAuthSettings = defineSettingsGroup(
   {
-    name: 'google_one_tap_enabled',
-    title: 'OneTap Enabled',
-    type: 'switch',
     moduleId: 'auth',
-    visibility: 'public',
-    value: 'false',
-    group: googleAuthGroup,
     tab: 'auth',
-  },
-  {
-    name: 'google_client_id',
-    title: 'Google Client ID',
-    type: 'text',
-    moduleId: 'auth',
-    visibility: 'public',
-    placeholder: '',
-    group: googleAuthGroup,
-    tab: 'auth',
-  },
-  {
-    name: 'google_client_secret',
-    title: 'Google Client Secret',
-    type: 'password',
-    moduleId: 'auth',
-    visibility: 'private',
-    placeholder: '',
-    group: googleAuthGroup,
-    tab: 'auth',
-  },
-  {
-    name: 'github_auth_enabled',
-    title: 'Auth Enabled',
-    type: 'switch',
-    moduleId: 'auth',
-    visibility: 'public',
     group: githubAuthGroup,
-    tab: 'auth',
   },
-  {
-    name: 'github_client_id',
-    title: 'Github Client ID',
-    type: 'text',
-    moduleId: 'auth',
-    visibility: 'private',
-    placeholder: '',
-    group: githubAuthGroup,
-    tab: 'auth',
-  },
-  {
-    name: 'github_client_secret',
-    title: 'Github Client Secret',
-    type: 'password',
-    moduleId: 'auth',
-    visibility: 'private',
-    placeholder: '',
-    group: githubAuthGroup,
-    tab: 'auth',
-  },
+  [
+    {
+      name: 'github_auth_enabled',
+      title: 'Auth Enabled',
+      type: 'switch',
+      visibility: 'public',
+    },
+    {
+      name: 'github_client_id',
+      title: 'Github Client ID',
+      type: 'text',
+      placeholder: '',
+    },
+    {
+      name: 'github_client_secret',
+      title: 'Github Client Secret',
+      type: 'password',
+      placeholder: '',
+    },
+  ] as const
+);
+
+export const authSettings = [
+  ...emailAuthSettings,
+  ...googleAuthSettings,
+  ...githubAuthSettings,
 ] as const satisfies readonly SettingDefinition[];

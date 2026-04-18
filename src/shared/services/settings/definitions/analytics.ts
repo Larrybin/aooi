@@ -1,4 +1,5 @@
 import type { SettingDefinition } from '../types';
+import { defineSettingsGroup } from './builder';
 
 const googleAnalyticsGroup = {
   id: 'google_analytics',
@@ -35,65 +36,96 @@ const vercelAnalyticsGroup = {
     'custom your <a href="https://vercel.com/docs/analytics/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Vercel Analytics</a> settings',
 } as const;
 
-export const analyticsSettings = [
+const googleAnalyticsSettings = defineSettingsGroup(
   {
-    name: 'google_analytics_id',
-    title: 'Google Analytics ID',
-    type: 'text',
     moduleId: 'analytics',
-    visibility: 'private',
-    placeholder: '',
+    tab: 'analytics',
     group: googleAnalyticsGroup,
-    tab: 'analytics',
   },
+  [
+    {
+      name: 'google_analytics_id',
+      title: 'Google Analytics ID',
+      type: 'text',
+      placeholder: '',
+    },
+  ] as const
+);
+
+const claritySettings = defineSettingsGroup(
   {
-    name: 'clarity_id',
-    title: 'Clarity ID',
-    type: 'text',
     moduleId: 'analytics',
-    visibility: 'private',
-    placeholder: '',
+    tab: 'analytics',
     group: clarityGroup,
-    tab: 'analytics',
   },
+  [
+    {
+      name: 'clarity_id',
+      title: 'Clarity ID',
+      type: 'text',
+      placeholder: '',
+    },
+  ] as const
+);
+
+const plausibleSettings = defineSettingsGroup(
   {
-    name: 'plausible_domain',
-    title: 'Plausible Domain',
-    type: 'text',
     moduleId: 'analytics',
-    visibility: 'private',
-    placeholder: '',
+    tab: 'analytics',
     group: plausibleGroup,
-    tab: 'analytics',
   },
+  [
+    {
+      name: 'plausible_domain',
+      title: 'Plausible Domain',
+      type: 'text',
+      placeholder: '',
+    },
+    {
+      name: 'plausible_src',
+      title: 'Plausible Script Src',
+      type: 'url',
+      placeholder: 'https://plausible.io/js/script.js',
+    },
+  ] as const
+);
+
+const openpanelSettings = defineSettingsGroup(
   {
-    name: 'plausible_src',
-    title: 'Plausible Script Src',
-    type: 'url',
     moduleId: 'analytics',
-    visibility: 'private',
-    placeholder: 'https://plausible.io/js/script.js',
-    group: plausibleGroup,
     tab: 'analytics',
-  },
-  {
-    name: 'openpanel_client_id',
-    title: 'OpenPanel Client ID',
-    type: 'text',
-    moduleId: 'analytics',
-    visibility: 'private',
-    placeholder: '',
     group: openpanelGroup,
-    tab: 'analytics',
   },
+  [
+    {
+      name: 'openpanel_client_id',
+      title: 'OpenPanel Client ID',
+      type: 'text',
+      placeholder: '',
+    },
+  ] as const
+);
+
+const vercelAnalyticsSettings = defineSettingsGroup(
   {
-    name: 'vercel_analytics_enabled',
-    title: 'Enabled',
-    type: 'switch',
     moduleId: 'analytics',
-    visibility: 'private',
-    value: 'false',
-    group: vercelAnalyticsGroup,
     tab: 'analytics',
+    group: vercelAnalyticsGroup,
   },
+  [
+    {
+      name: 'vercel_analytics_enabled',
+      title: 'Enabled',
+      type: 'switch',
+      value: 'false',
+    },
+  ] as const
+);
+
+export const analyticsSettings = [
+  ...googleAnalyticsSettings,
+  ...claritySettings,
+  ...plausibleSettings,
+  ...openpanelSettings,
+  ...vercelAnalyticsSettings,
 ] as const satisfies readonly SettingDefinition[];

@@ -143,16 +143,40 @@ test('getConfiguredStorageProviderContracts 在 R2 配置完整时返回默认 p
     }),
     [
       {
-        kind: 'r2',
+        name: 'r2',
         isDefault: true,
         configs: {
-          accountId: '',
+          endpoint: 'https://account-id.r2.cloudflarestorage.com',
+          region: 'auto',
           accessKeyId: 'ak',
           secretAccessKey: 'sk',
           bucket: 'bucket',
-          region: 'auto',
-          endpoint: 'https://account-id.r2.cloudflarestorage.com',
           publicDomain: 'https://cdn.example.com',
+        },
+      },
+    ]
+  );
+});
+
+test('getConfiguredStorageProviderContracts 在仅提供 R2 account id 时派生默认 endpoint', () => {
+  assert.deepEqual(
+    getConfiguredStorageProviderContracts({
+      r2_access_key: 'ak',
+      r2_secret_key: 'sk',
+      r2_bucket_name: 'bucket',
+      r2_account_id: 'account-id',
+    }),
+    [
+      {
+        name: 'r2',
+        isDefault: true,
+        configs: {
+          endpoint: 'https://account-id.r2.cloudflarestorage.com',
+          region: 'auto',
+          accessKeyId: 'ak',
+          secretAccessKey: 'sk',
+          bucket: 'bucket',
+          publicDomain: undefined,
         },
       },
     ]
@@ -171,7 +195,7 @@ test('getConfiguredStorageProviderContracts 在 S3 配置完整时返回 S3 prov
     }),
     [
       {
-        kind: 's3',
+        name: 's3',
         isDefault: false,
         configs: {
           endpoint: 'https://s3.us-east-1.amazonaws.com',
