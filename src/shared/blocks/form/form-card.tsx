@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 
 import { Link } from '@/core/i18n/navigation';
-import { Form } from '@/shared/blocks/form';
+import { Form } from '@/shared/blocks/form/form';
 import {
   Breadcrumb,
   BreadcrumbItem,

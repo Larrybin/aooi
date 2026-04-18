@@ -4,7 +4,7 @@ import { unstable_cache as nextUnstableCache } from 'next/cache';
 
 import { isCloudflareAdminSettingsSmokeNextCacheBypassEnabled } from '@/shared/lib/cloudflare-local-smoke-config';
 
-type CacheCallback = (...args: any[]) => Promise<any>;
+type CacheCallback = (...args: unknown[]) => Promise<unknown>;
 
 export function unstable_cache<T extends CacheCallback>(
   callback: T,
