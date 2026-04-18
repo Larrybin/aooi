@@ -217,15 +217,12 @@ export function createPreviewManager({
   });
 }
 
-export function createWranglerDevManager({
-  label,
-  cwd = rootDir,
-  env = process.env,
-  logger = console,
+export function buildWranglerDevArgs({
   wranglerConfigPath,
   port,
   inspectorPort,
   name,
+  persistTo,
 }) {
   const args = ['exec', 'wrangler', 'dev'];
   if (wranglerConfigPath) {
@@ -233,6 +230,9 @@ export function createWranglerDevManager({
   }
   if (name) {
     args.push('--name', name);
+  }
+  if (persistTo) {
+    args.push('--persist-to', persistTo);
   }
   args.push(
     '--local',
@@ -242,6 +242,28 @@ export function createWranglerDevManager({
     String(inspectorPort),
     '--show-interactive-dev-session=false'
   );
+
+  return args;
+}
+
+export function createWranglerDevManager({
+  label,
+  cwd = rootDir,
+  env = process.env,
+  logger = console,
+  wranglerConfigPath,
+  port,
+  inspectorPort,
+  name,
+  persistTo,
+}) {
+  const args = buildWranglerDevArgs({
+    wranglerConfigPath,
+    port,
+    inspectorPort,
+    name,
+    persistTo,
+  });
 
   return createReadyProcessManager({
     label,

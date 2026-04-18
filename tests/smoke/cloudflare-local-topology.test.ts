@@ -92,7 +92,14 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
         );
         assert.match(config, /\[dev\][\s\S]*host = "127\.0\.0\.1"/);
         assert.match(config, /\[dev\][\s\S]*upstream_protocol = "http"/);
+        assert.equal(worker.persistDir, path.join(artifacts.tempDir, 'state', worker.target));
+        await assert.doesNotReject(fs.stat(worker.persistDir));
       }
+
+      assert.equal(
+        new Set(artifacts.serverWorkers.map((worker) => worker.persistDir)).size,
+        CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.length
+      );
 
       const devVars = await fs.readFile(devVarsPath, 'utf8');
       assert.match(devVars, /AUTH_SECRET=topology-secret-0123456789abcdef/);
@@ -144,6 +151,7 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
   const events: string[] = [];
   const readyResolvers = new Map<string, (value: string) => void>();
   const workerEnvs: Array<Record<string, string | undefined>> = [];
+  const workerPersistDirs: string[] = [];
   const routerEnvs: Array<Record<string, string | undefined>> = [];
   let cleanupCount = 0;
 
@@ -165,6 +173,7 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
           target,
           label: `Cloudflare server worker ${target}`,
           configPath: `/tmp/${target}.toml`,
+          persistDir: `/tmp/state/${target}`,
           port: 8788 + index,
           workerName: getServerWorkerMetadata(target).workerName,
         })),
@@ -172,7 +181,7 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
           cleanupCount += 1;
         },
       }),
-      createWranglerDevManagerImpl: ({ label, env }) => {
+      createWranglerDevManagerImpl: ({ label, env, persistTo }) => {
         events.push(`create:${label}`);
         workerEnvs.push({
           NEXT_PUBLIC_APP_URL: env?.NEXT_PUBLIC_APP_URL,
@@ -180,6 +189,7 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
           BETTER_AUTH_URL: env?.BETTER_AUTH_URL,
           CF_LOCAL_SMOKE_WORKERS_DEV: env?.CF_LOCAL_SMOKE_WORKERS_DEV,
         });
+        workerPersistDirs.push(persistTo);
         const readyUrlPromise = new Promise<string>((resolve) => {
           readyResolvers.set(label, resolve);
         });
@@ -237,6 +247,12 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
     BETTER_AUTH_URL: 'http://127.0.0.1:8787',
     CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
   })));
+  assert.deepEqual(
+    workerPersistDirs,
+    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
+      (target) => `/tmp/state/${target}`
+    )
+  );
   assert.deepEqual(routerEnvs, [
     {
       NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:8787',

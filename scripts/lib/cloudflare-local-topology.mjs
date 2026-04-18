@@ -166,6 +166,7 @@ export async function prepareCloudflareLocalTopologyArtifacts({
   await mkdir(tmpRoot, { recursive: true });
 
   const tempDir = await mkdtemp(path.join(tmpRoot, 'cf-local-topology-'));
+  const stateRootDir = path.join(tempDir, 'state');
   const resolvedDevVarsPath = devVarsPath || path.join(tempDir, '.dev.vars');
   const ports = await resolveCloudflareLocalTopologyPorts({ routerBaseUrl });
   const routerDevOrigin = new URL(ports.routerBaseUrl);
@@ -200,11 +201,14 @@ export async function prepareCloudflareLocalTopologyArtifacts({
       outputPath: configPath,
     });
     await writeFile(configPath, config, 'utf8');
+    const persistDir = path.join(stateRootDir, target);
+    await mkdir(persistDir, { recursive: true });
 
     serverWorkers.push({
       target,
       label: `Cloudflare server worker ${target}`,
       configPath,
+      persistDir,
       port: ports.serverPorts[target],
       inspectorPort: ports.inspectorPorts[target],
       workerName: metadata.workerName,
@@ -350,6 +354,7 @@ export async function startCloudflareLocalDevTopology(
         port: worker.port,
         inspectorPort: worker.inspectorPort,
         name: worker.workerName,
+        persistTo: worker.persistDir,
         env: childEnv,
         logger,
       });
