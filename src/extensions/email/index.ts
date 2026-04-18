@@ -1,14 +1,5 @@
 import type { ReactNode } from 'react';
 
-import {
-  BadRequestError,
-  ServiceUnavailableError,
-} from '@/shared/lib/api/errors';
-import {
-  exactProviderNameKey,
-  ProviderRegistry,
-} from '@/shared/lib/providers/provider-registry';
-
 /**
  * Email attachment interface
  */
@@ -67,55 +58,5 @@ export interface EmailProvider {
   // send email
   sendEmail(email: EmailMessage): Promise<EmailSendResult>;
 }
-
-/**
- * Email manager to manage all email providers
- */
-export class EmailManager {
-  private readonly registry = new ProviderRegistry<EmailProvider>({
-    toNameKey: exactProviderNameKey,
-    memoizeDefault: true,
-  });
-
-  // add email provider
-  addProvider(provider: EmailProvider, isDefault = false) {
-    this.registry.add(provider, isDefault);
-  }
-
-  // get provider by name
-  getProvider(name: string): EmailProvider | undefined {
-    return this.registry.get(name);
-  }
-
-  // send email using default provider
-  async sendEmail(email: EmailMessage): Promise<EmailSendResult> {
-    const defaultProvider = this.registry.getDefault();
-    if (!defaultProvider) {
-      throw new ServiceUnavailableError('No email provider configured');
-    }
-
-    return defaultProvider.sendEmail(email);
-  }
-
-  // send email using specific provider
-  async sendEmailWithProvider(
-    email: EmailMessage,
-    providerName: string
-  ): Promise<EmailSendResult> {
-    const provider = this.getProvider(providerName);
-    if (!provider) {
-      throw new BadRequestError(`Email provider '${providerName}' not found`);
-    }
-    return provider.sendEmail(email);
-  }
-
-  // get all provider names
-  getProviderNames(): string[] {
-    return this.registry.getProviderNames();
-  }
-}
-
-// Global email manager instance
-export const emailManager = new EmailManager();
 
 // Providers are exported via `./providers` (server-only)

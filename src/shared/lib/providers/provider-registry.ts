@@ -11,6 +11,8 @@ type RegistryOptions = {
   memoizeDefault?: boolean;
 };
 
+type ErrorFactory = (name: string) => Error;
+
 export class ProviderRegistry<T extends { readonly name: string }> {
   private providers: T[] = [];
   private defaultProvider: T | undefined;
@@ -29,6 +31,24 @@ export class ProviderRegistry<T extends { readonly name: string }> {
     }
   }
 
+  addUnique(
+    provider: T,
+    options: {
+      isDefault?: boolean;
+      invalidNameError: ErrorFactory;
+      duplicateNameError: ErrorFactory;
+    }
+  ): void {
+    const name = this.toNameKey(provider?.name);
+    if (!name) {
+      throw options.invalidNameError('');
+    }
+    if (this.has(name)) {
+      throw options.duplicateNameError(name);
+    }
+    this.add(provider, options.isDefault === true);
+  }
+
   has(name: string): boolean {
     const key = this.toNameKey(name);
     return this.providers.some((p) => this.toNameKey(p.name) === key);
@@ -37,6 +57,14 @@ export class ProviderRegistry<T extends { readonly name: string }> {
   get(name: string): T | undefined {
     const key = this.toNameKey(name);
     return this.providers.find((p) => this.toNameKey(p.name) === key);
+  }
+
+  getRequired(name: string, createError: ErrorFactory): T {
+    const provider = this.get(name);
+    if (!provider) {
+      throw createError(name);
+    }
+    return provider;
   }
 
   remove(name: string): boolean {
@@ -77,6 +105,14 @@ export class ProviderRegistry<T extends { readonly name: string }> {
       this.defaultProvider = fallback;
     }
     return fallback;
+  }
+
+  getDefaultRequired(createError: () => Error): T {
+    const provider = this.getDefault();
+    if (!provider) {
+      throw createError();
+    }
+    return provider;
   }
 
   getProviderNames(): string[] {

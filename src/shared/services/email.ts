@@ -1,12 +1,32 @@
 import 'server-only';
 
-import { EmailManager } from '@/extensions/email';
+import type {
+  EmailMessage,
+  EmailProvider,
+  EmailSendResult,
+} from '@/extensions/email';
 import { ResendProvider } from '@/extensions/email/providers';
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/shared/lib/api/errors';
+import {
+  exactProviderNameKey,
+  ProviderRegistry,
+} from '@/shared/lib/providers/provider-registry';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
+
+export type EmailService = {
+  sendEmail(email: EmailMessage): Promise<EmailSendResult>;
+  sendEmailWithProvider(
+    email: EmailMessage,
+    providerName: string
+  ): Promise<EmailSendResult>;
+};
 
 type CachedEmailService = {
   signature: string;
-  servicePromise: Promise<EmailManager>;
+  servicePromise: Promise<EmailService>;
 };
 
 let cachedEmailService: CachedEmailService | null = null;
@@ -23,7 +43,10 @@ function buildConfigsSignature(configs: Configs): string {
  * get email service with configs
  */
 export function getEmailServiceWithConfigs(configs: Configs) {
-  const emailManager = new EmailManager();
+  const registry = new ProviderRegistry<EmailProvider>({
+    toNameKey: exactProviderNameKey,
+    memoizeDefault: true,
+  });
 
   if (configs.resend_api_key) {
     const sender = (configs.resend_sender_email ?? '').trim();
@@ -33,7 +56,7 @@ export function getEmailServiceWithConfigs(configs: Configs) {
       );
     }
 
-    emailManager.addProvider(
+    registry.add(
       new ResendProvider({
         apiKey: configs.resend_api_key,
         defaultFrom: sender,
@@ -41,13 +64,29 @@ export function getEmailServiceWithConfigs(configs: Configs) {
     );
   }
 
-  return emailManager;
+  return {
+    async sendEmail(email) {
+      return await registry
+        .getDefaultRequired(
+          () => new ServiceUnavailableError('No email provider configured')
+        )
+        .sendEmail(email);
+    },
+    async sendEmailWithProvider(email, providerName) {
+      return await registry
+        .getRequired(
+          providerName,
+          (name) => new BadRequestError(`Email provider '${name}' not found`)
+        )
+        .sendEmail(email);
+    },
+  } satisfies EmailService;
 }
 
 /**
  * global email service
  */
-export async function getEmailService(): Promise<EmailManager> {
+export async function getEmailService(): Promise<EmailService> {
   const configs = await getAllConfigs();
   const signature = buildConfigsSignature(configs);
 
