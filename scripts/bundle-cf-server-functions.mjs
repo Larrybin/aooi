@@ -8,6 +8,10 @@ import openNextConfig from '../open-next.config.ts';
 import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 
 const { CLOUDFLARE_SPLIT_WORKER_TARGETS } = cloudflareWorkerSplits;
+const CLOUDFLARE_UNMINIFIED_HANDLER_TARGETS = [
+  'default',
+  ...CLOUDFLARE_SPLIT_WORKER_TARGETS,
+];
 
 const rootDir = process.cwd();
 const cloudflarePackageDir = fs.realpathSync(
@@ -32,6 +36,13 @@ const baseBuildOptions = normalizeOptions(
 );
 const packagePath = getPackagePath(baseBuildOptions);
 const actualOutputDir = baseBuildOptions.outputDir;
+const splitHandlerBundleOptions = {
+  // Minifying split handlers causes Radix/Floating UI middleware objects to be
+  // emitted with duplicate `options` keys, which Wrangler/esbuild warns about
+  // for every local worker boot. Keeping these bundles unminified avoids the
+  // warning without changing runtime behavior.
+  minify: false,
+};
 
 function log(message) {
   console.log(`[cf:bundle] ${message}`);
@@ -103,7 +114,7 @@ async function bundleSplitTarget(target) {
     };
 
     log(`bundling split handler for ${target}`);
-    await bundleServer(buildOptions, { minify: true });
+    await bundleServer(buildOptions, splitHandlerBundleOptions);
 
     const bundledHandlerPath = path.join(tempDefaultPackageDir, 'handler.mjs');
     const bundledMetaPath = `${bundledHandlerPath}.meta.json`;
@@ -143,7 +154,7 @@ async function bundleSplitTarget(target) {
 }
 
 async function main() {
-  for (const target of CLOUDFLARE_SPLIT_WORKER_TARGETS) {
+  for (const target of CLOUDFLARE_UNMINIFIED_HANDLER_TARGETS) {
     await bundleSplitTarget(target);
   }
 }
