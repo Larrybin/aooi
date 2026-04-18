@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 
 import { getAllConfigsSafe, type Configs } from '@/shared/models/config';
+import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 import { resolveAdsRuntime, type ResolvedAdsRuntime } from './ads-runtime';
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
@@ -14,10 +15,7 @@ export {
 } from './ads-runtime';
 
 export function getAdsRuntimeWithConfigs(configs: Configs): ResolvedAdsRuntime {
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    process.env.NEXT_PUBLIC_DEBUG !== 'true'
-  ) {
+  if (!isProductionEnv() && !isDebugEnv()) {
     return { enabled: false };
   }
 

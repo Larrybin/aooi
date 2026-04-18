@@ -1,3 +1,7 @@
+import {
+  getNodeEnv,
+  getTrimmedEnvValue,
+} from './env-contract';
 import { readPublicAssetPath } from './public-asset-path';
 
 export type PublicEnvConfigs = {
@@ -93,7 +97,7 @@ export function resolveAppUrl({
   buildTime?: boolean;
   browserOrigin?: string | null;
 } = {}): string {
-  const effectiveNodeEnv = nodeEnv ?? process.env.NODE_ENV;
+  const effectiveNodeEnv = nodeEnv ?? getNodeEnv();
   const effectiveBuildTime = buildTime ?? isBuildTimeEnv();
 
   if (rawAppUrl && rawAppUrl.trim()) {
@@ -111,6 +115,49 @@ export function resolveAppUrl({
   }
 
   return DEFAULT_APP_URL;
+}
+
+export function readAppUrlFromEnv(
+  env: Partial<NodeJS.ProcessEnv> = process.env,
+  browserOrigin: string | null = readBrowserOrigin()
+): string {
+  return resolveAppUrl({
+    rawAppUrl: getTrimmedEnvValue(env, 'NEXT_PUBLIC_APP_URL'),
+    nodeEnv: getTrimmedEnvValue(env, 'NODE_ENV'),
+    buildTime: isBuildTimeEnv({
+      npm_lifecycle_event: env.npm_lifecycle_event,
+      NEXT_PHASE: env.NEXT_PHASE,
+    }),
+    browserOrigin,
+  });
+}
+
+export function readPublicEnvConfigs(
+  env: Partial<NodeJS.ProcessEnv> = process.env,
+  browserOrigin: string | null = readBrowserOrigin()
+): PublicEnvConfigs {
+  return resolvePublicEnvConfigs({
+    nextPublicAppUrl: getTrimmedEnvValue(env, 'NEXT_PUBLIC_APP_URL'),
+    nextPublicAppName: getTrimmedEnvValue(env, 'NEXT_PUBLIC_APP_NAME'),
+    nextPublicAppLogo: getTrimmedEnvValue(env, 'NEXT_PUBLIC_APP_LOGO'),
+    nextPublicAppFavicon: getTrimmedEnvValue(env, 'NEXT_PUBLIC_APP_FAVICON'),
+    nextPublicAppPreviewImage: getTrimmedEnvValue(
+      env,
+      'NEXT_PUBLIC_APP_PREVIEW_IMAGE'
+    ),
+    nextPublicAppOgImage: getTrimmedEnvValue(env, 'NEXT_PUBLIC_APP_OG_IMAGE'),
+    nextPublicTheme: getTrimmedEnvValue(env, 'NEXT_PUBLIC_THEME'),
+    nextPublicDefaultLocale: getTrimmedEnvValue(
+      env,
+      'NEXT_PUBLIC_DEFAULT_LOCALE'
+    ),
+    nodeEnv: getTrimmedEnvValue(env, 'NODE_ENV'),
+    buildTime: isBuildTimeEnv({
+      npm_lifecycle_event: env.npm_lifecycle_event,
+      NEXT_PHASE: env.NEXT_PHASE,
+    }),
+    browserOrigin,
+  });
 }
 
 export function resolvePublicEnvConfigs(

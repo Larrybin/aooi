@@ -9,6 +9,7 @@ import {
   ProviderRegistry,
   trimmedProviderNameKey,
 } from '@/shared/lib/providers/provider-registry';
+import { isProductionEnv } from '@/shared/lib/env';
 import type { Configs } from '@/shared/models/config';
 import { buildServiceFromLatestConfigs } from '@/shared/services/config_refresh_policy';
 import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
@@ -26,7 +27,7 @@ async function addStripeProvider(
 ) {
   const { StripeProvider } = await import('@/core/payment/providers/stripe');
   const defaultProvider = configs.default_payment_provider;
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnv();
   const signingSecret = configs.stripe_signing_secret || '';
 
   if (isProduction && !signingSecret.trim()) {

@@ -9,6 +9,7 @@ import * as schema from '@/config/db/schema';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
+import { isProductionEnv } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 import { getAllConfigs, type Configs } from '@/shared/models/config';
 import {
@@ -31,7 +32,7 @@ import {
 } from './runtime-origin';
 
 function assertAuthEnv() {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnv();
   if (!isProduction) {
     return;
   }
@@ -66,7 +67,7 @@ function assertAuthEnv() {
 function getAuthRuntimeContext(request?: Request) {
   const runtimeEnv = getServerRuntimeEnv();
   const publicEnvConfigs = getServerPublicEnvConfigs();
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnv();
   const normalizedAuthBaseUrl = new URL(runtimeEnv.authBaseUrl).origin;
   const compiledAppOrigin =
     publicEnvConfigs.app_url && publicEnvConfigs.app_url !== normalizedAuthBaseUrl

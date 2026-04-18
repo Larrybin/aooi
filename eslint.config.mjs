@@ -22,6 +22,13 @@ const noThrowVanillaErrorCall = {
     '禁止直接 `throw Error(...)` 进入对外契约边界；请改为抛出 `ApiError/BusinessError/ExternalError/ActionError`（仅暴露安全的 publicMessage）。',
 };
 
+const noDirectProcessEnvAccess = {
+  object: 'process',
+  property: 'env',
+  message:
+    '非白名单运行时代码禁止直接访问或传播 `process.env`；请改走 env-contract / env helper。',
+};
+
 const noSharedToFeatureImportPattern = {
   group: ['@/features/**'],
   message: 'shared/** 禁止依赖 features/**；请由 src/app/** 负责编排。',
@@ -212,6 +219,28 @@ const eslintConfig = [
           fixStyle: 'separate-type-imports',
         },
       ],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx,mts,cts}', 'cloudflare/**/*.{ts,tsx,mts,cts}'],
+    ignores: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+      'cloudflare/**/*.test.ts',
+      'cloudflare/**/*.test.tsx',
+      'cloudflare/**/*.spec.ts',
+      'cloudflare/**/*.spec.tsx',
+      'src/config/env-contract.ts',
+      'src/config/load-dotenv.ts',
+      'src/config/public-env.ts',
+      'src/config/server-auth-base-url.ts',
+      'src/shared/lib/runtime/env.server.ts',
+      'cloudflare/workers/create-server-worker.ts',
+    ],
+    rules: {
+      'no-restricted-properties': ['error', noDirectProcessEnvAccess],
     },
   },
   {

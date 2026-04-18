@@ -9,6 +9,7 @@ import {
 import { permission, role, rolePermission, userRole } from '@/config/db/schema';
 import { BusinessError } from '@/shared/lib/errors';
 import { getUuid } from '@/shared/lib/hash';
+import { isProductionEnv } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 
 export type RbacAuditContext = {
@@ -69,7 +70,7 @@ export function normalizeRbacSchemaError(error: unknown): never {
     throw error;
   }
 
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnv();
   const hint = buildRoleDeletedAtMissingHint();
 
   logger.error('[rbac] schema mismatch detected', {

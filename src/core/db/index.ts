@@ -6,6 +6,7 @@ import postgres from 'postgres';
 
 import { assertRoleDeletedAtColumnExists } from '@/core/db/schema-check';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import { isProductionEnv } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
 import {
   getCloudflareBindings,
@@ -65,7 +66,7 @@ function getOrCreateSchemaCheckPromise(
 
   const promise = assertRoleDeletedAtColumnExists({
     sql,
-    isProduction: process.env.NODE_ENV === 'production',
+    isProduction: isProductionEnv(),
     logger,
   })
     .then(() => {

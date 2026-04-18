@@ -1,9 +1,10 @@
+import { isEnvEnabled } from '@/config/env-contract';
 import type { StorageUploadResult } from '@/extensions/storage';
 
 export function isStorageSpikeUploadMockEnabled(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ) {
-  return env.STORAGE_SPIKE_UPLOAD_MOCK === 'true';
+  return isEnvEnabled(env, 'STORAGE_SPIKE_UPLOAD_MOCK');
 }
 
 export function buildStorageSpikeUploadMockResult(params: {

@@ -1,9 +1,11 @@
 import 'server-only';
 
+import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-const isProduction = process.env.NODE_ENV === 'production';
-const isDebugEnabled = process.env.NEXT_PUBLIC_DEBUG === 'true';
+const isProduction = isProductionEnv();
+const isDebugEnabled = isDebugEnv();
 
 const DEFAULT_MAX_DEPTH = 6;
 const DEFAULT_MAX_ARRAY_LENGTH = 50;

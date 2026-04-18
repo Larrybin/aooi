@@ -1,5 +1,7 @@
+import { isEnvEnabled } from '@/config/env-contract';
+
 export function isCloudflareLocalWorkersDevRuntime(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ): boolean {
-  return env.CF_LOCAL_SMOKE_WORKERS_DEV === 'true';
+  return isEnvEnabled(env, 'CF_LOCAL_SMOKE_WORKERS_DEV');
 }

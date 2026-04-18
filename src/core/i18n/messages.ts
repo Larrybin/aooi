@@ -1,4 +1,5 @@
 import type { Locale } from '@/config/locale';
+import { isCiEnv, isProductionEnv } from '@/shared/lib/env';
 
 import { resolveMessagePath } from './messages.shared';
 
@@ -7,8 +8,7 @@ export { normalizeLocale } from './messages.shared';
 type Messages = Record<string, unknown>;
 
 const baseMessagesLocale: Locale = 'en';
-const isDevOrCI =
-  process.env.NODE_ENV !== 'production' || process.env.CI === 'true';
+const isDevOrCI = !isProductionEnv() || isCiEnv();
 const shouldCacheMessages = !isDevOrCI;
 const namespaceCache = new Map<string, Messages>();
 const scopedMessagesCache = new Map<string, Messages>();

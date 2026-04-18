@@ -4,6 +4,7 @@
 import '@/config/style/global.css';
 
 import { defaultLocale, isRtlLocale } from '@/config/locale';
+import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 import { getAllConfigsSafe } from '@/shared/models/config';
 import { getAdsRuntimeForRequest } from '@/shared/services/ads';
 import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
@@ -15,8 +16,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isDebug = process.env.NEXT_PUBLIC_DEBUG === 'true';
+  const isProduction = isProductionEnv();
+  const isDebug = isDebugEnv();
 
   // ads components
   let adsMetaTags = null;

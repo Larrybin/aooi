@@ -2,12 +2,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  assertAllowedEnvKeys,
+  CLOUDFLARE_SECRET_ENV_KEYS,
+} from '../src/config/env-contract.ts';
+
 const rootDir = process.cwd();
 
-export const CLOUDFLARE_SECRET_NAMES = [
-  'BETTER_AUTH_SECRET',
-  'AUTH_SECRET',
-];
+export const CLOUDFLARE_SECRET_NAMES = [...CLOUDFLARE_SECRET_ENV_KEYS];
 
 export function resolveCloudflareAuthSecretValue(
   processEnv = process.env,
@@ -34,8 +36,20 @@ export function resolveCloudflareAuthSecretValue(
 
 export function buildCloudflareSecretsEnv(processEnv = process.env, options = {}) {
   const authSecret = resolveCloudflareAuthSecretValue(processEnv, options);
+  const resolvedSecrets = Object.fromEntries(
+    CLOUDFLARE_SECRET_NAMES.map((name) => [
+      name,
+      processEnv[name]?.trim() || authSecret,
+    ])
+  );
 
-  return `${CLOUDFLARE_SECRET_NAMES.map((name) => `${name}=${processEnv[name]?.trim() || authSecret}`).join('\n')}\n`;
+  assertAllowedEnvKeys(
+    resolvedSecrets,
+    CLOUDFLARE_SECRET_NAMES,
+    'Cloudflare secrets env'
+  );
+
+  return `${CLOUDFLARE_SECRET_NAMES.map((name) => `${name}=${resolvedSecrets[name]}`).join('\n')}\n`;
 }
 
 export async function writeCloudflareSecretsFile({
