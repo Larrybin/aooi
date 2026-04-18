@@ -2,9 +2,47 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  injectCloudflareLocalSmokeDevVars,
+  parseEnvFileContent,
   resolveLocalSmokeDatabaseUrl,
   runCloudflareLocalSmoke,
 } from '../../scripts/run-cf-local-smoke.mjs';
+
+test('parseEnvFileContent 解析 .dev.vars 键值并保留连接串特殊字符', () => {
+  assert.deepEqual(
+    parseEnvFileContent(`
+# comment
+DATABASE_URL=postgresql://postgres:5jU*&RFTv&HQMYB@host:5432/postgres
+AUTH_SPIKE_DATABASE_URL="postgresql://quoted"
+INVALID_LINE
+    `),
+    {
+      DATABASE_URL:
+        'postgresql://postgres:5jU*&RFTv&HQMYB@host:5432/postgres',
+      AUTH_SPIKE_DATABASE_URL: 'postgresql://quoted',
+    }
+  );
+});
+
+test('injectCloudflareLocalSmokeDevVars 从 .dev.vars 补齐缺失变量且不覆盖显式传入值', () => {
+  const processEnv = {
+    DATABASE_URL: '',
+    AUTH_SPIKE_DATABASE_URL: 'postgresql://explicit',
+  };
+
+  injectCloudflareLocalSmokeDevVars(processEnv, {
+    devVarsPath: '/tmp/.dev.vars',
+    readFileSyncImpl: () => `
+DATABASE_URL=postgresql://from-dev-vars
+AUTH_SPIKE_DATABASE_URL=postgresql://from-dev-vars-auth
+`,
+  });
+
+  assert.deepEqual(processEnv, {
+    DATABASE_URL: 'postgresql://from-dev-vars',
+    AUTH_SPIKE_DATABASE_URL: 'postgresql://explicit',
+  });
+});
 
 test('resolveLocalSmokeDatabaseUrl 优先 AUTH_SPIKE_DATABASE_URL，其次 DATABASE_URL', () => {
   assert.equal(

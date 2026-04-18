@@ -171,7 +171,7 @@ Minimal "go-live" checklist:
 Before deploying:
 
 - Vercel / Node / Docker: set `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, then run `pnpm db:migrate`
-- Cloudflare Workers: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
+- Cloudflare Workers: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, reads missing `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` from `.dev.vars` (or `CF_LOCAL_SMOKE_DEV_VARS_PATH`), and deploy requires a real `hyperdrive.id`
 
 Deployment options:
 

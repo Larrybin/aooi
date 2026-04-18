@@ -7,6 +7,7 @@ import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
+import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
 import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
@@ -82,7 +83,9 @@ async function getConfigsFromDb(): Promise<Configs> {
     configs[config.name] = config.value ?? '';
   }
 
-  return mergeAuthSpikeOAuthConfigSeedConfigs(configs);
+  return mergeCloudflareLocalSmokeConfigSeedConfigs(
+    mergeAuthSpikeOAuthConfigSeedConfigs(configs)
+  );
 }
 
 const getConfigsCached = unstable_cache(
