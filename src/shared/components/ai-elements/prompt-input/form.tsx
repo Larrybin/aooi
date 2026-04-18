@@ -5,10 +5,7 @@ import { fetchBlobWithTimeout } from "@/shared/lib/fetch/client";
 import { cn } from "@/shared/lib/utils";
 import type { FileUIPart } from "ai";
 import { nanoid } from "nanoid";
-import type {
-  ChangeEventHandler,
-  FormEventHandler,
-} from "react";
+import type { ChangeEventHandler, FormEventHandler } from "react";
 import {
   useCallback,
   useEffect,
@@ -17,10 +14,7 @@ import {
   useState,
 } from "react";
 
-import {
-  LocalAttachmentsContext,
-  useOptionalPromptInputController,
-} from "./internal";
+import { LocalAttachmentsContext } from "./attachments";
 import type { AttachmentsContext, PromptInputProps } from "./types";
 
 export const PromptInput = ({
@@ -36,11 +30,6 @@ export const PromptInput = ({
   children,
   ...props
 }: PromptInputProps) => {
-  // Try to use a provider controller if present
-  const controller = useOptionalPromptInputController();
-  const usingProvider = !!controller;
-
-  // Refs
   const inputRef = useRef<HTMLInputElement | null>(null);
   const anchorRef = useRef<HTMLSpanElement>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -53,9 +42,8 @@ export const PromptInput = ({
     }
   }, []);
 
-  // ----- Local attachments (only used when no provider)
   const [items, setItems] = useState<(FileUIPart & { id: string })[]>([]);
-  const files = usingProvider ? controller.attachments.files : items;
+  const files = items;
 
   const openFileDialogLocal = useCallback(() => {
     inputRef.current?.click();
@@ -127,47 +115,29 @@ export const PromptInput = ({
   );
 
   const { add, remove, clear, openFileDialog } = useMemo(
-    () => {
-      if (usingProvider && controller) {
-        return {
-          add: (files: File[] | FileList) =>
-            controller.attachments.add(files),
-          remove: (id: string) => controller.attachments.remove(id),
-          clear: () => controller.attachments.clear(),
-          openFileDialog: () => controller.attachments.openFileDialog(),
-        };
-      }
-
-      return {
-        add: addLocal,
-        remove: (id: string) =>
-          setItems((prev) => {
-            const found = prev.find((file) => file.id === id);
-            if (found?.url) {
-              URL.revokeObjectURL(found.url);
+    () => ({
+      add: addLocal,
+      remove: (id: string) =>
+        setItems((prev) => {
+          const found = prev.find((file) => file.id === id);
+          if (found?.url) {
+            URL.revokeObjectURL(found.url);
+          }
+          return prev.filter((file) => file.id !== id);
+        }),
+      clear: () =>
+        setItems((prev) => {
+          for (const file of prev) {
+            if (file.url) {
+              URL.revokeObjectURL(file.url);
             }
-            return prev.filter((file) => file.id !== id);
-          }),
-        clear: () =>
-          setItems((prev) => {
-            for (const file of prev) {
-              if (file.url) {
-                URL.revokeObjectURL(file.url);
-              }
-            }
-            return [];
-          }),
-        openFileDialog: openFileDialogLocal,
-      };
-    },
-    [usingProvider, controller, addLocal, openFileDialogLocal, setItems]
+          }
+          return [];
+        }),
+      openFileDialog: openFileDialogLocal,
+    }),
+    [addLocal, openFileDialogLocal]
   );
-
-  // Let provider know about our hidden file input so external menus can call openFileDialog()
-  useEffect(() => {
-    if (!usingProvider) return;
-    controller.__registerFileInput(inputRef, () => inputRef.current?.click());
-  }, [usingProvider, controller]);
 
   // Note: File input cannot be programmatically set for security reasons
   // The syncHiddenInput prop is no longer functional
@@ -229,13 +199,13 @@ export const PromptInput = ({
 
   useEffect(
     () => () => {
-      if (!usingProvider) {
-        for (const f of files) {
-          if (f.url) URL.revokeObjectURL(f.url);
+      for (const file of files) {
+        if (file.url) {
+          URL.revokeObjectURL(file.url);
         }
       }
     },
-    [usingProvider, files]
+    [files]
   );
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -270,18 +240,12 @@ export const PromptInput = ({
     event.preventDefault();
 
     const form = event.currentTarget;
-    const text = usingProvider
-      ? controller.textInput.value
-      : (() => {
-          const formData = new FormData(form);
-          return (formData.get("message") as string) || "";
-        })();
+    const formData = new FormData(form);
+    const text = (formData.get("message") as string) || "";
 
     // Reset form immediately after capturing text to avoid race condition
     // where user input during async blob conversion would be lost
-    if (!usingProvider) {
-      form.reset();
-    }
+    form.reset();
 
     // Convert blob URLs to data URLs asynchronously
     Promise.all(
@@ -303,9 +267,6 @@ export const PromptInput = ({
           result
             .then(() => {
               clear();
-              if (usingProvider) {
-                controller.textInput.clear();
-              }
             })
             .catch(() => {
               // Don't clear on error - user may want to retry
@@ -313,9 +274,6 @@ export const PromptInput = ({
         } else {
           // Sync function completed without throwing, clear attachments
           clear();
-          if (usingProvider) {
-            controller.textInput.clear();
-          }
         }
       } catch {
         // Don't clear on error - user may want to retry
@@ -323,9 +281,8 @@ export const PromptInput = ({
     });
   };
 
-  // Render with or without local provider
-  const inner = (
-    <>
+  return (
+    <LocalAttachmentsContext.Provider value={ctx}>
       <span aria-hidden="true" className="hidden" ref={anchorRef} />
       <input
         accept={accept}
@@ -344,14 +301,6 @@ export const PromptInput = ({
       >
         <InputGroup>{children}</InputGroup>
       </form>
-    </>
-  );
-
-  return usingProvider ? (
-    inner
-  ) : (
-    <LocalAttachmentsContext.Provider value={ctx}>
-      {inner}
     </LocalAttachmentsContext.Provider>
   );
 };

@@ -25,6 +25,7 @@ import {
   getRequestIdFromError,
   RequestIdError,
 } from '@/shared/lib/request-id';
+import { resolveAICapabilitySelection } from '@/shared/lib/ai-capability-selection';
 import type { AICapability } from '@/shared/types/ai-capability';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 
@@ -140,65 +141,6 @@ export function isAIGenerationTaskResponse(
     (isPlainObject((value as { taskInfo?: unknown }).taskInfo) ||
       (value as { taskInfo?: unknown }).taskInfo === null)
   );
-}
-
-export function resolveAICapabilitySelection(
-  capabilities: AICapability[],
-  selection: Partial<Pick<AICapability, 'scene' | 'provider' | 'model'>>
-) {
-  if (capabilities.length === 0) {
-    return {
-      scene: '',
-      provider: '',
-      model: '',
-      capability: undefined,
-    };
-  }
-
-  const sceneCapabilities = capabilities.filter(
-    (capability) => capability.scene === selection.scene
-  );
-  const resolvedSceneCapabilities =
-    sceneCapabilities.length > 0
-      ? sceneCapabilities
-      : capabilities.filter((capability) => capability.isDefault).length > 0
-        ? capabilities.filter((capability) => capability.isDefault)
-        : capabilities;
-  const resolvedScene =
-    resolvedSceneCapabilities[0]?.scene || capabilities[0]?.scene || '';
-
-  const providerCapabilities = capabilities.filter(
-    (capability) => capability.scene === resolvedScene
-  );
-  const matchingProviderCapabilities = providerCapabilities.filter(
-    (capability) => capability.provider === selection.provider
-  );
-  const resolvedProviderCapabilities =
-    matchingProviderCapabilities.length > 0
-      ? matchingProviderCapabilities
-      : providerCapabilities.filter((capability) => capability.isDefault)
-            .length > 0
-        ? providerCapabilities.filter((capability) => capability.isDefault)
-        : providerCapabilities;
-  const resolvedProvider =
-    resolvedProviderCapabilities[0]?.provider ||
-    providerCapabilities[0]?.provider ||
-    '';
-
-  const modelCapabilities = providerCapabilities.filter(
-    (capability) => capability.provider === resolvedProvider
-  );
-  const capability =
-    modelCapabilities.find((item) => item.model === selection.model) ||
-    modelCapabilities.find((item) => item.isDefault) ||
-    modelCapabilities[0];
-
-  return {
-    scene: capability?.scene || resolvedScene,
-    provider: capability?.provider || resolvedProvider,
-    model: capability?.model || '',
-    capability,
-  };
 }
 
 function getTaskErrorMessage(task: AIGenerationTaskResponse) {

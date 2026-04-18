@@ -3,14 +3,12 @@
 import { InputGroupTextarea } from "@/shared/components/ui/input-group";
 import { cn } from "@/shared/lib/utils";
 import type {
-  ChangeEvent,
   ClipboardEventHandler,
   ComponentProps,
   KeyboardEventHandler,
 } from "react";
 import { useState } from "react";
 
-import { useOptionalPromptInputController } from "./internal";
 import { usePromptInputAttachments } from "./attachments";
 
 export type PromptInputTextareaProps = ComponentProps<typeof InputGroupTextarea>;
@@ -21,7 +19,6 @@ export const PromptInputTextarea = ({
   placeholder = "What would you like to know?",
   ...props
 }: PromptInputTextareaProps) => {
-  const controller = useOptionalPromptInputController();
   const attachments = usePromptInputAttachments();
   const [isComposing, setIsComposing] = useState(false);
 
@@ -85,30 +82,17 @@ export const PromptInputTextarea = ({
     }
   };
 
-  const controlledProps = controller
-    ? {
-        value: controller.textInput.value,
-        onChange: (e: ChangeEvent<HTMLTextAreaElement>) => {
-          controller.textInput.setInput(e.currentTarget.value);
-          onChange?.(e);
-        },
-      }
-    : {
-        onChange,
-      };
-
   return (
     <InputGroupTextarea
       className={cn("field-sizing-content max-h-48 min-h-16", className)}
       name="message"
+      onChange={onChange}
       onCompositionEnd={() => setIsComposing(false)}
       onCompositionStart={() => setIsComposing(true)}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       placeholder={placeholder}
       {...props}
-      {...controlledProps}
     />
   );
 };
-

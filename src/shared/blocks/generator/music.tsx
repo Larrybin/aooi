@@ -188,6 +188,7 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
 
   const {
     details,
+    remainingCredits,
     costCredits,
     capabilities,
     scene,

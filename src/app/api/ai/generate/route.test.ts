@@ -50,7 +50,7 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
       costCredits: 4,
       isDefault: true,
     }),
-    getAIManagerWithConfigs: () =>
+    getAIServiceWithConfigs: () =>
       ({
         getProvider: () => ({
           generate: async () => ({

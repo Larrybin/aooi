@@ -1,39 +1,68 @@
 import 'server-only';
 
-import { AIManager } from '@/extensions/ai';
+import { AIMediaType, type AIProvider } from '@/extensions/ai';
 import { KieProvider, ReplicateProvider } from '@/extensions/ai/providers';
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import {
+  ProviderRegistry,
+  trimmedProviderNameKey,
+} from '@/shared/lib/providers/provider-registry';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 
+export type AIService = {
+  getProvider(name: string): AIProvider | undefined;
+  getDefaultProvider(): AIProvider | undefined;
+  getMediaTypes(): string[];
+};
+
 /**
  * get ai manager with configs
  */
-export function getAIManagerWithConfigs(configs: Configs) {
-  const aiManager = new AIManager();
+export function getAIServiceWithConfigs(configs: Configs) {
+  const registry = new ProviderRegistry<AIProvider>({
+    toNameKey: trimmedProviderNameKey,
+  });
 
   if (configs.kie_api_key) {
-    aiManager.addProvider(
+    registry.addUnique(
       new KieProvider({
         apiKey: configs.kie_api_key,
-      })
+      }),
+      {
+        invalidNameError: () =>
+          new ServiceUnavailableError('AI provider name is required'),
+        duplicateNameError: (name) =>
+          new ServiceUnavailableError(`AI provider '${name}' is already registered`),
+      }
     );
   }
 
   if (configs.replicate_api_token) {
-    aiManager.addProvider(
+    registry.addUnique(
       new ReplicateProvider({
         apiToken: configs.replicate_api_token,
-      })
+      }),
+      {
+        invalidNameError: () =>
+          new ServiceUnavailableError('AI provider name is required'),
+        duplicateNameError: (name) =>
+          new ServiceUnavailableError(`AI provider '${name}' is already registered`),
+      }
     );
   }
 
-  return aiManager;
+  return {
+    getProvider: (name) => registry.get(name),
+    getDefaultProvider: () => registry.getDefault(),
+    getMediaTypes: () => Object.values(AIMediaType),
+  } satisfies AIService;
 }
 
 /**
  * global ai service
  */
-export async function getAIService(): Promise<AIManager> {
-  return await buildServiceFromLatestConfigs(getAIManagerWithConfigs);
+export async function getAIService(): Promise<AIService> {
+  return await buildServiceFromLatestConfigs(getAIServiceWithConfigs);
 }

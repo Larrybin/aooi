@@ -1,10 +1,5 @@
 import type { FileUIPart } from "ai";
-import type {
-  FormEvent,
-  HTMLAttributes,
-  PropsWithChildren,
-  RefObject,
-} from "react";
+import type { FormEvent, HTMLAttributes, RefObject } from "react";
 
 export type AttachmentsContext = {
   files: (FileUIPart & { id: string })[];
@@ -14,26 +9,6 @@ export type AttachmentsContext = {
   openFileDialog: () => void;
   fileInputRef: RefObject<HTMLInputElement | null>;
 };
-
-export type TextInputContext = {
-  value: string;
-  setInput: (v: string) => void;
-  clear: () => void;
-};
-
-export type PromptInputControllerProps = {
-  textInput: TextInputContext;
-  attachments: AttachmentsContext;
-  /** INTERNAL: Allows PromptInput to register its file textInput + "open" callback */
-  __registerFileInput: (
-    ref: RefObject<HTMLInputElement | null>,
-    open: () => void
-  ) => void;
-};
-
-export type PromptInputProviderProps = PropsWithChildren<{
-  initialInput?: string;
-}>;
 
 export type PromptInputMessage = {
   text?: string;

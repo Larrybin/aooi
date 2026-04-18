@@ -18,7 +18,7 @@ import {
   AiGenerateBodySchema,
   type AiGenerateBody,
 } from '@/shared/schemas/api/ai/generate';
-import type { getAIManagerWithConfigs } from '@/shared/services/ai';
+import type { getAIServiceWithConfigs } from '@/shared/services/ai';
 import type { resolveConfiguredAICapability } from '@/shared/services/ai-capabilities';
 
 type AiGenerateApiContext = {
@@ -51,7 +51,7 @@ export type AiGenerateRouteDeps = {
     requireUser: AiGenerateApiContext['requireUser'];
   };
   getAllConfigs: typeof getAllConfigs;
-  getAIManagerWithConfigs: typeof getAIManagerWithConfigs;
+  getAIServiceWithConfigs: typeof getAIServiceWithConfigs;
   resolveConfiguredAICapability: typeof resolveConfiguredAICapability;
   createAITask: typeof createAITask;
   updateAITaskById: typeof updateAITaskById;
@@ -75,7 +75,7 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
       model,
     });
 
-    const aiService = deps.getAIManagerWithConfigs(configs);
+    const aiService = deps.getAIServiceWithConfigs(configs);
     const aiProvider = aiService.getProvider(capability.provider);
     if (!aiProvider) {
       throw new BadRequestError('invalid ai capability');

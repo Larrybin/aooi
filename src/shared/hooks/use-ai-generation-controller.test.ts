@@ -1,53 +1,12 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-import { AIMediaType } from '@/extensions/ai';
-import type { AICapability } from '@/shared/types/ai-capability';
+import { isAIGenerationTaskResponse } from './use-ai-generation-controller';
 
-import {
-  isAIGenerationTaskResponse,
-  resolveAICapabilitySelection,
-} from './use-ai-generation-controller';
-
-const CAPABILITIES: AICapability[] = [
-  {
-    mediaType: AIMediaType.IMAGE,
-    scene: 'text-to-image',
-    provider: 'replicate',
-    model: 'black-forest-labs/flux-schnell',
-    label: 'FLUX Schnell',
-    costCredits: 2,
-    isDefault: true,
-  },
-  {
-    mediaType: AIMediaType.IMAGE,
-    scene: 'image-to-image',
-    provider: 'replicate',
-    model: 'google/nano-banana',
-    label: 'Nano Banana',
-    costCredits: 4,
-    isDefault: true,
-  },
-];
-
-test('resolveAICapabilitySelection: 缺省时回落到默认能力', () => {
-  const result = resolveAICapabilitySelection(CAPABILITIES, {});
-
-  assert.equal(result.scene, 'text-to-image');
-  assert.equal(result.provider, 'replicate');
-  assert.equal(result.model, 'black-forest-labs/flux-schnell');
-  assert.equal(result.capability?.costCredits, 2);
-});
-
-test('resolveAICapabilitySelection: scene 变化后自动切到该场景默认模型', () => {
-  const result = resolveAICapabilitySelection(CAPABILITIES, {
-    scene: 'image-to-image',
-  });
-
-  assert.equal(result.scene, 'image-to-image');
-  assert.equal(result.model, 'google/nano-banana');
-  assert.equal(result.capability?.costCredits, 4);
-});
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 test('isAIGenerationTaskResponse: 校验 query 返回结构', () => {
   assert.equal(
@@ -75,3 +34,20 @@ test('isAIGenerationTaskResponse: 校验 query 返回结构', () => {
   );
 });
 
+test('useAiGenerationController: capability 选择逻辑只从 canonical 纯函数导入', async () => {
+  const content = await readFile(
+    path.resolve(currentDir, 'use-ai-generation-controller.ts'),
+    'utf8'
+  );
+
+  assert.equal(
+    content.includes(
+      "import { resolveAICapabilitySelection } from '@/shared/lib/ai-capability-selection';"
+    ),
+    true
+  );
+  assert.equal(
+    content.includes('export function resolveAICapabilitySelection('),
+    false
+  );
+});

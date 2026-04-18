@@ -4,30 +4,34 @@ import { Button } from "@/shared/components/ui/button";
 import type { FileUIPart } from "ai";
 import { ImageIcon, PaperclipIcon, XIcon } from "lucide-react";
 import Image from "next/image";
-import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
-import { Fragment, useContext } from "react";
+import {
+  createContext,
+  Fragment,
+  useContext,
+  type ComponentProps,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 
 import { DropdownMenuItem } from "@/shared/components/ui/dropdown-menu";
 import { HoverCardTrigger } from "@/shared/components/ui/hover-card";
 import { cn } from "@/shared/lib/utils";
 
 import {
-  LocalAttachmentsContext,
-  useOptionalProviderAttachments,
-} from "./internal";
-import {
   PromptInputHoverCard,
   PromptInputHoverCardContent,
 } from "./primitives";
+import type { AttachmentsContext } from "./types";
+
+export const LocalAttachmentsContext = createContext<AttachmentsContext | null>(
+  null
+);
 
 export const usePromptInputAttachments = () => {
-  // Dual-mode: prefer provider if present, otherwise use local
-  const provider = useOptionalProviderAttachments();
-  const local = useContext(LocalAttachmentsContext);
-  const context = provider ?? local;
+  const context = useContext(LocalAttachmentsContext);
   if (!context) {
     throw new Error(
-      "usePromptInputAttachments must be used within a PromptInput or PromptInputProvider"
+      "usePromptInputAttachments must be used within a PromptInput"
     );
   }
   return context;
