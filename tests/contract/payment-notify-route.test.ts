@@ -8,7 +8,9 @@ import {
   WebhookVerificationError,
   type PaymentEvent,
 } from '@/core/payment/domain';
-import { PayloadTooLargeError } from '@/shared/lib/api/errors';
+import { PayPalProvider } from '@/core/payment/providers/paypal';
+import { StripeProvider } from '@/core/payment/providers/stripe';
+import { PayloadTooLargeError, UpstreamError } from '@/shared/lib/api/errors';
 
 function createInboxRecord(overrides: Record<string, unknown> = {}) {
   return {
@@ -193,6 +195,54 @@ test('payment notify flow 对已终态 inbox 直接返回幂等响应', async ()
   assert.equal(providerCalled, true);
 });
 
+test('payment notify flow 在 provider 早期失败时不会把已终态 inbox 降级成 process_failed', async () => {
+  let attempted = false;
+  let processFailed = false;
+  let processFailureHookCalled = false;
+  let providerCalled = false;
+
+  const response = await handlePaymentNotifyRequest({
+    provider: 'paypal',
+    req: new Request('https://example.com/api/payment/notify/paypal', {
+      method: 'POST',
+      body: '{}',
+    }),
+    log: createLog(),
+    deps: createDeps({
+      getPaymentEvent: async () => {
+        providerCalled = true;
+        throw new UpstreamError(502, 'transient upstream failure');
+      },
+      createPaymentWebhookInboxReceipt: async () => ({
+        record: createInboxRecord({ status: 'processed' }),
+        isNew: false,
+      }),
+      markPaymentWebhookInboxAttempt: async () => {
+        attempted = true;
+        return undefined;
+      },
+      markPaymentWebhookInboxProcessFailed: async () => {
+        processFailed = true;
+        return undefined;
+      },
+      onProcessFailure: async () => {
+        processFailureHookCalled = true;
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'already processed' },
+  });
+  assert.equal(providerCalled, true);
+  assert.equal(attempted, false);
+  assert.equal(processFailed, false);
+  assert.equal(processFailureHookCalled, false);
+});
+
 test('payment notify flow 在 payload 非法时不会写 inbox', async () => {
   let inboxCreated = false;
   let attempted = false;
@@ -299,6 +349,402 @@ test('payment notify flow 在 body 超限时返回 413 且不会解析或写 inb
 
   assert.equal(providerCalled, false);
   assert.equal(inboxCreated, false);
+});
+
+test('payment notify flow 通过真实 Stripe provider 处理 invoice.payment_failed 并返回 processed', async () => {
+  const warnings: Array<Record<string, unknown>> = [];
+  let checkoutHandled = false;
+  let renewalHandled = false;
+  let canceledHandled = false;
+  let updatedHandled = false;
+
+  const provider = new StripeProvider(
+    {
+      secretKey: 'sk_test',
+      publishableKey: 'pk_test',
+      signingSecret: 'whsec_test',
+    },
+    {
+      transport: {
+        constructWebhookEvent: () =>
+          ({
+            id: 'evt_failed_123',
+            type: 'invoice.payment_failed',
+            data: {
+              object: {
+                id: 'in_failed_123',
+                metadata: {
+                  order_no: 'order_123',
+                },
+              },
+            },
+          }) as never,
+      } as never,
+    }
+  );
+
+  const response = await handlePaymentNotifyRequest({
+    provider: 'stripe',
+    req: new Request('https://example.com/api/payment/notify/stripe', {
+      method: 'POST',
+      headers: {
+        'stripe-signature': 'sig_123',
+      },
+      body: '{"ok":true}',
+    }),
+    log: {
+      ...createLog(),
+      warn: (_message: string, meta?: Record<string, unknown>) => {
+        warnings.push(meta || {});
+      },
+    },
+    deps: createDeps({
+      getPaymentEvent: async (req: Request) =>
+        await provider.getPaymentEvent({ req }),
+      handleCheckoutSuccess: async () => {
+        checkoutHandled = true;
+      },
+      handleSubscriptionRenewal: async () => {
+        renewalHandled = true;
+      },
+      handleSubscriptionCanceled: async () => {
+        canceledHandled = true;
+      },
+      handleSubscriptionUpdated: async () => {
+        updatedHandled = true;
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'success' },
+  });
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0]?.eventType, PaymentEventType.PAYMENT_FAILED);
+  assert.equal(checkoutHandled, false);
+  assert.equal(renewalHandled, false);
+  assert.equal(canceledHandled, false);
+  assert.equal(updatedHandled, false);
+});
+
+test('payment notify flow 通过真实 PayPal provider 处理 renewal payment success', async () => {
+  let renewalTransactionId = '';
+  let renewalInvoiceId = '';
+  let renewalSubscriptionId = '';
+
+  const provider = new PayPalProvider(
+    {
+      clientId: 'client',
+      clientSecret: 'secret',
+      webhookId: 'wh_123',
+    },
+    {
+      transport: {
+        parseWebhookEvent: () =>
+          ({
+            id: 'wh_evt_123',
+            event_type: 'PAYMENT.CAPTURE.COMPLETED',
+            resource: {
+              id: 'capture_123',
+              status: 'COMPLETED',
+              invoice_id: 'inv_123',
+              amount: {
+                value: '12.34',
+                currency_code: 'USD',
+              },
+              payer: {
+                email_address: 'buyer@example.com',
+              },
+              supplementary_data: {
+                related_ids: {
+                  subscription_id: 'sub_123',
+                },
+              },
+              metadata: {
+                order_no: 'order_123',
+              },
+            },
+          }) as never,
+        verifyWebhookSignature: async () => undefined,
+        getSubscription: async () =>
+          ({
+            id: 'sub_123',
+            status: 'ACTIVE',
+            plan_id: 'plan_123',
+            start_time: '2026-04-01T00:00:00.000Z',
+            billing_info: {
+              last_payment: {
+                time: '2026-04-01T00:00:00.000Z',
+                amount: {
+                  value: '12.34',
+                  currency_code: 'USD',
+                },
+              },
+              next_billing_time: '2026-05-01T00:00:00.000Z',
+            },
+          }) as never,
+      } as never,
+    }
+  );
+
+  const response = await handlePaymentNotifyRequest({
+    provider: 'paypal',
+    req: new Request('https://example.com/api/payment/notify/paypal', {
+      method: 'POST',
+      headers: {
+        'paypal-auth-algo': 'algo',
+        'paypal-cert-id': 'cert',
+        'paypal-transmission-id': 'tx_id',
+        'paypal-transmission-sig': 'sig',
+        'paypal-transmission-time': '2026-04-17T10:00:00.000Z',
+      },
+      body: '{}',
+    }),
+    log: createLog(),
+    deps: createDeps({
+      getPaymentEvent: async (req: Request) =>
+        await provider.getPaymentEvent({ req }),
+      findSubscriptionByProviderSubscriptionId: async () => ({
+        subscriptionNo: 'sub_no_1',
+        status: 'active',
+      }),
+      handleSubscriptionRenewal: async ({
+        session,
+      }: {
+        session: {
+          subscriptionId?: string;
+          paymentInfo?: {
+            transactionId?: string;
+            invoiceId?: string;
+          };
+        };
+      }) => {
+        renewalSubscriptionId = session.subscriptionId || '';
+        renewalTransactionId = session.paymentInfo?.transactionId || '';
+        renewalInvoiceId = session.paymentInfo?.invoiceId || '';
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'success' },
+  });
+  assert.equal(renewalSubscriptionId, 'sub_123');
+  assert.equal(renewalTransactionId, 'capture_123');
+  assert.equal(renewalInvoiceId, 'inv_123');
+});
+
+test('payment notify flow 通过真实 PayPal provider 处理 renewal sale success', async () => {
+  let renewalTransactionId = '';
+  let renewalInvoiceId = '';
+  let renewalSubscriptionId = '';
+
+  const provider = new PayPalProvider(
+    {
+      clientId: 'client',
+      clientSecret: 'secret',
+      webhookId: 'wh_123',
+    },
+    {
+      transport: {
+        parseWebhookEvent: () =>
+          ({
+            id: 'wh_evt_sale_123',
+            event_type: 'PAYMENT.SALE.COMPLETED',
+            resource: {
+              id: 'sale_123',
+              state: 'completed',
+              invoice_id: 'inv_sale_123',
+              amount: {
+                value: '21.00',
+                currency_code: 'USD',
+              },
+              payer: {
+                email_address: 'buyer@example.com',
+              },
+              supplementary_data: {
+                related_ids: {
+                  subscription_id: 'sub_sale_123',
+                },
+              },
+              metadata: {
+                order_no: 'order_sale_123',
+              },
+            },
+          }) as never,
+        verifyWebhookSignature: async () => undefined,
+        getSubscription: async () =>
+          ({
+            id: 'sub_sale_123',
+            status: 'ACTIVE',
+            plan_id: 'plan_123',
+            start_time: '2026-04-01T00:00:00.000Z',
+            billing_info: {
+              last_payment: {
+                time: '2026-04-01T00:00:00.000Z',
+                amount: {
+                  value: '21.00',
+                  currency_code: 'USD',
+                },
+              },
+              next_billing_time: '2026-05-01T00:00:00.000Z',
+            },
+          }) as never,
+      } as never,
+    }
+  );
+
+  const response = await handlePaymentNotifyRequest({
+    provider: 'paypal',
+    req: new Request('https://example.com/api/payment/notify/paypal', {
+      method: 'POST',
+      headers: {
+        'paypal-auth-algo': 'algo',
+        'paypal-cert-id': 'cert',
+        'paypal-transmission-id': 'tx_id',
+        'paypal-transmission-sig': 'sig',
+        'paypal-transmission-time': '2026-04-17T10:00:00.000Z',
+      },
+      body: '{}',
+    }),
+    log: createLog(),
+    deps: createDeps({
+      getPaymentEvent: async (req: Request) =>
+        await provider.getPaymentEvent({ req }),
+      findSubscriptionByProviderSubscriptionId: async () => ({
+        subscriptionNo: 'sub_no_sale_1',
+        status: 'active',
+      }),
+      handleSubscriptionRenewal: async ({
+        session,
+      }: {
+        session: {
+          subscriptionId?: string;
+          paymentInfo?: {
+            transactionId?: string;
+            invoiceId?: string;
+          };
+        };
+      }) => {
+        renewalSubscriptionId = session.subscriptionId || '';
+        renewalTransactionId = session.paymentInfo?.transactionId || '';
+        renewalInvoiceId = session.paymentInfo?.invoiceId || '';
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'success' },
+  });
+  assert.equal(renewalSubscriptionId, 'sub_sale_123');
+  assert.equal(renewalTransactionId, 'sale_123');
+  assert.equal(renewalInvoiceId, 'inv_sale_123');
+});
+
+test('payment notify flow 在 PayPal renewal 订阅详情无效时标记 inbox process_failed', async () => {
+  const processFailures: string[] = [];
+  const attempts: string[] = [];
+  let inboxCreated = false;
+
+  const provider = new PayPalProvider(
+    {
+      clientId: 'client',
+      clientSecret: 'secret',
+      webhookId: 'wh_123',
+    },
+    {
+      transport: {
+        parseWebhookEvent: () =>
+          ({
+            id: 'wh_evt_invalid_sub_123',
+            event_type: 'PAYMENT.CAPTURE.COMPLETED',
+            resource: {
+              id: 'capture_123',
+              status: 'COMPLETED',
+              supplementary_data: {
+                related_ids: {
+                  subscription_id: 'sub_invalid_123',
+                },
+              },
+            },
+          }) as never,
+        verifyWebhookSignature: async () => undefined,
+        getSubscription: async () =>
+          ({
+            id: 'sub_invalid_123',
+            status: 'ACTIVE',
+            billing_info: {},
+          }) as never,
+      } as never,
+    }
+  );
+
+  await assert.rejects(
+    () =>
+      handlePaymentNotifyRequest({
+        provider: 'paypal',
+        req: new Request('https://example.com/api/payment/notify/paypal', {
+          method: 'POST',
+          headers: {
+            'paypal-auth-algo': 'algo',
+            'paypal-cert-id': 'cert',
+            'paypal-transmission-id': 'tx_id',
+            'paypal-transmission-sig': 'sig',
+            'paypal-transmission-time': '2026-04-17T10:00:00.000Z',
+          },
+          body: '{}',
+        }),
+        log: createLog(),
+        deps: createDeps({
+          getPaymentEvent: async (req: Request) =>
+            await provider.getPaymentEvent({ req }),
+          createPaymentWebhookInboxReceipt: async () => {
+            inboxCreated = true;
+            return {
+              record: createInboxRecord(),
+              isNew: true,
+            };
+          },
+          markPaymentWebhookInboxAttempt: async ({
+            inboxId,
+          }: {
+            inboxId: string;
+          }) => {
+            attempts.push(inboxId);
+            return undefined;
+          },
+          markPaymentWebhookInboxProcessFailed: async ({
+            inboxId,
+            error,
+          }: {
+            inboxId: string;
+            error: unknown;
+          }) => {
+            processFailures.push(`${inboxId}:${String(error)}`);
+            return undefined;
+          },
+        }),
+      }),
+    (error: unknown) =>
+      error instanceof UpstreamError &&
+      error.status === 502 &&
+      error.message === 'invalid paypal subscription response'
+  );
+
+  assert.equal(inboxCreated, true);
+  assert.deepEqual(attempts, ['inbox_1']);
+  assert.deepEqual(processFailures, [
+    'inbox_1:UpstreamError: invalid paypal subscription response',
+  ]);
 });
 
 test('payment notify flow 在 process 失败时标记 inbox process_failed', async () => {

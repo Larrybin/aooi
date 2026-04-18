@@ -1,25 +1,28 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 
 import {
   PaymentEventType,
-  PaymentStatus,
   PaymentType,
-  SubscriptionCycleType,
-  SubscriptionStatus,
-  WebhookConfigError,
   WebhookPayloadError,
-  WebhookVerificationError,
   type CheckoutSession,
   type PaymentBilling,
-  type PaymentConfigs,
   type PaymentEvent,
-  type PaymentInterval,
   type PaymentInvoice,
   type PaymentOrder,
   type PaymentProvider,
   type PaymentSession,
-  type SubscriptionInfo,
 } from '@/core/payment/domain';
+import {
+  buildStripeFailedPaymentSessionFromInvoice,
+  buildStripePaymentSessionFromCheckoutSession,
+  buildStripePaymentSessionFromInvoice,
+  buildStripePaymentSessionFromSubscription,
+  buildStripeUnknownPaymentEvent,
+} from '@/core/payment/providers/stripe-mapper';
+import {
+  StripeTransport,
+  type StripeConfigs,
+} from '@/core/payment/providers/stripe-transport';
 import {
   assertSuccessfulPaymentSessionContract,
   mapStripeEventTypeToCanonical,
@@ -30,33 +33,18 @@ import {
   UpstreamError,
 } from '@/shared/lib/api/errors';
 
-/**
- * Stripe payment provider configs
- * @docs https://stripe.com/docs
- */
-export interface StripeConfigs extends PaymentConfigs {
-  secretKey: string;
-  publishableKey: string;
-  signingSecret?: string;
-  apiVersion?: string;
-  allowedPaymentMethods?: string[];
-}
-
-/**
- * Stripe payment provider implementation
- * @website https://stripe.com/
- */
 export class StripeProvider implements PaymentProvider {
   readonly name = 'stripe';
   configs: StripeConfigs;
 
-  private client: Stripe;
+  private readonly transport: StripeTransport;
 
-  constructor(configs: StripeConfigs) {
+  constructor(
+    configs: StripeConfigs,
+    options?: { transport?: StripeTransport }
+  ) {
     this.configs = configs;
-    this.client = new Stripe(configs.secretKey, {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
+    this.transport = options?.transport ?? new StripeTransport(configs);
   }
 
   async createPayment({
@@ -64,51 +52,39 @@ export class StripeProvider implements PaymentProvider {
   }: {
     order: PaymentOrder;
   }): Promise<CheckoutSession> {
-    // check payment price
     if (!order.price) {
       throw new BadRequestError('price is required');
     }
 
-    // create payment with dynamic product
-
-    // build price data
     const priceData: Stripe.Checkout.SessionCreateParams.LineItem.PriceData = {
       currency: order.price.currency,
-      unit_amount: order.price.amount, // unit: cents
+      unit_amount: order.price.amount,
       product_data: {
         name: order.description || '',
       },
     };
 
     if (order.type === PaymentType.SUBSCRIPTION) {
-      // create subscription payment
-
-      // check payment plan
       if (!order.plan) {
         throw new BadRequestError('plan is required');
       }
 
-      // build recurring data
       priceData.recurring = {
-        interval: order.plan
-          .interval as Stripe.Checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval,
+        interval:
+          order.plan.interval as Stripe.Checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval,
       };
-    } else {
-      // create one-time payment
     }
 
-    // set or create customer
     let customerId = '';
     if (order.customer?.email) {
-      const customers = await this.client.customers.list({
-        email: order.customer.email,
-        limit: 1,
-      });
+      const customers = await this.transport.listCustomersByEmail(
+        order.customer.email
+      );
 
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
       } else {
-        const customer = await this.client.customers.create({
+        const customer = await this.transport.createCustomer({
           email: order.customer.email,
           name: order.customer.name,
           metadata: order.customer.metadata as Stripe.MetadataParam | undefined,
@@ -117,7 +93,6 @@ export class StripeProvider implements PaymentProvider {
       }
     }
 
-    // create payment session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode:
         order.type === PaymentType.SUBSCRIPTION ? 'subscription' : 'payment',
@@ -129,17 +104,12 @@ export class StripeProvider implements PaymentProvider {
       ],
     };
 
-    // If currency is CNY, enable WeChat Pay and Alipay (only for one-time payments)
-    // Note: WeChat Pay and Alipay through Stripe only supports one-time payments, not subscriptions
     const currency = order.price.currency.toLowerCase();
     if (currency === 'cny' && order.type === PaymentType.ONE_TIME) {
-      // Enable WeChat Pay and Alipay for CNY one-time payments
       sessionParams.payment_method_types = [];
       sessionParams.payment_method_options = {};
 
-      // get allowed payment methods
       const allowedPaymentMethods = this.configs.allowedPaymentMethods || [];
-
       if (allowedPaymentMethods.includes('card')) {
         sessionParams.payment_method_types.push('card');
       }
@@ -153,9 +123,7 @@ export class StripeProvider implements PaymentProvider {
         sessionParams.payment_method_types.push('alipay');
         sessionParams.payment_method_options.alipay = {};
       }
-
       if (allowedPaymentMethods.length === 0) {
-        // not set allowed payment methods, use default payment methods
         sessionParams.payment_method_types = ['card'];
       }
     }
@@ -169,22 +137,17 @@ export class StripeProvider implements PaymentProvider {
     if (customerId) {
       sessionParams.customer = customerId;
     }
-
     if (order.metadata) {
-      sessionParams.metadata = order.metadata as
-        | Stripe.MetadataParam
-        | undefined;
+      sessionParams.metadata = order.metadata as Stripe.MetadataParam | undefined;
     }
-
     if (order.successUrl) {
       sessionParams.success_url = order.successUrl;
     }
-
     if (order.cancelUrl) {
       sessionParams.cancel_url = order.cancelUrl;
     }
 
-    const session = await this.client.checkout.sessions.create(sessionParams);
+    const session = await this.transport.createCheckoutSession(sessionParams);
     if (!session.id || !session.url) {
       throw new UpstreamError(502, 'create payment failed');
     }
@@ -201,9 +164,6 @@ export class StripeProvider implements PaymentProvider {
     };
   }
 
-  /**
-   * Get payment session by session id
-   */
   async getPaymentSession({
     sessionId,
   }: {
@@ -213,83 +173,71 @@ export class StripeProvider implements PaymentProvider {
       throw new BadRequestError('sessionId is required');
     }
 
-    const session = await this.client.checkout.sessions.retrieve(sessionId);
-
-    const paymentSession =
-      await this.buildPaymentSessionFromCheckoutSession(session);
+    const session = await this.transport.retrieveCheckoutSession(sessionId);
+    const paymentSession = await buildStripePaymentSessionFromCheckoutSession({
+      provider: this.name,
+      session,
+      retrieveSubscription: (subscriptionId) =>
+        this.transport.retrieveSubscription(subscriptionId),
+    });
     this.assertSuccessfulPaymentSession(paymentSession);
     return paymentSession;
   }
 
-  /**
-   * Get payment event from webhook notification
-   */
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
     const rawBody = await req.text();
     const signature = req.headers.get('stripe-signature') as string;
+    const event = this.transport.constructWebhookEvent({
+      rawBody,
+      signature,
+    });
 
-    if (!rawBody || !signature) {
-      throw new WebhookVerificationError('invalid webhook request');
-    }
+    const eventType = this.mapStripeEventType(event.type);
 
-    if (!this.configs.signingSecret) {
-      throw new WebhookConfigError('signing secret not configured');
-    }
-
-    let event: Stripe.Event;
-    try {
-      event = this.client.webhooks.constructEvent(
-        rawBody,
-        signature,
-        this.configs.signingSecret
-      );
-    } catch {
-      throw new WebhookVerificationError('invalid webhook signature');
+    if (eventType === PaymentEventType.UNKNOWN) {
+      return buildStripeUnknownPaymentEvent({
+        provider: this.name,
+        event,
+      });
     }
 
     let paymentSession: PaymentSession | undefined;
 
-    const eventType = this.mapStripeEventType(event.type);
-
     if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-      paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-        event.data.object as Stripe.Response<Stripe.Checkout.Session>
-      );
+      paymentSession = await buildStripePaymentSessionFromCheckoutSession({
+        provider: this.name,
+        session: event.data.object as Stripe.Response<Stripe.Checkout.Session>,
+        retrieveSubscription: (subscriptionId) =>
+          this.transport.retrieveSubscription(subscriptionId),
+      });
     } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
-      paymentSession = await this.buildPaymentSessionFromInvoice(
-        event.data.object as Stripe.Response<Stripe.Invoice>
-      );
-    } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
-      paymentSession = await this.buildPaymentSessionFromSubscription(
-        event.data.object as Stripe.Response<Stripe.Subscription>
-      );
-    } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
-      paymentSession = await this.buildPaymentSessionFromSubscription(
-        event.data.object as Stripe.Response<Stripe.Subscription>
-      );
-    }
-
-    if (eventType === PaymentEventType.UNKNOWN) {
-      return {
-        eventType,
-        eventResult: event,
-        paymentSession: {
-          provider: this.name,
-          paymentStatus: PaymentStatus.PROCESSING,
-          paymentResult: event,
-          metadata: {
-            event_type: event.type,
-            event_id: event.id,
-          },
-        },
-      };
+      paymentSession = await buildStripePaymentSessionFromInvoice({
+        provider: this.name,
+        invoice: event.data.object as Stripe.Response<Stripe.Invoice>,
+        retrieveSubscription: (subscriptionId) =>
+          this.transport.retrieveSubscription(subscriptionId),
+      });
+    } else if (eventType === PaymentEventType.PAYMENT_FAILED) {
+      paymentSession = buildStripeFailedPaymentSessionFromInvoice({
+        provider: this.name,
+        invoice: event.data.object as Stripe.Response<Stripe.Invoice>,
+        event,
+      });
+    } else if (
+      eventType === PaymentEventType.SUBSCRIBE_UPDATED ||
+      eventType === PaymentEventType.SUBSCRIBE_CANCELED
+    ) {
+      paymentSession = buildStripePaymentSessionFromSubscription({
+        provider: this.name,
+        subscription: event.data.object as Stripe.Response<Stripe.Subscription>,
+      });
     }
 
     if (!paymentSession) {
       throw new WebhookPayloadError('invalid webhook event');
     }
-    this.assertSuccessfulPaymentSession(paymentSession);
 
+    this.assertSuccessfulPaymentSession(paymentSession);
     return {
       eventType,
       eventResult: event,
@@ -297,16 +245,12 @@ export class StripeProvider implements PaymentProvider {
     };
   }
 
-  private assertSuccessfulPaymentSession(session: PaymentSession): void {
-    assertSuccessfulPaymentSessionContract(session);
-  }
-
   async getPaymentInvoice({
     invoiceId,
   }: {
     invoiceId: string;
   }): Promise<PaymentInvoice> {
-    const invoice = await this.client.invoices.retrieve(invoiceId);
+    const invoice = await this.transport.retrieveInvoice(invoiceId);
     if (!invoice.id) {
       throw new NotFoundError('invoice not found');
     }
@@ -326,9 +270,9 @@ export class StripeProvider implements PaymentProvider {
     customerId: string;
     returnUrl?: string;
   }): Promise<PaymentBilling> {
-    const billing = await this.client.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: returnUrl,
+    const billing = await this.transport.createBillingPortalSession({
+      customerId,
+      returnUrl,
     });
 
     if (!billing.url) {
@@ -349,251 +293,22 @@ export class StripeProvider implements PaymentProvider {
       throw new BadRequestError('subscriptionId is required');
     }
 
-    const subscription = await this.client.subscriptions.cancel(subscriptionId);
-
+    const subscription = await this.transport.cancelSubscription(subscriptionId);
     if (!subscription.canceled_at) {
       throw new UpstreamError(502, 'cancel subscription failed');
     }
 
-    return await this.buildPaymentSessionFromSubscription(subscription);
+    return buildStripePaymentSessionFromSubscription({
+      provider: this.name,
+      subscription,
+    });
   }
 
   private mapStripeEventType(eventType: string): PaymentEventType {
     return mapStripeEventTypeToCanonical(eventType);
   }
 
-  private mapStripeStatus(
-    session: Stripe.Response<Stripe.Checkout.Session>
-  ): PaymentStatus {
-    switch (session.status) {
-      case 'complete':
-        // session complete, check payment status
-        switch (session.payment_status) {
-          case 'paid':
-            // payment success
-            return PaymentStatus.SUCCESS;
-          case 'unpaid':
-            // payment failed
-            return PaymentStatus.PROCESSING;
-          case 'no_payment_required':
-            // means payment not required, should be success
-            return PaymentStatus.SUCCESS;
-          default:
-            throw new UpstreamError(
-              502,
-              `Unknown Stripe payment status: ${session.payment_status}`
-            );
-        }
-      case 'expired':
-        // payment canceled
-        return PaymentStatus.CANCELED;
-      case 'open':
-        return PaymentStatus.PROCESSING;
-      default:
-        throw new UpstreamError(
-          502,
-          `Unknown Stripe status: ${session.status}`
-        );
-    }
+  private assertSuccessfulPaymentSession(session: PaymentSession): void {
+    assertSuccessfulPaymentSessionContract(session);
   }
-
-  // build payment session from checkout session
-  private async buildPaymentSessionFromCheckoutSession(
-    session: Stripe.Response<Stripe.Checkout.Session>
-  ): Promise<PaymentSession> {
-    let subscription: Stripe.Response<Stripe.Subscription> | undefined =
-      undefined;
-
-    if (session.subscription) {
-      subscription = await this.client.subscriptions.retrieve(
-        session.subscription as string
-      );
-    }
-
-    const result: PaymentSession = {
-      provider: this.name,
-      paymentStatus: this.mapStripeStatus(session),
-      paymentInfo: {
-        transactionId: session.id,
-        discountCode: '',
-        discountAmount: undefined,
-        discountCurrency: undefined,
-        paymentAmount: session.amount_total || 0,
-        paymentCurrency: session.currency || '',
-        paymentEmail:
-          session.customer_email ||
-          session.customer_details?.email ||
-          undefined,
-        paymentUserName: session.customer_details?.name || '',
-        paymentUserId: session.customer
-          ? (session.customer as string)
-          : undefined,
-        paidAt: session.created ? new Date(session.created * 1000) : undefined,
-        invoiceId: session.invoice ? (session.invoice as string) : undefined,
-        invoiceUrl: '',
-      },
-      paymentResult: session,
-      metadata: session.metadata ? { ...session.metadata } : undefined,
-    };
-
-    if (subscription) {
-      result.subscriptionId = subscription.id;
-      result.subscriptionInfo = await this.buildSubscriptionInfo(subscription);
-      result.subscriptionResult = subscription;
-    }
-
-    return result;
-  }
-
-  // build payment session from invoice
-  private async buildPaymentSessionFromInvoice(
-    invoice: Stripe.Response<Stripe.Invoice>
-  ): Promise<PaymentSession> {
-    let subscription: Stripe.Response<Stripe.Subscription> | undefined =
-      undefined;
-
-    if (invoice.lines.data.length > 0) {
-      const data = invoice.lines.data[0];
-      let subscriptionId = '';
-
-      // get subscription id from invoice line data
-      if (data.subscription) {
-        subscriptionId = data.subscription as string;
-      } else if (
-        data.parent &&
-        data.parent.subscription_item_details &&
-        data.parent.subscription_item_details.subscription
-      ) {
-        subscriptionId = data.parent.subscription_item_details
-          .subscription as string;
-      }
-
-      if (subscriptionId) {
-        subscription = await this.client.subscriptions.retrieve(subscriptionId);
-      }
-    }
-
-    const result: PaymentSession = {
-      provider: this.name,
-
-      paymentStatus: PaymentStatus.SUCCESS,
-      paymentInfo: {
-        transactionId: invoice.id,
-        discountCode: '',
-        discountAmount: undefined,
-        discountCurrency: undefined,
-        paymentAmount: invoice.amount_paid,
-        paymentCurrency: invoice.currency,
-        paymentEmail: invoice.customer_email || '',
-        paymentUserName: invoice.customer_name || '',
-        paymentUserId: invoice.customer
-          ? (invoice.customer as string)
-          : undefined,
-        paidAt: invoice.created ? new Date(invoice.created * 1000) : undefined,
-        invoiceId: invoice.id,
-        invoiceUrl: invoice.hosted_invoice_url || '',
-        subscriptionCycleType:
-          invoice.billing_reason === 'subscription_create'
-            ? SubscriptionCycleType.CREATE
-            : invoice.billing_reason === 'subscription_cycle'
-              ? SubscriptionCycleType.RENEWAL
-              : undefined,
-      },
-      paymentResult: invoice,
-      metadata: invoice.metadata ? { ...invoice.metadata } : undefined,
-    };
-
-    if (subscription) {
-      result.subscriptionId = subscription.id;
-      result.subscriptionInfo = await this.buildSubscriptionInfo(subscription);
-      result.subscriptionResult = subscription;
-    }
-
-    return result;
-  }
-
-  // build payment session from invoice
-  private async buildPaymentSessionFromSubscription(
-    subscription: Stripe.Response<Stripe.Subscription>
-  ): Promise<PaymentSession> {
-    const result: PaymentSession = {
-      provider: this.name,
-    };
-
-    if (subscription) {
-      result.subscriptionId = subscription.id;
-      result.subscriptionInfo = await this.buildSubscriptionInfo(subscription);
-      result.subscriptionResult = subscription;
-    }
-
-    return result;
-  }
-
-  // build subscription info from subscription
-  private async buildSubscriptionInfo(
-    subscription: Stripe.Response<Stripe.Subscription>
-  ): Promise<SubscriptionInfo> {
-    // subscription data
-    const data = subscription.items.data[0];
-
-    const subscriptionInfo: SubscriptionInfo = {
-      subscriptionId: subscription.id,
-      productId: data.price.product as string,
-      planId: data.price.id,
-      description: '',
-      amount: data.price.unit_amount || 0,
-      currency: data.price.currency,
-      currentPeriodStart: new Date(data.current_period_start * 1000),
-      currentPeriodEnd: new Date(data.current_period_end * 1000),
-      interval: data.plan.interval as PaymentInterval,
-      intervalCount: data.plan.interval_count || 1,
-      metadata: subscription.metadata
-        ? { ...subscription.metadata }
-        : undefined,
-    };
-
-    if (subscription.status === 'active') {
-      if (subscription.cancel_at) {
-        subscriptionInfo.status = SubscriptionStatus.PENDING_CANCEL;
-        // cancel apply at
-        subscriptionInfo.canceledAt = new Date(
-          (subscription.canceled_at || 0) * 1000
-        );
-        // cancel end date
-        subscriptionInfo.canceledEndAt = new Date(
-          subscription.cancel_at * 1000
-        );
-        subscriptionInfo.canceledReason =
-          subscription.cancellation_details?.comment || '';
-        subscriptionInfo.canceledReasonType =
-          subscription.cancellation_details?.feedback || '';
-      } else {
-        subscriptionInfo.status = SubscriptionStatus.ACTIVE;
-      }
-    } else if (subscription.status === 'canceled') {
-      // subscription canceled
-      subscriptionInfo.status = SubscriptionStatus.CANCELED;
-      subscriptionInfo.canceledAt = new Date(
-        (subscription.canceled_at || 0) * 1000
-      );
-      subscriptionInfo.canceledReason =
-        subscription.cancellation_details?.comment || '';
-      subscriptionInfo.canceledReasonType =
-        subscription.cancellation_details?.feedback || '';
-    } else {
-      throw new UpstreamError(
-        502,
-        `Unknown Stripe subscription status: ${subscription.status}`
-      );
-    }
-
-    return subscriptionInfo;
-  }
-}
-
-/**
- * Create Stripe provider with configs
- */
-export function createStripeProvider(configs: StripeConfigs): StripeProvider {
-  return new StripeProvider(configs);
 }

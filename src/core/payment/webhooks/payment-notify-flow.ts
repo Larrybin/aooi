@@ -71,6 +71,13 @@ export type PaymentNotifyFlowDeps = PaymentNotifyDeps & {
 
 const MAX_PAYMENT_WEBHOOK_BODY_BYTES = 256 * 1024;
 
+function isFinalizedInboxStatus(status: string): boolean {
+  return (
+    status === PAYMENT_WEBHOOK_INBOX_STATUS.PROCESSED ||
+    status === PAYMENT_WEBHOOK_INBOX_STATUS.IGNORED_UNKNOWN
+  );
+}
+
 export function createPaymentWebhookRequest(req: Request, rawBody: string): Request {
   return new Request(req.url, {
     method: req.method,
@@ -139,26 +146,62 @@ export async function handlePaymentNotifyRequest(input: {
 }): Promise<Response> {
   const rawBody = await readPaymentWebhookBodyOrThrow(input.req);
   const requestForVerification = createPaymentWebhookRequest(input.req, rawBody);
-
-  const event = await getPaymentEventOrThrow({
-    provider: input.provider,
-    req: requestForVerification,
-    log: input.log,
-    getPaymentEvent: input.deps.getPaymentEvent,
-  });
-
-  const inboxReceipt = await input.deps.createPaymentWebhookInboxReceipt({
+  const receiptInput = {
     provider: input.provider,
     rawBody,
     rawHeaders: input.deps.serializePaymentWebhookHeaders(input.req.headers),
     source: 'live_webhook',
     receivedAt: input.deps.now(),
-  });
+  };
 
-  if (
-    inboxReceipt.record.status === PAYMENT_WEBHOOK_INBOX_STATUS.PROCESSED ||
-    inboxReceipt.record.status === PAYMENT_WEBHOOK_INBOX_STATUS.IGNORED_UNKNOWN
-  ) {
+  let event: PaymentEvent;
+  try {
+    event = await getPaymentEventOrThrow({
+      provider: input.provider,
+      req: requestForVerification,
+      log: input.log,
+      getPaymentEvent: input.deps.getPaymentEvent,
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof BadRequestError ||
+      error instanceof UnauthorizedError ||
+      error instanceof WebhookConfigError
+    ) {
+      throw error;
+    }
+
+    const inboxReceipt = await input.deps.createPaymentWebhookInboxReceipt(
+      receiptInput
+    );
+    if (isFinalizedInboxStatus(inboxReceipt.record.status)) {
+      input.log.debug('payment: webhook inbox deduped finalized payload', {
+        provider: input.provider,
+        inboxId: inboxReceipt.record.id,
+        status: inboxReceipt.record.status,
+      });
+      return jsonOk({ message: 'already processed' });
+    }
+    await input.deps.markPaymentWebhookInboxAttempt({
+      inboxId: inboxReceipt.record.id,
+    });
+    await input.deps.markPaymentWebhookInboxProcessFailed({
+      inboxId: inboxReceipt.record.id,
+      error,
+    });
+    await input.deps.onProcessFailure?.({
+      provider: input.provider,
+      inboxId: inboxReceipt.record.id,
+      error,
+    });
+    throw error;
+  }
+
+  const inboxReceipt = await input.deps.createPaymentWebhookInboxReceipt(
+    receiptInput
+  );
+
+  if (isFinalizedInboxStatus(inboxReceipt.record.status)) {
     input.log.debug('payment: webhook inbox deduped finalized payload', {
       provider: input.provider,
       inboxId: inboxReceipt.record.id,

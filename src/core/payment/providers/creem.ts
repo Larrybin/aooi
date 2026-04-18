@@ -1,29 +1,29 @@
-import { z } from 'zod';
-
 import {
   PaymentEventType,
-  PaymentInterval,
-  PaymentStatus,
-  SubscriptionCycleType,
-  SubscriptionStatus,
   WebhookPayloadError,
   type CheckoutSession,
   type PaymentBilling,
-  type PaymentConfigs,
   type PaymentCustomField,
   type PaymentEvent,
   type PaymentOrder,
   type PaymentProvider,
   type PaymentSession,
-  type SubscriptionInfo,
 } from '@/core/payment/domain';
-import { verifyAndParseCreemWebhookEvent } from '@/core/payment/providers/creem-webhook';
+import {
+  buildCreemPaymentSessionFromCheckoutSession,
+  buildCreemPaymentSessionFromInvoice,
+  buildCreemPaymentSessionFromSubscription,
+  buildCreemUnknownPaymentSession,
+} from '@/core/payment/providers/creem-mapper';
+import {
+  CreemTransport,
+  type CreemConfigs,
+} from '@/core/payment/providers/creem-transport';
 import {
   assertSuccessfulPaymentSessionContract,
   mapCreemEventTypeToCanonical,
 } from '@/core/payment/providers/provider-contract';
 import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
-import { safeFetchJsonWithSchema } from '@/shared/lib/fetch/server';
 import {
   toJsonValue,
   type JsonObject,
@@ -52,139 +52,20 @@ const readRecordStringValue = (
   return normalized || undefined;
 };
 
-const parseOrThrow = <Schema extends z.ZodTypeAny>(
-  schema: Schema,
-  value: unknown,
-  error: Error
-): z.infer<Schema> => {
-  const parsed = schema.safeParse(value);
-  if (!parsed.success) {
-    throw error;
-  }
-  return parsed.data;
-};
-
-const creemCheckoutSessionSchema = z
-  .object({
-    id: z.string().optional(),
-    status: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    product: z.unknown().optional(),
-    subscription: z.unknown().optional(),
-    order: z.unknown().optional(),
-    last_transaction: z.unknown().optional(),
-    customer: z
-      .object({
-        id: z.string().optional(),
-        name: z.string().optional(),
-        email: z.string().optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
-
-const creemOrderLikeSchema = z
-  .object({
-    status: z.string().optional(),
-    transaction: z.string().optional(),
-    id: z.string().optional(),
-    description: z.string().optional(),
-    amount: z.number().optional(),
-    amount_paid: z.number().optional(),
-    currency: z.string().optional(),
-    discount_amount: z.number().optional(),
-    created_at: z.union([z.string(), z.number()]).optional(),
-  })
-  .passthrough();
-
-const creemSubscriptionSchema = z
-  .object({
-    id: z.string(),
-    status: z.string(),
-    cancel_at: z.unknown().optional(),
-    canceled_at: z.union([z.string(), z.number()]).optional(),
-    current_period_start_date: z.union([z.string(), z.number()]),
-    current_period_end_date: z.union([z.string(), z.number()]),
-    created_at: z.union([z.string(), z.number()]).optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    product: z.unknown().optional(),
-  })
-  .passthrough();
-
-const creemProductSchema = z
-  .object({
-    id: z.string().optional(),
-    billing_period: z.string().optional(),
-    description: z.string().optional(),
-    price: z.number().optional(),
-    currency: z.string().optional(),
-  })
-  .passthrough();
-
-const creemInvoiceSchema = z
-  .object({
-    status: z.string().optional(),
-    order: z.unknown().optional(),
-    last_transaction: z.unknown().optional(),
-    subscription: z.unknown().optional(),
-    customer: z
-      .object({
-        id: z.string().optional(),
-        name: z.string().optional(),
-        email: z.string().optional(),
-      })
-      .optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-  })
-  .passthrough();
-
-const creemCreateCheckoutResponseSchema = z
-  .object({
-    id: z.string().optional(),
-    checkout_url: z.string().optional(),
-    error: z.unknown().optional(),
-  })
-  .passthrough();
-
-const creemBillingResponseSchema = z
-  .object({
-    customer_portal_link: z.string().optional(),
-  })
-  .passthrough();
-
-type CreemCheckoutSession = z.infer<typeof creemCheckoutSessionSchema>;
-type CreemSubscription = z.infer<typeof creemSubscriptionSchema>;
-type CreemProduct = z.infer<typeof creemProductSchema>;
-
-/**
- * Creem payment provider configs
- * @docs https://docs.creem.io/
- */
-export interface CreemConfigs extends PaymentConfigs {
-  apiKey: string;
-  signingSecret?: string;
-  environment?: 'sandbox' | 'production';
-}
-
-/**
- * Creem payment provider implementation
- * @website https://creem.io/
- */
 export class CreemProvider implements PaymentProvider {
   readonly name = 'creem';
   configs: CreemConfigs;
 
-  private baseUrl: string;
+  private readonly transport: CreemTransport;
 
-  constructor(configs: CreemConfigs) {
+  constructor(
+    configs: CreemConfigs,
+    options?: { transport?: CreemTransport }
+  ) {
     this.configs = configs;
-    this.baseUrl =
-      configs.environment === 'production'
-        ? 'https://api.creem.io'
-        : 'https://test-api.creem.io';
+    this.transport = options?.transport ?? new CreemTransport(configs);
   }
 
-  // create payment
   async createPayment({
     order,
   }: {
@@ -222,12 +103,7 @@ export class CreemProvider implements PaymentProvider {
       metadata: order.metadata,
     };
 
-    const result = await this.makeRequest(
-      '/v1/checkouts',
-      'POST',
-      creemCreateCheckoutResponseSchema,
-      payload
-    );
+    const result = await this.transport.createCheckout(payload);
     const checkoutParams = JSON.parse(JSON.stringify(payload)) as JsonValue;
     const checkoutMetadata = JSON.parse(
       JSON.stringify(order.metadata || {})
@@ -254,84 +130,70 @@ export class CreemProvider implements PaymentProvider {
     };
   }
 
-  // get payment by session id
-  // @docs https://docs.creem.io/api-reference/endpoint/get-checkout
   async getPaymentSession({
     sessionId,
   }: {
     sessionId: string;
   }): Promise<PaymentSession> {
-    const session = await this.makeRequest(
-      `/v1/checkouts?checkout_id=${sessionId}`,
-      'GET',
-      creemCheckoutSessionSchema
-    );
-
+    const session = await this.transport.getCheckoutSession(sessionId);
     if (!session.id || !session.order) {
       const errorMessage = getErrorMessage(session.error);
       throw new UpstreamError(502, errorMessage || 'get payment failed');
     }
 
-    const paymentSession =
-      await this.buildPaymentSessionFromCheckoutSession(session);
+    const paymentSession = await buildCreemPaymentSessionFromCheckoutSession({
+      provider: this.name,
+      session,
+    });
     this.assertSuccessfulPaymentSession(paymentSession);
     return paymentSession;
   }
 
   async getPaymentEvent({ req }: { req: Request }): Promise<PaymentEvent> {
     const rawBody = await req.text();
-    const webhookEvent = await verifyAndParseCreemWebhookEvent({
+    const webhookEvent = await this.transport.verifyWebhookEvent({
       rawBody,
       signatureHeader: req.headers.get('creem-signature'),
-      signingSecret: this.configs.signingSecret,
     });
     const webhookEventResult = toJsonValue(webhookEvent);
     const webhookEventId =
       readRecordStringValue(webhookEvent, 'id') ||
       readRecordStringValue(webhookEvent.object, 'id');
-
     const eventType = this.mapCreemEventType(webhookEvent.eventType);
 
     let paymentSession: PaymentSession | undefined;
     if (eventType === PaymentEventType.CHECKOUT_SUCCESS) {
-      paymentSession = await this.buildPaymentSessionFromCheckoutSession(
-        webhookEvent.object
-      );
+      paymentSession = await buildCreemPaymentSessionFromCheckoutSession({
+        provider: this.name,
+        session: webhookEvent.object,
+      });
     } else if (eventType === PaymentEventType.PAYMENT_SUCCESS) {
-      paymentSession = await this.buildPaymentSessionFromInvoice(
-        webhookEvent.object
-      );
-    } else if (eventType === PaymentEventType.SUBSCRIBE_UPDATED) {
-      paymentSession = await this.buildPaymentSessionFromSubscription(
-        webhookEvent.object
-      );
-    } else if (eventType === PaymentEventType.SUBSCRIBE_CANCELED) {
-      paymentSession = await this.buildPaymentSessionFromSubscription(
-        webhookEvent.object
-      );
-    }
-
-    if (eventType === PaymentEventType.UNKNOWN) {
-      return {
-        eventType,
+      paymentSession = await buildCreemPaymentSessionFromInvoice({
+        provider: this.name,
+        invoice: webhookEvent.object,
+      });
+    } else if (
+      eventType === PaymentEventType.SUBSCRIBE_UPDATED ||
+      eventType === PaymentEventType.SUBSCRIBE_CANCELED
+    ) {
+      paymentSession = await buildCreemPaymentSessionFromSubscription({
+        provider: this.name,
+        subscription: webhookEvent.object,
+      });
+    } else if (eventType === PaymentEventType.UNKNOWN) {
+      paymentSession = buildCreemUnknownPaymentSession({
+        provider: this.name,
+        eventType: webhookEvent.eventType,
+        eventId: webhookEventId,
         eventResult: webhookEventResult,
-        paymentSession: {
-          provider: this.name,
-          paymentStatus: PaymentStatus.PROCESSING,
-          paymentResult: webhookEventResult,
-          metadata: {
-            event_type: webhookEvent.eventType,
-            ...(webhookEventId ? { event_id: webhookEventId } : {}),
-          },
-        },
-      };
+      });
     }
 
     if (!paymentSession) {
       throw new WebhookPayloadError('invalid webhook event');
     }
-    this.assertSuccessfulPaymentSession(paymentSession);
 
+    this.assertSuccessfulPaymentSession(paymentSession);
     return {
       eventType,
       eventResult: webhookEventResult,
@@ -345,15 +207,7 @@ export class CreemProvider implements PaymentProvider {
     customerId: string;
     returnUrl?: string;
   }): Promise<PaymentBilling> {
-    const billing = await this.makeRequest(
-      '/v1/customers/billing',
-      'POST',
-      creemBillingResponseSchema,
-      {
-        customer_id: customerId,
-      }
-    );
-
+    const billing = await this.transport.getCustomerBilling(customerId);
     if (!billing.customer_portal_link) {
       throw new UpstreamError(502, 'get billing url failed');
     }
@@ -368,351 +222,22 @@ export class CreemProvider implements PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession> {
-    const subscription = await this.makeRequest(
-      `/v1/subscriptions/${subscriptionId}/cancel`,
-      'POST',
-      creemSubscriptionSchema
-    );
+    const subscription = await this.transport.cancelSubscription(subscriptionId);
     if (!subscription.canceled_at) {
       throw new UpstreamError(502, 'cancel subscription failed');
     }
 
-    return await this.buildPaymentSessionFromSubscription(subscription);
+    return await buildCreemPaymentSessionFromSubscription({
+      provider: this.name,
+      subscription,
+    });
   }
 
   private assertSuccessfulPaymentSession(session: PaymentSession): void {
     assertSuccessfulPaymentSessionContract(session);
   }
 
-  private async makeRequest<TSchema extends z.ZodTypeAny>(
-    endpoint: string,
-    method: string,
-    schema: TSchema,
-    data?: Record<string, unknown>
-  ): Promise<z.infer<TSchema>> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const headers = {
-      'x-api-key': this.configs.apiKey,
-      'Content-Type': 'application/json',
-    };
-
-    const config: RequestInit = {
-      method,
-      headers,
-    };
-
-    if (data) {
-      config.body = JSON.stringify(data);
-    }
-
-    try {
-      return await safeFetchJsonWithSchema(url, config, schema, {
-        timeoutMs: 15000,
-        cache: 'no-store',
-        errorMessage: 'request creem api failed',
-        invalidDataMessage: 'invalid creem json response',
-      });
-    } catch (error: unknown) {
-      throw new UpstreamError(
-        502,
-        error instanceof Error ? error.message : 'request creem api failed'
-      );
-    }
-  }
-
   private mapCreemEventType(eventType: string): PaymentEventType {
     return mapCreemEventTypeToCanonical(eventType);
   }
-
-  private mapCreemStatusFromCheckoutSession(
-    session: CreemCheckoutSession
-  ): PaymentStatus {
-    const orderCandidate = session.order ?? session.last_transaction;
-    const order = creemOrderLikeSchema.safeParse(orderCandidate);
-    const orderStatus = order.success ? order.data.status : undefined;
-
-    if (orderStatus === 'paid') {
-      return PaymentStatus.SUCCESS;
-    } else {
-      // todo: handle other status
-      throw new WebhookPayloadError(
-        `Unknown Creem session status: ${session.status}`
-      );
-    }
-  }
-
-  private mapCreemStatus(session: unknown): PaymentStatus {
-    const checkedSession = parseOrThrow(
-      creemCheckoutSessionSchema,
-      session,
-      new WebhookPayloadError('invalid creem session payload')
-    );
-    return this.mapCreemStatusFromCheckoutSession(checkedSession);
-  }
-
-  // build payment session from checkout session
-  private async buildPaymentSessionFromCheckoutSession(
-    session: unknown
-  ): Promise<PaymentSession> {
-    const checkedSession = parseOrThrow(
-      creemCheckoutSessionSchema,
-      session,
-      new WebhookPayloadError('invalid creem checkout session payload')
-    );
-
-    const subscriptionCandidate = checkedSession.subscription;
-    const subscription = subscriptionCandidate
-      ? parseOrThrow(
-          creemSubscriptionSchema,
-          subscriptionCandidate,
-          new WebhookPayloadError('invalid creem subscription payload')
-        )
-      : undefined;
-
-    const orderCandidate =
-      checkedSession.order ?? checkedSession.last_transaction;
-    const order = creemOrderLikeSchema.safeParse(orderCandidate);
-    const checkedOrder = order.success ? order.data : undefined;
-
-    const result: PaymentSession = {
-      provider: this.name,
-      paymentStatus: this.mapCreemStatusFromCheckoutSession(checkedSession),
-      paymentInfo: {
-        transactionId: checkedOrder?.transaction || checkedOrder?.id,
-        amount: checkedOrder?.amount || 0,
-        currency: checkedOrder?.currency || '',
-        discountCode: '',
-        discountAmount: checkedOrder?.discount_amount || 0,
-        discountCurrency: checkedOrder?.currency || '',
-        paymentAmount: checkedOrder?.amount_paid || 0,
-        paymentCurrency: checkedOrder?.currency || '',
-        paymentEmail: checkedSession.customer?.email,
-        paymentUserName: checkedSession.customer?.name,
-        paymentUserId: checkedSession.customer?.id,
-        paidAt: checkedOrder?.created_at
-          ? new Date(checkedOrder.created_at)
-          : undefined,
-        invoiceId: '', // todo: invoice id
-        invoiceUrl: '',
-      },
-      paymentResult: checkedSession,
-      metadata: checkedSession.metadata,
-    };
-
-    if (subscription) {
-      result.subscriptionId = subscription.id;
-      result.subscriptionInfo = await this.buildSubscriptionInfo(
-        subscription,
-        checkedSession.product
-      );
-      result.subscriptionResult = subscription;
-    }
-
-    return result;
-  }
-
-  // build payment session from subscription session
-  private async buildPaymentSessionFromInvoice(
-    invoice: unknown
-  ): Promise<PaymentSession> {
-    const checkedInvoice = parseOrThrow(
-      creemInvoiceSchema,
-      invoice,
-      new WebhookPayloadError('invalid creem invoice payload')
-    );
-
-    const orderCandidate =
-      checkedInvoice.order ?? checkedInvoice.last_transaction;
-    const order = creemOrderLikeSchema.safeParse(orderCandidate);
-    const checkedOrder = order.success ? order.data : undefined;
-
-    const subscriptionCandidate = checkedInvoice.subscription ?? checkedInvoice;
-    const subscription = parseOrThrow(
-      creemSubscriptionSchema,
-      subscriptionCandidate,
-      new WebhookPayloadError('invalid creem subscription payload')
-    );
-
-    const subscriptionCreatedAt = subscription.created_at
-      ? new Date(subscription.created_at)
-      : new Date(0);
-    const currentPeriodStartAt = new Date(
-      subscription.current_period_start_date
-    );
-    const timeDiff =
-      currentPeriodStartAt.getTime() - subscriptionCreatedAt.getTime();
-
-    const cycleType =
-      timeDiff < 5000 // 5s
-        ? SubscriptionCycleType.CREATE
-        : SubscriptionCycleType.RENEWAL;
-
-    const result: PaymentSession = {
-      provider: this.name,
-      paymentStatus: this.mapCreemStatus(checkedInvoice),
-      paymentInfo: {
-        description: checkedOrder?.description,
-        amount: checkedOrder?.amount || 0,
-        currency: checkedOrder?.currency || '',
-        transactionId: checkedOrder?.transaction || checkedOrder?.id,
-        discountCode: '',
-        discountAmount: checkedOrder?.discount_amount || 0,
-        discountCurrency: checkedOrder?.currency || '',
-        paymentAmount: checkedOrder?.amount_paid || 0,
-        paymentCurrency: checkedOrder?.currency || '',
-        paymentEmail: checkedInvoice.customer?.email,
-        paymentUserName: checkedInvoice.customer?.name,
-        paymentUserId: checkedInvoice.customer?.id,
-        paidAt: checkedOrder?.created_at
-          ? new Date(checkedOrder.created_at)
-          : undefined,
-        invoiceId: '', // todo: invoice id
-        invoiceUrl: '',
-        subscriptionCycleType: cycleType,
-      },
-      paymentResult: checkedInvoice,
-      metadata: checkedInvoice.metadata,
-    };
-
-    if (subscription) {
-      result.subscriptionId = subscription.id;
-      result.subscriptionInfo = await this.buildSubscriptionInfo(
-        subscription,
-        subscription.product
-      );
-      result.subscriptionResult = subscription;
-    }
-
-    return result;
-  }
-
-  // build payment session from subscription
-  private async buildPaymentSessionFromSubscription(
-    subscription: unknown
-  ): Promise<PaymentSession> {
-    const checkedSubscription = parseOrThrow(
-      creemSubscriptionSchema,
-      subscription,
-      new WebhookPayloadError('invalid creem subscription payload')
-    );
-
-    const result: PaymentSession = {
-      provider: this.name,
-    };
-
-    result.subscriptionId = checkedSubscription.id;
-    result.subscriptionInfo = await this.buildSubscriptionInfo(
-      checkedSubscription,
-      checkedSubscription.product
-    );
-    result.subscriptionResult = checkedSubscription;
-
-    return result;
-  }
-
-  // build subscription info from subscription
-  private async buildSubscriptionInfo(
-    subscription: CreemSubscription,
-    product?: unknown
-  ): Promise<SubscriptionInfo> {
-    const parsedProduct = creemProductSchema.safeParse(product);
-    const checkedProduct: CreemProduct | undefined = parsedProduct.success
-      ? parsedProduct.data
-      : undefined;
-
-    const { interval, count: intervalCount } =
-      this.mapCreemInterval(checkedProduct);
-
-    const subscriptionInfo: SubscriptionInfo = {
-      subscriptionId: subscription.id,
-      productId: checkedProduct?.id,
-      planId: '',
-      description: checkedProduct?.description,
-      amount: checkedProduct?.price,
-      currency: checkedProduct?.currency,
-      currentPeriodStart: new Date(subscription.current_period_start_date),
-      currentPeriodEnd: new Date(subscription.current_period_end_date),
-      interval: interval,
-      intervalCount: intervalCount,
-      metadata: subscription.metadata,
-    };
-
-    if (subscription.status === 'active') {
-      if (subscription.cancel_at) {
-        subscriptionInfo.status = SubscriptionStatus.PENDING_CANCEL;
-        // cancel apply at
-        if (subscription.canceled_at !== undefined) {
-          subscriptionInfo.canceledAt = new Date(subscription.canceled_at);
-        }
-      } else {
-        subscriptionInfo.status = SubscriptionStatus.ACTIVE;
-      }
-    } else if (subscription.status === 'canceled') {
-      // subscription canceled
-      subscriptionInfo.status = SubscriptionStatus.CANCELED;
-      if (subscription.canceled_at !== undefined) {
-        subscriptionInfo.canceledAt = new Date(subscription.canceled_at);
-      }
-    } else if (subscription.status === 'trialing') {
-      subscriptionInfo.status = SubscriptionStatus.TRIALING;
-    } else if (subscription.status === 'paused') {
-      subscriptionInfo.status = SubscriptionStatus.PAUSED;
-    } else {
-      throw new UpstreamError(
-        502,
-        `Unknown Creem subscription status: ${subscription.status}`
-      );
-    }
-
-    return subscriptionInfo;
-  }
-
-  private mapCreemInterval(product: { billing_period?: string } | undefined): {
-    interval: PaymentInterval;
-    count: number;
-  } {
-    if (!product || !product.billing_period) {
-      throw new UpstreamError(502, 'Invalid product');
-    }
-
-    switch (product.billing_period) {
-      case 'every-month':
-        return {
-          interval: PaymentInterval.MONTH,
-          count: 1,
-        };
-      case 'every-three-months':
-        return {
-          interval: PaymentInterval.MONTH,
-          count: 3,
-        };
-      case 'every-six-months':
-        return {
-          interval: PaymentInterval.MONTH,
-          count: 6,
-        };
-      case 'every-year':
-        return {
-          interval: PaymentInterval.YEAR,
-          count: 1,
-        };
-      case 'once':
-        return {
-          interval: PaymentInterval.ONE_TIME,
-          count: 1,
-        };
-      default:
-        throw new UpstreamError(
-          502,
-          `Unknown Creem product billing period: ${product.billing_period}`
-        );
-    }
-  }
-}
-
-/**
- * Create Creem provider with configs
- */
-export function createCreemProvider(configs: CreemConfigs): CreemProvider {
-  return new CreemProvider(configs);
 }

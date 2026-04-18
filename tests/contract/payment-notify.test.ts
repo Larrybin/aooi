@@ -6,7 +6,10 @@ import {
   SubscriptionCycleType,
 } from '@/core/payment/domain';
 
-import { processPaymentNotifyEvent } from '@/core/payment/webhooks/process-payment-notify';
+import {
+  PAYMENT_NOTIFY_EVENT_HANDLERS,
+  processPaymentNotifyEvent,
+} from '@/core/payment/webhooks/process-payment-notify';
 
 function createLog() {
   return {
@@ -65,6 +68,27 @@ test('processPaymentNotifyEvent 在首次 checkout webhook 时处理成功', asy
   });
 });
 
+test('processPaymentNotifyEvent handler-map 覆盖所有已支持 canonical event，未支持事件走 fallback', () => {
+  const supportedEventTypes = new Set(Object.keys(PAYMENT_NOTIFY_EVENT_HANDLERS));
+
+  assert.deepEqual(supportedEventTypes, new Set([
+    PaymentEventType.UNKNOWN,
+    PaymentEventType.CHECKOUT_SUCCESS,
+    PaymentEventType.PAYMENT_SUCCESS,
+    PaymentEventType.SUBSCRIBE_UPDATED,
+    PaymentEventType.SUBSCRIBE_CANCELED,
+  ]));
+
+  assert.equal(
+    PaymentEventType.PAYMENT_FAILED in PAYMENT_NOTIFY_EVENT_HANDLERS,
+    false
+  );
+  assert.equal(
+    PaymentEventType.PAYMENT_REFUNDED in PAYMENT_NOTIFY_EVENT_HANDLERS,
+    false
+  );
+});
+
 test('processPaymentNotifyEvent 对重复 renewal webhook 命中幂等', async () => {
   let renewalHandled = false;
   const result = await processPaymentNotifyEvent({
@@ -104,6 +128,93 @@ test('processPaymentNotifyEvent 对重复 renewal webhook 命中幂等', async (
     code: 0,
     message: 'ok',
     data: { message: 'already processed' },
+  });
+});
+
+test('processPaymentNotifyEvent 对 invoice id 命中的 renewal webhook 保持幂等', async () => {
+  let renewalHandled = false;
+  const result = await processPaymentNotifyEvent({
+    provider: 'paypal',
+    log: createLog() as never,
+    event: {
+      eventType: PaymentEventType.PAYMENT_SUCCESS,
+      eventResult: {},
+      paymentSession: {
+        provider: 'paypal',
+        subscriptionId: 'sub_123',
+        subscriptionInfo: {
+          subscriptionId: 'sub_123',
+          currentPeriodStart: new Date('2026-04-01T00:00:00.000Z'),
+          currentPeriodEnd: new Date('2026-05-01T00:00:00.000Z'),
+        },
+        paymentInfo: {
+          paymentAmount: 100,
+          paymentCurrency: 'USD',
+          subscriptionCycleType: SubscriptionCycleType.RENEWAL,
+          invoiceId: 'inv_123',
+        },
+      },
+    },
+    deps: createDeps({
+      findOrderByInvoiceId: async () => ({ orderNo: 'existing_order' }),
+      handleSubscriptionRenewal: async () => {
+        renewalHandled = true;
+      },
+    }) as never,
+  });
+
+  assert.equal(renewalHandled, false);
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(await result.response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'already processed' },
+  });
+});
+
+test('processPaymentNotifyEvent 在缺少 transaction/invoice id 时回退 renewal dedupe key', async () => {
+  let dedupeTransactionId = '';
+  const result = await processPaymentNotifyEvent({
+    provider: 'stripe',
+    log: createLog() as never,
+    event: {
+      eventType: PaymentEventType.PAYMENT_SUCCESS,
+      eventResult: {},
+      paymentSession: {
+        provider: 'stripe',
+        subscriptionId: 'sub_123',
+        subscriptionInfo: {
+          subscriptionId: 'sub_123',
+          currentPeriodStart: new Date('2026-04-01T00:00:00.000Z'),
+          currentPeriodEnd: new Date('2026-05-01T00:00:00.000Z'),
+        },
+        paymentInfo: {
+          paymentAmount: 100,
+          paymentCurrency: 'USD',
+          subscriptionCycleType: SubscriptionCycleType.RENEWAL,
+        },
+      },
+    },
+    deps: createDeps({
+      findSubscriptionByProviderSubscriptionId: async () => ({
+        subscriptionNo: 'sub_no_1',
+        status: 'active',
+      }),
+      handleSubscriptionRenewal: async ({ session }: { session: { paymentInfo?: { transactionId?: string } } }) => {
+        dedupeTransactionId = session.paymentInfo?.transactionId || '';
+      },
+    }) as never,
+  });
+
+  assert.match(
+    dedupeTransactionId,
+    /^renewal:stripe:sub_123:2026-04-01T00:00:00.000Z:2026-05-01T00:00:00.000Z$/
+  );
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(await result.response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'success' },
   });
 });
 
@@ -239,6 +350,63 @@ test('processPaymentNotifyEvent 在 unknown 审计写入失败时返回错误并
     /audit insert failed/
   );
 
+  assert.equal(checkoutHandled, false);
+  assert.equal(renewalHandled, false);
+  assert.equal(canceledHandled, false);
+  assert.equal(updatedHandled, false);
+});
+
+test('processPaymentNotifyEvent 对 PAYMENT_FAILED 保持 warning + processed 且不触发账务迁移', async () => {
+  const warnings: Array<Record<string, unknown>> = [];
+  let checkoutHandled = false;
+  let renewalHandled = false;
+  let canceledHandled = false;
+  let updatedHandled = false;
+
+  const result = await processPaymentNotifyEvent({
+    provider: 'stripe',
+    log: {
+      ...createLog(),
+      warn: (_message: string, meta?: Record<string, unknown>) => {
+        warnings.push(meta || {});
+      },
+    } as never,
+    event: {
+      eventType: PaymentEventType.PAYMENT_FAILED,
+      eventResult: {
+        type: 'invoice.payment_failed',
+      },
+      paymentSession: {
+        provider: 'stripe',
+        paymentStatus: 'processing' as never,
+      },
+    },
+    deps: createDeps({
+      handleCheckoutSuccess: async () => {
+        checkoutHandled = true;
+      },
+      handleSubscriptionRenewal: async () => {
+        renewalHandled = true;
+      },
+      handleSubscriptionCanceled: async () => {
+        canceledHandled = true;
+      },
+      handleSubscriptionUpdated: async () => {
+        updatedHandled = true;
+      },
+    }) as never,
+  });
+
+  assert.equal(result.outcome, 'processed');
+  assert.equal(result.eventType, PaymentEventType.PAYMENT_FAILED);
+  assert.deepEqual(await result.response.json(), {
+    code: 0,
+    message: 'ok',
+    data: { message: 'success' },
+  });
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0]?.provider, 'stripe');
+  assert.equal(warnings[0]?.eventType, PaymentEventType.PAYMENT_FAILED);
   assert.equal(checkoutHandled, false);
   assert.equal(renewalHandled, false);
   assert.equal(canceledHandled, false);
