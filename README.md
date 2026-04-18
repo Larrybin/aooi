@@ -166,28 +166,29 @@ Read `content/docs` to start your AI SaaS project.
 - Production `next build` is explicitly pinned to Webpack through [scripts/next-build.mjs](/Users/bin/Desktop/project/aooi/scripts/next-build.mjs) to avoid the current Turbopack/OpenNext Worker runtime incompatibility (`require_turbopack_runtime(...) is not a function`) on Cloudflare.
 - `reactCompiler` is currently disabled in `next.config.mjs` because warm-build benchmarks on 2026-04-08 showed it materially hurt build time. Keep this as a single-path decision, not a long-lived dual config.
 - TypeScript build scope is intentionally split: `tsconfig.json` covers app build inputs, while `tsconfig.test.json` covers tests and test-only type errors.
-- Supported deployment modes are now single-origin only:
-  - `DEPLOY_TARGET=vercel`: full-app on Vercel/Node
-  - `DEPLOY_TARGET=cloudflare`: full-app on OpenNext/Cloudflare
+- `DEPLOY_TARGET=cloudflare` is the only supported production deploy contract.
 - Cross-origin cookie auth topology is intentionally unsupported. `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
 - Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The router lives in [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml); each server Worker has its own `cloudflare/wrangler.server-*.toml`.
+- OpenNext persistent cache is Cloudflare-only: router and all server Workers share `NEXT_INC_CACHE_R2_BUCKET`, tag cache + queue run on Durable Objects, and router image optimization is enabled through `IMAGES`.
+- Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
+- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API, restarts the local topology, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path without depending on OpenNext tag-cache DO RPC in local multi-worker dev.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical multi-worker topology under the authoritative `wrangler versions upload --dry-run` gzip gate. The measured gzip sizes were `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, and `router 0.14 MiB`.
 - Cloudflare helper commands:
   - `pnpm cf:check`
   - `pnpm cf:build`
   - `pnpm test:cf-local-smoke`
+  - `pnpm test:cf-admin-settings-smoke`
   - `pnpm test:cf-app-smoke`
   - `pnpm cf:deploy`
 - Smoke runner scenarios:
-  - `pnpm test:auth-spike` -> `scripts/smoke.mjs auth-spike`
   - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
   - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
   - `pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && scripts/smoke.mjs cf-admin-settings`
-- `.github/workflows/dual-deploy-acceptance.yaml` remains the only acceptance gate. On `push main`, it now also uploads `release-metadata.json` for the exact accepted `head_sha`; `.github/workflows/cloudflare-production-deploy.yaml` consumes that artifact and deploys the same commit to Cloudflare production.
+- `.github/workflows/cloudflare-acceptance.yaml` is the only acceptance gate. On `push main`, it uploads `release-metadata.json` for the exact accepted `head_sha`; `.github/workflows/cloudflare-production-deploy.yaml` consumes that artifact and deploys the same commit to Cloudflare production.
 - `.github/workflows/cloudflare-production-migrate.yaml` is the production schema gate. When `release-metadata.json` reports `schema_changed=true`, the deploy workflow runs the migrate workflow first, then proceeds to `pnpm cf:deploy`.
-- `.github/workflows/cloudflare-production-deploy.yaml` only runs from successful `Single Origin Deploy Acceptance` workflow runs on `main`. Historical acceptance reruns are rejected if their `head_sha` is no longer the current `main` head.
-- Single-origin deployment governance is documented in `docs/architecture/dual-deploy-governance.md`.
+- `.github/workflows/cloudflare-production-deploy.yaml` only runs from successful `Cloudflare Deploy Acceptance` workflow runs on `main`. Historical acceptance reruns are rejected if their `head_sha` is no longer the current `main` head.
+- Cloudflare-only deployment governance is documented in `docs/architecture/cloudflare-deployment-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
 - `pnpm test:cf-app-smoke` is now read-only. It no longer upserts `app_url`, `general_docs_enabled`, or `general_ai_enabled`, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing smoke target.
@@ -291,6 +292,13 @@ Do not put a real local PostgreSQL DSN into tracked Wrangler files.
 
 Optional feature secrets such as Resend, Stripe, Creem, or storage credentials are only required if you actually enable those modules.
 
+Storage-specific Cloudflare bindings/config:
+
+- `NEXT_INC_CACHE_R2_BUCKET`: shared OpenNext ISR/data cache bucket across router + all server Workers
+- `APP_STORAGE_R2_BUCKET`: business upload bucket for brand assets and `/api/storage/upload-image`
+- `IMAGES`: router-side Cloudflare Images binding for optimized `next/image`
+- `storage_public_base_url`: the only runtime setting used to derive public asset URLs
+
 #### 4. Run database migrations against production
 
 Cloudflare Workers reads PostgreSQL through Hyperdrive at runtime, but schema migrations still need direct database access from your machine or CI job:
@@ -375,26 +383,6 @@ If that succeeds, open the production domain and complete one real auth flow bef
 ## Auth Secret (Production Required)
 
 - In production you must set `BETTER_AUTH_SECRET` (preferred) or `AUTH_SECRET` to a strong random value.
-
-## Auth Spike Feasibility Harness
-
-- Command: `pnpm test:auth-spike`
-- Required env vars:
-  - `AUTH_SPIKE_VERCEL_URL`
-  - `AUTH_SPIKE_CF_URL`
-  - `AUTH_SPIKE_EMAIL`
-  - `AUTH_SPIKE_PASSWORD`
-  - `AUTH_SPIKE_CALLBACK_PATH`
-- Optional env vars:
-  - `AUTH_SPIKE_USER_NAME` (default: `Auth Spike User`)
-- The command writes:
-  - Markdown/JSON reports to `.gstack/projects/Larrybin-aooi/`
-  - Failure screenshots to `output/playwright/auth-spike/`
-- Harness rule: only `PASS` exits successfully; `BLOCKED` / `需要 adapter` / `需要替代路线` all exit non-zero.
-- Each run generates surface-specific emails for `vercel` and `cloudflare`, so fresh sign-up stays real even when both deployments share one database.
-- The report now records targeted preflight results before browser automation and uses `harnessStatus`, not gate wording.
-- OAuth follow-up is intentionally split into `docs/architecture/cloudflare-oauth-auth-spike-plan.md`; keep OAuth out of the Phase 1 email/password harness.
-- `pnpm test:cf-oauth-spike` is the dedicated OAuth harness for that follow-up plan. It is single-instance by design, injects mock OAuth provider config instead of writing the local DB, writes reports to `.gstack/projects/Larrybin-aooi/`, and writes failure screenshots to `output/playwright/cf-oauth-spike/`.
 
 ## Admin Settings (General)
 

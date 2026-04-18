@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   CLOUDFLARE_LOCAL_SMOKE_CONFIG_SEED_CONFIGS,
   getCloudflareLocalSmokeConfigSeedConfigs,
+  isCloudflareAdminSettingsSmokeNextCacheBypassEnabled,
   isCloudflareLocalSmokeConfigSeedEnabled,
   mergeCloudflareLocalSmokeConfigSeedConfigs,
 } from './cloudflare-local-smoke-config';
@@ -28,6 +29,25 @@ test('isCloudflareLocalSmokeConfigSeedEnabled 仅在本地 smoke worker 模式�
   assert.equal(
     isCloudflareLocalSmokeConfigSeedEnabled(
       createEnv({ CF_LOCAL_SMOKE_WORKERS_DEV: 'true' })
+    ),
+    true
+  );
+});
+
+test('isCloudflareAdminSettingsSmokeNextCacheBypassEnabled 仅在 admin/settings smoke 专用标记下启用', () => {
+  assert.equal(
+    isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(createEnv()),
+    false
+  );
+  assert.equal(
+    isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(
+      createEnv({ CF_LOCAL_SMOKE_WORKERS_DEV: 'true' })
+    ),
+    false
+  );
+  assert.equal(
+    isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(
+      createEnv({ CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: 'true' })
     ),
     true
   );

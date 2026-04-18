@@ -111,6 +111,7 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
       assert.match(devVars, /AUTH_URL=http:\/\/127\.0\.0\.1:9787/);
       assert.match(devVars, /BETTER_AUTH_URL=http:\/\/127\.0\.0\.1:9787/);
       assert.match(devVars, /CF_LOCAL_SMOKE_WORKERS_DEV=true/);
+      assert.doesNotMatch(devVars, /CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE=/);
     } finally {
       await artifacts.cleanup();
     }
@@ -188,6 +189,8 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
           AUTH_URL: env?.AUTH_URL,
           BETTER_AUTH_URL: env?.BETTER_AUTH_URL,
           CF_LOCAL_SMOKE_WORKERS_DEV: env?.CF_LOCAL_SMOKE_WORKERS_DEV,
+          CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE:
+            env?.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE,
         });
         workerPersistDirs.push(persistTo);
         const readyUrlPromise = new Promise<string>((resolve) => {
@@ -210,6 +213,8 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
           AUTH_URL: env?.AUTH_URL,
           BETTER_AUTH_URL: env?.BETTER_AUTH_URL,
           CF_LOCAL_SMOKE_WORKERS_DEV: env?.CF_LOCAL_SMOKE_WORKERS_DEV,
+          CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE:
+            env?.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE,
         });
 
         return {
@@ -246,6 +251,7 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
     AUTH_URL: 'http://127.0.0.1:8787',
     BETTER_AUTH_URL: 'http://127.0.0.1:8787',
     CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
+    CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: undefined,
   })));
   assert.deepEqual(
     workerPersistDirs,
@@ -259,6 +265,7 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
       AUTH_URL: 'http://127.0.0.1:8787',
       BETTER_AUTH_URL: 'http://127.0.0.1:8787',
       CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
+      CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: undefined,
     },
   ]);
 
@@ -274,6 +281,31 @@ test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待
     ]
   );
   assert.equal(cleanupCount, 1);
+});
+
+test('prepareCloudflareLocalTopologyArtifacts 仅在显式请求时透传 admin/settings smoke cache bypass 标记', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cf-topology-admin-cache-'));
+  const devVarsPath = path.join(tempDir, '.dev.vars');
+
+  try {
+    const artifacts = await prepareCloudflareLocalTopologyArtifacts({
+      databaseUrl: 'postgresql://demo:demo@127.0.0.1:5432/demo',
+      authSecret: 'topology-secret-0123456789abcdef',
+      processEnv: {
+        CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: 'true',
+      },
+      devVarsPath,
+    });
+
+    try {
+      const devVars = await fs.readFile(devVarsPath, 'utf8');
+      assert.match(devVars, /CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE=true/);
+    } finally {
+      await artifacts.cleanup();
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('startCloudflareLocalDevTopology 在某个 server worker ready 前失败时返回带 label 的错误', async () => {

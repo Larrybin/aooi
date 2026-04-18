@@ -49,7 +49,7 @@ DATABASE_PROVIDER = "postgresql"
 # Traditional server (Docker/VPS): enable pooling
 DB_SINGLETON_ENABLED = "true"
 
-# Serverless Node (Vercel/Lambda): disable pooling (max=1 cached client)
+# Serverless Node runtime: disable pooling (max=1 cached client)
 # DB_SINGLETON_ENABLED = "false"
 ```
 
@@ -61,7 +61,7 @@ Notes:
 - Cloudflare preview is removed from the supported contract. The repo now targets a router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers with version affinity.
 - `pnpm cf:check` validates the router + server Wrangler configs against `src/shared/config/cloudflare-worker-splits.ts`.
 - `pnpm cf:build` runs the OpenNext multi-bundle build and hard-fails if any required Worker bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
-- `pnpm test:cf-admin-settings-smoke` is the Phase 2 admin/settings write-path gate. It always runs `pnpm cf:build` first so the smoke never validates stale `.open-next` artifacts.
+- `pnpm test:cf-admin-settings-smoke` is the Cloudflare-only local acceptance gate for admin/settings brand storage semantics. It always runs `pnpm cf:build` first, seeds settings directly in Postgres, exercises the real `/api/storage/upload-image` route, restarts the local topology to avoid OpenNext tag-cache DO RPC coupling, and then verifies public config projection plus the `storage_public_base_url` missing-error path.
 - `pnpm test:cf-local-smoke` is the canonical local Cloudflare runtime gate. It generates the full temporary topology, starts all server Workers with `wrangler dev`, then starts the router with `opennextjs-cloudflare preview`, and finally runs the read-only smoke against the router origin. `scripts/run-cf-local-smoke.mjs` backfills `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` from `.dev.vars` (or `CF_LOCAL_SMOKE_DEV_VARS_PATH`) when they are missing, and local smoke runtime seeds the public docs/AI config toggles so the read-only path does not depend on preloaded DB config rows.
 - `pnpm cf:deploy` is the only supported Cloudflare deploy entry. It bootstraps brand-new Workers with `wrangler deploy`, and uses version-affinity rollout for steady-state deploys.
 - Multi-worker Cloudflare auth requires the same `BETTER_AUTH_SECRET` on the router Worker and every `cloudflare/wrangler.server-*.toml` Worker; missing the secret on any server Worker will surface as production 500s during instrumentation startup.
@@ -209,28 +209,13 @@ Supporting multiple currencies with automatic conversion
 
 ## Cloudflare R2 Storage Integration
 
-Configuring file storage for avatars and uploads
-
-```bash
-# R2 bucket endpoint format
-https://pub-xxx.r2.dev
-
-# Custom domain format
-https://r2.your-domain.com
-```
+Configuring Cloudflare-only public asset delivery for uploaded files and brand assets.
 
 Configuration in Admin Dashboard at `/<locale?>/admin/settings/storage`:
 
-- Navigate to Settings → Storage → Cloudflare R2
-- Enter Access Key ID and Secret Access Key
-- Set Bucket Name and custom upload path
-- Configure R2 endpoint and custom domain
-
-```bash
-# Test file upload
-# Upload avatar at /settings/profile
-# Verify uploaded file URL matches custom domain
-```
+- Navigate to Settings → Storage
+- Set `storage_public_base_url`
+- Brand asset uploads require `APP_STORAGE_R2_BUCKET` binding plus `storage_public_base_url`
 
 ## Resend Email Service Integration
 
@@ -323,86 +308,36 @@ SEO files:
 - Sitemap: `src/app/sitemap.ts` (dynamic)
 - Robots: `src/app/robots.ts`
 
-## Vercel Deployment
+## Cloudflare Deployment
 
-Deploying to Vercel with custom domain and environment variables
+Cloudflare Workers is the only supported production deployment target.
 
-```bash
-# Set Git remote to your repository
-git remote set-url origin git@github.com:your-org/your-repo.git
-
-# Push code to GitHub
-git add .
-git commit -m "first version"
-git push origin main
-```
-
-```toml
-# .env.production for Vercel
-NEXT_PUBLIC_APP_URL = "https://your-domain.com"
-NEXT_PUBLIC_APP_NAME = "Your App Name"
-NEXT_PUBLIC_THEME = "default"
-
-DATABASE_URL = "postgresql://user:password@domain:port/database"
-DATABASE_PROVIDER = "postgresql"
-DB_SINGLETON_ENABLED = "false"
-
-BETTER_AUTH_SECRET = "your-secret-key"
-# AUTH_SECRET = "your-secret-key"
-```
-
-Configuration steps in Vercel Dashboard:
-
-1. Import GitHub repository at vercel.com/new
-2. Add custom domain in Domains section
-3. Configure DNS (CNAME or A record) at domain registrar
-4. Paste environment variables in Settings → Environment Variables
-5. Redeploy project after configuration changes
-
-## Auth Spike Feasibility Harness
-
-用于双部署认证 Spike 的最小执行入口：
+Deployment and acceptance commands:
 
 ```bash
-pnpm test:auth-spike
+pnpm cf:check
+pnpm cf:build
+pnpm cf:deploy
+pnpm test:cf-local-smoke
+pnpm test:cf-admin-settings-smoke
+# Optional when a deployed environment exists
+pnpm test:cf-app-smoke
 ```
 
-执行前需要配置：
+Production contract:
 
-```bash
-AUTH_SPIKE_VERCEL_URL="https://your-vercel-auth-sandbox.example.com"
-AUTH_SPIKE_CF_URL="https://your-cloudflare-auth-sandbox.example.com"
-AUTH_SPIKE_EMAIL="auth-spike@example.com"
-AUTH_SPIKE_PASSWORD="change-me-please"
-AUTH_SPIKE_CALLBACK_PATH="/settings/profile"
-# Optional
-AUTH_SPIKE_USER_NAME="Auth Spike User"
-```
+1. Keep `DEPLOY_TARGET=cloudflare` in the tracked Wrangler templates.
+2. Bind the shared OpenNext cache bucket as `NEXT_INC_CACHE_R2_BUCKET`.
+3. Bind the business upload bucket as `APP_STORAGE_R2_BUCKET`.
+4. Bind router image optimization as `IMAGES`.
+5. Configure `storage_public_base_url` in admin settings before brand asset uploads.
+6. Use the same `BETTER_AUTH_SECRET` / `AUTH_SECRET` across router and all server Workers.
 
-说明：
+Local acceptance notes:
 
-- 这套 harness 只覆盖 email/password 闭环，不覆盖 OAuth。
-- `PASS` / `需要 adapter` / `需要替代路线` / `BLOCKED` 对治理动作的映射，见 `docs/architecture/dual-deploy-governance.md` 的 auth spike decision table。
-- 命令会先做 targeted preflight，再对两端真实部署面执行注册、登录、受保护页访问、无效 cookie、sign-out 与契约比对。
-- 结果会输出到 `.gstack/projects/Larrybin-aooi/`，失败截图输出到 `output/playwright/auth-spike/`。
-- 每次运行会为 `vercel` / `cloudflare` 分别生成唯一邮箱别名，避免共享数据库时把第二个 surface 误测成“已有账号登录”。
-- 只有 `PASS` 返回 0；其他原始结论都会返回非 0，用于 harness 决策。
-- OAuth 后续工作已经单独规划在 `docs/architecture/cloudflare-oauth-auth-spike-plan.md`，不要把 OAuth case 塞回当前 email/password harness。
-
-OAuth follow-up harness:
-
-```bash
-pnpm test:cf-oauth-spike
-```
-
-说明：
-
-- 该命令只跑 Cloudflare 本地多 Worker 运行时上的 OAuth follow-up，不覆盖 email/password。
-- 该命令通过 `AUTH_SPIKE_OAUTH_CONFIG_SEED=true` 注入内存内的 Google / GitHub OAuth 测试配置，并通过 `AUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true` 只 mock 上游 OAuth 交换，不写入也不恢复本地 `config` 表，因此开箱可跑且不会持久污染本地 auth 设置。
-- 该命令只 mock provider 的 authorize/token/userinfo，不依赖真实 Google/GitHub 凭证和外部账号交互。
-- 浏览器侧会从 `/sign-in` 页面真实点击 social button，Worker 侧仍真实经过 Better Auth 的 social sign-in、`/api/auth/callback/:provider`、state 校验、session 建立与 sign-out。
-- 该命令是单实例执行；若已有另一个 `pnpm test:cf-oauth-spike` 在跑，会直接失败退出。
-- 报告输出到 `.gstack/projects/Larrybin-aooi/`，失败截图输出到 `output/playwright/cf-oauth-spike/`。
+- `pnpm test:cf-local-smoke` is the canonical Cloudflare local runtime gate.
+- `pnpm test:cf-admin-settings-smoke` is the Cloudflare-only admin/settings brand storage gate.
+- The admin/settings smoke uses the config API ready probe, then separately validates upload, restart, public config projection, and the explicit `storage_public_base_url is not configured` failure path.
 
 ## Admin Dashboard Configuration
 
@@ -429,8 +364,8 @@ Key configuration categories accessible via Admin Dashboard:
 
 **Storage:**
 
-- Cloudflare R2 (Access Key, Secret Key, Bucket, Endpoint, Domain)
-- Custom upload path configuration
+- `storage_public_base_url`
+- Brand asset uploads depend on `APP_STORAGE_R2_BUCKET` + `storage_public_base_url`
 
 **Email:**
 
@@ -449,7 +384,6 @@ Key configuration categories accessible via Admin Dashboard:
 - Microsoft Clarity ID
 - Plausible (Domain, Script Source)
 - OpenPanel Client ID
-- Vercel Analytics toggle
 
 **Customer Service:**
 
@@ -465,4 +399,4 @@ Key configuration categories accessible via Admin Dashboard:
 
 Roller Rabbit serves as a comprehensive foundation for launching AI SaaS products, dramatically reducing time-to-market by providing production-ready implementations of common SaaS features. The framework is particularly valuable for indie developers and small teams who need to quickly validate business ideas without building infrastructure from scratch. Core use cases include AI-powered web applications, subscription-based SaaS products, content platforms with payment processing, and multi-tenant applications requiring user management and role-based access control.
 
-The framework's integration patterns emphasize configuration over coding, with most features enabled through the admin dashboard (DB-backed configs) and a small set of bootstrap environment variables rather than custom code. The modular architecture allows selective feature adoption - developers can use only the landing page system for static sites, or progressively add authentication, payments, and AI capabilities as needed. Roller Rabbit supports multiple deployment strategies (Serverless via Vercel/Cloudflare, or traditional VPS via Dokploy) and integrates seamlessly with popular third-party services (Stripe, Supabase, Resend, Cloudflare R2). The built-in i18n system, theme customization, and content management make it suitable for global audiences and diverse branding requirements.
+The framework's integration patterns emphasize configuration over coding, with most features enabled through the admin dashboard (DB-backed configs) and a small set of bootstrap environment variables rather than custom code. The modular architecture allows selective feature adoption - developers can use only the landing page system for static sites, or progressively add authentication, payments, and AI capabilities as needed. Roller Rabbit is now converged on Cloudflare Workers for production deployment and integrates with common third-party services such as Stripe, Resend, and Cloudflare R2. The built-in i18n system, theme customization, and content management make it suitable for global audiences and diverse branding requirements.

@@ -95,9 +95,7 @@ openssl rand -base64 32
 Notes:
 
 - `DATABASE_PROVIDER` only supports `postgresql` for now.
-- `DB_SINGLETON_ENABLED`:
-  - Traditional Node/container deployments: `true` (pooling)
-  - Serverless Node (e.g. Vercel): `false` (cached single connection)
+- `DB_SINGLETON_ENABLED=true` is the canonical production setting for this Cloudflare-only repo.
 - In production, prefer `BETTER_AUTH_SECRET` (overrides `AUTH_SECRET`). You can override auth base URL via `BETTER_AUTH_URL/AUTH_URL` (defaults to `NEXT_PUBLIC_APP_URL`).
 
 ### Database
@@ -170,14 +168,11 @@ Minimal "go-live" checklist:
 
 Before deploying:
 
-- Vercel / Node / Docker: set `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, then run `pnpm db:migrate`
-- Cloudflare Workers: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, reads missing `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` from `.dev.vars` (or `CF_LOCAL_SMOKE_DEV_VARS_PATH`), and deploy requires a real `hyperdrive.id`
+- Cloudflare Workers only: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, shared `NEXT_INC_CACHE_R2_BUCKET`, business `APP_STORAGE_R2_BUCKET`, router `IMAGES`, and `storage_public_base_url`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
 
-Deployment options:
+Deployment flow:
 
-- Vercel/Node (recommended for full features: auth/payment/admin)
-- Docker (see `Dockerfile`; starts with `next start`)
-- Cloudflare Workers (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`; dual-surface auth is tracked by `pnpm test:auth-spike`, routed internally through `scripts/smoke.mjs auth-spike`.)
+- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for brand/storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, restarts the topology, then validates public config projection and the explicit missing-`storage_public_base_url` failure path. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
 
 ## Feature Configuration
 
@@ -187,7 +182,7 @@ Common tabs:
 
 - Auth providers: `/admin/settings/auth`
 - Payments (Stripe/PayPal/Creem): `/admin/settings/payment`
-- Storage (Cloudflare R2): `/admin/settings/storage`
+- Storage (Cloudflare R2): `/admin/settings/storage` with the single required setting `storage_public_base_url`
 - Email (Resend): `/admin/settings/email`
 
 For deeper engineering docs, see `docs/guides/*.md`.

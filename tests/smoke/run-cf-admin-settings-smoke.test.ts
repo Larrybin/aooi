@@ -3,13 +3,13 @@ import test from 'node:test';
 
 import { runPhaseSequence } from '../../scripts/lib/harness/scenario.mjs';
 import {
-  buildMockProviderCallbackUrl,
+  assertPublicBrandConfigProjection,
+  buildExpectedPublicAssetUrls,
+  buildSignedInSessionCookieHeader,
+  normalizeSeedSettings,
   resolveSmokeLocales,
+  waitForAdminSettingsSmokeReady,
 } from '../../scripts/run-cf-admin-settings-smoke.mjs';
-import {
-  hasAuthErrorQuery,
-  isTerminalAuthErrorUrl,
-} from './auth-spike.browser';
 
 test('runPhaseSequence 按声明顺序执行 phase 并在最后执行 cleanup', async () => {
   const steps: string[] = [];
@@ -101,60 +101,81 @@ test('resolveSmokeLocales 默认返回全部 locale，并支持显式过滤', ()
   );
 });
 
-test('buildMockProviderCallbackUrl 在 denied 模式保留 callback 并附带显式错误参数', () => {
-  const callbackUrl = new URL(
-    buildMockProviderCallbackUrl({
-      authRequestUrl: new URL(
-        'https://accounts.google.com/o/oauth2/auth?state=test-state&redirect_uri=http%3A%2F%2Flocalhost%3A8787%2Fapi%2Fauth%2Fcallback%2Fgoogle'
-      ),
-      mode: 'denied',
-      provider: 'google',
+test('normalizeSeedSettings 复用设置系统 normalizer', () => {
+  assert.deepEqual(
+    normalizeSeedSettings({
+      app_url: 'https://example.com/path?ignored=1',
+      general_support_email: ' Support@Example.COM ',
+      storage_public_base_url: 'https://cdn.example.com/assets',
+    }),
+    {
+      app_url: 'https://example.com',
+      general_support_email: 'support@example.com',
+      storage_public_base_url: 'https://cdn.example.com/assets/',
+    }
+  );
+});
+
+test('buildExpectedPublicAssetUrls 由 storage_public_base_url 和 objectKey 派生公开 URL', () => {
+  assert.deepEqual(
+    buildExpectedPublicAssetUrls({
+      storagePublicBaseUrl: 'https://cdn.example.com/assets',
+      objectKeys: {
+        appLogo: '/uploads/logo.png',
+        appFavicon: 'uploads/favicon.ico',
+        appOgImage: 'uploads/preview.png',
+      },
+    }),
+    {
+      appLogo: 'https://cdn.example.com/assets/uploads/logo.png',
+      appFavicon: 'https://cdn.example.com/assets/uploads/favicon.ico',
+      appOgImage: 'https://cdn.example.com/assets/uploads/preview.png',
+    }
+  );
+});
+
+test('buildSignedInSessionCookieHeader 为 API smoke 构造 better-auth session cookie', () => {
+  assert.equal(
+    buildSignedInSessionCookieHeader('session token+123'),
+    'better-auth.session_token=session%20token%2B123'
+  );
+});
+
+test('assertPublicBrandConfigProjection 仅校验 public config projection 与公开 URL 派生契约', () => {
+  assert.doesNotThrow(() =>
+    assertPublicBrandConfigProjection({
+      publicConfigs: {
+        app_name: 'CF Admin Settings 20260419',
+        storage_public_base_url: 'https://cdn.example.com/assets/',
+        app_logo: 'uploads/logo.png',
+        app_favicon: 'uploads/favicon.ico',
+        app_og_image: 'uploads/preview.png',
+      },
+      expectedAppName: 'CF Admin Settings 20260419',
+      expectedStoragePublicBaseUrl: 'https://cdn.example.com/assets/',
+      expectedObjectKeys: {
+        appLogo: 'uploads/logo.png',
+        appFavicon: 'uploads/favicon.ico',
+        appOgImage: 'uploads/preview.png',
+      },
+      expectedAssetUrls: {
+        appLogo: 'https://cdn.example.com/assets/uploads/logo.png',
+        appFavicon: 'https://cdn.example.com/assets/uploads/favicon.ico',
+        appOgImage: 'https://cdn.example.com/assets/uploads/preview.png',
+      },
     })
   );
-
-  assert.equal(callbackUrl.origin, 'http://localhost:8787');
-  assert.equal(callbackUrl.pathname, '/api/auth/callback/google');
-  assert.equal(callbackUrl.searchParams.get('state'), 'test-state');
-  assert.equal(callbackUrl.searchParams.get('error'), 'access_denied');
-  assert.equal(
-    callbackUrl.searchParams.get('error_description'),
-    'cf_admin_settings_phase2_denied'
-  );
 });
 
-test('denied redirect chain 只有最终 sign-in 错误页才满足 terminal 判定', () => {
-  const callbackUrl = buildMockProviderCallbackUrl({
-    authRequestUrl: new URL(
-      'https://accounts.google.com/o/oauth2/auth?state=test-state&redirect_uri=http%3A%2F%2Flocalhost%3A8787%2Fapi%2Fauth%2Fcallback%2Fgoogle'
-    ),
-    mode: 'denied',
-    provider: 'google',
+test('waitForAdminSettingsSmokeReady 只复用最小 config-api ready probe', async () => {
+  const calls: string[] = [];
+
+  await waitForAdminSettingsSmokeReady({
+    baseUrl: 'http://127.0.0.1:8788',
+    waitForPreviewReadyImpl: async ({ baseUrl }) => {
+      calls.push(baseUrl);
+    },
   });
 
-  assert.equal(hasAuthErrorQuery(callbackUrl), true);
-  assert.equal(isTerminalAuthErrorUrl(callbackUrl), false);
-  assert.equal(
-    isTerminalAuthErrorUrl(
-      'http://localhost:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile&error=access_denied'
-    ),
-    true
-  );
-});
-
-test('isTerminalAuthErrorUrl 只在 sign-in 最终错误页返回 true', () => {
-  assert.equal(
-    isTerminalAuthErrorUrl('http://localhost:8787/sign-in?error=access_denied'),
-    true
-  );
-  assert.equal(
-    isTerminalAuthErrorUrl(
-      'http://localhost:8787/api/auth/callback/google?error=access_denied'
-    ),
-    false
-  );
-  assert.equal(
-    isTerminalAuthErrorUrl('http://localhost:8787/settings/profile'),
-    false
-  );
-  assert.equal(isTerminalAuthErrorUrl('not-a-url'), false);
+  assert.deepEqual(calls, ['http://127.0.0.1:8788']);
 });

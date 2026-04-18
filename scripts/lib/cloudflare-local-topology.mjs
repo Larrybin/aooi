@@ -53,9 +53,16 @@ function buildLocalWorkerRuntimeVars(serverWorkers, routerBaseUrl) {
 function resolveLocalTopologyExtraVars(extraVars, processEnv) {
   const resolvedExtraVars = { ...extraVars };
   const localAuthDebug = processEnv.CF_LOCAL_AUTH_DEBUG?.trim();
+  const adminSettingsSmokeNextCacheBypass =
+    processEnv.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE?.trim();
 
   if (localAuthDebug) {
     resolvedExtraVars.CF_LOCAL_AUTH_DEBUG = localAuthDebug;
+  }
+
+  if (adminSettingsSmokeNextCacheBypass) {
+    resolvedExtraVars.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE =
+      adminSettingsSmokeNextCacheBypass;
   }
 
   return resolvedExtraVars;
@@ -181,6 +188,7 @@ export async function prepareCloudflareLocalTopologyArtifacts({
     devUpstreamProtocol: routerDevOrigin.protocol.replace(/:$/, ''),
     templatePath: routerTemplatePath,
     outputPath: routerConfigPath,
+    validateTemplateContract: true,
   });
   await writeFile(routerConfigPath, routerConfig, 'utf8');
 
@@ -199,6 +207,7 @@ export async function prepareCloudflareLocalTopologyArtifacts({
       devUpstreamProtocol: routerDevOrigin.protocol.replace(/:$/, ''),
       templatePath,
       outputPath: configPath,
+      validateTemplateContract: true,
     });
     await writeFile(configPath, config, 'utf8');
     const persistDir = path.join(stateRootDir, target);

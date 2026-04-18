@@ -281,13 +281,16 @@ Tracked Wrangler files are templates. Keep `localConnectionString = ""` in versi
 
 Cloudflare helper commands:
 
+- `pnpm cf:check`
 - `pnpm cf:build`
 - `pnpm test:cf-local-smoke`
+- `pnpm test:cf-admin-settings-smoke`
 - `pnpm test:cf-app-smoke`
 - `pnpm cf:deploy`
-- `pnpm test:auth-spike`
 
-Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, production read-only app smoke uses `cf-app`, and dual-surface auth uses `auth-spike`.
+Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, admin/settings storage smoke uses `cf-admin-settings`, and production read-only app smoke uses `cf-app`.
+
+`pnpm test:cf-admin-settings-smoke` is intentionally a smaller local acceptance chain: it seeds the required settings rows directly in Postgres, uploads brand assets through the real Cloudflare runtime API, restarts the generated local topology, and then validates public config projection plus the missing-`storage_public_base_url` failure path. This avoids coupling local verification to OpenNext tag-cache DO RPC.
 
 `pnpm cf:build` now validates deployable Worker bundles through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
 
@@ -295,13 +298,9 @@ Smoke commands keep their public package names, but they now route through `scri
 
 The smoke is read-only. It must not upsert public config values or mutate the `config` table in local runtime or production.
 
-The governed deployment posture is now single-origin per target: Vercel and Cloudflare are both supported full-app targets, but each deployment must choose exactly one origin/runtime.
+The governed deployment posture is now Cloudflare-only: production deploys must use the canonical multi-worker OpenNext + Hyperdrive topology.
 
-`Dual Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
-
-### Vercel / AWS Lambda (Serverless)
-
-Default `DB_SINGLETON_ENABLED=false` caches a single client (max=1) per instance/`DATABASE_URL` to avoid per-call connection churn. Reuse the same `db()` result within a request when possible.
+`Cloudflare Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
 
 ### Traditional Server (Docker, VPS)
 

@@ -95,9 +95,7 @@ openssl rand -base64 32
 说明：
 
 - `DATABASE_PROVIDER` 当前仅支持 `postgresql`。
-- `DB_SINGLETON_ENABLED`：
-  - 传统 Node/容器部署：建议 `true`（连接池）
-  - Serverless Node（如 Vercel）：建议 `false`（单连接缓存，减少并发连接数）
+- `DB_SINGLETON_ENABLED=true` 是这个 Cloudflare-only 仓库的标准生产配置。
 - 生产环境推荐使用 `BETTER_AUTH_SECRET`（优先级高于 `AUTH_SECRET`）；鉴权 Base URL 可通过 `BETTER_AUTH_URL/AUTH_URL` 覆盖（默认使用 `NEXT_PUBLIC_APP_URL`）。
 
 ### 配置数据库
@@ -170,14 +168,11 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 上线前务必完成：
 
-- Vercel / Node / Docker：配置 `NEXT_PUBLIC_APP_URL`、`DATABASE_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`，然后执行 `pnpm db:migrate`
-- Cloudflare Workers：配置受版本控制的 Wrangler 模板、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`；本地 runtime smoke 需要生成临时 Wrangler 配置并注入 `localConnectionString`，缺失的 `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` 会从 `.dev.vars`（或 `CF_LOCAL_SMOKE_DEV_VARS_PATH`）回填，deploy 仍要求真实的 `hyperdrive.id`
+- 仅支持 Cloudflare Workers：配置受版本控制的 Wrangler 模板、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`、共享的 `NEXT_INC_CACHE_R2_BUCKET`、业务上传 `APP_STORAGE_R2_BUCKET`、router `IMAGES`，以及后台设置 `storage_public_base_url`；本地 runtime smoke 需要生成临时 Wrangler 配置并注入 `localConnectionString`，deploy 仍要求真实的 `hyperdrive.id`
 
-部署方式（按常见程度排序）：
+部署流程：
 
-- Vercel/Node（推荐跑全功能：鉴权/支付/管理后台）
-- Docker（参考 `Dockerfile`，默认 `next start` 启动）
-- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate；鉴权双面验收通过 `pnpm test:auth-spike` 跟踪，并由 `scripts/smoke.mjs auth-spike` 内部调度）
+- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传品牌资源、重启 topology，再验证公开配置投影和缺失 `storage_public_base_url` 的显式失败路径。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
 
 ## 功能配置
 
@@ -187,7 +182,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 - 登录与三方 OAuth：`/admin/settings/auth`
 - 支付（Stripe/PayPal/Creem）：`/admin/settings/payment`
-- 文件存储（Cloudflare R2）：`/admin/settings/storage`
+- 文件存储（Cloudflare R2）：`/admin/settings/storage`，唯一正式配置项为 `storage_public_base_url`
 - 邮件（Resend）：`/admin/settings/email`
 
 更详细的工程文档见：`docs/guides/*.md`。
