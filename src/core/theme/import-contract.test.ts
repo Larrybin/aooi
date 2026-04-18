@@ -27,14 +27,21 @@ async function collectSourceFiles(dir: string): Promise<string[]> {
   return files;
 }
 
-test('theme: 仓库源码不再引用 legacy landing 入口', async () => {
-  const legacyImport = '@/core/theme' + '/landing';
+test('theme: 仓库源码不再引用已删除的主题抽象入口', async () => {
   const sourceFiles = await collectSourceFiles(SOURCE_ROOT);
   const matchedFiles: string[] = [];
 
   for (const filePath of sourceFiles) {
+    if (filePath.endsWith('src/core/theme/import-contract.test.ts')) {
+      continue;
+    }
     const content = await readFile(filePath, 'utf8');
-    if (content.includes(legacyImport)) {
+    if (
+      content.includes("from '@/core/theme'") ||
+      content.includes('from "@/core/theme"') ||
+      content.includes("from '@/config/theme'") ||
+      content.includes('from "@/config/theme"')
+    ) {
       matchedFiles.push(filePath);
     }
   }

@@ -4,7 +4,6 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 
-import { getThemeLayout } from '@/core/theme';
 import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
@@ -18,6 +17,7 @@ import type {
   Footer as FooterType,
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
+import LandingLayout from '@/themes/default/layouts/landing';
 
 export default async function PricingLayout({
   children,
@@ -28,8 +28,6 @@ export default async function PricingLayout({
 }) {
   const { locale } = await params;
   const t = await getTranslations('landing');
-  const Layout = await getThemeLayout('landing');
-
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
@@ -51,10 +49,10 @@ export default async function PricingLayout({
       ]}
     >
       <PublicAppProvider initialConfigs={publicConfigs}>
-        <Layout header={branded.header} footer={branded.footer}>
+        <LandingLayout header={branded.header} footer={branded.footer}>
           <LocaleDetectorLazy />
           {children}
-        </Layout>
+        </LandingLayout>
       </PublicAppProvider>
     </ScopedIntlProvider>
   );

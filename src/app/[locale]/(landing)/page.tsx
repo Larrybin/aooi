@@ -3,7 +3,6 @@
 // reason: public marketing page; allow toggles without per-request db reads
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getThemeLayout, getThemePage } from '@/core/theme';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
 import {
   buildBrandPlaceholderValues,
@@ -16,6 +15,8 @@ import {
   type Header as HeaderType,
   type Landing,
 } from '@/shared/types/blocks/landing';
+import LandingMarketingLayout from '@/themes/default/layouts/landing-marketing';
+import LandingPageView from '@/themes/default/pages/landing';
 
 export default async function LandingPage({
   params,
@@ -30,8 +31,6 @@ export default async function LandingPage({
 
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
-
-  const Layout = await getThemeLayout('landing-marketing');
 
   // build page params
   const hero = replaceBrandPlaceholdersDeep(t.raw('hero'), brand);
@@ -62,8 +61,6 @@ export default async function LandingPage({
   };
 
   // load page component
-  const Page = await getThemePage('landing');
-
   const headerRaw: HeaderType = t.raw('header');
   const footerRaw: FooterType = t.raw('footer');
   const { header, footer } = applyBrandToLandingHeaderFooter({
@@ -73,8 +70,8 @@ export default async function LandingPage({
   });
 
   return (
-    <Layout header={header} footer={footer} locale={locale}>
-      <Page locale={locale} page={page} />
-    </Layout>
+    <LandingMarketingLayout header={header} footer={footer} locale={locale}>
+      <LandingPageView locale={locale} page={page} />
+    </LandingMarketingLayout>
   );
 }

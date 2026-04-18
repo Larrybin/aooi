@@ -5,10 +5,10 @@ import { notFound } from 'next/navigation';
 import { getDocsPage } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getThemePage } from '@/core/theme';
 import { envConfigs } from '@/config';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import PageDetailPageView from '@/themes/default/pages/page-detail';
 
 export async function generateMetadata({
   params,
@@ -62,7 +62,5 @@ export default async function DynamicPage({
     return notFound();
   }
 
-  const Page = await getThemePage('page-detail');
-
-  return <Page locale={locale} post={page} />;
+  return <PageDetailPageView locale={locale} post={page} />;
 }

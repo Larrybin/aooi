@@ -6,7 +6,6 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
@@ -20,6 +19,7 @@ import type {
   Footer as FooterType,
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
+import LandingLayout from '@/themes/default/layouts/landing';
 
 export default async function BlogLayout({
   children,
@@ -35,8 +35,6 @@ export default async function BlogLayout({
   }
 
   const t = await getTranslations('landing');
-  const Layout = await getThemeLayout('landing');
-
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
   const header: HeaderType = t.raw('header');
@@ -58,10 +56,10 @@ export default async function BlogLayout({
       ]}
     >
       <PublicAppProvider initialConfigs={publicConfigs}>
-        <Layout header={branded.header} footer={branded.footer}>
+        <LandingLayout header={branded.header} footer={branded.footer}>
           <LocaleDetector />
           {children}
-        </Layout>
+        </LandingLayout>
       </PublicAppProvider>
     </ScopedIntlProvider>
   );

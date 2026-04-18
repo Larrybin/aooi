@@ -11,7 +11,6 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
 import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
-import { getThemePage } from '@/core/theme';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
@@ -25,6 +24,7 @@ import type {
   Blog as BlogType,
   Category as CategoryType,
 } from '@/shared/types/blocks/blog';
+import BlogPageView from '@/themes/default/pages/blog';
 
 export async function generateMetadata({
   params,
@@ -104,8 +104,5 @@ export default async function CategoryBlogPage({
     posts: categoryBlog.posts,
   };
 
-  // load page component
-  const Page = await getThemePage('blog');
-
-  return <Page locale={locale} blog={blog} />;
+  return <BlogPageView locale={locale} blog={blog} />;
 }

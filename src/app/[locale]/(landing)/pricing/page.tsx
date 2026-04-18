@@ -4,7 +4,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { getLocaleStaticParams } from '@/core/i18n/static-params';
-import { getThemePage } from '@/core/theme';
 import { locales } from '@/config/locale';
 import {
   buildBrandPlaceholderValues,
@@ -18,6 +17,7 @@ import type {
   Testimonials as TestimonialsType,
 } from '@/shared/types/blocks/landing';
 import type { Pricing as PricingType } from '@/shared/types/blocks/pricing';
+import PricingPageView from '@/themes/default/pages/pricing';
 
 export const generateMetadata = getMetadata({
   metadataKey: 'pricing.metadata',
@@ -41,9 +41,6 @@ export default async function PricingPage({
   // loading pricing data
   const t = await getTranslations('pricing');
 
-  // load page component
-  const Page = await getThemePage('pricing');
-
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
@@ -63,7 +60,7 @@ export default async function PricingPage({
       locale={locale}
       namespaces={['pricing.page', 'common.payment']}
     >
-      <Page
+      <PricingPageView
         locale={locale}
         pricing={pricing}
         faq={faq}

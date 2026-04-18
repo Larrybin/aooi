@@ -11,13 +11,13 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
 import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
-import { getThemePage } from '@/core/theme';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
 import {
   buildCanonicalUrlWithAppUrl,
   buildLanguageAlternatesWithAppUrl,
 } from '@/shared/lib/seo';
+import BlogDetailPageView from '@/themes/default/pages/blog-detail';
 
 export async function generateMetadata({
   params,
@@ -87,7 +87,5 @@ export default async function BlogDetailPage({
       ? { ...post, body: <MarkdownContent content={post.content} /> }
       : post;
 
-  const Page = await getThemePage('blog-detail');
-
-  return <Page locale={locale} post={postWithBody} />;
+  return <BlogDetailPageView locale={locale} post={postWithBody} />;
 }

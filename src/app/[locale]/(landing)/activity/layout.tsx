@@ -6,7 +6,6 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getThemeLayout } from '@/core/theme';
 import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
 import { PublicAppProvider } from '@/shared/contexts/app';
@@ -23,6 +22,7 @@ import type {
   Footer as FooterType,
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
+import LandingLayout from '@/themes/default/layouts/landing';
 
 export default async function ActivityLayout({
   children,
@@ -40,8 +40,6 @@ export default async function ActivityLayout({
 
   const t = await getTranslations('activity.sidebar');
   const tl = await getTranslations('landing');
-  const Layout = await getThemeLayout('landing');
-
   const brand = buildBrandPlaceholderValues(publicConfigs);
 
   // settings title
@@ -71,7 +69,7 @@ export default async function ActivityLayout({
     >
       <PublicAppProvider initialConfigs={publicConfigs}>
         <AuthSnapshotProvider initialSnapshot={initialSnapshot}>
-          <Layout header={header} footer={footer}>
+          <LandingLayout header={header} footer={footer}>
             <LocaleDetector />
             <ConsoleLayout
               title={title}
@@ -81,7 +79,7 @@ export default async function ActivityLayout({
             >
               {children}
             </ConsoleLayout>
-          </Layout>
+          </LandingLayout>
         </AuthSnapshotProvider>
       </PublicAppProvider>
     </ScopedIntlProvider>
