@@ -3,14 +3,16 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/core/db';
-import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
-import { serverEnv } from '@/config/server';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
 import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
-import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
+import {
+  getServerPublicEnvConfigs,
+  getServerRuntimeEnv,
+  isCloudflareWorkersRuntime,
+} from '@/shared/lib/runtime/env.server';
 import {
   PUBLIC_SETTING_NAMES,
   type KnownSettingKey,
@@ -72,8 +74,9 @@ export async function addConfig(newConfig: NewConfig) {
 
 async function getConfigsFromDb(): Promise<Configs> {
   const configs: Record<string, string> = {};
+  const runtimeEnv = getServerRuntimeEnv();
 
-  if (!serverEnv.databaseUrl && !isCloudflareWorkersRuntime()) {
+  if (!runtimeEnv.databaseUrl && !isCloudflareWorkersRuntime()) {
     return mergeAuthSpikeOAuthConfigSeedConfigs(configs);
   }
 
@@ -119,10 +122,11 @@ export async function getConfigsSafe(): Promise<{
 
 export async function getAllConfigs(): Promise<Configs> {
   const dbConfigs = await getConfigs();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   // DB is allowed to override env for compatibility (app_url/app_name/locale...)
   const configs = {
-    ...envConfigs,
+    ...serverPublicEnvConfigs,
     ...dbConfigs,
   };
 
@@ -134,10 +138,11 @@ export async function getAllConfigsSafe(): Promise<{
   error?: Error;
 }> {
   const { configs: dbConfigs, error } = await getConfigsSafe();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   return {
     configs: {
-      ...envConfigs,
+      ...serverPublicEnvConfigs,
       ...dbConfigs,
     },
     error,

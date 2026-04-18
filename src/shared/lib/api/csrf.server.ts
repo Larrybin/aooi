@@ -13,8 +13,8 @@
 
 import 'server-only';
 
-import { envConfigs } from '@/config';
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 
 import { ForbiddenError } from './errors';
 
@@ -73,7 +73,7 @@ function hostFromUrl(url: string): string | null {
 
 function appHost(): string | null {
   try {
-    return new URL(envConfigs.app_url).host || null;
+    return new URL(getServerPublicEnvConfigs().app_url).host || null;
   } catch {
     return null;
   }

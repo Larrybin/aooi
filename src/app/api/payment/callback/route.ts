@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 
-import { envConfigs } from '@/config';
 import { PaymentType } from '@/core/payment/domain';
 import { handleCheckoutSuccess } from '@/core/payment/flows/flows';
 import { getPaymentService } from '@/core/payment/providers/service';
@@ -13,6 +12,7 @@ import {
 } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import { getAllConfigs } from '@/shared/models/config';
 import { findOrderByOrderNo } from '@/shared/models/order';
 import {
@@ -49,7 +49,8 @@ export async function GET(req: Request) {
   let redirectUrl = '';
 
   const configs = await getAllConfigs();
-  const appUrl = (configs.app_url || envConfigs.app_url).trim();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 
   try {
     // get callback params
@@ -85,7 +86,8 @@ export const POST = withApi(async (req: Request) => {
   const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
 
   const configs = await getAllConfigs();
-  const appUrl = (configs.app_url || envConfigs.app_url).trim();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 
   const user = await api.requireUser();
   if (!user.email) {

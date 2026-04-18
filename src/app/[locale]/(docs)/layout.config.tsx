@@ -1,15 +1,16 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 import { docsI18n } from '@/core/docs/source';
-import { envConfigs } from '@/config';
 import { AppImage } from '@/shared/blocks/common/app-image';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 
 export function baseOptions(
   _locale: string,
   brand?: { appName?: string; appLogo?: string }
 ): BaseLayoutProps {
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const appName = brand?.appName || '';
-  const appLogo = brand?.appLogo || envConfigs.app_logo;
+  const appLogo = brand?.appLogo || serverPublicEnvConfigs.app_logo;
   return {
     themeSwitch: {
       enabled: false,

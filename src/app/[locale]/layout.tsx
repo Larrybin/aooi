@@ -6,19 +6,20 @@ import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { routing } from '@/core/i18n/config';
 import { HtmlLangProvider } from '@/core/i18n/html-lang-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import { getAllConfigsSafe } from '@/shared/models/config';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { configs } = await getAllConfigsSafe();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const brand = buildBrandPlaceholderValues(configs);
 
   return {
-    metadataBase: new URL(envConfigs.app_url),
+    metadataBase: new URL(serverPublicEnvConfigs.app_url),
     title: {
       default: brand.appName,
       template: `%s | ${brand.appName}`,

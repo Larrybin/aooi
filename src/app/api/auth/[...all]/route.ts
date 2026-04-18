@@ -1,6 +1,7 @@
 import { toNextJsHandler } from 'better-auth/next-js';
 
 import { getAuth } from '@/core/auth';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ function normalizeAuthSpikeRedirectLocation(
   response: Response,
   request: Request
 ): Response {
-  if (process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK !== 'true') {
+  if (!isAuthSpikeOAuthUpstreamMockEnabled()) {
     return response;
   }
 

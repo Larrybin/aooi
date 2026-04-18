@@ -1,4 +1,3 @@
-import { envConfigs } from '@/config';
 import { AITaskStatus, type AIGenerateParams } from '@/extensions/ai';
 import {
   BadRequestError,
@@ -13,6 +12,7 @@ import type {
   NewAITask,
   updateAITaskById,
 } from '@/shared/models/ai_task';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import type { getAllConfigs } from '@/shared/models/config';
 import {
   AiGenerateBodySchema,
@@ -33,13 +33,14 @@ type AiGenerateApiContext = {
 };
 
 function resolveAppUrlOrigin(appUrl: string): string {
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const raw = appUrl?.trim() || '';
-  if (!raw) return envConfigs.app_url;
+  if (!raw) return serverPublicEnvConfigs.app_url;
 
   try {
     return new URL(raw).origin;
   } catch {
-    return envConfigs.app_url;
+    return serverPublicEnvConfigs.app_url;
   }
 }
 
@@ -82,7 +83,7 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
     }
 
     const user = await api.requireUser();
-    const appUrl = resolveAppUrlOrigin(configs.app_url || envConfigs.app_url);
+    const appUrl = resolveAppUrlOrigin(configs.app_url);
     const callbackUrl = `${appUrl}/api/ai/notify/${capability.provider}`;
     const params: AIGenerateParams = {
       mediaType,

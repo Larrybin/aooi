@@ -4,10 +4,10 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import {
   findSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNo,
@@ -58,9 +58,10 @@ export default async function RetrieveBillingPage({
   let billingUrl = '';
 
   try {
+    const serverPublicEnvConfigs = getServerPublicEnvConfigs();
     const billing = await paymentProvider.getPaymentBilling?.({
       customerId: subscription.paymentUserId,
-      returnUrl: `${envConfigs.app_url}/settings/billing`,
+      returnUrl: `${serverPublicEnvConfigs.app_url}/settings/billing`,
     });
     if (!billing?.billingUrl) {
       return <Empty message={t('errors.billing_url_not_found')} />;

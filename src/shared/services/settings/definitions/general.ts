@@ -1,4 +1,5 @@
-import { envConfigs } from '@/config';
+import { DEFAULT_PUBLIC_ENV_CONFIGS } from '@/config/public-env';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import { getDefaultSupportEmailFromOrigin } from '@/shared/lib/support-email';
 
 import type { SettingDefinition } from '../types';
@@ -37,7 +38,7 @@ const generalBrandSettings = defineSettingsGroup(
       name: 'app_name',
       title: 'App Name',
       type: 'text',
-      value: envConfigs.app_name,
+      value: DEFAULT_PUBLIC_ENV_CONFIGS.app_name,
       placeholder: 'My App',
       normalizer: normalizeAppName,
     },
@@ -45,7 +46,7 @@ const generalBrandSettings = defineSettingsGroup(
       name: 'app_url',
       title: 'App URL (Origin)',
       type: 'text',
-      value: envConfigs.app_url,
+      value: DEFAULT_PUBLIC_ENV_CONFIGS.app_url,
       placeholder: 'https://your-domain.com',
       tip: 'Must be a pure origin (http/https), e.g. https://example.com (no path/query). Used for canonical URLs, sitemap, and callbacks.',
       normalizer: normalizeAppUrl,
@@ -54,7 +55,7 @@ const generalBrandSettings = defineSettingsGroup(
       name: 'general_support_email',
       title: 'Support Email',
       type: 'text',
-      value: getDefaultSupportEmailFromOrigin(envConfigs.app_url),
+      value: getDefaultSupportEmailFromOrigin(DEFAULT_PUBLIC_ENV_CONFIGS.app_url),
       placeholder: 'support@example.com',
       normalizer: normalizeSupportEmail,
     },
@@ -62,7 +63,7 @@ const generalBrandSettings = defineSettingsGroup(
       name: 'app_logo',
       title: 'App Logo',
       type: 'upload_image',
-      value: envConfigs.app_logo,
+      value: DEFAULT_PUBLIC_ENV_CONFIGS.app_logo,
       placeholder:
         'Upload your brand logo (recommended square image). Requires Storage to be configured.',
       tip: 'Used in docs nav, auth pages, admin/sidebar brand area, and 404 page.',
@@ -80,7 +81,7 @@ const generalBrandSettings = defineSettingsGroup(
       name: 'app_favicon',
       title: 'Favicon',
       type: 'upload_image',
-      value: envConfigs.app_favicon,
+      value: DEFAULT_PUBLIC_ENV_CONFIGS.app_favicon,
       placeholder:
         'Upload favicon image (.ico/.png recommended). Requires Storage to be configured.',
       tip: 'Used as the global site icon in metadata.',
@@ -98,7 +99,7 @@ const generalBrandSettings = defineSettingsGroup(
       name: 'app_og_image',
       title: 'Preview Image',
       type: 'upload_image',
-      value: envConfigs.app_og_image,
+      value: DEFAULT_PUBLIC_ENV_CONFIGS.app_og_image,
       placeholder:
         'Upload social preview image (recommended 1200x630). Requires Storage to be configured.',
       tip: 'Used for Open Graph and Twitter preview cards.',
@@ -156,3 +157,31 @@ export const generalSettings = [
   ...generalBrandSettings,
   ...generalUiSettings,
 ] as const satisfies readonly SettingDefinition[];
+
+export function applyGeneralSettingsRuntimeValues(
+  settings: readonly SettingDefinition[]
+): SettingDefinition[] {
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+
+  return settings.map((setting) => {
+    switch (setting.name) {
+      case 'app_name':
+        return { ...setting, value: serverPublicEnvConfigs.app_name };
+      case 'app_url':
+        return { ...setting, value: serverPublicEnvConfigs.app_url };
+      case 'general_support_email':
+        return {
+          ...setting,
+          value: getDefaultSupportEmailFromOrigin(serverPublicEnvConfigs.app_url),
+        };
+      case 'app_logo':
+        return { ...setting, value: serverPublicEnvConfigs.app_logo };
+      case 'app_favicon':
+        return { ...setting, value: serverPublicEnvConfigs.app_favicon };
+      case 'app_og_image':
+        return { ...setting, value: serverPublicEnvConfigs.app_og_image };
+      default:
+        return setting;
+    }
+  });
+}

@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next';
 
-import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import {
@@ -8,6 +7,7 @@ import {
   isLandingDocsEnabled,
 } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;
@@ -26,6 +26,7 @@ function buildUrl(pathname: string, locale: string, appUrl: string) {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publicConfigs = await getPublicConfigsCached();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const brand = buildBrandPlaceholderValues(publicConfigs);
   const routes = [
     '/',
@@ -37,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return locales.flatMap((locale) =>
     routes.map((route) => ({
-      url: buildUrl(route, locale, brand.appUrl || envConfigs.app_url),
+      url: buildUrl(route, locale, brand.appUrl || serverPublicEnvConfigs.app_url),
       lastModified,
     }))
   );

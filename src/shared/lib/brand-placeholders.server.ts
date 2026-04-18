@@ -1,11 +1,11 @@
 import 'server-only';
 
-import { envConfigs } from '@/config';
 import { resolveStoredAssetUrl } from '@/shared/lib/storage-public-url';
 import {
   getDefaultSupportEmailFromDomain,
   getDomainFromOrigin,
 } from '@/shared/lib/support-email';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 
 export type BrandPlaceholderValues = {
   appName: string;
@@ -24,24 +24,26 @@ function safeTrim(value: unknown): string {
 export function buildBrandPlaceholderValues(
   configs?: Record<string, string>
 ): BrandPlaceholderValues {
-  const appUrl = safeTrim(configs?.app_url) || envConfigs.app_url;
-  const appName = safeTrim(configs?.app_name) || envConfigs.app_name;
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const appUrl = safeTrim(configs?.app_url) || serverPublicEnvConfigs.app_url;
+  const appName =
+    safeTrim(configs?.app_name) || serverPublicEnvConfigs.app_name;
   const storagePublicBaseUrl = safeTrim(configs?.storage_public_base_url);
   const appLogo =
     resolveStoredAssetUrl({
       value: safeTrim(configs?.app_logo),
       storagePublicBaseUrl,
-    }) || envConfigs.app_logo;
+    }) || serverPublicEnvConfigs.app_logo;
   const appFavicon =
     resolveStoredAssetUrl({
       value: safeTrim(configs?.app_favicon),
       storagePublicBaseUrl,
-    }) || envConfigs.app_favicon;
+    }) || serverPublicEnvConfigs.app_favicon;
   const appOgImage =
     resolveStoredAssetUrl({
       value: safeTrim(configs?.app_og_image),
       storagePublicBaseUrl,
-    }) || envConfigs.app_og_image;
+    }) || serverPublicEnvConfigs.app_og_image;
   const domain = getDomainFromOrigin(appUrl);
   const supportEmail =
     safeTrim(configs?.general_support_email) ||
