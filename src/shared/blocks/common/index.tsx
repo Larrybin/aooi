@@ -2,8 +2,8 @@ export * from './smart-icon';
 
 export * from './pagination';
 
+export * from './app-image';
 export * from './brand-logo';
-export * from './brand-image';
 
 export * from './locale-detector';
 export * from './locale-detector-lazy';
@@ -16,7 +16,6 @@ export * from './page-header';
 export * from './section-header';
 
 export * from './empty';
-export * from './lazy-image';
 export * from './image-uploader';
 
 export * from './audio-player';

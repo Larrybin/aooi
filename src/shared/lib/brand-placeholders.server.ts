@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { envConfigs } from '@/config';
+import { resolveStoredAssetUrl } from '@/shared/lib/storage-public-url';
 import {
   getDefaultSupportEmailFromDomain,
   getDomainFromOrigin,
@@ -25,9 +26,22 @@ export function buildBrandPlaceholderValues(
 ): BrandPlaceholderValues {
   const appUrl = safeTrim(configs?.app_url) || envConfigs.app_url;
   const appName = safeTrim(configs?.app_name) || envConfigs.app_name;
-  const appLogo = safeTrim(configs?.app_logo) || envConfigs.app_logo;
-  const appFavicon = safeTrim(configs?.app_favicon) || envConfigs.app_favicon;
-  const appOgImage = safeTrim(configs?.app_og_image) || envConfigs.app_og_image;
+  const storagePublicBaseUrl = safeTrim(configs?.storage_public_base_url);
+  const appLogo =
+    resolveStoredAssetUrl({
+      value: safeTrim(configs?.app_logo),
+      storagePublicBaseUrl,
+    }) || envConfigs.app_logo;
+  const appFavicon =
+    resolveStoredAssetUrl({
+      value: safeTrim(configs?.app_favicon),
+      storagePublicBaseUrl,
+    }) || envConfigs.app_favicon;
+  const appOgImage =
+    resolveStoredAssetUrl({
+      value: safeTrim(configs?.app_og_image),
+      storagePublicBaseUrl,
+    }) || envConfigs.app_og_image;
   const domain = getDomainFromOrigin(appUrl);
   const supportEmail =
     safeTrim(configs?.general_support_email) ||

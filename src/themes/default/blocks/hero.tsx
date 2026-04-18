@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
-import { LazyImage } from '@/shared/blocks/common/lazy-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { Button } from '@/shared/components/ui/button';
 import type { Hero as HeroType } from '@/shared/types/blocks/landing';
 
@@ -134,7 +134,7 @@ export function Hero({
                       key={index}
                       className="bg-muted ring-background block size-10 overflow-hidden rounded-full ring-2"
                     >
-                      <LazyImage
+                      <AppImage
                         src={url}
                         alt={`User avatar ${index + 1}`}
                         width={40}
@@ -170,7 +170,7 @@ export function Hero({
                   className="bg-muted/60 border-border/70 relative w-full overflow-hidden rounded-[calc(var(--radius)+0.5rem)] border"
                   style={getImageWrapperStyle(hero.image ?? hero.image_invert)}
                 >
-                  <LazyImage
+                  <AppImage
                     src={hero.image?.src || hero.image_invert?.src || ''}
                     alt={heroImageAlt}
                     fill

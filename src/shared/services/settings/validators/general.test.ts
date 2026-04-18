@@ -27,8 +27,15 @@ test('normalizeAssetSettingValue: 允许绝对 http/https URL', () => {
   );
 });
 
-test('normalizeAssetSettingValue: 拒绝非法值', () => {
-  const result = normalizeAssetSettingValue('logo.png', 'Logo');
+test('normalizeAssetSettingValue: 允许 storage objectKey', () => {
+  assert.deepEqual(normalizeAssetSettingValue('uploads/logo.png', 'Logo'), {
+    ok: true,
+    value: 'uploads/logo.png',
+  });
+});
+
+test('normalizeAssetSettingValue: 拒绝非法绝对 URL', () => {
+  const result = normalizeAssetSettingValue('https://[invalid-url', 'Logo');
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.match(result.error, /valid absolute URL or a public path/);

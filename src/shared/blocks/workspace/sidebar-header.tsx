@@ -1,5 +1,5 @@
 import { Link } from '@/core/i18n/navigation';
-import { BrandImage } from '@/shared/blocks/common/brand-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import {
   SidebarHeader as SidebarHeaderComponent,
   SidebarMenu,
@@ -24,7 +24,7 @@ export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
               {header.brand && (
                 <Link href={header.brand.url || ''}>
                   {header.brand.logo && (
-                    <BrandImage
+                    <AppImage
                       src={header.brand.logo.src}
                       alt={
                         header.brand.logo.alt ||

@@ -1,7 +1,6 @@
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
 import type { createApiContext } from '@/shared/lib/api/context';
-import { DualConcurrencyLimiter } from '@/shared/lib/api/limiters';
-import { STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG } from '@/shared/lib/api/limiters-config';
+import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import type { getStorageService } from '@/shared/services/storage';
@@ -22,7 +21,10 @@ type StorageUploadRouteDeps = {
   }>;
   uploadImageFiles: typeof uploadImageFiles;
   getStorageService: typeof getStorageService;
-  concurrencyLimiter: Pick<DualConcurrencyLimiter, 'acquire' | 'release'>;
+  concurrencyLimiter: {
+    acquire: (key: string, now?: number) => Promise<boolean>;
+    release: (key: string, now?: number) => Promise<void>;
+  };
 };
 
 function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
@@ -43,9 +45,8 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
       const mod = await import('@/shared/services/storage');
       return await mod.getStorageService();
     },
-    concurrencyLimiter: new DualConcurrencyLimiter(
-      STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG
-    ),
+    concurrencyLimiter:
+      createLimiterFactory().createStorageUploadConcurrencyLimiter(),
   };
 }
 
@@ -87,7 +88,6 @@ function buildStorageUploadImagePostLogic(
       });
 
       return jsonOk({
-        urls: uploadResults.map((r) => r.url),
         results: uploadResults,
       });
     } finally {

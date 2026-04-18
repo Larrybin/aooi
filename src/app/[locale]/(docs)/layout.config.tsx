@@ -2,7 +2,7 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 import { docsI18n } from '@/core/docs/source';
 import { envConfigs } from '@/config';
-import { BrandImage } from '@/shared/blocks/common/brand-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 
 export function baseOptions(
   _locale: string,
@@ -18,7 +18,7 @@ export function baseOptions(
     nav: {
       title: (
         <>
-          <BrandImage
+          <AppImage
             src={appLogo}
             alt={appName}
             width={28}

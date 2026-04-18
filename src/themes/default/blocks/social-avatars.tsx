@@ -1,6 +1,6 @@
 import { Star } from 'lucide-react';
 
-import { LazyImage } from '@/shared/blocks/common/lazy-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { Avatar } from '@/shared/components/ui/avatar';
 
 const userImgUrls = [
@@ -18,7 +18,7 @@ export function SocialAvatars({ tip }: { tip: string }) {
       <span className="mx-4 inline-flex items-center -space-x-2">
         {userImgUrls.map((url, index) => (
           <Avatar className="size-10 border" key={index}>
-            <LazyImage
+            <AppImage
               src={url}
               alt={`User avatar ${index + 1}`}
               width={40}

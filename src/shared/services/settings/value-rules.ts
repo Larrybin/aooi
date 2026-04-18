@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
 import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
+import {
+  normalizeStoragePublicBaseUrl,
+} from '@/shared/lib/storage-public-url';
 import { tryJsonParse } from '@/shared/lib/json';
 import { normalizeAssetSettingValue } from '@/shared/services/settings/validators/general';
 import {
@@ -96,6 +99,20 @@ export function normalizeAppFavicon(value: string) {
 
 export function normalizeAppOgImage(value: string) {
   return normalizeAssetValue(value, 'Preview Image', 'Preview Image');
+}
+
+export function normalizeStoragePublicUrl(
+  value: string
+): NormalizedSettingValueResult {
+  const result = normalizeStoragePublicBaseUrl(value);
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: `Invalid Storage Public Base URL. ${result.error}`,
+    };
+  }
+
+  return result;
 }
 
 function formatSocialLinksIssues(error: z.ZodError): string {

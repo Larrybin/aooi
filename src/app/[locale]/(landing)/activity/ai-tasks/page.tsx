@@ -6,8 +6,8 @@ import { getTranslations } from 'next-intl/server';
 
 import { AITaskStatus } from '@/extensions/ai';
 import { AudioPlayer } from '@/shared/blocks/common/audio-player';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { Empty } from '@/shared/blocks/common/empty';
-import { LazyImage } from '@/shared/blocks/common/lazy-image';
 import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
@@ -129,7 +129,7 @@ export default async function AiTasksPage({
                       key={index}
                       className="relative h-32 w-32 overflow-hidden rounded-md border"
                     >
-                      <LazyImage
+                      <AppImage
                         src={image.imageUrl}
                         alt="Generated image"
                         fill

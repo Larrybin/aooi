@@ -21,7 +21,7 @@ export function getStorageServiceWithConfigs(
 }
 
 /**
- * global storage service
+ * Global storage service. In production this is Cloudflare R2 binding only.
  */
 export async function getStorageService(): Promise<StorageService> {
   return await buildServiceFromLatestConfigs(getStorageServiceWithConfigs);

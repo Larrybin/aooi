@@ -173,6 +173,12 @@ export function Form<
             appLogo={String(watchedValues.app_logo ?? '')}
             appFavicon={String(watchedValues.app_favicon ?? '')}
             appPreviewImage={String(watchedValues.app_og_image ?? '')}
+            storagePublicBaseUrl={String(
+              watchedValues.storage_public_base_url ??
+                (data as Record<string, unknown> | undefined)
+                  ?.storage_public_base_url ??
+                ''
+            )}
           />
         ) : null}
         {submit?.button && (

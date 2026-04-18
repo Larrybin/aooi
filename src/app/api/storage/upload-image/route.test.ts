@@ -118,6 +118,6 @@ test('uploadImageFiles 在 provider 返回失败时抛出 502 语义', async () 
     (error: unknown) =>
       error instanceof UpstreamError &&
       error.status === 502 &&
-      error.message === 'upload failed'
+      error.message === 'bucket unavailable'
   );
 });

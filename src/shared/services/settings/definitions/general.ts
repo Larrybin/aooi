@@ -72,6 +72,7 @@ const generalBrandSettings = defineSettingsGroup(
       metadata: {
         max: 1,
         maxSizeMB: 5,
+        storageValueMode: 'objectKey',
       },
       normalizer: normalizeAppLogo,
     },
@@ -89,6 +90,7 @@ const generalBrandSettings = defineSettingsGroup(
       metadata: {
         max: 1,
         maxSizeMB: 2,
+        storageValueMode: 'objectKey',
       },
       normalizer: normalizeAppFavicon,
     },
@@ -106,6 +108,7 @@ const generalBrandSettings = defineSettingsGroup(
       metadata: {
         max: 1,
         maxSizeMB: 5,
+        storageValueMode: 'objectKey',
       },
       normalizer: normalizeAppOgImage,
     },
