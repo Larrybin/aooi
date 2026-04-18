@@ -50,9 +50,11 @@ function createSuccessUploadResult() {
 async function waitForCondition(
   condition: () => boolean,
   message: string,
-  maxTicks = 50
+  timeoutMs = 2_000
 ) {
-  for (let index = 0; index < maxTicks; index += 1) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
     if (condition()) {
       return;
     }
@@ -268,6 +270,14 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
 
 test('storage/upload-image 路由并发契约: 全局与单用户上限同时生效', async () => {
   const pendingResolvers: Array<(value: unknown) => void> = [];
+  let activeUploads = 0;
+  const concurrencyLimiter = new DualConcurrencyLimiter({
+    bucket: 'test.route.storage-upload',
+    maxGlobal: 4,
+    maxPerKey: 2,
+    leaseMs: 15 * 60 * 1000,
+    store: createMemoryRateLimitStore(),
+  });
 
   const handler = createStorageUploadImagePostHandler({
     getApiContext: (req: Request) =>
@@ -292,13 +302,19 @@ test('storage/upload-image 路由并发契约: 全局与单用户上限同时生
         url: 'https://cdn.example.com/k1',
       }),
     }),
-    concurrencyLimiter: new DualConcurrencyLimiter({
-      bucket: 'test.route.storage-upload',
-      maxGlobal: 4,
-      maxPerKey: 2,
-      leaseMs: 15 * 60 * 1000,
-      store: createMemoryRateLimitStore(),
-    }),
+    concurrencyLimiter: {
+      acquire: async (key: string) => {
+        const allowed = await concurrencyLimiter.acquire(key);
+        if (allowed) {
+          activeUploads += 1;
+        }
+        return allowed;
+      },
+      release: async (key: string) => {
+        await concurrencyLimiter.release(key);
+        activeUploads = Math.max(0, activeUploads - 1);
+      },
+    },
   });
 
   const createReq = (userId: string) =>
@@ -309,12 +325,12 @@ test('storage/upload-image 路由并发契约: 全局与单用户上限同时生
 
   const u1First = handler(createReq('u1'));
   await waitForCondition(
-    () => pendingResolvers.length === 1,
+    () => activeUploads === 1,
     'u1 第一个上传未进入并发占用态'
   );
   const u1Second = handler(createReq('u1'));
   await waitForCondition(
-    () => pendingResolvers.length === 2,
+    () => activeUploads === 2,
     'u1 第二个上传未进入并发占用态'
   );
 
@@ -323,17 +339,22 @@ test('storage/upload-image 路由并发契约: 全局与单用户上限同时生
 
   const u2First = handler(createReq('u2'));
   await waitForCondition(
-    () => pendingResolvers.length === 3,
+    () => activeUploads === 3,
     'u2 第一个上传未进入并发占用态'
   );
   const u2Second = handler(createReq('u2'));
   await waitForCondition(
-    () => pendingResolvers.length === 4,
+    () => activeUploads === 4,
     'u2 第二个上传未进入并发占用态'
   );
 
   const deniedGlobal = await handler(createReq('u3'));
   assert.equal(deniedGlobal.status, 429);
+
+  await waitForCondition(
+    () => pendingResolvers.length === 4,
+    '并发上传未全部进入挂起态'
+  );
 
   for (const resolve of pendingResolvers) {
     resolve(createSuccessUploadResult());
