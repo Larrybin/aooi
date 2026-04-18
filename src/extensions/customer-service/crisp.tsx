@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import type { CustomerServiceConfigs, CustomerServiceProvider } from '.';
+import type {
+  CustomerServiceConfigs,
+  CustomerServiceProvider,
+} from './types';
 
 /**
  * Crisp customer service configs

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import type { AffiliateConfigs, AffiliateProvider } from '.';
+import type { AffiliateConfigs, AffiliateProvider } from './types';
 
 /**
  * PromoteKit affiliate configs
