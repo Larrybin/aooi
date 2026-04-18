@@ -76,3 +76,37 @@ jobs:
       - name: Run Cloudflare local runtime smoke
         if: matrix.deploy_target == 'cloudflare'
         run: pnpm test:cf-local-smoke
+
+  prepare-cloudflare-release:
+    name: Prepare Cloudflare release metadata
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: acceptance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build release metadata
+        run: >
+          node scripts/create-cloudflare-release-metadata.mjs
+          --base-sha="${{ github.event.before }}"
+          --head-sha="${{ github.sha }}"
+          --out=".tmp/release-metadata.json"
+
+      - name: Upload release metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-metadata
+          path: .tmp/release-metadata.json
+          if-no-files-found: error
+          retention-days: 7

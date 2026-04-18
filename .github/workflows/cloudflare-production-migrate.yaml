@@ -1,0 +1,53 @@
+name: Cloudflare Production Migrate
+
+on:
+  workflow_call:
+    inputs:
+      target_sha:
+        description: Commit SHA to migrate against
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Commit SHA to migrate against
+        required: true
+        type: string
+
+concurrency:
+  group: cloudflare-production-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Production database migrate
+    runs-on: ubuntu-latest
+    environment: cloudflare-production
+    permissions:
+      contents: read
+    env:
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+    steps:
+      - name: Checkout target commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run production migrations
+        run: pnpm db:migrate
