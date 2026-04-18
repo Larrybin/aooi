@@ -10,6 +10,16 @@ import type {
   RateLimitStore,
 } from '@/shared/lib/api/rate-limit-store';
 
+type DurableObjectStorageLike = {
+  get<T = unknown>(key: string): Promise<T | undefined>;
+  put<T>(key: string, value: T): Promise<void>;
+  delete(key: string[]): Promise<number>;
+};
+
+type DurableObjectStateLike = {
+  readonly storage: DurableObjectStorageLike;
+};
+
 type DurableObjectRequestBody =
   | {
       action: 'cooldown.check' | 'cooldown.checkAndConsume' | 'cooldown.consume';
@@ -121,7 +131,7 @@ function cloneRecord(
 }
 
 function createDurableObjectRateLimitStore(
-  storage: DurableObjectStorage
+  storage: DurableObjectStorageLike
 ): RateLimitStore {
   return {
     async withLock(bucket, _scopeKeys, fn) {
@@ -242,7 +252,7 @@ function json(data: unknown, status = 200) {
 export class StatefulLimitersDurableObject {
   private readonly store: RateLimitStore;
 
-  constructor(state: DurableObjectState, _env: CloudflareEnv) {
+  constructor(state: DurableObjectStateLike, _env: unknown) {
     this.store = createDurableObjectRateLimitStore(state.storage);
   }
 
