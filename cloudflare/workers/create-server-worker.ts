@@ -1,4 +1,3 @@
-import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
 import { isRuntimeEnvEnabled } from '../../src/shared/lib/runtime/env.server';
 
 type CloudflareFetchHandler<Env> = (
@@ -13,6 +12,26 @@ type CloudflareFetchModule<Env> = {
 };
 
 type RuntimeEnvOptions = Parameters<typeof isRuntimeEnvEnabled>[1];
+
+type RunWithCloudflareRequestContext = <Env>(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  callback: () => Promise<Response> | Response
+) => Promise<Response> | Response;
+
+let runWithCloudflareRequestContextPromise:
+  | Promise<RunWithCloudflareRequestContext>
+  | undefined;
+
+function loadRunWithCloudflareRequestContext() {
+  return (runWithCloudflareRequestContextPromise ??= import(
+    '../../.open-next/cloudflare/init.js'
+  ).then(
+    (module) =>
+      module.runWithCloudflareRequestContext as RunWithCloudflareRequestContext
+  ));
+}
 
 export function syncWorkerStringBindingsToProcessEnv(env: unknown) {
   if (!env || typeof env !== 'object') {
@@ -65,6 +84,8 @@ export function createServerWorker<Env>(
       syncWorkerStringBindingsToProcessEnv(env);
       const handler =
         (handlerPromise ??= loadModule().then(({ handler }) => handler));
+      const runWithCloudflareRequestContext =
+        await loadRunWithCloudflareRequestContext();
 
       return runWithCloudflareRequestContext(request, env, ctx, async () => {
         printServerWorkerAuthDebug(request);

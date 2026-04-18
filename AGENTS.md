@@ -28,8 +28,9 @@
 
 ## Testing Guidelines
 
-- A default test runner is not wired yet; when adding tests, colocate them with features using `*.test.ts` / `*.test.tsx`.
+- Use `pnpm test` as the default repository test gate; when adding tests, colocate them with features using `*.test.ts` / `*.test.tsx`.
 - Keep tests fast and deterministic; prefer unit tests for core logic in `src/core` and lightweight integration tests for `src/app`.
+- Treat generated directories such as `.open-next/`, `.next/`, `dist/`, `build/`, and `output/` as build artifacts only. Source files that must remain test-reachable may not top-level static `import` them; consume them only at explicit runtime boundaries, preferably via lazy `import()`.
 - Ensure critical flows (auth, billing, database migrations) have at least basic coverage before major releases.
 
 ## Commit & Pull Request Guidelines

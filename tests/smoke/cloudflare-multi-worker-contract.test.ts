@@ -53,6 +53,42 @@ test('server worker 公共入口会把字符串 env 绑定同步到 process.env'
   assert.match(source, /process\.env\[key\] = value/);
 });
 
+test('共享 worker helper 不允许顶层静态 import OpenNext 构建产物', async () => {
+  const helperPaths = [
+    'cloudflare/workers/create-server-worker.ts',
+    'cloudflare/workers/router-forwarding.ts',
+    'cloudflare/workers/stateful-limiters.ts',
+  ];
+
+  for (const relativePath of helperPaths) {
+    const source = await fs.readFile(path.join(rootDir, relativePath), 'utf8');
+
+    assert.doesNotMatch(
+      source,
+      /^\s*import\s.+from\s+['"][^'"]*\.open-next\//m,
+      `${relativePath} 不应顶层静态 import .open-next 构建产物`
+    );
+  }
+});
+
+test('server worker helper 仅在运行时懒加载 OpenNext request context', async () => {
+  const source = await fs.readFile(
+    path.join(rootDir, 'cloudflare/workers/create-server-worker.ts'),
+    'utf8'
+  );
+
+  assert.doesNotMatch(
+    source,
+    /^\s*import\s.+cloudflare\/init\.js['"]/m,
+    'create-server-worker 不应顶层静态 import OpenNext init'
+  );
+  assert.match(
+    source,
+    /import\(\s*['"]\.\.\/\.\.\/\.open-next\/cloudflare\/init\.js['"]\s*\)/,
+    'create-server-worker 应在 fetch 边界懒加载 OpenNext init'
+  );
+});
+
 test('build tsconfig 覆盖 Cloudflare worker 与声明文件输入', async () => {
   const tsconfig = JSON.parse(
     await fs.readFile(path.join(rootDir, 'tsconfig.json'), 'utf8')
