@@ -4,6 +4,12 @@ import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  assertAllowedEnvKeys,
+  DEV_VARS_ALLOWED_KEYS,
+  parseEnvAssignments,
+} from '../../src/config/env-contract.ts';
+
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..'
@@ -306,13 +312,25 @@ export async function ensureCiDevVars({
   );
   const nextAuthSecret =
     existingAuthSecret || existingBetterAuthSecret || authSecret;
+  const nextInjectedVars = {
+    AUTH_SECRET: nextAuthSecret,
+    BETTER_AUTH_SECRET:
+      existingBetterAuthSecret || existingAuthSecret || authSecret,
+    ...extraVars,
+  };
+  const nextDevVars = {
+    ...parseEnvAssignments(existingContent),
+    ...nextInjectedVars,
+  };
+
+  assertAllowedEnvKeys(nextDevVars, DEV_VARS_ALLOWED_KEYS, '.dev.vars');
 
   let nextContent = existingContent;
-  nextContent = upsertDevVar(nextContent, 'AUTH_SECRET', nextAuthSecret);
+  nextContent = upsertDevVar(nextContent, 'AUTH_SECRET', nextInjectedVars.AUTH_SECRET);
   nextContent = upsertDevVar(
     nextContent,
     'BETTER_AUTH_SECRET',
-    existingBetterAuthSecret || existingAuthSecret || authSecret
+    nextInjectedVars.BETTER_AUTH_SECRET
   );
   for (const [name, value] of Object.entries(extraVars)) {
     nextContent = upsertDevVar(nextContent, name, value);
