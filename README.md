@@ -36,6 +36,7 @@ src/
 ├── shared/        # Cross-surface primitives, services, utilities, types
 ├── extensions/    # Third-party integrations (AI, storage, etc.)
 ├── config/        # Configuration, DB schema, locale messages
+├── testing/       # Shared smoke/test contracts and test-only helpers
 └── themes/        # UI themes
 
 docs/              # Engineering documentation
@@ -128,6 +129,7 @@ Read `content/docs` to start your AI SaaS project.
 - `scripts/lib/harness/reporter.mjs`：统一 JSON/Markdown/latest report 输出和 harness exit code 规则。
 - 公共 package 命令名保持稳定；内部统一由 `scripts/smoke.mjs <scenario>` 调度到底层 runner。当前场景包括 `auth-spike`、`cf-app`、`cf-local`、`cf-admin-settings`。
 - 底层 runner（如 `scripts/run-auth-spike.mjs`、`scripts/run-cf-app-smoke.mjs`、`scripts/run-cf-local-smoke.mjs`、`scripts/run-cf-admin-settings-smoke.mjs`）继续承载具体断言，供测试直接导入。
+- `src/testing/**` 是测试支持层，不是通用生产工具层。这里只允许放测试共享合同、smoke/shared 断言 helper、测试专用纯函数工具；`src/**` 与 `cloudflare/**` 生产代码不得依赖它。
 
 ### Code Quality
 
@@ -137,6 +139,21 @@ Read `content/docs` to start your AI SaaS project.
 | [Code Review](docs/CODE_REVIEW.md)                 | Full code review guide                                   |
 | [Architecture Review](docs/ARCHITECTURE_REVIEW.md) | Architecture audit report                                |
 | [Contributing](CONTRIBUTING.md)                    | Contribution guidelines                                  |
+
+### CI Guardrails
+
+- `pnpm lint:deps` 是仓库正式门禁，使用 `dependency-cruiser` 校验目录边界、`src/testing/**` 依赖方向和全仓循环依赖。
+- `.github/workflows/dependency-review.yaml` 会在 `pull_request -> main` 运行 `dependency-review`，当前只拦截新增 `high/critical` 依赖漏洞。
+- `.github/workflows/cloudflare-acceptance.yaml` 的顺序固定为：`pnpm lint` -> `pnpm lint:deps` -> `pnpm test` -> `pnpm cf:check` -> `pnpm cf:build` -> Cloudflare smoke。
+- 所有 marketplace actions 都固定到完整 commit SHA，并在 `uses:` 旁保留 `# pinned from vX` 注释；`.github/dependabot.yml` 负责按周提出 `github-actions` 与 `npm` 更新 PR，但默认不自动合并。
+- GitHub 平台侧仍需手工开启 `secret scanning`、`push protection`，并把 `dependency-review` 与 `cloudflare acceptance` 设为 required checks。
+
+### Env Contract
+
+- `src/config/env-contract.ts` 是仓库唯一的 env/secret allowlist 来源，统一维护 `PUBLIC_ENV_KEYS`、`SERVER_RUNTIME_ENV_KEYS`、`CLOUDFLARE_SECRET_ENV_KEYS`、`DEV_VARS_ALLOWED_KEYS`。
+- `src/config/public-env.ts`、`src/shared/lib/runtime/env.server.ts`、`src/config/server-auth-base-url.ts`、`src/config/load-dotenv.ts` 是允许直接触碰环境变量的边界模块；其余 `src/**`、`cloudflare/**` 运行时代码必须走 helper。
+- `pnpm lint` 会拦截非白名单文件中的 `process.env` 读取或传播；仓库 contract test 还会扫描未登记的 `NEXT_PUBLIC_*` 和裸 `process.env` 痕迹。
+- `.env.example` 中的 secret 只能保留空占位；Cloudflare secrets 文件与临时 `.dev.vars` 生成逻辑只能输出 allowlist 内键。
 
 ### Docs Site
 
