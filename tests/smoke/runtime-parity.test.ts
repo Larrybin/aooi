@@ -5,7 +5,7 @@ import {
   compareRuntimeResponseContracts,
   RUNTIME_PARITY_IGNORED_HEADERS,
   type RuntimeParityResponseSummary,
-} from './runtime-parity';
+} from '../../src/testing/runtime-parity';
 
 function responseSummary(
   overrides: Partial<RuntimeParityResponseSummary> = {}

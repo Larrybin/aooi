@@ -3,8 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 import * as oauthSpikeReportModule from './lib/cf-oauth-spike-report.ts';
 import * as oauthSpikeScriptModule from './lib/cf-oauth-spike.ts';
-import * as oauthSpikeSharedModule from '../tests/smoke/oauth-spike.shared.ts';
-import * as oauthSpikeBrowserModule from '../tests/smoke/oauth-spike.browser.ts';
+import * as oauthSpikeSharedModule from '../src/testing/oauth-spike.shared.ts';
+import * as oauthSpikeBrowserModule from '../src/testing/oauth-spike.browser.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,

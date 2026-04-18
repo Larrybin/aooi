@@ -5,7 +5,7 @@ import {
   getSessionViaAuthApi,
   isTerminalAuthErrorUrl,
   waitForTerminalAuthErrorPage,
-} from './auth-spike.browser';
+} from '../../src/testing/auth-spike.browser';
 
 function createFakeResponse({
   status,

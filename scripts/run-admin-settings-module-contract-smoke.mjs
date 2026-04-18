@@ -11,7 +11,7 @@ import {
   readWranglerLocalConnectionString,
   waitForNodeReady,
 } from './run-local-auth-spike.mjs';
-import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
+import * as authSpikeBrowserModule from '../src/testing/auth-spike.browser.ts';
 import {
   runNodeScript,
   stopChild,

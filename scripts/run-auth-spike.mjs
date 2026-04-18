@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as authSpikeSharedModule from '../tests/smoke/auth-spike.shared.ts';
+import * as authSpikeSharedModule from '../src/testing/auth-spike.shared.ts';
 import {
   createReportArtifacts,
   formatHarnessSummaryLines,

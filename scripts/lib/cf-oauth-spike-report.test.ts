@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   createEmptyOAuthSpikeReport,
   createOAuthProviderResult,
-} from '../../tests/smoke/oauth-spike.shared';
+} from '../../src/testing/oauth-spike.shared';
 import {
   redactOAuthSpikeString,
   sanitizeOAuthSpikeReport,

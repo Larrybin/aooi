@@ -11,7 +11,7 @@ import {
   type Report,
   type ResponseSummary,
   type SessionObservation,
-} from './auth-spike.shared';
+} from '../../src/testing/auth-spike.shared';
 
 function responseSummary(
   overrides: Partial<ResponseSummary> = {}
@@ -176,8 +176,23 @@ test('deriveConclusion 对纯 parity 失败返回 需要 adapter', () => {
 
   assert(cloudflare);
 
+  cloudflare.signInResponses = [
+    responseSummary({
+      status: 302,
+      location: '/sign-in?error=parity',
+      headers: {
+        'cache-control': 'no-store',
+        'content-type': 'application/json',
+        location: '/sign-in?error=parity',
+      },
+      setCookiePresent: false,
+      setCookieHeaderCount: 0,
+      cookies: [],
+      clearsCookie: false,
+    }),
+  ];
   cloudflare.sessionAfterSignIn = sessionObservation({
-    bodySnippet: 'null',
+    bodySnippet: '{"session":null,"user":null}',
     sessionPresent: false,
     userPresent: false,
   });

@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as authSpikeSharedModule from '../tests/smoke/auth-spike.shared.ts';
-import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
+import * as authSpikeSharedModule from '../src/testing/auth-spike.shared.ts';
+import * as authSpikeBrowserModule from '../src/testing/auth-spike.browser.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
