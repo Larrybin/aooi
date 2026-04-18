@@ -105,7 +105,7 @@ const PRODUCT_MODULE_BASES: Omit<ProductModule, 'settingKeys'>[] = [
     supportingTabs: [],
     docSlug: 'module-contract#deploy-contract',
     entryRoutes: ['/api/config/get-configs'],
-    externalServices: ['Vercel', 'Cloudflare'],
+    externalServices: ['Cloudflare'],
   },
   {
     id: 'docs',
@@ -160,13 +160,7 @@ const PRODUCT_MODULE_BASES: Omit<ProductModule, 'settingKeys'>[] = [
     supportingTabs: [],
     docSlug: 'modules/growth-support',
     entryRoutes: [],
-    externalServices: [
-      'Google Analytics',
-      'Clarity',
-      'Plausible',
-      'OpenPanel',
-      'Vercel Analytics',
-    ],
+    externalServices: ['Google Analytics', 'Clarity', 'Plausible', 'OpenPanel'],
   },
   {
     id: 'affiliate',

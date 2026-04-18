@@ -64,7 +64,7 @@ test('Settings guide: points back to module contract source of truth', async () 
 
 test('Deploy governance: documents rawConclusion decision table', async () => {
   const content = await readFile(
-    path.resolve(rootDir, 'docs/architecture/dual-deploy-governance.md'),
+    path.resolve(rootDir, 'docs/architecture/cloudflare-deployment-governance.md'),
     'utf8'
   );
 

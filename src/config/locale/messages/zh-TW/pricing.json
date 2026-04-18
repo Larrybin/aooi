@@ -73,7 +73,7 @@
         "features_title": "包含入門版功能，此外",
         "features": [
           "200 點數，有效期限 3 個月",
-          "支援 Vercel 或 Cloudflare 部署",
+          "支援 Cloudflare 部署",
           "自動生成隱私政策&服務條款",
           "整合 Google Analytics",
           "整合 Google Search Console",
@@ -190,7 +190,7 @@
         "features_title": "包含入門版功能，此外",
         "features": [
           "200 點數，有效期限 1 個月",
-          "支援 Vercel 或 Cloudflare 部署",
+          "支援 Cloudflare 部署",
           "自動生成隱私政策&服務條款",
           "整合 Google Analytics",
           "整合 Google Search Console",
@@ -291,7 +291,7 @@
         "features_title": "包含入門版功能，此外",
         "features": [
           "200 點數，有效期限 1 年",
-          "支援 Vercel 或 Cloudflare 部署",
+          "支援 Cloudflare 部署",
           "自動生成隱私政策&服務條款",
           "整合 Google Analytics",
           "整合 Google Search Console",

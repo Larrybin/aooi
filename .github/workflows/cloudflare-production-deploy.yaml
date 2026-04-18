@@ -2,7 +2,7 @@ name: Cloudflare Production Deploy
 
 on:
   workflow_run:
-    workflows: ['Single Origin Deploy Acceptance']
+    workflows: ['Cloudflare Deploy Acceptance']
     types: [completed]
 
 concurrency:

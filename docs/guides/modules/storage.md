@@ -10,11 +10,10 @@ Storage adds managed asset upload and retrieval paths:
 
 ## Required Configuration
 
-- `r2_access_key`
-- `r2_secret_key`
-- `r2_bucket_name`
-- `r2_endpoint` or `r2_account_id`
-- `r2_domain`
+- Cloudflare Wrangler binding `APP_STORAGE_R2_BUCKET`
+- Cloudflare Wrangler binding `NEXT_INC_CACHE_R2_BUCKET`
+- Router Cloudflare Images binding `IMAGES`
+- Admin setting `storage_public_base_url`
 
 ## External Services
 
@@ -26,9 +25,9 @@ Storage adds managed asset upload and retrieval paths:
 
 ## Common Failure Modes
 
-- Upload succeeds but the returned URL points at the wrong domain.
-- Brand asset upload is enabled before storage credentials are configured.
-- R2 endpoint/domain drift causes broken public asset URLs.
+- Upload succeeds but `storage_public_base_url` is missing or malformed, so the public URL cannot be derived.
+- Brand asset upload is enabled before `APP_STORAGE_R2_BUCKET` is bound in the Cloudflare runtime.
+- Admin stores a brand asset `objectKey`, but the runtime cannot derive the final public URL.
 
 ## Product Impact If Disabled
 

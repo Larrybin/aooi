@@ -145,8 +145,7 @@ Notes:
 
 - `/api/auth/[...all]` is a passthrough to Better Auth and does not use `withApi()`; response shape and errors are defined by Better Auth.
 - Treat `/api/auth/**` as sensitive: do not cache it at the edge. The route sets `Cache-Control: no-store`.
-- `/api/auth/**` is validated by the auth spike smoke (`pnpm test:auth-spike`, internally `scripts/smoke.mjs auth-spike`).
-- Auth parity now uses a fixed diff/whitelist helper; only `date`, `x-request-id`, `x-vercel-id`, and `cf-ray` are ignored.
+- `/api/auth/**` is validated by the Cloudflare smoke chain (`pnpm test:cf-local-smoke`, `pnpm test:cf-app-smoke`).
 
 ### User
 

@@ -150,10 +150,10 @@
         }
       },
       {
-        "title": "Vercel",
+        "title": "Supabase",
         "image": {
-          "src": "/imgs/logos/vercel.svg",
-          "alt": "Vercel"
+          "src": "/imgs/logos/supabase.svg",
+          "alt": "Supabase"
         }
       }
     ]
@@ -316,7 +316,7 @@
       },
       {
         "title": "一键部署",
-        "description": "自动化部署到 Vercel 或 Cloudflare，极速上线。",
+        "description": "自动化部署到 Cloudflare，多 Worker 方案极速上线。",
         "icon": "RiCloudy2Fill"
       },
       {

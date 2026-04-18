@@ -1,8 +1,7 @@
 import 'server-only';
 
-import { unstable_cache } from 'next/cache';
-
 import { getPublicConfigs } from '@/shared/models/config';
+import { unstable_cache } from '@/shared/lib/next-cache';
 
 export const PUBLIC_CONFIGS_CACHE_TAG = 'public-configs';
 

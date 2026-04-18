@@ -102,7 +102,7 @@ Third-party service integrations with provider pattern:
 | ------------ | ----------------------- |
 | `payment/`   | Stripe, PayPal, Creem   |
 | `ai/`        | OpenAI, Anthropic, etc. |
-| `storage/`   | S3, Cloudflare R2       |
+| `storage/`   | Cloudflare R2 binding   |
 | `email/`     | Resend, etc.            |
 | `analytics/` | Various analytics       |
 
@@ -206,7 +206,6 @@ export async function getUserById(id: string): Promise<User | undefined> {
 | Environment             | DB Mode    | Features                  |
 | ----------------------- | ---------- | ------------------------- |
 | Development             | Serverless | Hot reload, debug logging |
-| Production (Vercel)     | Serverless | Edge functions, ISR       |
 | Production (Cloudflare) | Hyperdrive | Workers (OpenNext)        |
 | Production (Docker)     | Singleton  | Traditional server        |
 

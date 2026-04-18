@@ -1,4 +1,4 @@
-name: Single Origin Deploy Acceptance
+name: Cloudflare Deploy Acceptance
 
 on:
   push:
@@ -9,14 +9,10 @@ on:
 
 jobs:
   acceptance:
-    name: ${{ matrix.deploy_target }} acceptance
+    name: cloudflare acceptance
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        deploy_target: [vercel, cloudflare]
     services:
       postgres:
         image: postgres:16
@@ -32,7 +28,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DEPLOY_TARGET: ${{ matrix.deploy_target }}
+      DEPLOY_TARGET: cloudflare
       DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
@@ -66,16 +62,16 @@ jobs:
         run: pnpm test
 
       - name: Run Cloudflare config gate
-        if: matrix.deploy_target == 'cloudflare'
         run: pnpm cf:check
 
       - name: Run Cloudflare build gate
-        if: matrix.deploy_target == 'cloudflare'
         run: pnpm cf:build
 
       - name: Run Cloudflare local runtime smoke
-        if: matrix.deploy_target == 'cloudflare'
         run: pnpm test:cf-local-smoke
+
+      - name: Run Cloudflare admin/settings smoke
+        run: pnpm test:cf-admin-settings-smoke
 
   prepare-cloudflare-release:
     name: Prepare Cloudflare release metadata

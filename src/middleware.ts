@@ -32,5 +32,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Includes `/api/**`; API handling is branched inside `middleware()`.
-  matcher: ['/((?!_next|_vercel|.*\\..*).*)'],
+  matcher: ['/((?!_next|.*\\..*).*)'],
 };

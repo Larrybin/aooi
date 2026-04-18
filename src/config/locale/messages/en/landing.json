@@ -150,10 +150,10 @@
         }
       },
       {
-        "title": "Vercel",
+        "title": "Supabase",
         "image": {
-          "src": "/imgs/logos/vercel.svg",
-          "alt": "Vercel"
+          "src": "/imgs/logos/supabase.svg",
+          "alt": "Supabase"
         }
       }
     ]
@@ -316,7 +316,7 @@
       },
       {
         "title": "One-Click Deployment",
-        "description": "Seamless deployment to Vercel or Cloudflare with automated setup.",
+        "description": "Seamless deployment to Cloudflare with automated multi-worker setup.",
         "icon": "RiCloudy2Fill"
       },
       {

@@ -49,8 +49,7 @@ Notes:
 
 - This endpoint is a contract exception: it bypasses `withApi()` and does not return the standard `{code,message,data}` envelope (Better Auth controls redirects/cookies/status codes).
 - The route is `force-dynamic`, and responses are marked `Cache-Control: no-store`.
-- This route is exercised by the auth spike smoke (`pnpm test:auth-spike`, internally `scripts/smoke.mjs auth-spike`).
-- Runtime parity now uses a fixed diff/whitelist helper: `status`, `cache-control`, `content-type` MIME, same-origin `location` path+query, `set-cookie` presence/count, and cookie security semantics must match; only `date`, `x-request-id`, `x-vercel-id`, and `cf-ray` are ignored.
+- This route is exercised by the Cloudflare smoke chain (`pnpm test:cf-local-smoke` and `pnpm test:cf-app-smoke`).
 - The local dual-runtime harness depends on a generated temporary Wrangler config whose `localConnectionString` points at a migrated Postgres instance. Tracked Wrangler templates keep `localConnectionString = ""`.
 
 ```typescript
@@ -176,8 +175,8 @@ Notes:
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
-- 本地双端 auth 验收默认从 `AUTH_SPIKE_DATABASE_URL` 或 `DATABASE_URL` 生成临时 Wrangler config，并把同一条连接串注入本地 Node 面，确保两个 surface 跑的是同一份数据。
-- CI 中的 `Dual Deploy Acceptance` 同样生成临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container；仓库里的 Wrangler 模板不再存储本地数据库连接串。
+- 本地 Cloudflare smoke 默认从 `AUTH_SPIKE_DATABASE_URL` 或 `DATABASE_URL` 生成临时 Wrangler config；仓库里的 Wrangler 模板不存储本地数据库连接串。
+- CI 中的 `Cloudflare Deploy Acceptance` 同样生成临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container。
 
 ### Optional
 
@@ -211,7 +210,7 @@ If you serve the app from multiple origins (custom domains, preview URLs, revers
 2. **Always set auth base URL** (`BETTER_AUTH_URL`/`AUTH_URL`/`NEXT_PUBLIC_APP_URL`) to a valid origin; missing/invalid values fail fast in production
 3. **Never expose auth secrets** to client-side code
 4. **Use HTTPS** in production for secure cookie transmission
-5. **Reset password is rate-limited** (per-email sliding window; `5m` window, `3` attempts, `1` concurrent; shared across instances via DB); excessive requests are throttled to protect outbound providers
+5. **Reset password is rate-limited** (per-email sliding window; `5m` window, `3` attempts, `1` concurrent; shared across instances via Cloudflare Durable Object); excessive requests are throttled to protect outbound providers
 
 ## Password Reset
 
@@ -235,7 +234,7 @@ The server throttles `sendResetPassword` per email to protect outbound providers
 - Window: 5 minutes
 - Max attempts per window: 3
 - Max concurrent in-flight: 1
-- Storage: DB-backed throttle (shared across instances)
+- Storage: Cloudflare Durable Object throttle (shared across instances)
 
 ### Reset Link Errors
 
