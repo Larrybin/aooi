@@ -10,6 +10,9 @@ permissions:
 jobs:
   dependency-review:
     name: dependency-review
+    # Public repositories support dependency review by default.
+    # Private repositories need GitHub Code Security / GHAS, so keep them opt-in.
+    if: ${{ github.event.repository.private == false || vars.ENABLE_DEPENDENCY_REVIEW == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
