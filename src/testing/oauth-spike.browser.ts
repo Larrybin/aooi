@@ -22,6 +22,7 @@ import {
   ensureProtectedPageNavigation,
   getSessionViaAuthApi,
   isTerminalAuthErrorUrl,
+  splitSetCookieHeader,
   signOutViaAuthApi,
   stripOrigin,
   waitForTerminalAuthErrorPage,
@@ -65,6 +66,86 @@ function toFailureDetail(error: unknown): string {
   }
 
   return String(error);
+}
+
+export function resolveStrictSameOriginRedirectLocation(
+  rawLocation: string,
+  requestUrl: string
+): string {
+  const trimmedLocation = rawLocation.trim();
+  let resolvedLocation: URL;
+  let requestOrigin: string;
+
+  try {
+    requestOrigin = new URL(requestUrl).origin;
+    resolvedLocation = new URL(trimmedLocation, requestUrl);
+  } catch (error) {
+    throw new Error(
+      `invalid location: rawLocation=${trimmedLocation || 'n/a'} requestUrl=${requestUrl} error=${toFailureDetail(error)}`
+    );
+  }
+
+  if (resolvedLocation.origin !== requestOrigin) {
+    throw new Error(
+      `cross-origin location: rawLocation=${trimmedLocation || 'n/a'} requestUrl=${requestUrl} resolvedLocation=${resolvedLocation.toString()}`
+    );
+  }
+
+  return resolvedLocation.toString();
+}
+
+async function resolveOAuthFailureRedirect(params: {
+  callbackUrl: string;
+  context: BrowserContext;
+  provider: OAuthProviderName;
+}): Promise<string> {
+  let requestUrl = params.callbackUrl;
+
+  for (let hop = 0; hop < 4; hop += 1) {
+    const redirectStep = await requestAuthRedirectStep({
+      context: params.context,
+      provider: params.provider,
+      requestUrl,
+    });
+    const { bodySnippet, location, response } = redirectStep;
+    const responseUrl = response.url();
+
+    if (isTerminalAuthErrorUrl(responseUrl)) {
+      return responseUrl;
+    }
+
+    assert.equal(
+      response.status(),
+      302,
+      `[${params.provider}] OAuth callback 失败路径必须返回 302 或终态错误页 response-url=${responseUrl} location=${location || 'n/a'} body=${bodySnippet}`
+    );
+    assert(
+      location,
+      `[${params.provider}] OAuth callback 失败路径必须返回 location header response-url=${responseUrl} request-url=${requestUrl} body=${bodySnippet}`
+    );
+
+    let nextRequestUrl: string;
+    try {
+      nextRequestUrl = resolveStrictSameOriginRedirectLocation(
+        location,
+        requestUrl
+      );
+    } catch (error) {
+      throw new Error(
+        `[${params.provider}] OAuth callback 失败路径返回非法 redirect response-url=${responseUrl} request-url=${requestUrl} raw-location=${location} body=${bodySnippet} cause=${toFailureDetail(error)}`
+      );
+    }
+
+    if (isTerminalAuthErrorUrl(nextRequestUrl)) {
+      return nextRequestUrl;
+    }
+
+    requestUrl = nextRequestUrl;
+  }
+
+  throw new Error(
+    `[${params.provider}] OAuth callback 失败跳转未在预期 hop 内收敛到终态错误页 callback-url=${params.callbackUrl}`
+  );
 }
 
 function createProviderPath(provider: OAuthProviderName) {
@@ -137,6 +218,57 @@ async function summarizeResponse(response: Response): Promise<ResponseSummary> {
     headers,
     setCookieHeaders: await getSetCookieHeaders(response),
   });
+}
+
+async function getApiSetCookieHeaders(response: APIResponse): Promise<string[]> {
+  const setCookieHeader = response.headers()['set-cookie'];
+  return setCookieHeader ? splitSetCookieHeader(setCookieHeader) : [];
+}
+
+async function summarizeApiResponse(response: APIResponse): Promise<ResponseSummary> {
+  return buildResponseSummary({
+    url: response.url(),
+    status: response.status(),
+    headers: response.headers(),
+    setCookieHeaders: await getApiSetCookieHeaders(response),
+  });
+}
+
+async function requestAuthRedirectStep(params: {
+  context: BrowserContext;
+  provider: OAuthProviderName;
+  requestUrl: string;
+}): Promise<{
+  bodySnippet: string;
+  location: string | null;
+  response: APIResponse;
+  setCookieHeaders: string[];
+  summary: ResponseSummary;
+}> {
+  const response: APIResponse = await params.context.request.get(
+    params.requestUrl,
+    {
+      failOnStatusCode: false,
+      maxRedirects: 0,
+    }
+  );
+  let bodySnippet = 'n/a';
+
+  try {
+    bodySnippet = (await response.text()).slice(0, 500);
+  } catch (error) {
+    bodySnippet = `unavailable: ${toFailureDetail(error)}`;
+  }
+
+  const setCookieHeaders = await getApiSetCookieHeaders(response);
+
+  return {
+    bodySnippet,
+    location: response.headers().location?.trim() || null,
+    response,
+    setCookieHeaders,
+    summary: await summarizeApiResponse(response),
+  };
 }
 
 async function summarizeContextCookies(
@@ -696,6 +828,8 @@ async function runProviderCases(params: {
     artifactDir,
     action: async () => {
       await context.clearCookies();
+      let callbackUrlToVisit: string | null = null;
+
       await startProviderFlowFromSignIn({
         baseUrl,
         callbackPath,
@@ -723,16 +857,27 @@ async function runProviderCases(params: {
             'oauth_spike_denied'
           );
           callbackUrl.searchParams.set('state', state);
+          callbackUrlToVisit = callbackUrl.toString();
 
           await route.fulfill({
-            status: 302,
-            headers: {
-              location: callbackUrl.toString(),
-            },
+            status: 204,
+            body: '',
           });
         },
       });
 
+      assert(
+        callbackUrlToVisit,
+        `[${providerResult.provider}] provider denied 必须生成 callback URL`
+      );
+      const errorPageUrl = await resolveOAuthFailureRedirect({
+        callbackUrl: callbackUrlToVisit,
+        context,
+        provider: providerResult.provider,
+      });
+      await page.goto(errorPageUrl, {
+        waitUntil: 'commit',
+      });
       await waitForTerminalAuthErrorPage(page);
       providerResult.finalUrlAfterDenied = stripOrigin(page.url());
 
@@ -764,6 +909,8 @@ async function runProviderCases(params: {
     artifactDir,
     action: async () => {
       await context.clearCookies();
+      let callbackUrlToVisit: string | null = null;
+
       await startProviderFlowFromSignIn({
         baseUrl,
         callbackPath,
@@ -790,23 +937,34 @@ async function runProviderCases(params: {
             `oauth-spike-${providerResult.provider}-tamper`
           );
           callbackUrl.searchParams.set('state', `tampered-${state}`);
+          callbackUrlToVisit = callbackUrl.toString();
 
           await route.fulfill({
-            status: 302,
-            headers: {
-              location: callbackUrl.toString(),
-            },
+            status: 204,
+            body: '',
           });
         },
       });
 
+      assert(
+        callbackUrlToVisit,
+        `[${providerResult.provider}] tampered state 必须生成 callback URL`
+      );
+      const errorPageUrl = await resolveOAuthFailureRedirect({
+        callbackUrl: callbackUrlToVisit,
+        context,
+        provider: providerResult.provider,
+      });
+      await page.goto(errorPageUrl, {
+        waitUntil: 'commit',
+      });
       await waitForTerminalAuthErrorPage(page);
       providerResult.finalUrlAfterStateTamper = stripOrigin(page.url());
 
       assert.equal(
         isTerminalAuthErrorUrl(providerResult.finalUrlAfterStateTamper),
         true,
-        `[${providerResult.provider}] tampered state 必须最终回到 sign-in 错误页`
+        `[${providerResult.provider}] tampered state 必须最终回到终态错误页`
       );
       assert.match(
         providerResult.finalUrlAfterStateTamper,

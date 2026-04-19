@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -347,7 +347,7 @@ async function main() {
     process.exit(1);
   }
 
-  await mkdir(reportDir, { recursive: true });
+  await mkdir(reportPaths.reportDir, { recursive: true });
 
   const runId = process.env.AUTH_SPIKE_RUN_ID?.trim() || timestamp;
   const emails = authSpikeShared.buildSurfaceRunEmails(

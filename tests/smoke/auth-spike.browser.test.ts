@@ -111,7 +111,7 @@ test('getSessionViaAuthApi 会对本地 preview 的空体 500 做重试', async 
   assert.equal(observation.status, 200);
 });
 
-test('isTerminalAuthErrorUrl 只接受最终 sign-in 错误页，不接受 callback 中间态', () => {
+test('isTerminalAuthErrorUrl 只接受最终错误页，不接受 auth 中间态', () => {
   assert.equal(
     isTerminalAuthErrorUrl(
       'http://localhost:8787/api/auth/callback/google?error=access_denied'
@@ -120,7 +120,19 @@ test('isTerminalAuthErrorUrl 只接受最终 sign-in 错误页，不接受 callb
   );
   assert.equal(
     isTerminalAuthErrorUrl(
+      'http://localhost:8787/api/auth/error?error=access_denied'
+    ),
+    false
+  );
+  assert.equal(
+    isTerminalAuthErrorUrl(
       'http://localhost:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile&error=access_denied'
+    ),
+    true
+  );
+  assert.equal(
+    isTerminalAuthErrorUrl(
+      'http://localhost:8787/?error=please_restart_the_process'
     ),
     true
   );
@@ -136,11 +148,18 @@ test('waitForTerminalAuthErrorPage 不会在 callback 中间态提前通过', as
       const callbackUrl = new URL(
         'http://localhost:8787/api/auth/callback/google?error=access_denied'
       );
-      const finalUrl = new URL(
-        'http://localhost:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile&error=access_denied'
+      const authErrorUrl = new URL(
+        'http://localhost:8787/api/auth/error?error=access_denied'
       );
-      seen.push(`${predicate(callbackUrl)}`, `${predicate(finalUrl)}`);
-      assert.deepEqual(seen, ['false', 'true']);
+      const finalUrl = new URL(
+        'http://localhost:8787/?error=please_restart_the_process'
+      );
+      seen.push(
+        `${predicate(callbackUrl)}`,
+        `${predicate(authErrorUrl)}`,
+        `${predicate(finalUrl)}`
+      );
+      assert.deepEqual(seen, ['false', 'false', 'true']);
       assert.equal(options.timeout, 20_000);
       assert.equal(options.waitUntil, 'commit');
     },

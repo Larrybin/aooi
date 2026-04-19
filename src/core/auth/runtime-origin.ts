@@ -99,9 +99,31 @@ function isCanonicalHttpPreviewVariant(origin: string, canonicalOrigin: string) 
   }
 }
 
+function isPortlessLocalPreviewVariant(origin: string, canonicalOrigin: string) {
+  try {
+    const runtimeUrl = new URL(origin);
+    const canonicalUrl = new URL(canonicalOrigin);
+
+    return (
+      runtimeUrl.protocol === 'http:' &&
+      canonicalUrl.protocol === 'http:' &&
+      runtimeUrl.hostname === canonicalUrl.hostname &&
+      !runtimeUrl.port &&
+      !!canonicalUrl.port &&
+      isLocalAuthHost(runtimeUrl.host) &&
+      isLocalAuthHost(canonicalUrl.host)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function normalizeAllowedRuntimeOrigin(origin: string, allowedOrigins: string[]) {
   for (const allowedOrigin of allowedOrigins) {
-    if (isCanonicalHttpPreviewVariant(origin, allowedOrigin)) {
+    if (
+      isCanonicalHttpPreviewVariant(origin, allowedOrigin) ||
+      isPortlessLocalPreviewVariant(origin, allowedOrigin)
+    ) {
       return allowedOrigin;
     }
   }

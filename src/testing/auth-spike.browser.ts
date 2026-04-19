@@ -60,11 +60,19 @@ export function isAuthCallbackPath(urlOrPath: string): boolean {
   }
 }
 
+export function isAuthErrorPath(urlOrPath: string): boolean {
+  try {
+    return /^\/api\/auth\/error(\?|$)/.test(toPathWithSearch(urlOrPath));
+  } catch {
+    return false;
+  }
+}
+
 export function isTerminalAuthErrorUrl(urlOrPath: string): boolean {
   return (
     hasAuthErrorQuery(urlOrPath) &&
-    isSignInPath(urlOrPath) &&
-    !isAuthCallbackPath(urlOrPath)
+    !isAuthCallbackPath(urlOrPath) &&
+    !isAuthErrorPath(urlOrPath)
   );
 }
 
