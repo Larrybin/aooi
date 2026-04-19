@@ -24,7 +24,9 @@ jobs:
     outputs:
       head_sha: ${{ steps.release.outputs.head_sha }}
       base_sha: ${{ steps.release.outputs.base_sha }}
-      schema_changed: ${{ steps.release.outputs.schema_changed }}
+      db_schema_changed: ${{ steps.release.outputs.db_schema_changed }}
+      do_migration_changed: ${{ steps.release.outputs.do_migration_changed }}
+      release_kind: ${{ steps.release.outputs.release_kind }}
 
     steps:
       - name: Resolve release artifact metadata
@@ -113,29 +115,32 @@ jobs:
           const lines = [
             `head_sha=${metadata.head_sha}`,
             `base_sha=${metadata.base_sha}`,
-            `schema_changed=${metadata.schema_changed ? 'true' : 'false'}`,
+            `db_schema_changed=${metadata.db_schema_changed ? 'true' : 'false'}`,
+            `do_migration_changed=${metadata.do_migration_changed ? 'true' : 'false'}`,
+            `release_kind=${metadata.release_kind}`,
           ];
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);
           console.log('[cloudflare-release] metadata', metadata);
           NODE
 
-  migrate:
+  migrate-db:
     name: Run production migrations
     needs: prepare-release
-    if: needs.prepare-release.outputs.schema_changed == 'true'
+    if: needs.prepare-release.outputs.db_schema_changed == 'true'
     uses: ./.github/workflows/cloudflare-production-migrate.yaml
     with:
       target_sha: ${{ needs.prepare-release.outputs.head_sha }}
 
-  deploy:
-    name: Deploy Cloudflare production
+  deploy-do-migration:
+    name: Deploy Cloudflare Durable Object migration
     runs-on: ubuntu-latest
-    needs: [prepare-release, migrate]
+    needs: [prepare-release, migrate-db]
     if: >-
       needs.prepare-release.result == 'success' &&
+      needs.prepare-release.outputs.release_kind == 'migration' &&
       (
-        needs.migrate.result == 'success' ||
-        needs.migrate.result == 'skipped'
+        needs.migrate-db.result == 'success' ||
+        needs.migrate-db.result == 'skipped'
       )
     environment: cloudflare-production
     permissions:
@@ -168,5 +173,50 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Deploy Cloudflare production
-        run: pnpm cf:deploy
+      - name: Deploy Cloudflare Durable Object migration
+        run: pnpm cf:deploy:migration
+
+  deploy-normal-rollout:
+    name: Deploy Cloudflare production
+    runs-on: ubuntu-latest
+    needs: [prepare-release, migrate-db]
+    if: >-
+      needs.prepare-release.result == 'success' &&
+      needs.prepare-release.outputs.release_kind == 'normal' &&
+      (
+        needs.migrate-db.result == 'success' ||
+        needs.migrate-db.result == 'skipped'
+      )
+    environment: cloudflare-production
+    permissions:
+      contents: read
+    env:
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Checkout target commit
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.prepare-release.outputs.head_sha }}
+
+      - name: Setup pnpm
+        # pinned from v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        # pinned from v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Cloudflare production rollout
+        run: pnpm cf:deploy:rollout

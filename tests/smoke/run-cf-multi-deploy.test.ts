@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 import {
+  buildSteadyStateRouterVersionIds,
   buildRouterDeployConfigContent,
   buildVersionDeploySpecs,
   determineDeployMode,
@@ -114,6 +115,39 @@ test('buildVersionDeploySpecs 生成 bootstrap 与 steady-state 的部署顺序'
     'v-next@100%',
     'v-current@0%',
   ]);
+});
+
+test('buildSteadyStateRouterVersionIds 先保留当前 server 版本，再切到新 server 版本', () => {
+  const currentVersions = {
+    router: 'router-current',
+    servers: Object.fromEntries(
+      CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+        target,
+        `current-${target}`,
+      ])
+    ),
+  };
+  const nextVersions = Object.fromEntries(
+    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+      target,
+      `next-${target}`,
+    ])
+  );
+
+  assert.deepEqual(buildSteadyStateRouterVersionIds(currentVersions, nextVersions), {
+    compatibility: Object.fromEntries(
+      CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+        target,
+        `current-${target}`,
+      ])
+    ),
+    target: Object.fromEntries(
+      CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+        target,
+        `next-${target}`,
+      ])
+    ),
+  });
 });
 
 test('parseWranglerJsonPayload 能从 wrangler 前置日志中提取 JSON', () => {

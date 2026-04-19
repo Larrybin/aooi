@@ -14,6 +14,8 @@ const {
 
 const rootDir = process.cwd();
 const routerConfigPath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
+const DO_OWNER_WORKER_NAME = CLOUDFLARE_ROUTER_WORKER_NAME;
+const DO_OWNER_CONFIG_PATH = routerConfigPath;
 const SHARED_INCREMENTAL_CACHE_BUCKET = 'roller-rabbit-opennext-cache';
 const SHARED_APP_STORAGE_BUCKET = 'roller-rabbit-storage';
 const ROUTER_DO_BINDINGS = new Map([
@@ -240,6 +242,7 @@ function assertSharedSettings(content, label) {
 
 function assertRouterConfig() {
   const content = readFile(routerConfigPath);
+  const isDoOwner = DO_OWNER_CONFIG_PATH === routerConfigPath;
   assertSharedSettings(content, 'router');
 
   const workerName = readQuotedValue(
@@ -332,13 +335,18 @@ function assertRouterConfig() {
   }
 
   const migrationTables = readArrayTable(content, 'migrations');
-  if (migrationTables.length === 0) {
-    fail('router missing [[migrations]]');
+  if (isDoOwner && migrationTables.length === 0) {
+    fail('Durable Object owner config missing [[migrations]]');
+  }
+
+  if (!isDoOwner && migrationTables.length > 0) {
+    fail('router must not define [[migrations]] when it is not the Durable Object owner');
   }
 }
 
 function assertServerConfig(target, configPath) {
   const content = readFile(configPath);
+  const isDoOwner = configPath === DO_OWNER_CONFIG_PATH;
   assertSharedSettings(content, `${target}`);
 
   const workerName = readQuotedValue(
@@ -417,11 +425,20 @@ function assertServerConfig(target, configPath) {
       `${target}.durable_objects.${bindingName}.script_name`,
       /^\s*script_name\s*=\s*"([^"\n]+)"/m
     );
-    if (scriptName !== CLOUDFLARE_ROUTER_WORKER_NAME) {
+    if (scriptName !== DO_OWNER_WORKER_NAME) {
       fail(
-        `${target}.durable_objects.${bindingName}.script_name must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`
+        `${target}.durable_objects.${bindingName}.script_name must equal ${DO_OWNER_WORKER_NAME}`
       );
     }
+  }
+
+  const migrationTables = readArrayTable(content, 'migrations');
+  if (isDoOwner && migrationTables.length === 0) {
+    fail(`${target} missing [[migrations]] as the Durable Object owner`);
+  }
+
+  if (!isDoOwner && migrationTables.length > 0) {
+    fail(`${target} must not define [[migrations]] because it is not the Durable Object owner`);
   }
 }
 

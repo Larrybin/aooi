@@ -209,6 +209,29 @@ export function buildVersionDeploySpecs(currentVersionId, nextVersionId) {
     : [buildVersionSpec(nextVersionId, 100)];
 }
 
+function normalizeServerVersionIds(versionIds, label) {
+  return Object.fromEntries(
+    uploadOrder.map((target) => {
+      const versionId = versionIds[target];
+      if (!versionId) {
+        throw new Error(`Missing ${label} version id for ${target}`);
+      }
+
+      return [target, versionId];
+    })
+  );
+}
+
+export function buildSteadyStateRouterVersionIds(currentVersions, nextVersions) {
+  return {
+    compatibility: normalizeServerVersionIds(
+      currentVersions.servers,
+      'current server'
+    ),
+    target: normalizeServerVersionIds(nextVersions, 'next server'),
+  };
+}
+
 export function buildRouterDeployConfigContent(content, versionIds) {
   return buildCloudflareWranglerConfig({
     template: content,
@@ -433,10 +456,33 @@ async function bootstrapAllWorkers() {
 
 async function deploySteadyState(currentVersions) {
   const serverArtifacts = [];
-  let routerArtifacts = null;
+  let compatibilityRouterArtifacts = null;
+  let targetRouterArtifacts = null;
 
   try {
     const nextVersions = {};
+    const compatibilityRouterVersionIds = normalizeServerVersionIds(
+      currentVersions.servers,
+      'current server'
+    );
+
+    compatibilityRouterArtifacts = await createTempDeployArtifacts({
+      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      templatePath: routerConfigPath,
+      versionIds: compatibilityRouterVersionIds,
+    });
+    const compatibilityRouterVersionId = await uploadWorkerVersion({
+      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      configPath: compatibilityRouterArtifacts.tempConfigPath,
+      secretsPath: compatibilityRouterArtifacts.secretsPath,
+    });
+
+    await deployWorkerVersionSet({
+      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      configPath: compatibilityRouterArtifacts.tempConfigPath,
+      currentVersionId: currentVersions.router,
+      nextVersionId: compatibilityRouterVersionId,
+    });
 
     for (const target of uploadOrder) {
       const name = CLOUDFLARE_SERVER_WORKERS[target];
@@ -445,30 +491,16 @@ async function deploySteadyState(currentVersions) {
         templatePath: serverConfigPaths[target],
       });
       serverArtifacts.push({ target, ...artifacts });
-      nextVersions[target] = await uploadWorkerVersion({
-        name,
-        configPath: artifacts.tempConfigPath,
-        secretsPath: artifacts.secretsPath,
-      });
     }
 
-    routerArtifacts = await createTempDeployArtifacts({
-      name: CLOUDFLARE_ROUTER_WORKER_NAME,
-      templatePath: routerConfigPath,
-      versionIds: nextVersions,
-    });
-    const nextRouterVersionId = await uploadWorkerVersion({
-      name: CLOUDFLARE_ROUTER_WORKER_NAME,
-      configPath: routerArtifacts.tempConfigPath,
-      secretsPath: routerArtifacts.secretsPath,
-    });
-
-    await deployWorkerVersionSet({
-      name: CLOUDFLARE_ROUTER_WORKER_NAME,
-      configPath: routerArtifacts.tempConfigPath,
-      currentVersionId: currentVersions.router,
-      nextVersionId: nextRouterVersionId,
-    });
+    for (const { target, tempConfigPath, secretsPath } of serverArtifacts) {
+      const name = CLOUDFLARE_SERVER_WORKERS[target];
+      nextVersions[target] = await uploadWorkerVersion({
+        name,
+        configPath: tempConfigPath,
+        secretsPath,
+      });
+    }
 
     for (const { target, tempConfigPath } of serverArtifacts) {
       await deployWorkerVersionSet({
@@ -478,6 +510,29 @@ async function deploySteadyState(currentVersions) {
         nextVersionId: nextVersions[target],
       });
     }
+
+    const targetRouterVersionIds = buildSteadyStateRouterVersionIds(
+      currentVersions,
+      nextVersions
+    ).target;
+
+    targetRouterArtifacts = await createTempDeployArtifacts({
+      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      templatePath: routerConfigPath,
+      versionIds: targetRouterVersionIds,
+    });
+    const targetRouterVersionId = await uploadWorkerVersion({
+      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      configPath: targetRouterArtifacts.tempConfigPath,
+      secretsPath: targetRouterArtifacts.secretsPath,
+    });
+
+    await deployWorkerVersionSet({
+      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      configPath: targetRouterArtifacts.tempConfigPath,
+      currentVersionId: compatibilityRouterVersionId,
+      nextVersionId: targetRouterVersionId,
+    });
 
     await runWrangler(
       ['types', '--config', routerConfigPath, '--env-interface', 'CloudflareEnv', 'src/shared/types/cloudflare.d.ts'],
@@ -492,8 +547,12 @@ async function deploySteadyState(currentVersions) {
       await artifacts.cleanup();
     }
 
-    if (routerArtifacts) {
-      await routerArtifacts.cleanup();
+    if (compatibilityRouterArtifacts) {
+      await compatibilityRouterArtifacts.cleanup();
+    }
+
+    if (targetRouterArtifacts) {
+      await targetRouterArtifacts.cleanup();
     }
   }
 }
