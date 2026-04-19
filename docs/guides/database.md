@@ -286,7 +286,9 @@ Cloudflare helper commands:
 - `pnpm test:cf-local-smoke`
 - `pnpm test:cf-admin-settings-smoke`
 - `pnpm test:cf-app-smoke`
-- `pnpm cf:deploy`
+- `pnpm cf:deploy:rollout`
+- `pnpm cf:deploy:migration`
+- `pnpm cf:deploy` (`pnpm cf:deploy:rollout` 的别名)
 
 Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, admin/settings storage smoke uses `cf-admin-settings`, and production read-only app smoke uses `cf-app`.
 
@@ -299,6 +301,8 @@ Smoke commands keep their public package names, but they now route through `scri
 The smoke is read-only. It must not upsert public config values or mutate the `config` table in local runtime or production.
 
 The governed deployment posture is now Cloudflare-only: production deploys must use the canonical multi-worker OpenNext + Hyperdrive topology.
+
+Durable Object migration-only releases must stay migration-safe. Router request dispatch changes belong in a normal `pnpm cf:deploy:rollout`, not `pnpm cf:deploy:migration`.
 
 `Cloudflare Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
 

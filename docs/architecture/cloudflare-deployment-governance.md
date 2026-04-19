@@ -27,6 +27,7 @@
 - Any protected route redirecting to another origin is a failure.
 - `pnpm cf:build` is authoritative for size governance: it must pass `wrangler versions upload --dry-run`, and the deployable gzip size of every Worker must stay below `3 MiB`.
 - Any accepted change to `src/config/db/schema.ts` must include committed files under `src/config/db/migrations/**`; otherwise release preparation must fail before deploy.
+- Durable Object migration releases must stay migration-safe: `release_kind=migration` may include migration metadata, DO implementation/export changes, scripts, tests, and docs, but any router request dispatch change must ship through the normal rollout path.
 
 ## Test Gates
 

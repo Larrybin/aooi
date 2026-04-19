@@ -193,18 +193,20 @@ Read `content/docs` to start your AI SaaS project.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical multi-worker topology under the authoritative `wrangler versions upload --dry-run` gzip gate. The measured gzip sizes were `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, and `router 0.14 MiB`.
 - Cloudflare helper commands:
-  - `pnpm cf:check`
-  - `pnpm cf:build`
-  - `pnpm test:cf-local-smoke`
-  - `pnpm test:cf-admin-settings-smoke`
-  - `pnpm test:cf-app-smoke`
-  - `pnpm cf:deploy`
+- `pnpm cf:check`
+- `pnpm cf:build`
+- `pnpm test:cf-local-smoke`
+- `pnpm test:cf-admin-settings-smoke`
+- `pnpm test:cf-app-smoke`
+- `pnpm cf:deploy:rollout`
+- `pnpm cf:deploy:migration`
+- `pnpm cf:deploy` (`pnpm cf:deploy:rollout` 的别名)
 - Smoke runner scenarios:
   - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
   - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
   - `pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && scripts/smoke.mjs cf-admin-settings`
 - `.github/workflows/cloudflare-acceptance.yaml` is the only acceptance gate. On `push main`, it uploads `release-metadata.json` for the exact accepted `head_sha`; `.github/workflows/cloudflare-production-deploy.yaml` consumes that artifact and deploys the same commit to Cloudflare production.
-- `.github/workflows/cloudflare-production-migrate.yaml` is the production schema gate. When `release-metadata.json` reports `schema_changed=true`, the deploy workflow runs the migrate workflow first, then proceeds to `pnpm cf:deploy`.
+- `.github/workflows/cloudflare-production-migrate.yaml` is the production schema gate. When `release-metadata.json` reports `db_schema_changed=true`, the deploy workflow runs the migrate workflow first, then proceeds according to `release_kind`: `pnpm cf:deploy:migration` for Durable Object migration releases, otherwise `pnpm cf:deploy:rollout`.
 - `.github/workflows/cloudflare-production-deploy.yaml` only runs from successful `Cloudflare Deploy Acceptance` workflow runs on `main`. Historical acceptance reruns are rejected if their `head_sha` is no longer the current `main` head.
 - Cloudflare-only deployment governance is documented in `docs/architecture/cloudflare-deployment-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
@@ -221,7 +223,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` now boots the full split-worker topology through a single local `wrangler dev` multi-config session, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production migrate workflow -> `pnpm cf:deploy` -> post-deploy `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` now boots the full split-worker topology through a single local `wrangler dev` multi-config session, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production DB migrate workflow -> `release_kind=migration ? pnpm cf:deploy:migration : pnpm cf:deploy:rollout` -> post-deploy `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -305,7 +307,7 @@ Do not put a real local PostgreSQL DSN into tracked Wrangler files.
 
 - Local smoke uses an explicit `DATABASE_URL` plus `pnpm test:cf-local-smoke`; tracked `.dev.vars` must stay on the non-DB allowlist and cannot carry PostgreSQL DSNs
 - CI generates temporary Wrangler configs and temporary secrets files before local runtime smoke
-- `pnpm cf:deploy` also deploys from temporary Wrangler configs and `--secrets-file`; tracked templates stay secret-free
+- `pnpm cf:deploy:rollout` and `pnpm cf:deploy:migration` both deploy from temporary Wrangler configs or `--secrets-file`; tracked templates stay secret-free
 - Generate the secret with `openssl rand -base64 32`
 
 Optional feature secrets such as Resend, Stripe, Creem, or storage credentials are only required if you actually enable those modules.
@@ -331,7 +333,8 @@ For GitHub Actions auto-deploy:
 
 - `cloudflare-production-deploy` reuses the accepted `head_sha` from `release-metadata.json`; it never deploys `main` blindly.
 - `cloudflare-production-deploy` only accepts the current `main` head. Re-running an older successful acceptance workflow will be rejected before migrate/deploy starts.
-- If `release-metadata.json` marks `schema_changed=true`, GitHub Actions first calls `cloudflare-production-migrate`, which runs `pnpm db:migrate` against `PRODUCTION_DATABASE_URL`.
+- If `release-metadata.json` marks `db_schema_changed=true`, GitHub Actions first calls `cloudflare-production-migrate`, which runs `pnpm db:migrate` against `PRODUCTION_DATABASE_URL`.
+- If `release-metadata.json` marks `release_kind=migration`, GitHub Actions then runs `pnpm cf:deploy:migration`; otherwise it runs `pnpm cf:deploy:rollout`.
 - The only manual recovery path kept in-repo is `cloudflare-production-migrate` with `target_sha`. Manual production deploy by arbitrary SHA is intentionally unsupported.
 
 #### 5. Run the build gates
@@ -347,15 +350,22 @@ pnpm cf:build
 
 #### 6. Deploy
 
-The normal production command is:
+The normal production rollout command is:
 
 ```bash
-pnpm cf:deploy
+pnpm cf:deploy:rollout
 ```
 
 This command runs config checks, builds the OpenNext multi-worker bundles, bootstraps brand-new workers when needed, and otherwise uploads server worker versions plus the router version with version-affinity overrides before deploying the batch.
 
-In normal operation you should not need to run it locally anymore: GitHub Actions executes `pnpm cf:deploy` automatically after `push main` acceptance succeeds. Local `pnpm cf:deploy` remains the manual escape hatch.
+For a Durable Object migration-only release, use:
+
+```bash
+pnpm cf:deploy:migration
+```
+
+`pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:rollout`.
+In normal operation you should not need to run either command locally anymore: GitHub Actions executes the correct subcommand automatically after `push main` acceptance succeeds. Local `pnpm cf:deploy` remains the manual escape hatch for normal rollouts only.
 
 #### 7. Verify production immediately
 
@@ -388,7 +398,7 @@ pnpm install
 DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
 pnpm cf:check
 pnpm cf:build
-pnpm cf:deploy
+pnpm cf:deploy:rollout
 ```
 
 If that succeeds, open the production domain and complete one real auth flow before calling the release done.
