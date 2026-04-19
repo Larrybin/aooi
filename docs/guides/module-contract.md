@@ -10,21 +10,21 @@ Use it to answer three questions:
 
 ## Module Matrix
 
-| Module | Tier | Verification | Settings Tabs | Guide |
-| --- | --- | --- | --- | --- |
-| Core Shell | `mainline` | `verified` | `general` | [Core Shell](#core-shell) |
-| Auth | `mainline` | `partial` | `auth` + supporting `email` | [Auth guide](modules/auth.md) |
-| Billing | `mainline` | `partial` | `payment` | [Billing guide](modules/billing.md) |
-| Admin Settings | `mainline` | `verified` | surface-only | [Admin Settings](#admin-settings) |
-| Deploy Contract | `mainline` | `partial` | surface-only | [Deploy Contract](#deploy-contract) |
-| Docs | `optional` | `partial` | `content` | [Docs + Blog guide](modules/docs-blog.md) |
-| Blog | `optional` | `partial` | `content` | [Docs + Blog guide](modules/docs-blog.md) |
-| AI | `optional` | `partial` | `ai` | [AI guide](modules/ai.md) |
-| Storage | `optional` | `partial` | `storage` | [Storage guide](modules/storage.md) |
-| Analytics | `optional` | `unverified` | `analytics` | [Growth support guide](modules/growth-support.md) |
-| Affiliate | `optional` | `unverified` | `affiliate` | [Growth support guide](modules/growth-support.md) |
+| Module           | Tier       | Verification | Settings Tabs                           | Guide                                             |
+| ---------------- | ---------- | ------------ | --------------------------------------- | ------------------------------------------------- |
+| Core Shell       | `mainline` | `verified`   | `general`                               | [Core Shell](#core-shell)                         |
+| Auth             | `mainline` | `partial`    | `auth` + supporting `email`             | [Auth guide](modules/auth.md)                     |
+| Billing          | `mainline` | `partial`    | `payment`                               | [Billing guide](modules/billing.md)               |
+| Admin Settings   | `mainline` | `verified`   | surface-only                            | [Admin Settings](#admin-settings)                 |
+| Deploy Contract  | `mainline` | `partial`    | surface-only                            | [Deploy Contract](#deploy-contract)               |
+| Docs             | `optional` | `partial`    | `content`                               | [Docs + Blog guide](modules/docs-blog.md)         |
+| Blog             | `optional` | `partial`    | `content`                               | [Docs + Blog guide](modules/docs-blog.md)         |
+| AI               | `optional` | `partial`    | `ai`                                    | [AI guide](modules/ai.md)                         |
+| Storage          | `optional` | `partial`    | `storage`                               | [Storage guide](modules/storage.md)               |
+| Analytics        | `optional` | `unverified` | `analytics`                             | [Growth support guide](modules/growth-support.md) |
+| Affiliate        | `optional` | `unverified` | `affiliate`                             | [Growth support guide](modules/growth-support.md) |
 | Customer Service | `optional` | `unverified` | `customer_service` + supporting `email` | [Growth support guide](modules/growth-support.md) |
-| Ads | `optional` | `unverified` | `ads` | [Growth support guide](modules/growth-support.md) |
+| Ads              | `optional` | `unverified` | `ads`                                   | [Growth support guide](modules/growth-support.md) |
 
 ## Verification Rules
 
@@ -75,8 +75,8 @@ Deploy Contract stays in mainline because the template promise depends on one de
 Current evidence points:
 
 - `pnpm test:auth-spike`
-- `pnpm test:cf-oauth-spike`
 - `pnpm test:cf-app-smoke`
+- `pnpm test:cf-admin-settings-smoke`
 - `pnpm test:cf-local-smoke`
 
 The deploy contract guide remains engineering-heavy by design. It is not an optional provider matrix.

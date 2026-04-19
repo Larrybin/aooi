@@ -11,29 +11,31 @@ src/core/auth/
 └── client.ts     # Client-side auth utilities
 ```
 
-### Key Design: Static/Dynamic Configuration Separation
+### Key Design: Base/Dynamic Configuration Separation
 
 The auth system separates configuration into two layers to avoid database calls during build time:
 
-1. **Static Configuration** (`authOptions`): No database dependency, safe for build time
-2. **Dynamic Configuration** (`getAuthOptions()`): Loads database configs at runtime
+1. **Base Configuration** (`buildAuthOptionsBase()`): No database dependency, safe for build time
+2. **Dynamic Configuration** (`getAuthOptions(request?)`): Loads database configs at runtime and resolves request-aware auth origin
 
 ```typescript
-// Static - used during build, no DB calls
-export const authOptions = {
-  appName: envConfigs.app_name,
-  baseURL: serverEnv.authBaseUrl,
-  secret: serverEnv.authSecret,
-  // ...
-};
+// Base - used before DB access, no config table reads
+function buildAuthOptionsBase() {
+  return {
+    appName: publicEnvConfigs.app_name,
+    baseURL: runtimeEnv.authBaseUrl,
+    secret: runtimeEnv.authSecret,
+    // ...
+  };
+}
 
 // Dynamic - used at runtime, fetches DB configs
-export async function getAuthOptions() {
-  const configs = await getAllConfigs();
+export async function getAuthOptions(request?: Request) {
+  const configs = await getAllConfigsCached();
   return {
-    ...authOptions,
+    ...buildAuthOptionsBase(),
     database: drizzleAdapter(db(), { provider: 'pg', schema }),
-    socialProviders: await getSocialProviders(configs),
+    socialProviders: await getSocialProviders(configs, runtimeBaseUrl),
     // ...
   };
 }
@@ -174,17 +176,18 @@ Notes:
 
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
+- 当 `NEXT_PUBLIC_APP_URL` 已设置时，`BETTER_AUTH_URL` 和 `AUTH_URL` 只能作为同源镜像存在，不能指向另一个 auth 域名。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
 - 本地 Cloudflare smoke 默认要求显式 `DATABASE_URL` 来生成临时 Wrangler config；仓库根 `.dev.vars` 只允许非数据库的运行时键，Wrangler 模板本身也不存储本地数据库连接串。
 - CI 中的 `Cloudflare Deploy Acceptance` 同样生成临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container。
 
 ### Optional
 
-| Variable              | Description                                                |
-| --------------------- | ---------------------------------------------------------- |
-| `BETTER_AUTH_URL`     | Override auth base URL                                     |
-| `AUTH_URL`            | Fallback auth base URL (if BETTER_AUTH_URL is not set)     |
-| `NEXT_PUBLIC_APP_URL` | Application URL for callbacks (and auth base URL fallback) |
+| Variable              | Description                                                   |
+| --------------------- | ------------------------------------------------------------- |
+| `BETTER_AUTH_URL`     | Optional same-origin override for auth base URL               |
+| `AUTH_URL`            | Optional same-origin fallback when `BETTER_AUTH_URL` is unset |
+| `NEXT_PUBLIC_APP_URL` | Canonical app/auth origin and callback base URL               |
 
 ## Database Schema
 
@@ -245,12 +248,12 @@ The reset page accepts query params:
 
 ## Session Helpers (Server Components)
 
-Prefer `getSignedInUser()` / `getSignedInUserSnapshot()` in Server Components and server-only helpers:
+Prefer `getSignedInUserIdentity()` / `getSignedInUserSnapshot()` in Server Components and server-only helpers:
 
 ```typescript
-import { getSignedInUser } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 
-const user = await getSignedInUser();
+const user = await getSignedInUserIdentity();
 ```
 
 Related file: `src/shared/lib/auth-session.server.ts`
@@ -320,5 +323,6 @@ OAuth callback error: redirect_uri_mismatch
 - `src/core/auth/client.ts` - Client utilities
 - `src/app/api/auth/[...all]/route.ts` - API route
 - `src/shared/lib/api/guard.ts` - Auth guards for API routes
-- `src/shared/lib/auth-session.server.ts` - Session helpers (`getSignedInUser`)
-- `src/config/server.ts` - Server-only env (`authBaseUrl`/`authSecret`)
+- `src/shared/lib/auth-session.server.ts` - Session helpers (`getSignedInUserIdentity` / `getSignedInUserSnapshot`)
+- `src/shared/lib/runtime/env.server.ts` - Server runtime env access (`authBaseUrl` / `authSecret`)
+- `src/config/server-auth-base-url.ts` - Same-origin auth base URL normalization
