@@ -52,7 +52,6 @@ test('DO migration 仅配合 migration-safe 改动时允许作为 migration rele
     ...baseInput,
     changedPaths: [
       'wrangler.cloudflare.toml',
-      'cloudflare/workers/router-durable-objects.ts',
       'cloudflare/workers/stateful-limiters.ts',
       'scripts/run-cf-migration-deploy.mjs',
       'tests/smoke/create-cloudflare-release-metadata.test.ts',

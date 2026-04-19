@@ -14,7 +14,6 @@ const DO_MIGRATION_ALLOWLIST = [
   '.github/workflows/',
   'scripts/',
   'tests/',
-  'cloudflare/workers/router-durable-objects.ts',
   'cloudflare/workers/stateful-limiters.ts',
   ROUTER_WRANGLER_PATH,
   'README.md',

@@ -6,11 +6,9 @@ import { buildForwardedWorkerRequest } from './router-forwarding';
 import { handleCdnCgiImageRequest, handleImageRequest } from '../../.open-next/cloudflare/images.js';
 import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
 import { handler as middlewareHandler } from '../../.open-next/middleware/handler.mjs';
-export {
-  DOQueueHandler,
-  DOShardedTagCache,
-  StatefulLimitersDurableObject,
-} from './router-durable-objects';
+export { DOQueueHandler } from '../../.open-next/.build/durable-objects/queue.js';
+export { DOShardedTagCache } from '../../.open-next/.build/durable-objects/sharded-tag-cache.js';
+export { StatefulLimitersDurableObject } from './stateful-limiters';
 
 type WorkerServiceBinding = {
   fetch(
