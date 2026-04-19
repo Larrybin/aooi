@@ -1,14 +1,15 @@
-import { once } from 'node:events';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-  assertAllowedEnvKeys,
-  DEV_VARS_ALLOWED_KEYS,
-  parseEnvAssignments,
-} from '../../src/config/env-contract.ts';
+import * as envContractNamespace from '../../src/config/env-contract.ts';
+
+const envContractModule =
+  envContractNamespace.default ?? envContractNamespace;
+const { assertAllowedEnvKeys, DEV_VARS_ALLOWED_KEYS, parseEnvAssignments } =
+  envContractModule;
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -202,40 +203,20 @@ export function createReadyProcessManager({
   };
 }
 
-export function createPreviewManager({
-  cwd = rootDir,
-  env = process.env,
-  logger = console,
-  wranglerConfigPath,
-}) {
-  const args = ['exec', 'opennextjs-cloudflare', 'preview'];
-  if (wranglerConfigPath) {
-    args.push('--config', wranglerConfigPath);
-  }
-
-  return createReadyProcessManager({
-    label: 'Cloudflare preview',
-    args,
-    cwd,
-    env,
-    logger,
-    gracefulStopInput: 'x',
-  });
-}
-
-export function buildWranglerDevArgs({
-  wranglerConfigPath,
+export function buildWranglerMultiConfigDevArgs({
+  wranglerConfigPaths,
   port,
-  inspectorPort,
-  name,
   persistTo,
 }) {
-  const args = ['exec', 'wrangler', 'dev'];
-  if (wranglerConfigPath) {
-    args.push('--config', wranglerConfigPath);
+  if (!Array.isArray(wranglerConfigPaths) || wranglerConfigPaths.length === 0) {
+    throw new Error(
+      'wranglerConfigPaths must contain at least one config for Cloudflare local topology'
+    );
   }
-  if (name) {
-    args.push('--name', name);
+
+  const args = ['exec', 'wrangler', 'dev'];
+  for (const wranglerConfigPath of wranglerConfigPaths) {
+    args.push('--config', wranglerConfigPath);
   }
   if (persistTo) {
     args.push('--persist-to', persistTo);
@@ -243,31 +224,25 @@ export function buildWranglerDevArgs({
   args.push(
     '--local',
     '--port',
-    String(port),
-    '--inspector-port',
-    String(inspectorPort),
+    String(port || 8787),
     '--show-interactive-dev-session=false'
   );
 
   return args;
 }
 
-export function createWranglerDevManager({
-  label,
+export function createWranglerMultiConfigDevManager({
+  label = 'Cloudflare local topology',
   cwd = rootDir,
   env = process.env,
   logger = console,
-  wranglerConfigPath,
+  wranglerConfigPaths,
   port,
-  inspectorPort,
-  name,
   persistTo,
 }) {
-  const args = buildWranglerDevArgs({
-    wranglerConfigPath,
+  const args = buildWranglerMultiConfigDevArgs({
+    wranglerConfigPaths,
     port,
-    inspectorPort,
-    name,
     persistTo,
   });
 
@@ -326,7 +301,11 @@ export async function ensureCiDevVars({
   assertAllowedEnvKeys(nextDevVars, DEV_VARS_ALLOWED_KEYS, '.dev.vars');
 
   let nextContent = existingContent;
-  nextContent = upsertDevVar(nextContent, 'AUTH_SECRET', nextInjectedVars.AUTH_SECRET);
+  nextContent = upsertDevVar(
+    nextContent,
+    'AUTH_SECRET',
+    nextInjectedVars.AUTH_SECRET
+  );
   nextContent = upsertDevVar(
     nextContent,
     'BETTER_AUTH_SECRET',

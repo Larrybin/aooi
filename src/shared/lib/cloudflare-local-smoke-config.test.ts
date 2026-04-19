@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   CLOUDFLARE_LOCAL_SMOKE_CONFIG_SEED_CONFIGS,
   getCloudflareLocalSmokeConfigSeedConfigs,
-  isCloudflareAdminSettingsSmokeNextCacheBypassEnabled,
   isCloudflareLocalSmokeConfigSeedEnabled,
   mergeCloudflareLocalSmokeConfigSeedConfigs,
 } from './cloudflare-local-smoke-config';
@@ -32,40 +31,6 @@ test('isCloudflareLocalSmokeConfigSeedEnabled 仅在本地 smoke worker 模式�
     ),
     true
   );
-});
-
-test('isCloudflareAdminSettingsSmokeNextCacheBypassEnabled 仅在 admin/settings smoke 专用标记下启用', () => {
-  assert.equal(
-    isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(createEnv()),
-    false
-  );
-  assert.equal(
-    isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(
-      createEnv({ CF_LOCAL_SMOKE_WORKERS_DEV: 'true' })
-    ),
-    false
-  );
-  assert.equal(
-    isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(
-      createEnv({ CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: 'true' })
-    ),
-    true
-  );
-});
-
-test('isCloudflareAdminSettingsSmokeNextCacheBypassEnabled 默认读取当前 runtime env', () => {
-  const previous = process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE;
-  process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE = 'true';
-
-  try {
-    assert.equal(isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(), true);
-  } finally {
-    if (previous === undefined) {
-      delete process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE;
-    } else {
-      process.env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE = previous;
-    }
-  }
 });
 
 test('getCloudflareLocalSmokeConfigSeedConfigs 在本地 smoke worker 模式返回独立副本', () => {

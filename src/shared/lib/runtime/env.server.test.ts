@@ -5,6 +5,7 @@ import {
   getRuntimeEnvString,
   getServerPublicEnvConfigs,
   getServerRuntimeEnv,
+  isCloudflareWorkersRuntime,
   isRuntimeEnvEnabled,
   type CloudflareBindings,
 } from './env.server';
@@ -137,4 +138,8 @@ test('getServerRuntimeEnv 会从 runtime env 解析数据库和 auth 配置', ()
     authSecret: 'binding-secret',
     authBaseUrl: 'https://binding.example.com',
   });
+});
+
+test('Node 运行时不会因为存在 Cloudflare bindings 误判为 Workers', () => {
+  assert.equal(isCloudflareWorkersRuntime(), false);
 });

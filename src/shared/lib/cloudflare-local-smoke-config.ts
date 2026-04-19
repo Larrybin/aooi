@@ -5,16 +5,6 @@ export const CLOUDFLARE_LOCAL_SMOKE_CONFIG_SEED_CONFIGS = Object.freeze({
   general_ai_enabled: 'true',
 });
 
-export function isCloudflareAdminSettingsSmokeNextCacheBypassEnabled(
-  env?: NodeJS.ProcessEnv
-) {
-  if (env) {
-    return env.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE === 'true';
-  }
-
-  return isRuntimeEnvEnabled('CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE');
-}
-
 export function isCloudflareLocalSmokeConfigSeedEnabled(
   env?: NodeJS.ProcessEnv
 ) {

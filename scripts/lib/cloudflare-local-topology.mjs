@@ -1,24 +1,26 @@
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import net from 'node:net';
 import path from 'node:path';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-import { buildCloudflareSecretsEnv } from '../create-cf-secrets-file.mjs';
+import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits.ts';
 import { buildCloudflareWranglerConfig } from '../create-cf-wrangler-config.mjs';
 import {
-  createPreviewManager,
-  createWranglerDevManager,
+  createWranglerMultiConfigDevManager,
   ensureCiDevVars,
   normalizePreviewBaseUrl,
   resolveAuthSecret,
 } from './cloudflare-dev-runtime.mjs';
-import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits.ts';
 
-const {
-  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
-  CLOUDFLARE_LOCAL_WORKER_URL_VARS,
-  getServerWorkerMetadata,
-} = cloudflareWorkerSplits;
+const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, getServerWorkerMetadata } =
+  cloudflareWorkerSplits;
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -27,8 +29,15 @@ const rootDir = path.resolve(
 
 const DEFAULT_ROUTER_BASE_URL = 'http://localhost:8787';
 const DEFAULT_ROUTER_PORT = 8787;
-const DEFAULT_SERVER_PORT_BASE = 8788;
-const DEFAULT_INSPECTOR_PORT_BASE = 19229;
+const TOPOLOGY_MANAGER_LABEL = 'Cloudflare local topology';
+const ROUTER_RUNTIME_ARTIFACTS = [
+  '.open-next/worker.js',
+  '.open-next/cloudflare/images.js',
+  '.open-next/cloudflare/init.js',
+  '.open-next/middleware/handler.mjs',
+  '.open-next/.build/durable-objects/queue.js',
+  '.open-next/.build/durable-objects/sharded-tag-cache.js',
+];
 
 function buildLocalTopologyRuntimeVars(routerBaseUrl) {
   return {
@@ -39,30 +48,12 @@ function buildLocalTopologyRuntimeVars(routerBaseUrl) {
   };
 }
 
-function buildLocalWorkerRuntimeVars(serverWorkers, routerBaseUrl) {
-  const { protocol, hostname } = new URL(routerBaseUrl);
-
-  return Object.fromEntries(
-    serverWorkers.map((worker) => [
-      CLOUDFLARE_LOCAL_WORKER_URL_VARS[worker.target],
-      `${protocol}//${hostname}:${worker.port}`,
-    ])
-  );
-}
-
 function resolveLocalTopologyExtraVars(extraVars, processEnv) {
   const resolvedExtraVars = { ...extraVars };
   const localAuthDebug = processEnv.CF_LOCAL_AUTH_DEBUG?.trim();
-  const adminSettingsSmokeNextCacheBypass =
-    processEnv.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE?.trim();
 
   if (localAuthDebug) {
     resolvedExtraVars.CF_LOCAL_AUTH_DEBUG = localAuthDebug;
-  }
-
-  if (adminSettingsSmokeNextCacheBypass) {
-    resolvedExtraVars.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE =
-      adminSettingsSmokeNextCacheBypass;
   }
 
   return resolvedExtraVars;
@@ -76,15 +67,13 @@ function readWranglerLocalConnectionString(content) {
 }
 
 async function canListenOnPort(port) {
-  return new Promise((resolve) => {
+  return await new Promise((resolve) => {
     const server = net.createServer();
 
     server.once('error', () => {
       resolve(false);
     });
 
-    // Wrangler/workerd bind loopback ports, so probe the same host to avoid
-    // false positives from IPv6-only wildcard checks on macOS.
     server.listen(port, '127.0.0.1', () => {
       server.close(() => resolve(true));
     });
@@ -108,49 +97,61 @@ export async function findAvailablePort(startPort, reservedPorts = new Set()) {
 export async function resolveCloudflareLocalTopologyPorts({
   routerBaseUrl = DEFAULT_ROUTER_BASE_URL,
 } = {}) {
-  const reservedPorts = new Set();
   const requestedUrl = new URL(normalizePreviewBaseUrl(routerBaseUrl));
   const requestedRouterPort =
     Number.parseInt(requestedUrl.port || String(DEFAULT_ROUTER_PORT), 10) ||
     DEFAULT_ROUTER_PORT;
-  const requestedServerPortBase =
-    requestedRouterPort === DEFAULT_ROUTER_PORT
-      ? DEFAULT_SERVER_PORT_BASE
-      : requestedRouterPort + 1;
+  const routerPort = await findAvailablePort(requestedRouterPort);
 
-  const routerPort = await findAvailablePort(requestedRouterPort, reservedPorts);
-  reservedPorts.add(routerPort);
-
-  const serverPorts = {};
-  const inspectorPorts = {};
-  let nextPort = requestedServerPortBase;
-  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
-    const port = await findAvailablePort(nextPort, reservedPorts);
-    serverPorts[target] = port;
-    reservedPorts.add(port);
-    nextPort = port + 1;
-  }
-
-  let nextInspectorPort = DEFAULT_INSPECTOR_PORT_BASE;
-  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
-    const inspectorPort = await findAvailablePort(
-      nextInspectorPort,
-      reservedPorts
-    );
-    inspectorPorts[target] = inspectorPort;
-    reservedPorts.add(inspectorPort);
-    nextInspectorPort = inspectorPort + 1;
-  }
-
-  const routerUrl = new URL(requestedUrl.toString());
-  routerUrl.port = String(routerPort);
+  requestedUrl.port = String(routerPort);
 
   return {
     routerPort,
-    routerBaseUrl: normalizePreviewBaseUrl(routerUrl.toString()),
-    serverPorts,
-    inspectorPorts,
+    routerBaseUrl: normalizePreviewBaseUrl(requestedUrl.toString()),
   };
+}
+
+function resolveServerWorkerHandlerPath(target) {
+  const metadata = getServerWorkerMetadata(target);
+  return path.join(
+    path.dirname(metadata.bundleEntryRelativePath),
+    'handler.mjs'
+  );
+}
+
+function getRequiredLocalBuildArtifactPaths() {
+  return [
+    ...ROUTER_RUNTIME_ARTIFACTS,
+    ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) =>
+      resolveServerWorkerHandlerPath(target)
+    ),
+  ];
+}
+
+export async function assertCloudflareLocalBuildArtifactsReady({
+  rootPath = rootDir,
+} = {}) {
+  const missingPaths = [];
+
+  for (const relativePath of getRequiredLocalBuildArtifactPaths()) {
+    try {
+      await stat(path.resolve(rootPath, relativePath));
+    } catch {
+      missingPaths.push(relativePath);
+    }
+  }
+
+  if (missingPaths.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    [
+      'Cloudflare local topology requires built OpenNext artifacts.',
+      'Run `pnpm cf:build` before starting Cloudflare local smoke or spikes.',
+      `Missing artifacts: ${missingPaths.join(', ')}`,
+    ].join(' ')
+  );
 }
 
 export async function prepareCloudflareLocalTopologyArtifacts({
@@ -173,8 +174,8 @@ export async function prepareCloudflareLocalTopologyArtifacts({
   await mkdir(tmpRoot, { recursive: true });
 
   const tempDir = await mkdtemp(path.join(tmpRoot, 'cf-local-topology-'));
-  const stateRootDir = path.join(tempDir, 'state');
   const resolvedDevVarsPath = devVarsPath || path.join(tempDir, '.dev.vars');
+  const persistDir = path.join(tempDir, 'state');
   const ports = await resolveCloudflareLocalTopologyPorts({ routerBaseUrl });
   const routerDevOrigin = new URL(ports.routerBaseUrl);
   const routerTemplate = await readFile(routerTemplatePath, 'utf8');
@@ -191,11 +192,15 @@ export async function prepareCloudflareLocalTopologyArtifacts({
     validateTemplateContract: true,
   });
   await writeFile(routerConfigPath, routerConfig, 'utf8');
+  await mkdir(persistDir, { recursive: true });
 
   const serverWorkers = [];
   for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
     const metadata = getServerWorkerMetadata(target);
-    const templatePath = path.resolve(rootDir, metadata.wranglerConfigRelativePath);
+    const templatePath = path.resolve(
+      rootDir,
+      metadata.wranglerConfigRelativePath
+    );
     const template = await readFile(templatePath, 'utf8');
     const configPath = path.join(tempDir, `wrangler.${target}.local.toml`);
     const config = buildCloudflareWranglerConfig({
@@ -210,30 +215,14 @@ export async function prepareCloudflareLocalTopologyArtifacts({
       validateTemplateContract: true,
     });
     await writeFile(configPath, config, 'utf8');
-    const persistDir = path.join(stateRootDir, target);
-    await mkdir(persistDir, { recursive: true });
 
     serverWorkers.push({
       target,
       label: `Cloudflare server worker ${target}`,
       configPath,
-      persistDir,
-      port: ports.serverPorts[target],
-      inspectorPort: ports.inspectorPorts[target],
       workerName: metadata.workerName,
     });
   }
-
-  const secretsContent = buildCloudflareSecretsEnv(
-    {
-      ...processEnv,
-      AUTH_SECRET: authSecret,
-      BETTER_AUTH_SECRET: authSecret,
-    },
-    { fallbackAuthSecret: authSecret }
-  );
-  const secretsPath = path.join(tempDir, 'cloudflare.local.secrets.env');
-  await writeFile(secretsPath, secretsContent, 'utf8');
 
   const devVars = await ensureCiDevVars({
     authSecret,
@@ -247,15 +236,18 @@ export async function prepareCloudflareLocalTopologyArtifacts({
 
   return {
     tempDir,
+    persistDir,
     router: {
-      label: 'Cloudflare preview',
+      label: TOPOLOGY_MANAGER_LABEL,
       configPath: routerConfigPath,
       port: ports.routerPort,
       baseUrl: ports.routerBaseUrl,
     },
     serverWorkers,
-    secretsPath,
-    secretsContent,
+    wranglerConfigPaths: [
+      routerConfigPath,
+      ...serverWorkers.map((worker) => worker.configPath),
+    ],
     devVars,
     async cleanup() {
       await devVars.cleanup();
@@ -278,37 +270,17 @@ function formatRecentLogs(label, recentLogs) {
 
 function buildManagerStartError(label, manager, error) {
   const detail = error instanceof Error ? error.message : String(error);
-  return new Error(`${label} failed to start: ${detail}\n${formatRecentLogs(label, manager?.recentLogs)}`);
-}
-
-async function stopManagers(managers) {
-  for (const manager of managers) {
-    try {
-      await manager?.stop?.();
-    } catch {
-      // ignore cleanup failures while unwinding startup
-    }
-  }
+  return new Error(
+    `${label} failed to start: ${detail}\n${formatRecentLogs(label, manager?.recentLogs)}`
+  );
 }
 
 export function renderCloudflareLocalTopologyLogs(topology) {
-  if (!topology) {
+  if (!topology?.manager) {
     return '';
   }
 
-  const sections = [];
-  if (topology.routerManager) {
-    sections.push(
-      formatRecentLogs(topology.routerManager.label, topology.routerManager.recentLogs)
-    );
-  }
-  for (const worker of topology.serverWorkers || []) {
-    if (worker.manager) {
-      sections.push(formatRecentLogs(worker.manager.label, worker.manager.recentLogs));
-    }
-  }
-
-  return sections.join('\n');
+  return formatRecentLogs(topology.manager.label, topology.manager.recentLogs);
 }
 
 export async function startCloudflareLocalDevTopology(
@@ -323,12 +295,13 @@ export async function startCloudflareLocalDevTopology(
     devVarsPath = null,
   } = {},
   {
-    prepareCloudflareLocalTopologyArtifactsImpl =
-      prepareCloudflareLocalTopologyArtifacts,
-    createPreviewManagerImpl = createPreviewManager,
-    createWranglerDevManagerImpl = createWranglerDevManager,
+    assertCloudflareLocalBuildArtifactsReadyImpl = assertCloudflareLocalBuildArtifactsReady,
+    prepareCloudflareLocalTopologyArtifactsImpl = prepareCloudflareLocalTopologyArtifacts,
+    createWranglerMultiConfigDevManagerImpl = createWranglerMultiConfigDevManager,
   } = {}
 ) {
+  await assertCloudflareLocalBuildArtifactsReadyImpl();
+
   const resolvedAuthSecret = authSecret || resolveAuthSecret(processEnv);
   const artifacts = await prepareCloudflareLocalTopologyArtifactsImpl({
     databaseUrl,
@@ -342,59 +315,34 @@ export async function startCloudflareLocalDevTopology(
   const childEnv = {
     ...processEnv,
     ...buildLocalTopologyRuntimeVars(artifacts.router.baseUrl),
-    ...buildLocalWorkerRuntimeVars(
-      artifacts.serverWorkers,
-      artifacts.router.baseUrl
-    ),
     AUTH_SECRET: resolvedAuthSecret,
     BETTER_AUTH_SECRET: resolvedAuthSecret,
     DEPLOY_TARGET: 'cloudflare',
     ...resolveLocalTopologyExtraVars(extraVars, processEnv),
   };
 
-  let routerManager = null;
-  const startedServerWorkers = [];
+  let manager = null;
 
   try {
-    for (const worker of artifacts.serverWorkers) {
-      const manager = createWranglerDevManagerImpl({
-        label: worker.label,
-        wranglerConfigPath: worker.configPath,
-        port: worker.port,
-        inspectorPort: worker.inspectorPort,
-        name: worker.workerName,
-        persistTo: worker.persistDir,
-        env: childEnv,
-        logger,
-      });
-      worker.manager = manager;
-      startedServerWorkers.push(worker);
-    }
-
-    for (const worker of startedServerWorkers) {
-      try {
-        await worker.manager.readyUrlPromise;
-      } catch (error) {
-        throw buildManagerStartError(worker.label, worker.manager, error);
-      }
-    }
-
-    routerManager = createPreviewManagerImpl({
-      wranglerConfigPath: artifacts.router.configPath,
+    manager = createWranglerMultiConfigDevManagerImpl({
+      label: TOPOLOGY_MANAGER_LABEL,
+      wranglerConfigPaths: artifacts.wranglerConfigPaths,
+      port: artifacts.router.port,
+      persistTo: artifacts.persistDir,
       env: childEnv,
       logger,
     });
+
     const routerBaseUrlResolved = normalizePreviewBaseUrl(
-      await routerManager.readyUrlPromise
+      await manager.readyUrlPromise
     );
 
     return {
-      routerManager,
+      manager,
       router: {
         ...artifacts.router,
         baseUrl: routerBaseUrlResolved,
       },
-      serverWorkers: startedServerWorkers,
       getRouterBaseUrl() {
         return routerBaseUrlResolved;
       },
@@ -402,20 +350,18 @@ export async function startCloudflareLocalDevTopology(
         return renderCloudflareLocalTopologyLogs(this);
       },
       async stop() {
-        await stopManagers([
-          routerManager,
-          ...startedServerWorkers.map((worker) => worker.manager).reverse(),
-        ]);
+        await manager?.stop?.();
         await artifacts.cleanup();
       },
     };
   } catch (error) {
-    await stopManagers([
-      routerManager,
-      ...startedServerWorkers.map((worker) => worker.manager).reverse(),
-    ]);
+    try {
+      await manager?.stop?.();
+    } catch {
+      // ignore cleanup failures while unwinding startup
+    }
     await artifacts.cleanup();
-    throw error;
+    throw buildManagerStartError(TOPOLOGY_MANAGER_LABEL, manager, error);
   }
 }
 

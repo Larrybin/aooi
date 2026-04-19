@@ -1,16 +1,17 @@
 import '@/config/load-dotenv';
+
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveCloudflareAuthSecretValue } from './create-cf-secrets-file.mjs';
-import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
-import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { waitForPreviewReady } from './run-cf-preview-smoke.mjs';
+import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
+import { runPhaseSequence } from './lib/harness/scenario.mjs';
+import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -61,8 +62,8 @@ export function parseEnvFileContent(content) {
 export function injectCloudflareLocalSmokeDevVars(
   processEnv = process.env,
   {
-    devVarsPath =
-      processEnv.CF_LOCAL_SMOKE_DEV_VARS_PATH?.trim() || defaultDevVarsPath,
+    devVarsPath = processEnv.CF_LOCAL_SMOKE_DEV_VARS_PATH?.trim() ||
+      defaultDevVarsPath,
     readFileSyncImpl = readFileSync,
   } = {}
 ) {

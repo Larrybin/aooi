@@ -22,7 +22,7 @@
     "test": "node scripts/run-tests.mjs",
     "test:auth-spike": "node --import tsx scripts/smoke.mjs auth-spike",
     "test:cf-app-smoke": "node --import tsx scripts/smoke.mjs cf-app",
-    "test:cf-admin-settings-smoke": "CF_ADMIN_SETTINGS_SMOKE_DISABLE_TAG_CACHE=true pnpm cf:build && CF_ADMIN_SETTINGS_SMOKE_DISABLE_TAG_CACHE=true CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE=true node --import tsx scripts/smoke.mjs cf-admin-settings",
+    "test:cf-admin-settings-smoke": "pnpm cf:build && node --import tsx scripts/smoke.mjs cf-admin-settings",
     "test:cf-local-smoke": "node --import tsx scripts/smoke.mjs cf-local",
     "test:admin-settings-module-contract-smoke": "node --import tsx scripts/run-admin-settings-module-contract-smoke.mjs",
     "test:creem-webhook-spike": "node --test --import tsx \"src/core/payment/providers/creem.test.ts\" \"tests/contract/payment-notify.test.ts\"",
@@ -154,7 +154,7 @@
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5",
-    "wrangler": "4.80.0"
+    "wrangler": "4.83.0"
   },
   "pnpm": {
     "overrides": {

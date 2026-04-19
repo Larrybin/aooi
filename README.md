@@ -189,7 +189,7 @@ Read `content/docs` to start your AI SaaS project.
 - Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The router lives in [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml); each server Worker has its own `cloudflare/wrangler.server-*.toml`.
 - OpenNext persistent cache is Cloudflare-only: router and all server Workers share `NEXT_INC_CACHE_R2_BUCKET`, tag cache + queue run on Durable Objects, and router image optimization is enabled through `IMAGES`.
 - Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
-- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API, restarts the local topology, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path without depending on OpenNext tag-cache DO RPC in local multi-worker dev.
+- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical multi-worker topology under the authoritative `wrangler versions upload --dry-run` gzip gate. The measured gzip sizes were `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, and `router 0.14 MiB`.
 - Cloudflare helper commands:
@@ -221,7 +221,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` is the canonical local runtime gate, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production migrate workflow -> `pnpm cf:deploy` -> post-deploy `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` now boots the full split-worker topology through a single local `wrangler dev` multi-config session, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production migrate workflow -> `pnpm cf:deploy` -> post-deploy `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 

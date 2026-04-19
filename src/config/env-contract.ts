@@ -29,7 +29,6 @@ export const SERVER_RUNTIME_ENV_KEYS = [
   'AUTH_URL',
   'CF_LOCAL_AUTH_DEBUG',
   'CF_LOCAL_SMOKE_WORKERS_DEV',
-  'CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE',
   'AUTH_SPIKE_OAUTH_CONFIG_SEED',
   'AUTH_SPIKE_OAUTH_UPSTREAM_MOCK',
   'STORAGE_SPIKE_UPLOAD_MOCK',
@@ -48,7 +47,6 @@ export const DEV_VARS_ALLOWED_KEYS = [
   'BETTER_AUTH_URL',
   'CF_LOCAL_SMOKE_WORKERS_DEV',
   'CF_LOCAL_AUTH_DEBUG',
-  'CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE',
   'AUTH_SPIKE_OAUTH_CONFIG_SEED',
   'AUTH_SPIKE_OAUTH_UPSTREAM_MOCK',
 ] as const;
@@ -136,9 +134,7 @@ export function assertAllowedEnvKeys(
   );
 }
 
-export function findUnknownPublicEnvKeys(
-  keys: Iterable<string>
-): string[] {
+export function findUnknownPublicEnvKeys(keys: Iterable<string>): string[] {
   return Array.from(
     new Set(
       Array.from(keys)
@@ -148,9 +144,7 @@ export function findUnknownPublicEnvKeys(
   ).sort();
 }
 
-export function parseEnvAssignments(
-  content: string
-): Record<string, string> {
+export function parseEnvAssignments(content: string): Record<string, string> {
   const entries: Record<string, string> = {};
 
   for (const rawLine of content.split(/\r?\n/)) {

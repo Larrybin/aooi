@@ -150,11 +150,7 @@ export function getServerPublicEnvConfigs(
 }
 
 export function isCloudflareWorkersRuntime(): boolean {
-  if (isCloudflareWorker) {
-    return true;
-  }
-
-  return getCloudflareBindings() !== null;
+  return isCloudflareWorker;
 }
 
 export function getRuntimePlatform(): RuntimePlatform {

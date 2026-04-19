@@ -1,25 +1,35 @@
 import '@/config/load-dotenv';
+
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 import * as localeModule from '../src/config/locale/index.ts';
 import * as storagePublicUrlModule from '../src/shared/lib/storage-public-url.ts';
+import * as configConsistencyModule from '../src/shared/lib/config-consistency.ts';
 import * as settingsNormalizersModule from '../src/shared/services/settings/settings-normalizers.ts';
-import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 import {
   resolveAuthSecret,
   resolveConfiguredPreviewBaseUrl,
   waitForPreviewReady,
-} from './run-cf-preview-smoke.mjs';
+} from './lib/cloudflare-preview-smoke.mjs';
+import { runPhaseSequence } from './lib/harness/scenario.mjs';
+import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 
 injectCloudflareLocalSmokeDevVars();
+
+const configConsistency =
+  configConsistencyModule.default ?? configConsistencyModule;
+const { CONFIG_CONSISTENCY_FRESH_VALUE, CONFIG_CONSISTENCY_HEADER } =
+  configConsistency;
+const FRESH_CONFIG_CONSISTENCY_HEADERS = Object.freeze({
+  [CONFIG_CONSISTENCY_HEADER]: CONFIG_CONSISTENCY_FRESH_VALUE,
+});
 
 const localeConfig = localeModule.default ?? localeModule;
 const { locales } = localeConfig;
@@ -320,7 +330,11 @@ export async function waitForAdminSettingsSmokeReady({
   await waitForPreviewReadyImpl({ baseUrl });
 }
 
-async function startPreviewTopology({ databaseUrl, routerBaseUrl, authSecret }) {
+async function startPreviewTopology({
+  databaseUrl,
+  routerBaseUrl,
+  authSecret,
+}) {
   const topology = await startCloudflareLocalDevTopology({
     databaseUrl,
     routerBaseUrl,
@@ -334,15 +348,6 @@ async function startPreviewTopology({ databaseUrl, routerBaseUrl, authSecret }) 
     topology,
     baseUrl,
   };
-}
-
-async function stopPreviewTopology(topology) {
-  if (!topology) {
-    return null;
-  }
-
-  await topology.stop();
-  return null;
 }
 
 async function fetchJson({ url, method = 'GET', headers, body }) {
@@ -378,6 +383,7 @@ async function uploadStorageFileViaSession({ baseUrl, cookieHeader, file }) {
       cookie: cookieHeader,
       origin: baseUrl,
       referer: `${baseUrl}/`,
+      ...FRESH_CONFIG_CONSISTENCY_HEADERS,
     },
     body: formData,
   });
@@ -449,6 +455,7 @@ async function assertStorageUploadDenied({ baseUrl, cookieHeader }) {
 async function fetchPublicConfigs(baseUrl) {
   const response = await fetchJson({
     url: `${baseUrl}/api/config/get-configs`,
+    headers: FRESH_CONFIG_CONSISTENCY_HEADERS,
   });
 
   assert.equal(
@@ -512,7 +519,7 @@ export function assertPublicBrandConfigProjection({
       },
     }),
     expectedAssetUrls,
-    '[public-configs] runtime derived public asset URLs should remain stable after restart'
+    '[public-configs] runtime derived public asset URLs should remain stable within the single local topology session'
   );
 }
 
@@ -544,6 +551,7 @@ export async function main() {
   };
 
   let topology = null;
+  let baseUrl = '';
   let expectedAssetUrls = null;
   let uploadedKeys = null;
   let smokeUserId = null;
@@ -561,7 +569,10 @@ export async function main() {
         {
           label: 'seed-upload-session',
           action: async () => {
-            const seededSession = await seedSmokeUserSession(databaseUrl, smokeUser);
+            const seededSession = await seedSmokeUserSession(
+              databaseUrl,
+              smokeUser
+            );
             smokeUserId = seededSession.userId;
             signedInCookieHeader = buildSignedInSessionCookieHeader(
               seededSession.sessionToken
@@ -569,7 +580,7 @@ export async function main() {
           },
         },
         {
-          label: 'upload-brand-assets',
+          label: 'start-preview-topology',
           action: async () => {
             const started = await startPreviewTopology({
               databaseUrl,
@@ -577,9 +588,19 @@ export async function main() {
               authSecret,
             });
             topology = started.topology;
+            baseUrl = started.baseUrl;
+          },
+        },
+        {
+          label: 'upload-brand-assets',
+          action: async () => {
+            assert.ok(
+              baseUrl,
+              'cloudflare baseUrl should be ready before uploads'
+            );
 
             const uploads = await uploadBrandAssetsViaSession({
-              baseUrl: started.baseUrl,
+              baseUrl,
               cookieHeader: signedInCookieHeader,
               storagePublicBaseUrl: seedSettings.storage_public_base_url,
             });
@@ -593,14 +614,16 @@ export async function main() {
               storagePublicBaseUrl: seedSettings.storage_public_base_url,
               objectKeys: uploadedKeys,
             });
-
-            topology = await stopPreviewTopology(topology);
           },
         },
         {
-          label: 'public-brand-config-projection-after-restart',
+          label: 'public-brand-config-projection',
           action: async () => {
             assert(uploadedKeys, 'uploaded brand asset keys are required');
+            assert.ok(
+              baseUrl,
+              'cloudflare baseUrl should be ready before public config fetch'
+            );
 
             await writeConfigsNormalized(databaseUrl, {
               app_logo: uploadedKeys.appLogo,
@@ -608,48 +631,39 @@ export async function main() {
               app_og_image: uploadedKeys.appOgImage,
             });
 
-            const started = await startPreviewTopology({
-              databaseUrl,
-              routerBaseUrl: fallbackBaseUrl,
-              authSecret,
-            });
-            topology = started.topology;
-
-            const publicConfigs = await fetchPublicConfigs(started.baseUrl);
+            const publicConfigs = await fetchPublicConfigs(baseUrl);
             assertPublicBrandConfigProjection({
               publicConfigs,
               expectedAppName: seedSettings.app_name,
-              expectedStoragePublicBaseUrl: seedSettings.storage_public_base_url,
+              expectedStoragePublicBaseUrl:
+                seedSettings.storage_public_base_url,
               expectedObjectKeys: uploadedKeys,
               expectedAssetUrls,
             });
-
-            topology = await stopPreviewTopology(topology);
           },
         },
         {
           label: 'upload-denied-without-storage-public-base-url',
           action: async () => {
+            assert.ok(
+              baseUrl,
+              'cloudflare baseUrl should be ready before denied upload check'
+            );
+
             await writeConfigsNormalized(databaseUrl, {
               storage_public_base_url: '',
             });
 
-            const started = await startPreviewTopology({
-              databaseUrl,
-              routerBaseUrl: fallbackBaseUrl,
-              authSecret,
-            });
-            topology = started.topology;
-
             await assertStorageUploadDenied({
-              baseUrl: started.baseUrl,
+              baseUrl,
               cookieHeader: signedInCookieHeader,
             });
           },
         },
       ],
       cleanup: async () => {
-        topology = await stopPreviewTopology(topology);
+        await topology?.stop();
+        topology = null;
         await restoreConfigBaseline(databaseUrl, baseline);
         await deleteSmokeUser(databaseUrl, smokeUserId);
       },

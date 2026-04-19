@@ -13,9 +13,9 @@ import {
   resolveConfiguredPreviewBaseUrl,
   resolvePreviewBaseUrl,
   runRepeatedRequestCheck,
-  waitForPreviewReady,
   validateSmokeResponse,
-} from '../../scripts/run-cf-preview-smoke.mjs';
+  waitForPreviewReady,
+} from '../../scripts/lib/cloudflare-preview-smoke.mjs';
 
 function createSilentConsole(
   overrides: Partial<Pick<Console, 'log' | 'warn'>> = {}

@@ -5,12 +5,12 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { ensureCiDevVars } from '../../scripts/lib/cloudflare-preview-smoke.mjs';
 import {
   CLOUDFLARE_SECRET_ENV_KEYS,
   findUnknownPublicEnvKeys,
   parseEnvAssignments,
 } from '../../src/config/env-contract';
-import { ensureCiDevVars } from '../../scripts/run-cf-preview-smoke.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -56,11 +56,7 @@ test('.env.example 中的 secret 占位必须为空字符串', async () => {
   const entries = parseEnvAssignments(content);
 
   for (const key of CLOUDFLARE_SECRET_ENV_KEYS) {
-    assert.equal(
-      entries[key],
-      '',
-      `${key} in .env.example 必须是空占位`
-    );
+    assert.equal(entries[key], '', `${key} in .env.example 必须是空占位`);
   }
 });
 
@@ -76,9 +72,7 @@ test('NEXT_PUBLIC_* 必须先登记到 env 契约', async () => {
 
   for (const target of scanTargets) {
     const statFiles =
-      path.extname(target) === ''
-        ? await collectFiles(target)
-        : [target];
+      path.extname(target) === '' ? await collectFiles(target) : [target];
 
     for (const filePath of statFiles) {
       const content = await readFile(filePath, 'utf8');
