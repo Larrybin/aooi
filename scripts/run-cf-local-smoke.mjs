@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import * as envContractNamespace from '../src/config/env-contract.ts';
 import { resolveCloudflareAuthSecretValue } from './create-cf-secrets-file.mjs';
 import {
   renderCloudflareLocalTopologyLogs,
@@ -17,6 +18,9 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..'
 );
+const envContractModule =
+  envContractNamespace.default ?? envContractNamespace;
+const { assertAllowedEnvKeys, DEV_VARS_ALLOWED_KEYS } = envContractModule;
 const defaultTemplatePath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
 const defaultDevVarsPath = path.resolve(rootDir, '.dev.vars');
 const defaultBaseUrl = 'http://localhost:8787';
@@ -79,6 +83,9 @@ export function injectCloudflareLocalSmokeDevVars(
   }
 
   const envEntries = parseEnvFileContent(content);
+  const devVarsLabel = path.relative(rootDir, devVarsPath) || devVarsPath;
+  assertAllowedEnvKeys(envEntries, DEV_VARS_ALLOWED_KEYS, devVarsLabel);
+
   for (const [name, value] of Object.entries(envEntries)) {
     if (processEnv[name]?.trim()) {
       continue;
@@ -94,8 +101,8 @@ injectCloudflareLocalSmokeDevVars();
 
 export function resolveLocalSmokeDatabaseUrl(processEnv = process.env) {
   return (
-    processEnv.AUTH_SPIKE_DATABASE_URL?.trim() ||
     processEnv.DATABASE_URL?.trim() ||
+    processEnv.AUTH_SPIKE_DATABASE_URL?.trim() ||
     ''
   );
 }

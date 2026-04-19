@@ -303,7 +303,7 @@ Recommended:
 
 Do not put a real local PostgreSQL DSN into tracked Wrangler files.
 
-- Local smoke uses `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL` plus `pnpm test:cf-local-smoke`
+- Local smoke uses an explicit `DATABASE_URL` plus `pnpm test:cf-local-smoke`; tracked `.dev.vars` must stay on the non-DB allowlist and cannot carry PostgreSQL DSNs
 - CI generates temporary Wrangler configs and temporary secrets files before local runtime smoke
 - `pnpm cf:deploy` also deploys from temporary Wrangler configs and `--secrets-file`; tracked templates stay secret-free
 - Generate the secret with `openssl rand -base64 32`

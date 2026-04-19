@@ -175,7 +175,7 @@ Notes:
 - 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
 - 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
-- 本地 Cloudflare smoke 默认从 `AUTH_SPIKE_DATABASE_URL` 或 `DATABASE_URL` 生成临时 Wrangler config；仓库里的 Wrangler 模板不存储本地数据库连接串。
+- 本地 Cloudflare smoke 默认要求显式 `DATABASE_URL` 来生成临时 Wrangler config；仓库根 `.dev.vars` 只允许非数据库的运行时键，Wrangler 模板本身也不存储本地数据库连接串。
 - CI 中的 `Cloudflare Deploy Acceptance` 同样生成临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container。
 
 ### Optional
