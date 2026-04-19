@@ -24,7 +24,6 @@ type AiQueryApiContext = Pick<
   Awaited<ReturnType<typeof createApiContext>>,
   'log' | 'parseJson' | 'requireUser'
 >;
-type AiService = Awaited<ReturnType<typeof getAIServiceFn>>;
 
 type AiTaskLike = {
   id: string;

@@ -6,24 +6,11 @@ import {
 } from '@/shared/models/config';
 import { buildGetConfigsLogic } from './route-logic';
 
-type GetConfigsRouteDeps = {
-  getPublicConfigsCached: typeof getPublicConfigsCached;
-  getPublicConfigsFresh: typeof getPublicConfigsFresh;
-  resolveConfigConsistencyMode: typeof resolveConfigConsistencyMode;
-};
+const defaultGetConfigsLogic = buildGetConfigsLogic({
+  getPublicConfigsCached,
+  getPublicConfigsFresh,
+  resolveConfigConsistencyMode,
+});
 
-export function createGetConfigsHandler(
-  overrides: Partial<GetConfigsRouteDeps> = {}
-) {
-  return withApi(
-    buildGetConfigsLogic({
-      getPublicConfigsCached,
-      getPublicConfigsFresh,
-      resolveConfigConsistencyMode,
-      ...overrides,
-    })
-  );
-}
-
-export const GET = createGetConfigsHandler();
-export const POST = createGetConfigsHandler();
+export const GET = withApi(defaultGetConfigsLogic);
+export const POST = withApi(defaultGetConfigsLogic);
