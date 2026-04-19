@@ -4,8 +4,49 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      github-actions-non-breaking:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      npm-dev-non-breaking:
+        dependency-type: development
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+      npm-prod-patch:
+        dependency-type: production
+        patterns:
+          - '*'
+        update-types:
+          - patch
+      npm-prod-low-risk-minor:
+        dependency-type: production
+        patterns:
+          - '@radix-ui/*'
+          - '@tabler/*'
+          - '@tanstack/*'
+          - 'class-variance-authority'
+          - 'clsx'
+          - 'lucide-react'
+          - 'motion'
+          - 'nanoid'
+          - 'react-hook-form'
+          - 'sonner'
+          - 'tailwind-merge'
+          - 'uuid'
+          - 'zod'
+        update-types:
+          - minor
