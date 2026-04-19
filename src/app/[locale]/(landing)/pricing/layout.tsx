@@ -12,7 +12,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 import type {
   Footer as FooterType,
   Header as HeaderType,

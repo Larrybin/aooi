@@ -1,11 +1,29 @@
-import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
+import {
+  getPublicConfigsCached,
+  getPublicConfigsFresh,
+} from '@/shared/models/config';
+import { buildGetConfigsLogic } from './route-logic';
 
-async function getConfigsResponse() {
-  const configs = await getPublicConfigsCached();
-  return jsonOk(configs);
+type GetConfigsRouteDeps = {
+  getPublicConfigsCached: typeof getPublicConfigsCached;
+  getPublicConfigsFresh: typeof getPublicConfigsFresh;
+  resolveConfigConsistencyMode: typeof resolveConfigConsistencyMode;
+};
+
+export function createGetConfigsHandler(
+  overrides: Partial<GetConfigsRouteDeps> = {}
+) {
+  return withApi(
+    buildGetConfigsLogic({
+      getPublicConfigsCached,
+      getPublicConfigsFresh,
+      resolveConfigConsistencyMode,
+      ...overrides,
+    })
+  );
 }
 
-export const GET = withApi(async (_req: Request) => getConfigsResponse());
-export const POST = withApi(async (_req: Request) => getConfigsResponse());
+export const GET = createGetConfigsHandler();
+export const POST = createGetConfigsHandler();

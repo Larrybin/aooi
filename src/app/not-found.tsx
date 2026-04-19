@@ -4,7 +4,7 @@ import { AppImage } from '@/shared/blocks/common/app-image';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 
 export default async function NotFoundPage() {
   const publicConfigs = await getPublicConfigsCached();

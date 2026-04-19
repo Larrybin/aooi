@@ -4,7 +4,7 @@ import { createApiContext } from '@/shared/lib/api/context';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsCached } from '@/shared/models/config';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import type { Pricing } from '@/shared/types/blocks/pricing';
 import { createPaymentCheckoutSession } from '@/core/payment/flows/checkout';
@@ -33,7 +33,7 @@ export const POST = withApi(async (req: Request) => {
 
   const user = await api.requireUser();
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
 
   const checkoutInfo = await createPaymentCheckoutSession({
     pricingItem,

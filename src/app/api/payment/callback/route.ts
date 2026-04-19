@@ -12,8 +12,9 @@ import {
 } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
+import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsCached } from '@/shared/models/config';
 import { findOrderByOrderNo } from '@/shared/models/order';
 import {
   PaymentCallbackBodySchema,
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
   const { log } = api;
   let redirectUrl = '';
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 
@@ -85,7 +86,7 @@ export const POST = withApi(async (req: Request) => {
   const { log } = api;
   const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 
@@ -107,7 +108,9 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid order');
   }
 
-  const paymentService = await getPaymentService();
+  const paymentService = await getPaymentService({
+    mode: resolveConfigConsistencyMode(req),
+  });
   const paymentProvider = paymentService.getProvider(order.paymentProvider);
   if (!paymentProvider) {
     throw new NotFoundError('payment provider not found');

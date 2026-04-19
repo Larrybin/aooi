@@ -13,7 +13,7 @@ import type {
   updateAITaskById,
 } from '@/shared/models/ai_task';
 import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import type { getAllConfigs } from '@/shared/models/config';
+import type { getAllConfigsCached } from '@/shared/models/config';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
@@ -51,7 +51,7 @@ export type AiGenerateRouteDeps = {
     parseJson: AiGenerateApiContext['parseJson'];
     requireUser: AiGenerateApiContext['requireUser'];
   };
-  getAllConfigs: typeof getAllConfigs;
+  getAllConfigs: typeof getAllConfigsCached;
   getAIServiceWithConfigs: typeof getAIServiceWithConfigs;
   resolveConfiguredAICapability: typeof resolveConfiguredAICapability;
   createAITask: typeof createAITask;

@@ -4,6 +4,7 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { logger } from '@/shared/lib/logger.server';
 import {
   ProviderRegistry,
@@ -206,6 +207,8 @@ export async function getPaymentServiceWithConfigs(configs: Configs) {
   } satisfies PaymentService;
 }
 
-export async function getPaymentService(): Promise<PaymentService> {
-  return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs);
+export async function getPaymentService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<PaymentService> {
+  return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs, options);
 }

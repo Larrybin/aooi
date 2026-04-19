@@ -1,5 +1,5 @@
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsCached } from '@/shared/models/config';
 import {
   getAdsTxtBody,
   resolveAdsRuntime,
@@ -10,7 +10,7 @@ import { buildAdsTxtResponse } from './response';
 export async function GET(req: Request) {
   const { log } = getRequestLogger(req);
   try {
-    const configs = await getAllConfigs();
+    const configs = await getAllConfigsCached();
     const runtime = resolveAdsRuntime(configs);
     return buildAdsTxtResponse(getAdsTxtBody(runtime));
   } catch (error) {

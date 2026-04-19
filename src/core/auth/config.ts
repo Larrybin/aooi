@@ -11,7 +11,7 @@ import { getUuid } from '@/shared/lib/hash';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { isProductionEnv } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
-import { getAllConfigs, type Configs } from '@/shared/models/config';
+import { getAllConfigsCached, type Configs } from '@/shared/models/config';
 import {
   getRuntimeEnvString,
   getServerPublicEnvConfigs,
@@ -164,7 +164,7 @@ export async function getAuthOptions(request?: Request) {
   installAuthSpikeOAuthFetchMock();
   assertAuthEnv();
   const baseAuthOptions = buildAuthOptionsBase();
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const { publicEnvConfigs, isProduction, isAuthSpikeOAuthUpstreamMock } =
     getAuthRuntimeContext(request);
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';

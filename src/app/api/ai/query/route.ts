@@ -10,6 +10,10 @@ import {
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
+import {
+  resolveConfigConsistencyMode,
+  type ConfigConsistencyMode,
+} from '@/shared/lib/config-consistency';
 import { safeJsonParse } from '@/shared/lib/json';
 import type { UpdateAITask } from '@/shared/models/ai_task';
 import { AiQueryBodySchema } from '@/shared/schemas/api/ai/query';
@@ -36,11 +40,12 @@ type AiTaskLike = {
 };
 
 type AiQueryRouteDeps = {
+  resolveConfigConsistencyMode: typeof resolveConfigConsistencyMode;
   requireAiEnabled: () => Promise<void>;
   getApiContext: (req: Request) => MaybePromise<AiQueryApiContext>;
   findAITaskById: (id: string) => Promise<AiTaskLike | undefined>;
   updateAITaskById: (id: string, updateAITask: UpdateAITask) => Promise<unknown>;
-  getAIService: () => Promise<AiService>;
+  getAIService: typeof getAIServiceFn;
   rateLimiter: {
     checkAndConsume: (key: string, now?: number) => Promise<{
       allowed: boolean;
@@ -53,6 +58,7 @@ type AiQueryRouteDeps = {
 
 function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
   return {
+    resolveConfigConsistencyMode,
     requireAiEnabled: async () => {
       const mod = await import('@/shared/lib/api/ai-guard');
       await mod.requireAiEnabled();
@@ -69,9 +75,9 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
       const mod = await import('@/shared/models/ai_task');
       return await mod.updateAITaskById(id, updateAITask);
     },
-    getAIService: async () => {
+    getAIService: async (options) => {
       const mod = await import('@/shared/services/ai');
-      return await mod.getAIService();
+      return await mod.getAIService(options);
     },
     rateLimiter: createLimiterFactory().createAiQueryCooldownLimiter(),
     now: Date.now,
@@ -114,6 +120,7 @@ function buildAiQueryPostLogic(
 
     const api = await deps.getApiContext(req);
     const { log } = api;
+    const mode: ConfigConsistencyMode = deps.resolveConfigConsistencyMode(req);
     const { taskId } = await api.parseJson(AiQueryBodySchema);
     if (!taskId) {
       throw new BadRequestError('invalid params');
@@ -143,7 +150,7 @@ function buildAiQueryPostLogic(
       });
     }
 
-    const aiService = await deps.getAIService();
+    const aiService = await deps.getAIService({ mode });
     const aiProvider = aiService.getProvider(task.provider);
     if (!aiProvider) {
       throw new BadRequestError('invalid ai provider');

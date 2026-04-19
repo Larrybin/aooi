@@ -3,6 +3,7 @@ import 'server-only';
 import { AIMediaType, type AIProvider } from '@/extensions/ai';
 import { KieProvider, ReplicateProvider } from '@/extensions/ai/providers';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   ProviderRegistry,
   trimmedProviderNameKey,
@@ -63,6 +64,8 @@ export function getAIServiceWithConfigs(configs: Configs) {
 /**
  * global ai service
  */
-export async function getAIService(): Promise<AIService> {
-  return await buildServiceFromLatestConfigs(getAIServiceWithConfigs);
+export async function getAIService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<AIService> {
+  return await buildServiceFromLatestConfigs(getAIServiceWithConfigs, options);
 }

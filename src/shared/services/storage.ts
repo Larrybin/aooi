@@ -1,5 +1,6 @@
 import 'server-only';
 
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
@@ -23,6 +24,11 @@ export function getStorageServiceWithConfigs(
 /**
  * Global storage service. In production this is Cloudflare R2 binding only.
  */
-export async function getStorageService(): Promise<StorageService> {
-  return await buildServiceFromLatestConfigs(getStorageServiceWithConfigs);
+export async function getStorageService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<StorageService> {
+  return await buildServiceFromLatestConfigs(
+    getStorageServiceWithConfigs,
+    options
+  );
 }

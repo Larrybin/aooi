@@ -6,7 +6,7 @@ import { getDocsPage } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import PageDetailPageView from '@/themes/default/pages/page-detail';
 

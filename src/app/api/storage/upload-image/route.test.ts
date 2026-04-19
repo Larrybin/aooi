@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
 
+import { createStorageUploadImagePostHandler } from './route';
 import { detectAllowedImageMime, uploadImageFiles } from './upload-image-files';
 
 function createLog() {
@@ -120,4 +121,47 @@ test('uploadImageFiles 在 provider 返回失败时抛出 502 语义', async () 
       error.status === 502 &&
       error.message === 'bucket unavailable'
   );
+});
+
+test('storage/upload-image 路由会把 fresh 模式闭包传给 getStorageService', async () => {
+  const receivedModes: Array<string | undefined> = [];
+  const handler = createStorageUploadImagePostHandler({
+    resolveConfigConsistencyMode: () => 'fresh',
+    getApiContext: async () => ({
+      log: createLog(),
+      requireUser: async () => ({ id: 'u1' }),
+    }),
+    readUploadRequestInput: async () => ({
+      entries: [createPngFile()],
+      files: [createPngFile()],
+      runtimePlatform: 'node',
+    }),
+    getStorageService: async (options) => {
+      receivedModes.push(options?.mode);
+      return {
+        uploadFile: async ({ key }: { key: string }) => ({
+          success: true,
+          key,
+          url: `https://cdn.example.com/${key}`,
+          provider: 'r2',
+        }),
+      } as never;
+    },
+    concurrencyLimiter: {
+      acquire: async () => true,
+      release: async () => undefined,
+    },
+  });
+
+  const response = await handler(
+    new Request('http://localhost/api/storage/upload-image', {
+      method: 'POST',
+      headers: {
+        'x-aooi-config-consistency': 'fresh',
+      },
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(receivedModes, ['fresh']);
 });

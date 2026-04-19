@@ -3,6 +3,10 @@ import type { createApiContext } from '@/shared/lib/api/context';
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
+import {
+  resolveConfigConsistencyMode,
+  type ConfigConsistencyMode,
+} from '@/shared/lib/config-consistency';
 import type { getStorageService } from '@/shared/services/storage';
 import type { uploadImageFiles } from './upload-image-files';
 
@@ -13,6 +17,7 @@ type ApiContextLike = Pick<
 >;
 
 type StorageUploadRouteDeps = {
+  resolveConfigConsistencyMode: typeof resolveConfigConsistencyMode;
   getApiContext: (req: Request) => MaybePromise<ApiContextLike>;
   readUploadRequestInput: (req: Request) => Promise<{
     entries: unknown[];
@@ -29,6 +34,7 @@ type StorageUploadRouteDeps = {
 
 function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
   return {
+    resolveConfigConsistencyMode,
     getApiContext: async (req) => {
       const mod = await import('@/shared/lib/api/context');
       return mod.createApiContext(req) as ApiContextLike;
@@ -41,9 +47,9 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
       const mod = await import('./upload-image-files');
       return await mod.uploadImageFiles(input);
     },
-    getStorageService: async () => {
+    getStorageService: async (options) => {
       const mod = await import('@/shared/services/storage');
-      return await mod.getStorageService();
+      return await mod.getStorageService(options);
     },
     concurrencyLimiter:
       createLimiterFactory().createStorageUploadConcurrencyLimiter(),
@@ -64,6 +70,7 @@ function buildStorageUploadImagePostLogic(
   return async (req: Request) => {
     const api = await deps.getApiContext(req);
     const { log } = api;
+    const mode: ConfigConsistencyMode = deps.resolveConfigConsistencyMode(req);
     const user = await api.requireUser();
     if (!(await deps.concurrencyLimiter.acquire(user.id))) {
       throw new TooManyRequestsError('too many concurrent uploads');
@@ -84,7 +91,10 @@ function buildStorageUploadImagePostLogic(
 
       const uploadResults = await deps.uploadImageFiles({
         files,
-        deps: { getStorageService: deps.getStorageService, log },
+        deps: {
+          getStorageService: () => deps.getStorageService({ mode }),
+          log,
+        },
       });
 
       return jsonOk({

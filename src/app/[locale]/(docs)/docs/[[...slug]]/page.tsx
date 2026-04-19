@@ -22,7 +22,7 @@ import {
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 
 export default async function DocsContentPage(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;

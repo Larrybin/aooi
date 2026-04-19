@@ -1,6 +1,7 @@
 import { createApiContext } from '@/shared/lib/api/context';
 import { NotFoundError } from '@/shared/lib/api/errors';
 import { withApi } from '@/shared/lib/api/route';
+import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { logger } from '@/shared/lib/logger.server';
 import {
   createPaymentWebhookInboxReceipt,
@@ -77,7 +78,9 @@ function buildPaymentNotifyPostLogic(
     const { log } = api;
     const { provider } = await api.parseParams(params, PaymentNotifyParamsSchema);
 
-    const paymentService = await deps.getPaymentService();
+    const paymentService = await deps.getPaymentService({
+      mode: resolveConfigConsistencyMode(req),
+    });
     const paymentProvider = paymentService.getProvider(provider);
     if (!paymentProvider) {
       throw new NotFoundError('payment provider not found');

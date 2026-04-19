@@ -13,10 +13,8 @@ import {
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
 } from '@/shared/lib/runtime/env.server';
-import {
-  PUBLIC_SETTING_NAMES,
-  type KnownSettingKey,
-} from '@/shared/services/settings/registry';
+import { readPublicConfigsByMode } from '@/shared/models/public-configs';
+import { type KnownSettingKey } from '@/shared/services/settings/registry';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
@@ -46,7 +44,9 @@ export function getBool(configs: Configs, key: KnownConfigKey): boolean {
 }
 
 export const CONFIGS_CACHE_TAG = 'db-configs';
+export const PUBLIC_CONFIGS_CACHE_TAG = 'public-configs';
 const CONFIGS_CACHE_REVALIDATE_SECONDS = 60;
+const PUBLIC_CONFIGS_CACHE_REVALIDATE_SECONDS = 60 * 60;
 
 export async function saveConfigs(configs: Record<string, string>) {
   const entries = Object.entries(configs);
@@ -91,6 +91,11 @@ async function getConfigsFromDb(): Promise<Configs> {
   );
 }
 
+export async function getConfigsFresh(): Promise<Configs> {
+  const configs = await getConfigsFromDb();
+  return { ...configs };
+}
+
 const getConfigsCached = unstable_cache(
   async (): Promise<Configs> => await getConfigsFromDb(),
   [CONFIGS_CACHE_TAG],
@@ -120,7 +125,7 @@ export async function getConfigsSafe(): Promise<{
   }
 }
 
-export async function getAllConfigs(): Promise<Configs> {
+export async function getAllConfigsCached(): Promise<Configs> {
   const dbConfigs = await getConfigs();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
@@ -131,6 +136,16 @@ export async function getAllConfigs(): Promise<Configs> {
   };
 
   return configs;
+}
+
+export async function getAllConfigsFresh(): Promise<Configs> {
+  const dbConfigs = await getConfigsFresh();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+
+  return {
+    ...serverPublicEnvConfigs,
+    ...dbConfigs,
+  };
 }
 
 export async function getAllConfigsSafe(): Promise<{
@@ -149,17 +164,28 @@ export async function getAllConfigsSafe(): Promise<{
   };
 }
 
-export async function getPublicConfigs(): Promise<Configs> {
-  const { configs: allConfigs } = await getAllConfigsSafe();
-
-  const publicConfigs: Record<string, string> = {};
-
-  for (const key of PUBLIC_SETTING_NAMES) {
-    const value = allConfigs[key];
-    if (value !== undefined) {
-      publicConfigs[key] = value;
-    }
+const readPublicConfigsCached = unstable_cache(
+  async (): Promise<Configs> =>
+    await readPublicConfigsByMode('cached', {
+      getAllConfigsSafeImpl: getAllConfigsSafe,
+      getAllConfigsFreshImpl: getAllConfigsFresh,
+    }),
+  [PUBLIC_CONFIGS_CACHE_TAG],
+  {
+    tags: [PUBLIC_CONFIGS_CACHE_TAG],
+    revalidate: PUBLIC_CONFIGS_CACHE_REVALIDATE_SECONDS,
   }
+);
 
-  return publicConfigs;
+export async function getPublicConfigsCached(): Promise<Configs> {
+  const configs = await readPublicConfigsCached();
+  return { ...configs };
+}
+
+export async function getPublicConfigsFresh(): Promise<Configs> {
+  const configs = await readPublicConfigsByMode('fresh', {
+    getAllConfigsSafeImpl: getAllConfigsSafe,
+    getAllConfigsFreshImpl: getAllConfigsFresh,
+  });
+  return { ...configs };
 }

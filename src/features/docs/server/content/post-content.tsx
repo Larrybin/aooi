@@ -12,7 +12,7 @@ import {
 import { createRelativeLink } from '@/mdx-components';
 import { formatPostDate } from '@/shared/lib/post-date';
 import { buildPostTocFromMarkdown as buildMarkdownToc } from '@/shared/lib/post-toc';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsCached } from '@/shared/models/config';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import { toSortTimestamp, type BlogPostEntry } from './blog-feed';
@@ -53,7 +53,7 @@ export async function getLocalPost({
     return null;
   }
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const brand = buildBrandPlaceholderValues(configs);
 
   const MDXContent = localPost.data.body;
@@ -112,7 +112,7 @@ export async function getLocalPage({
     return null;
   }
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const brand = buildBrandPlaceholderValues(configs);
 
   const MDXContent = localPage.data.body;
@@ -176,7 +176,7 @@ export async function getLocalBlogPostEntries({
     return [] satisfies BlogPostEntry[];
   }
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const brand = buildBrandPlaceholderValues(configs);
 
   return localPosts.map((post) => {
