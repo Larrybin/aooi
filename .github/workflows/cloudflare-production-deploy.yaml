@@ -136,6 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [prepare-release, migrate-db]
     if: >-
+      always() &&
       needs.prepare-release.result == 'success' &&
       needs.prepare-release.outputs.release_kind == 'migration' &&
       (
@@ -181,6 +182,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [prepare-release, migrate-db]
     if: >-
+      always() &&
       needs.prepare-release.result == 'success' &&
       needs.prepare-release.outputs.release_kind == 'normal' &&
       (

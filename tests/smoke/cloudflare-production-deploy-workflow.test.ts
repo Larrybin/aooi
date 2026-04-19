@@ -34,14 +34,14 @@ test('cloudflare production workflow 在 db schema 变更时先运行 migrate-db
 test('cloudflare production workflow 的 migration 通道只运行 migration deploy', () => {
   assert.match(
     workflowContent,
-    /deploy-do-migration:\n[\s\S]*?needs\.prepare-release\.outputs\.release_kind == 'migration'[\s\S]*?run:\s*pnpm cf:deploy:migration/
+    /deploy-do-migration:\n[\s\S]*?if:\s*>-\s*[\s\S]*?always\(\)\s*&&[\s\S]*?needs\.prepare-release\.outputs\.release_kind == 'migration'[\s\S]*?needs\.migrate-db\.result == 'skipped'[\s\S]*?run:\s*pnpm cf:deploy:migration/
   );
 });
 
 test('cloudflare production workflow 的 normal 通道只运行 normal rollout', () => {
   assert.match(
     workflowContent,
-    /deploy-normal-rollout:\n[\s\S]*?needs\.prepare-release\.outputs\.release_kind == 'normal'[\s\S]*?run:\s*pnpm cf:deploy:rollout/
+    /deploy-normal-rollout:\n[\s\S]*?if:\s*>-\s*[\s\S]*?always\(\)\s*&&[\s\S]*?needs\.prepare-release\.outputs\.release_kind == 'normal'[\s\S]*?needs\.migrate-db\.result == 'skipped'[\s\S]*?run:\s*pnpm cf:deploy:rollout/
   );
   assert.doesNotMatch(
     workflowContent,
