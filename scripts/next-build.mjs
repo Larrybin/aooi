@@ -1,21 +1,10 @@
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 
+import { withIpv4FirstNodeOptions } from './lib/node-process-env.mjs';
 import { syncOpenNextGeneratedTypes } from './sync-open-next-generated-types.mjs';
 
 const nextBin = resolve(process.cwd(), 'node_modules/next/dist/bin/next');
-
-const existingNodeOptions = process.env.NODE_OPTIONS || '';
-const dnsOption = '--dns-result-order=ipv4first';
-
-const hasDnsOption = existingNodeOptions
-  .split(/\s+/)
-  .filter(Boolean)
-  .includes(dnsOption);
-
-const nodeOptions = hasDnsOption
-  ? existingNodeOptions
-  : [dnsOption, existingNodeOptions].filter(Boolean).join(' ');
 
 await syncOpenNextGeneratedTypes();
 
@@ -24,10 +13,7 @@ const child = spawn(
   [...process.argv.slice(2), nextBin, 'build', '--webpack'],
   {
     stdio: 'inherit',
-    env: {
-      ...process.env,
-      NODE_OPTIONS: nodeOptions,
-    },
+    env: withIpv4FirstNodeOptions(process.env),
   }
 );
 

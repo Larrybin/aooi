@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import * as envContractNamespace from '../../src/config/env-contract.ts';
+import { withIpv4FirstNodeOptions } from './node-process-env.mjs';
 
 const envContractModule =
   envContractNamespace.default ?? envContractNamespace;
@@ -250,7 +251,7 @@ export function createWranglerMultiConfigDevManager({
     label,
     args,
     cwd,
-    env,
+    env: withIpv4FirstNodeOptions(env),
     logger,
   });
 }
