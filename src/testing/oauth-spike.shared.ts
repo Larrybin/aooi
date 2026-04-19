@@ -1,11 +1,11 @@
-import {
-  type BrowserContextCookieSummary,
-  type CaseStatus,
-  type HarnessStatus,
-  type PreflightCheck,
-  type RawConclusion,
-  type ResponseSummary,
-  type SessionObservation,
+import type {
+  BrowserContextCookieSummary,
+  CaseStatus,
+  HarnessStatus,
+  PreflightCheck,
+  RawConclusion,
+  ResponseSummary,
+  SessionObservation,
 } from './auth-spike.shared';
 
 export type OAuthProviderName = 'google' | 'github';

@@ -1,8 +1,104 @@
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = process.cwd();
+const REQUIRED_INCREMENTAL_CACHE_BINDING = 'NEXT_INC_CACHE_R2_BUCKET';
+const REQUIRED_APP_STORAGE_BINDING = 'APP_STORAGE_R2_BUCKET';
+const REQUIRED_STATEFUL_LIMITERS_BINDING = 'STATEFUL_LIMITERS';
+
+function readArrayTables(content, tableName) {
+  const pattern = new RegExp(
+    String.raw`\[\[${tableName}\]\]\s*([\s\S]*?)(?=\n\[\[|\n\[|$)`,
+    'g'
+  );
+
+  return Array.from(content.matchAll(pattern), (match) => match[1]);
+}
+
+function readSection(content, sectionName) {
+  const pattern = new RegExp(
+    String.raw`\[${sectionName}\]\s*([\s\S]*?)(?=\n\[\[|\n\[|$)`
+  );
+  return content.match(pattern)?.[1] ?? null;
+}
+
+function hasQuotedValue(content, pattern, expectedValue) {
+  const match = content.match(pattern);
+  return match?.[1] === expectedValue;
+}
+
+function assertTemplateContract(content, templatePath) {
+  const label = path.relative(rootDir, templatePath) || templatePath;
+  const r2Buckets = readArrayTables(content, 'r2_buckets');
+  const doBindings = readArrayTables(content, 'durable_objects.bindings');
+  const imagesSection = readSection(content, 'images');
+
+  if (
+    !r2Buckets.some((table) =>
+      hasQuotedValue(
+        table,
+        /^\s*binding\s*=\s*"([^"\n]+)"/m,
+        REQUIRED_INCREMENTAL_CACHE_BINDING
+      )
+    )
+  ) {
+    throw new Error(
+      `${label} must declare [[r2_buckets]] binding = "${REQUIRED_INCREMENTAL_CACHE_BINDING}"`
+    );
+  }
+
+  if (
+    !r2Buckets.some((table) =>
+      hasQuotedValue(
+        table,
+        /^\s*binding\s*=\s*"([^"\n]+)"/m,
+        REQUIRED_APP_STORAGE_BINDING
+      )
+    )
+  ) {
+    throw new Error(
+      `${label} must declare [[r2_buckets]] binding = "${REQUIRED_APP_STORAGE_BINDING}"`
+    );
+  }
+
+  if (
+    !doBindings.some((table) =>
+      hasQuotedValue(
+        table,
+        /^\s*name\s*=\s*"([^"\n]+)"/m,
+        REQUIRED_STATEFUL_LIMITERS_BINDING
+      )
+    )
+  ) {
+    throw new Error(
+      `${label} must declare [[durable_objects.bindings]] name = "${REQUIRED_STATEFUL_LIMITERS_BINDING}"`
+    );
+  }
+
+  if (
+    !hasQuotedValue(
+      content,
+      /^\s*DEPLOY_TARGET\s*=\s*"([^"\n]+)"/m,
+      'cloudflare'
+    )
+  ) {
+    throw new Error(`${label} must pin DEPLOY_TARGET = "cloudflare"`);
+  }
+
+  if (imagesSection) {
+    if (
+      !hasQuotedValue(
+        imagesSection,
+        /^\s*binding\s*=\s*"([^"\n]+)"/m,
+        'IMAGES'
+      )
+    ) {
+      throw new Error(`${label} must declare [images] binding = "IMAGES"`);
+    }
+  }
+}
 
 function escapeTomlBasicString(value) {
   return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
@@ -106,7 +202,16 @@ export function buildCloudflareWranglerConfig({
   templatePath,
   outputPath,
   versionVars = {},
+  validateTemplateContract = false,
 }) {
+  if (
+    validateTemplateContract &&
+    existsSync(templatePath) &&
+    path.resolve(templatePath).startsWith(`${rootDir}${path.sep}`)
+  ) {
+    assertTemplateContract(template, templatePath);
+  }
+
   let nextContent = template;
 
   if (databaseUrl !== undefined) {
@@ -249,6 +354,7 @@ async function main() {
     templatePath: options.template,
     outputPath: options.out,
     versionVars: options.versionVars,
+    validateTemplateContract: true,
   });
 
   await mkdir(path.dirname(options.out), { recursive: true });

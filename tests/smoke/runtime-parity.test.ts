@@ -5,7 +5,7 @@ import {
   compareRuntimeResponseContracts,
   RUNTIME_PARITY_IGNORED_HEADERS,
   type RuntimeParityResponseSummary,
-} from './runtime-parity';
+} from '../../src/testing/runtime-parity';
 
 function responseSummary(
   overrides: Partial<RuntimeParityResponseSummary> = {}
@@ -37,12 +37,16 @@ function responseSummary(
   };
 }
 
-test('runtime parity whitelist 固定为 date/x-request-id/x-vercel-id/cf-ray', () => {
+test('runtime parity whitelist 固定为传输层与平台注入头', () => {
   assert.deepEqual(RUNTIME_PARITY_IGNORED_HEADERS, [
+    'connection',
+    'keep-alive',
+    'content-encoding',
     'date',
     'x-request-id',
     'x-vercel-id',
     'cf-ray',
+    'x-opennext',
   ]);
 });
 
@@ -57,6 +61,8 @@ test('compareRuntimeResponseContracts 忽略 whitelist 头差异', () => {
           'cache-control': 'no-store',
           'content-type': 'application/json; charset=utf-8',
           location: 'https://vercel.example.com/settings/profile?from=auth',
+          connection: 'keep-alive',
+          'keep-alive': 'timeout=5',
           date: 'Mon, 07 Apr 2026 10:00:00 GMT',
           'x-request-id': 'req-vercel',
           'x-vercel-id': 'iad1::abc',
@@ -73,9 +79,11 @@ test('compareRuntimeResponseContracts 忽略 whitelist 头差异', () => {
           'content-type': 'application/json',
           location:
             'https://cloudflare.example.com/settings/profile?from=auth',
+          'content-encoding': 'identity',
           date: 'Mon, 07 Apr 2026 10:00:09 GMT',
           'x-request-id': 'req-cloudflare',
           'cf-ray': 'ray-123',
+          'x-opennext': '1',
           'x-shared-contract': 'stable',
         },
       }),

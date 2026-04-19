@@ -60,11 +60,19 @@ export function isAuthCallbackPath(urlOrPath: string): boolean {
   }
 }
 
+export function isAuthErrorPath(urlOrPath: string): boolean {
+  try {
+    return /^\/api\/auth\/error(\?|$)/.test(toPathWithSearch(urlOrPath));
+  } catch {
+    return false;
+  }
+}
+
 export function isTerminalAuthErrorUrl(urlOrPath: string): boolean {
   return (
     hasAuthErrorQuery(urlOrPath) &&
-    isSignInPath(urlOrPath) &&
-    !isAuthCallbackPath(urlOrPath)
+    !isAuthCallbackPath(urlOrPath) &&
+    !isAuthErrorPath(urlOrPath)
   );
 }
 
@@ -558,23 +566,48 @@ async function waitForLocalNodeFormHydration(
   baseUrl: string,
   formTestId: string
 ) {
-  await page.locator(`[data-testid="${formTestId}"]`).waitFor({
+  const formLocator = page.locator(`[data-testid="${formTestId}"]`);
+  await formLocator.waitFor({
     state: 'visible',
     timeout: 20_000,
   });
+
+  const readyState = await formLocator.getAttribute('data-auth-client-ready');
+  if (readyState !== null) {
+    await page.waitForFunction(
+      ({ selector }) =>
+        document.querySelector(selector)?.getAttribute('data-auth-client-ready') ===
+        'true',
+      {
+        selector: `[data-testid="${formTestId}"]`,
+      },
+      { timeout: 20_000 }
+    );
+    return;
+  }
 
   if (!isLocalNodeDevOrigin(baseUrl)) {
     return;
   }
 
-  await page
-    .locator(
-      `[data-testid="${formTestId}"][data-auth-client-ready="true"]`
-    )
-    .waitFor({
-      state: 'visible',
-      timeout: 20_000,
-    });
+  await expectAuthClientReadyAttribute(formLocator, formTestId);
+}
+
+async function expectAuthClientReadyAttribute(
+  formLocator: ReturnType<Page['locator']>,
+  formTestId: string
+) {
+  await formLocator.waitFor({
+    state: 'visible',
+    timeout: 20_000,
+  });
+
+  const readyState = await formLocator.getAttribute('data-auth-client-ready');
+  if (readyState !== 'true') {
+    throw new Error(
+      `[${formTestId}] auth form rendered before client hydration completed`
+    );
+  }
 }
 
 async function signUpFreshAccount(

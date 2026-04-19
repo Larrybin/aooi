@@ -50,6 +50,21 @@ test('isAuthSpikeOAuthUpstreamMockEnabled 仅在显式 true 时启用', () => {
   );
 });
 
+test('isAuthSpikeOAuthUpstreamMockEnabled 默认读取当前 runtime env', () => {
+  const previous = process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK;
+  process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK = 'true';
+
+  try {
+    assert.equal(isAuthSpikeOAuthUpstreamMockEnabled(), true);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK;
+    } else {
+      process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK = previous;
+    }
+  }
+});
+
 test('getAuthSpikeOAuthConfigSeedConfigs 在 config seed 模式返回独立副本', () => {
   const configs = getAuthSpikeOAuthConfigSeedConfigs(
     createEnv({ AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true' })

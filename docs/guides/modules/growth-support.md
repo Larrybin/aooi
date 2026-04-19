@@ -23,7 +23,6 @@ Growth Support groups the optional modules that extend distribution and support 
 - Clarity
 - Plausible
 - OpenPanel
-- Vercel Analytics
 - Affonso
 - PromoteKit
 - Crisp

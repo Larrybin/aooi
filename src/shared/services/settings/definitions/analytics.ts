@@ -29,13 +29,6 @@ const openpanelGroup = {
     'custom your <a href="https://openpanel.dev/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">OpenPanel</a> settings',
 } as const;
 
-const vercelAnalyticsGroup = {
-  id: 'vercel_analytics',
-  titleKey: 'groups.vercel_analytics',
-  description:
-    'custom your <a href="https://vercel.com/docs/analytics/" class="text-primary" target="_blank" rel="nofollow noopener noreferrer">Vercel Analytics</a> settings',
-} as const;
-
 const googleAnalyticsSettings = defineSettingsGroup(
   {
     moduleId: 'analytics',
@@ -106,26 +99,9 @@ const openpanelSettings = defineSettingsGroup(
   ] as const
 );
 
-const vercelAnalyticsSettings = defineSettingsGroup(
-  {
-    moduleId: 'analytics',
-    tab: 'analytics',
-    group: vercelAnalyticsGroup,
-  },
-  [
-    {
-      name: 'vercel_analytics_enabled',
-      title: 'Enabled',
-      type: 'switch',
-      value: 'false',
-    },
-  ] as const
-);
-
 export const analyticsSettings = [
   ...googleAnalyticsSettings,
   ...claritySettings,
   ...plausibleSettings,
   ...openpanelSettings,
-  ...vercelAnalyticsSettings,
 ] as const satisfies readonly SettingDefinition[];

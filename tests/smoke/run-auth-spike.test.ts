@@ -6,7 +6,10 @@ import {
   renderMarkdown,
   runPreflightChecks,
 } from '../../scripts/run-auth-spike.mjs';
-import { buildSurfaceRunEmails, createEmptyReport } from './auth-spike.shared';
+import {
+  buildSurfaceRunEmails,
+  createEmptyReport,
+} from '../../src/testing/auth-spike.shared';
 
 test('runPreflightChecks 分类相同 surface URL 与页面不可达', async () => {
   const fetchCalls: string[] = [];

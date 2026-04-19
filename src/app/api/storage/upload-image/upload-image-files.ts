@@ -1,4 +1,8 @@
-import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+  UpstreamError,
+} from '@/shared/lib/api/errors';
 import type { getStorageService } from '@/shared/services/storage';
 
 const MAX_FILES = 5;
@@ -128,6 +132,9 @@ export async function uploadImageFiles({
   try {
     storageService = await getStorageServiceFromDeps();
   } catch (error: unknown) {
+    if (error instanceof ServiceUnavailableError) {
+      throw error;
+    }
     log.error('[API] Storage service init failed', { error });
     throw new UpstreamError(503, 'storage service unavailable');
   }
@@ -173,13 +180,16 @@ export async function uploadImageFiles({
         disposition: 'inline',
       });
     } catch (error: unknown) {
+      if (error instanceof ServiceUnavailableError) {
+        throw error;
+      }
       log.error('[API] Upload threw', { error });
       throw new UpstreamError(503, 'upload service unavailable');
     }
 
     if (!result.success) {
       log.error('[API] Upload failed', { error: result.error });
-      throw new UpstreamError(502, 'upload failed');
+      throw new UpstreamError(502, result.error || 'upload failed');
     }
     if (!result.url || !result.key) {
       log.error('[API] Upload response missing url/key', { result });

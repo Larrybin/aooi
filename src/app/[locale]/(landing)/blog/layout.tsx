@@ -14,7 +14,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { isLandingBlogEnabled } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 import type {
   Footer as FooterType,
   Header as HeaderType,

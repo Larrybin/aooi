@@ -2,9 +2,9 @@ import 'server-only';
 
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { defaultLocale, locales } from '@/config/locale';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import { getAllConfigsSafe } from '@/shared/models/config';
 
 type MetadataFields = {
@@ -24,7 +24,11 @@ function normalizeRelativePath(value: string) {
 }
 
 export function buildCanonicalUrl(pathOrUrl: string, locale: string) {
-  return buildCanonicalUrlWithAppUrl(pathOrUrl, locale, envConfigs.app_url);
+  return buildCanonicalUrlWithAppUrl(
+    pathOrUrl,
+    locale,
+    getServerPublicEnvConfigs().app_url
+  );
 }
 
 export function buildCanonicalUrlWithAppUrl(
@@ -50,7 +54,10 @@ export function buildCanonicalUrlWithAppUrl(
 }
 
 export function buildLanguageAlternates(relativePath: string) {
-  return buildLanguageAlternatesWithAppUrl(relativePath, envConfigs.app_url);
+  return buildLanguageAlternatesWithAppUrl(
+    relativePath,
+    getServerPublicEnvConfigs().app_url
+  );
 }
 
 export function buildLanguageAlternatesWithAppUrl(

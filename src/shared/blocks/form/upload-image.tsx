@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from 'react';
 import type { ControllerRenderProps } from 'react-hook-form';
 
+import { resolveStoredAssetUrl } from '@/shared/lib/storage-public-url';
 import type { FormField } from '@/shared/types/blocks/form';
 
 import { ImageUploader, type ImageUploaderValue } from '../common';
@@ -14,6 +15,7 @@ interface UploadImageProps {
   metadata?: {
     max?: number;
     maxSizeMB?: number;
+    storageValueMode?: string;
   };
   uploadUrl?: string;
   onUpload?: (files: File[]) => Promise<string[]>;
@@ -34,35 +36,58 @@ export function UploadImage({
     typeof field.attributes?.accept === 'string'
       ? field.attributes.accept
       : 'image/*,.ico';
+  const storagePublicBaseUrl =
+    typeof _data?.storage_public_base_url === 'string'
+      ? _data.storage_public_base_url
+      : '';
+  const storageValueMode =
+    typeof metadata?.storageValueMode === 'string'
+      ? metadata.storageValueMode
+      : 'url';
 
-  const previews = useMemo(() => {
+  const defaultItems = useMemo(() => {
     const value = formField.value;
     if (!value) return [];
 
-    let urls: string[] = [];
+    let storedValues: string[] = [];
 
     if (typeof value === 'string') {
-      urls = value.includes(',') ? value.split(',').filter(Boolean) : [value];
+      storedValues = value.includes(',')
+        ? value.split(',').filter(Boolean)
+        : [value];
     } else if (Array.isArray(value)) {
-      urls = value;
+      storedValues = value.map(String);
     }
 
-    return urls;
-  }, [formField.value]);
+    return storedValues.map((storedValue) => ({
+      value: storedValue,
+      preview: resolveStoredAssetUrl({
+        value: storedValue,
+        storagePublicBaseUrl,
+      }),
+    }));
+  }, [formField.value, storagePublicBaseUrl]);
 
   const handleChange = useCallback(
     (items: ImageUploaderValue[]) => {
-      const uploadedUrls = items
-        .filter((item) => item.status === 'uploaded' && item.url)
-        .map((item) => item.url as string);
+      const uploadedValues = items
+        .filter((item) => item.status === 'uploaded')
+        .map((item) =>
+          storageValueMode === 'objectKey'
+            ? (item.value ?? '')
+            : (item.url ?? '')
+        )
+        .filter(Boolean);
 
-      if (uploadedUrls.length > 0) {
-        formField.onChange(allowMultiple ? uploadedUrls : uploadedUrls[0]);
+      if (uploadedValues.length > 0) {
+        formField.onChange(
+          allowMultiple ? uploadedValues : uploadedValues[0]
+        );
       } else {
         formField.onChange(allowMultiple ? [] : '');
       }
     },
-    [formField, allowMultiple]
+    [formField, allowMultiple, storageValueMode]
   );
 
   return (
@@ -72,7 +97,7 @@ export function UploadImage({
       maxSizeMB={maxSizeMB}
       accept={accept}
       emptyHint={field.placeholder}
-      defaultPreviews={previews}
+      defaultItems={defaultItems}
       onChange={handleChange}
     />
   );

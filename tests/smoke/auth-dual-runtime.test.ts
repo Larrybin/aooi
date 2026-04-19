@@ -11,8 +11,8 @@ import {
   deriveConclusion,
   deriveParityResult,
   normalizeCallbackPath,
-} from './auth-spike.shared';
-import { runAuthSurface } from './auth-spike.browser';
+} from '../../src/testing/auth-spike.shared';
+import { runAuthSurface } from '../../src/testing/auth-spike.browser';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const reportJsonPath =

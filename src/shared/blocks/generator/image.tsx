@@ -17,7 +17,7 @@ import {
   ImageUploader,
   type ImageUploaderValue,
 } from '@/shared/blocks/common/image-uploader';
-import { LazyImage } from '@/shared/blocks/common/lazy-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,
@@ -565,7 +565,7 @@ export function ImageGenerator({
                     {generatedImages.map((image) => (
                       <div key={image.id} className="space-y-3">
                         <div className="relative aspect-square overflow-hidden rounded-lg border">
-                          <LazyImage
+                          <AppImage
                             src={image.url}
                             alt={image.prompt || 'Generated image'}
                             fill

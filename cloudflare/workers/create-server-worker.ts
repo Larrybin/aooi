@@ -1,4 +1,4 @@
-import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
+import { isRuntimeEnvEnabled } from '../../src/shared/lib/runtime/env.server';
 
 type CloudflareFetchHandler<Env> = (
   request: Request,
@@ -11,7 +11,29 @@ type CloudflareFetchModule<Env> = {
   handler: CloudflareFetchHandler<Env>;
 };
 
-function syncWorkerStringBindingsToProcessEnv(env: unknown) {
+type RuntimeEnvOptions = Parameters<typeof isRuntimeEnvEnabled>[1];
+
+type RunWithCloudflareRequestContext = <Env>(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  callback: () => Promise<Response> | Response
+) => Promise<Response> | Response;
+
+let runWithCloudflareRequestContextPromise:
+  | Promise<RunWithCloudflareRequestContext>
+  | undefined;
+
+function loadRunWithCloudflareRequestContext() {
+  return (runWithCloudflareRequestContextPromise ??= import(
+    '../../.open-next/cloudflare/init.js'
+  ).then(
+    (module) =>
+      module.runWithCloudflareRequestContext as RunWithCloudflareRequestContext
+  ));
+}
+
+export function syncWorkerStringBindingsToProcessEnv(env: unknown) {
   if (!env || typeof env !== 'object') {
     return;
   }
@@ -25,13 +47,20 @@ function syncWorkerStringBindingsToProcessEnv(env: unknown) {
   }
 }
 
-function printServerWorkerAuthDebug(request: Request) {
-  if (process.env.CF_LOCAL_AUTH_DEBUG !== 'true') {
-    return;
+export function shouldPrintServerWorkerAuthDebug(
+  request: Request,
+  options: RuntimeEnvOptions = {}
+) {
+  if (!isRuntimeEnvEnabled('CF_LOCAL_AUTH_DEBUG', options)) {
+    return false;
   }
 
   const url = new URL(request.url);
-  if (!url.pathname.startsWith('/api/auth/')) {
+  return url.pathname.startsWith('/api/auth/');
+}
+
+function printServerWorkerAuthDebug(request: Request) {
+  if (!shouldPrintServerWorkerAuthDebug(request)) {
     return;
   }
 
@@ -53,13 +82,15 @@ export function createServerWorker<Env>(
   return {
     async fetch(request: Request, env: Env, ctx: ExecutionContext) {
       syncWorkerStringBindingsToProcessEnv(env);
-      printServerWorkerAuthDebug(request);
       const handler =
         (handlerPromise ??= loadModule().then(({ handler }) => handler));
+      const runWithCloudflareRequestContext =
+        await loadRunWithCloudflareRequestContext();
 
-      return runWithCloudflareRequestContext(request, env, ctx, async () =>
-        (await handler)(request, env, ctx, request.signal)
-      );
+      return runWithCloudflareRequestContext(request, env, ctx, async () => {
+        printServerWorkerAuthDebug(request);
+        return (await handler)(request, env, ctx, request.signal);
+      });
     },
   };
 }

@@ -6,8 +6,8 @@ import {
   GoogleAnalyticsProvider,
   OpenPanelAnalyticsProvider,
   PlausibleAnalyticsProvider,
-  VercelAnalyticsProvider,
 } from '@/extensions/analytics';
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
@@ -51,17 +51,17 @@ export function getAnalyticsManagerWithConfigs(configs: Configs) {
     );
   }
 
-  // vercel analytics
-  if (configs.vercel_analytics_enabled === 'true') {
-    analytics.addProvider(new VercelAnalyticsProvider({ mode: 'auto' }));
-  }
-
   return analytics;
 }
 
 /**
  * global analytics service
  */
-export async function getAnalyticsService(): Promise<AnalyticsManager> {
-  return await buildServiceFromLatestConfigs(getAnalyticsManagerWithConfigs);
+export async function getAnalyticsService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<AnalyticsManager> {
+  return await buildServiceFromLatestConfigs(
+    getAnalyticsManagerWithConfigs,
+    options
+  );
 }

@@ -6,22 +6,30 @@ import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { routing } from '@/core/i18n/config';
 import { HtmlLangProvider } from '@/core/i18n/html-lang-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
+import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getAllConfigsSafe } from '@/shared/models/config';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(envConfigs.app_url),
-  title: {
-    default: envConfigs.app_name,
-    template: `%s | ${envConfigs.app_name}`,
-  },
-  icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { configs } = await getAllConfigsSafe();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const brand = buildBrandPlaceholderValues(configs);
+
+  return {
+    metadataBase: new URL(serverPublicEnvConfigs.app_url),
+    title: {
+      default: brand.appName,
+      template: `%s | ${brand.appName}`,
+    },
+    icons: {
+      icon: brand.appFavicon,
+      shortcut: brand.appFavicon,
+    },
+  };
+}
 
 export default async function LocaleLayout({
   children,

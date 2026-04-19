@@ -2,7 +2,9 @@ import 'server-only';
 
 import { cache } from 'react';
 
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { getAllConfigsSafe, type Configs } from '@/shared/models/config';
+import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 import { resolveAdsRuntime, type ResolvedAdsRuntime } from './ads-runtime';
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
@@ -14,18 +16,17 @@ export {
 } from './ads-runtime';
 
 export function getAdsRuntimeWithConfigs(configs: Configs): ResolvedAdsRuntime {
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    process.env.NEXT_PUBLIC_DEBUG !== 'true'
-  ) {
+  if (!isProductionEnv() && !isDebugEnv()) {
     return { enabled: false };
   }
 
   return resolveAdsRuntime(configs);
 }
 
-export async function getAdsRuntime(): Promise<ResolvedAdsRuntime> {
-  return await buildServiceFromLatestConfigs(getAdsRuntimeWithConfigs);
+export async function getAdsRuntime(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<ResolvedAdsRuntime> {
+  return await buildServiceFromLatestConfigs(getAdsRuntimeWithConfigs, options);
 }
 
 export const getAdsRuntimeForRequest = cache(

@@ -299,33 +299,6 @@ export const paymentWebhookInbox = pgTable(
   ]
 );
 
-export const apiRateLimitState = pgTable(
-  'api_rate_limit_state',
-  {
-    id: text('id').primaryKey(),
-    bucket: text('bucket').notNull(),
-    scopeKey: text('scope_key').notNull(),
-    lastActionAt: timestamp('last_action_at'),
-    windowStartedAt: timestamp('window_started_at'),
-    count: integer('count').default(0).notNull(),
-    inflight: integer('inflight').default(0).notNull(),
-    expiresAt: timestamp('expires_at').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex('uq_api_rate_limit_state_bucket_scope').on(
-      table.bucket,
-      table.scopeKey
-    ),
-    index('idx_api_rate_limit_state_expires_at').on(table.expiresAt),
-    index('idx_api_rate_limit_state_bucket').on(table.bucket),
-  ]
-);
-
 export const subscription = pgTable(
   'subscription',
   {

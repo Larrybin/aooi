@@ -13,9 +13,9 @@ import {
   resolveConfiguredPreviewBaseUrl,
   resolvePreviewBaseUrl,
   runRepeatedRequestCheck,
-  waitForPreviewReady,
   validateSmokeResponse,
-} from '../../scripts/run-cf-preview-smoke.mjs';
+  waitForPreviewReady,
+} from '../../scripts/lib/cloudflare-preview-smoke.mjs';
 
 function createSilentConsole(
   overrides: Partial<Pick<Console, 'log' | 'warn'>> = {}
@@ -99,7 +99,7 @@ test('ensureCiDevVars 在缺失时生成 .dev.vars，并在已存在时复用', 
 test('ensureCiDevVars 会补齐已存在但缺失的 auth secret，并在 cleanup 后恢复原文件', async () => {
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'cf-preview-smoke-'));
   const devVarsPath = path.join(tmpDir, '.dev.vars');
-  const originalContent = 'FOO=bar\nAUTH_SECRET=\n';
+  const originalContent = 'AUTH_SECRET=\n';
 
   await writeFile(devVarsPath, originalContent, 'utf8');
 
@@ -113,7 +113,7 @@ test('ensureCiDevVars 会补齐已存在但缺失的 auth secret，并在 cleanu
   const nextContent = await readFile(devVarsPath, 'utf8');
   assert.equal(
     nextContent,
-    'FOO=bar\nAUTH_SECRET=preview-secret\nBETTER_AUTH_SECRET=preview-secret\n'
+    'AUTH_SECRET=preview-secret\nBETTER_AUTH_SECRET=preview-secret\n'
   );
 
   await prepared.cleanup();
@@ -124,7 +124,7 @@ test('ensureCiDevVars 会补齐已存在但缺失的 auth secret，并在 cleanu
 test('ensureCiDevVars 能临时写入额外 Worker 变量并在 cleanup 后恢复', async () => {
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'cf-preview-smoke-'));
   const devVarsPath = path.join(tmpDir, '.dev.vars');
-  const originalContent = 'FOO=bar\nAUTH_SECRET=existing-secret\n';
+  const originalContent = 'AUTH_SECRET=existing-secret\n';
 
   await writeFile(devVarsPath, originalContent, 'utf8');
 
@@ -141,12 +141,49 @@ test('ensureCiDevVars 能临时写入额外 Worker 变量并在 cleanup 后恢�
   const nextContent = await readFile(devVarsPath, 'utf8');
   assert.equal(
     nextContent,
-    'FOO=bar\nAUTH_SECRET=existing-secret\nBETTER_AUTH_SECRET=existing-secret\nAUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true\n'
+    'AUTH_SECRET=existing-secret\nBETTER_AUTH_SECRET=existing-secret\nAUTH_SPIKE_OAUTH_UPSTREAM_MOCK=true\n'
   );
 
   await prepared.cleanup();
   const restoredContent = await readFile(devVarsPath, 'utf8');
   assert.equal(restoredContent, originalContent);
+});
+
+test('ensureCiDevVars 在现有 .dev.vars 包含未知键时直接失败且不改写文件', async () => {
+  const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'cf-preview-smoke-'));
+  const devVarsPath = path.join(tmpDir, '.dev.vars');
+  const originalContent = 'FOO=bar\nAUTH_SECRET=\n';
+
+  await writeFile(devVarsPath, originalContent, 'utf8');
+
+  await assert.rejects(
+    () =>
+      ensureCiDevVars({
+        authSecret: 'preview-secret',
+        devVarsPath,
+      }),
+    /unsupported keys: FOO/i
+  );
+
+  const nextContent = await readFile(devVarsPath, 'utf8');
+  assert.equal(nextContent, originalContent);
+});
+
+test('ensureCiDevVars 拒绝写入 allowlist 外的 .dev.vars 键', async () => {
+  const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'cf-preview-smoke-'));
+  const devVarsPath = path.join(tmpDir, '.dev.vars');
+
+  await assert.rejects(
+    () =>
+      ensureCiDevVars({
+        authSecret: 'preview-secret',
+        devVarsPath,
+        extraVars: {
+          FOO: 'bar',
+        },
+      }),
+    /unsupported keys: FOO/i
+  );
 });
 
 test('validateSmokeResponse 校验 JSON 接口响应', () => {

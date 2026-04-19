@@ -1,3 +1,5 @@
+import { isStorageObjectKey } from '@/shared/lib/storage-public-url';
+
 export function normalizeAssetSettingValue(
   value: string,
   fieldName: string
@@ -9,6 +11,10 @@ export function normalizeAssetSettingValue(
   }
 
   if (trimmed.startsWith('/')) {
+    return { ok: true, value: trimmed };
+  }
+
+  if (isStorageObjectKey(trimmed)) {
     return { ok: true, value: trimmed };
   }
 

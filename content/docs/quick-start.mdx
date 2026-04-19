@@ -172,7 +172,7 @@ Before deploying:
 
 Deployment flow:
 
-- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for brand/storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, restarts the topology, then validates public config projection and the explicit missing-`storage_public_base_url` failure path. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
+- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-local-smoke` now starts the full router + split-worker topology through one local `wrangler dev` multi-config session. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for brand/storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, and validates public config projection plus the explicit missing-`storage_public_base_url` failure path in the same local runtime session. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
 
 ## Feature Configuration
 

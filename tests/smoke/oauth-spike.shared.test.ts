@@ -6,7 +6,7 @@ import {
   createOAuthProviderResult,
   deriveOAuthSpikeConclusion,
   summarizeOAuthFailureKinds,
-} from './oauth-spike.shared';
+} from '../../src/testing/oauth-spike.shared';
 
 test('deriveOAuthSpikeConclusion 对全绿报告返回 PASS', () => {
   const report = createEmptyOAuthSpikeReport({

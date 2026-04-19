@@ -1,7 +1,7 @@
 import { Link } from '@/core/i18n/navigation';
 import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
-import { BrandImage } from './brand-image';
+import { AppImage } from './app-image';
 
 export function BrandLogo({ brand }: { brand: BrandType }) {
   const displayHeight = 40;
@@ -20,7 +20,7 @@ export function BrandLogo({ brand }: { brand: BrandType }) {
       className={`flex items-center space-x-2 ${brand.className}`}
     >
       {brand.logo && (
-        <BrandImage
+        <AppImage
           src={brand.logo.src}
           alt={brand.logo.alt || brand.title || 'Brand logo'}
           width={displayWidth}

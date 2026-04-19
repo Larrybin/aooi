@@ -4,8 +4,8 @@
 import { ForgotPassword } from '@/features/web/auth/components/forgot-password';
 import { getTranslations } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { defaultLocale } from '@/config/locale';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import { getConfigs } from '@/shared/models/config';
 
 export async function generateMetadata({
@@ -14,6 +14,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const t = await getTranslations('common');
 
   return {
@@ -21,8 +22,8 @@ export async function generateMetadata({
     alternates: {
       canonical:
         locale !== defaultLocale
-          ? `${envConfigs.app_url}/${locale}/forgot-password`
-          : `${envConfigs.app_url}/forgot-password`,
+          ? `${serverPublicEnvConfigs.app_url}/${locale}/forgot-password`
+          : `${serverPublicEnvConfigs.app_url}/forgot-password`,
     },
   };
 }

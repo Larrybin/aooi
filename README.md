@@ -36,6 +36,7 @@ src/
 ├── shared/        # Cross-surface primitives, services, utilities, types
 ├── extensions/    # Third-party integrations (AI, storage, etc.)
 ├── config/        # Configuration, DB schema, locale messages
+├── testing/       # Shared smoke/test contracts and test-only helpers
 └── themes/        # UI themes
 
 docs/              # Engineering documentation
@@ -128,6 +129,7 @@ Read `content/docs` to start your AI SaaS project.
 - `scripts/lib/harness/reporter.mjs`：统一 JSON/Markdown/latest report 输出和 harness exit code 规则。
 - 公共 package 命令名保持稳定；内部统一由 `scripts/smoke.mjs <scenario>` 调度到底层 runner。当前场景包括 `auth-spike`、`cf-app`、`cf-local`、`cf-admin-settings`。
 - 底层 runner（如 `scripts/run-auth-spike.mjs`、`scripts/run-cf-app-smoke.mjs`、`scripts/run-cf-local-smoke.mjs`、`scripts/run-cf-admin-settings-smoke.mjs`）继续承载具体断言，供测试直接导入。
+- `src/testing/**` 是测试支持层，不是通用生产工具层。这里只允许放测试共享合同、smoke/shared 断言 helper、测试专用纯函数工具；`src/**` 与 `cloudflare/**` 生产代码不得依赖它。
 
 ### Code Quality
 
@@ -137,6 +139,21 @@ Read `content/docs` to start your AI SaaS project.
 | [Code Review](docs/CODE_REVIEW.md)                 | Full code review guide                                   |
 | [Architecture Review](docs/ARCHITECTURE_REVIEW.md) | Architecture audit report                                |
 | [Contributing](CONTRIBUTING.md)                    | Contribution guidelines                                  |
+
+### CI Guardrails
+
+- `pnpm lint:deps` 是仓库正式门禁，使用 `dependency-cruiser` 校验目录边界、`src/testing/**` 依赖方向和全仓循环依赖。
+- `.github/workflows/dependency-review.yaml` 会在 `pull_request -> main` 运行 `dependency-review`，当前只拦截新增 `high/critical` 依赖漏洞。
+- `.github/workflows/cloudflare-acceptance.yaml` 的顺序固定为：`pnpm lint` -> `pnpm lint:deps` -> `pnpm test` -> `pnpm cf:check` -> `pnpm cf:build` -> Cloudflare smoke。
+- 所有 marketplace actions 都固定到完整 commit SHA，并在 `uses:` 旁保留 `# pinned from vX` 注释；`.github/dependabot.yml` 负责按周提出 `github-actions` 与 `npm` 更新 PR，但默认不自动合并。
+- GitHub 平台侧仍需手工开启 `secret scanning`、`push protection`，并把 `dependency-review` 与 `cloudflare acceptance` 设为 required checks。
+
+### Env Contract
+
+- `src/config/env-contract.ts` 是仓库唯一的 env/secret allowlist 来源，统一维护 `PUBLIC_ENV_KEYS`、`SERVER_RUNTIME_ENV_KEYS`、`CLOUDFLARE_SECRET_ENV_KEYS`、`DEV_VARS_ALLOWED_KEYS`。
+- `src/config/public-env.ts`、`src/shared/lib/runtime/env.server.ts`、`src/config/server-auth-base-url.ts`、`src/config/load-dotenv.ts` 是允许直接触碰环境变量的边界模块；其余 `src/**`、`cloudflare/**` 运行时代码必须走 helper。
+- `pnpm lint` 会拦截非白名单文件中的 `process.env` 读取或传播；仓库 contract test 还会扫描未登记的 `NEXT_PUBLIC_*` 和裸 `process.env` 痕迹。
+- `.env.example` 中的 secret 只能保留空占位；Cloudflare secrets 文件与临时 `.dev.vars` 生成逻辑只能输出 allowlist 内键。
 
 ### Docs Site
 
@@ -166,12 +183,13 @@ Read `content/docs` to start your AI SaaS project.
 - Production `next build` is explicitly pinned to Webpack through [scripts/next-build.mjs](/Users/bin/Desktop/project/aooi/scripts/next-build.mjs) to avoid the current Turbopack/OpenNext Worker runtime incompatibility (`require_turbopack_runtime(...) is not a function`) on Cloudflare.
 - `reactCompiler` is currently disabled in `next.config.mjs` because warm-build benchmarks on 2026-04-08 showed it materially hurt build time. Keep this as a single-path decision, not a long-lived dual config.
 - TypeScript build scope is intentionally split: `tsconfig.json` covers app build inputs, while `tsconfig.test.json` covers tests and test-only type errors.
+- Generated directories such as `.open-next/`, `.next/`, `dist/`, `build/`, and `output/` are build artifacts, not source dependencies. Test-reachable source files must not top-level static `import` them; only explicit runtime boundaries may consume them, and runtime-only OpenNext helpers should be loaded lazily with `import()`.
 - `DEPLOY_TARGET=cloudflare` is the only supported production deploy contract.
 - Cross-origin cookie auth topology is intentionally unsupported. `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
 - Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The router lives in [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml); each server Worker has its own `cloudflare/wrangler.server-*.toml`.
 - OpenNext persistent cache is Cloudflare-only: router and all server Workers share `NEXT_INC_CACHE_R2_BUCKET`, tag cache + queue run on Durable Objects, and router image optimization is enabled through `IMAGES`.
 - Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
-- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API, restarts the local topology, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path without depending on OpenNext tag-cache DO RPC in local multi-worker dev.
+- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical multi-worker topology under the authoritative `wrangler versions upload --dry-run` gzip gate. The measured gzip sizes were `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, and `router 0.14 MiB`.
 - Cloudflare helper commands:
@@ -203,7 +221,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` is the canonical local runtime gate, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production migrate workflow -> `pnpm cf:deploy` -> post-deploy `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` now boots the full split-worker topology through a single local `wrangler dev` multi-config session, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production migrate workflow -> `pnpm cf:deploy` -> post-deploy `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -285,7 +303,7 @@ Recommended:
 
 Do not put a real local PostgreSQL DSN into tracked Wrangler files.
 
-- Local smoke uses `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL` plus `pnpm test:cf-local-smoke`
+- Local smoke uses an explicit `DATABASE_URL` plus `pnpm test:cf-local-smoke`; tracked `.dev.vars` must stay on the non-DB allowlist and cannot carry PostgreSQL DSNs
 - CI generates temporary Wrangler configs and temporary secrets files before local runtime smoke
 - `pnpm cf:deploy` also deploys from temporary Wrangler configs and `--secrets-file`; tracked templates stay secret-free
 - Generate the secret with `openssl rand -base64 32`

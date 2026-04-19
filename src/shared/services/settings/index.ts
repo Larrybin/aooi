@@ -1,3 +1,4 @@
+import { applyGeneralSettingsRuntimeValues } from './definitions/general';
 import { ALL_SETTINGS } from './registry';
 
 export type { SettingDefinition, SettingGroup } from './types';
@@ -21,5 +22,5 @@ export { mapSettingsToForms } from './settings-form-mapper';
 export { normalizeSettingOverrides } from './settings-normalizers';
 
 export async function getSettings() {
-  return ALL_SETTINGS;
+  return applyGeneralSettingsRuntimeValues(ALL_SETTINGS);
 }

@@ -5,9 +5,9 @@ import { notFound } from 'next/navigation';
 import { getDocsPage } from '@/features/docs/server/content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 import PageDetailPageView from '@/themes/default/pages/page-detail';
 
 export async function generateMetadata({
@@ -20,11 +20,12 @@ export async function generateMetadata({
   const { locale, slug } = await params;
 
   const publicConfigs = await getPublicConfigsCached();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const brand = buildBrandPlaceholderValues(publicConfigs);
-  const appUrl = brand.appUrl || envConfigs.app_url;
+  const appUrl = brand.appUrl || serverPublicEnvConfigs.app_url;
 
   const canonicalUrl =
-    locale !== envConfigs.locale
+    locale !== serverPublicEnvConfigs.locale
       ? `${appUrl}/${locale}/${slug}`
       : `${appUrl}/${slug}`;
 

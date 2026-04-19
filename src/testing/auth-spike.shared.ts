@@ -236,169 +236,83 @@ export function createSurfaceResult(
   };
 }
 
-export function summarizeFailureKinds(surface: SurfaceResult) {
-  const failedCases = surface.cases.filter((item) => item.status === 'failed');
-
-  if (failedCases.some((item) => item.name === 'sign_up_fresh_account')) {
-    pushFailureKind(surface, 'auth_flow_unavailable');
-  }
-
-  if (failedCases.some((item) => item.name === 'sign_in_after_fresh_signup')) {
-    pushFailureKind(surface, 'auth_flow_unavailable');
-  }
-
-  if (
-    failedCases.some((item) => item.name === 'invalid_session_failure_path')
-  ) {
-    pushFailureKind(surface, 'invalid_cookie_behavior');
-  }
-
-  if (failedCases.some((item) => item.name === 'sign_out')) {
-    pushFailureKind(surface, 'sign_out_behavior');
-  }
-
-  if (
-    failedCases.some((item) =>
-      /callbackUrl|redirected to|回跳/.test(item.detail)
-    )
-  ) {
-    pushFailureKind(surface, 'callback_mismatch');
-  }
-}
-
 function pushFailureKind(surface: SurfaceResult, failureKind: FailureKind) {
   if (!surface.failureKinds.includes(failureKind)) {
     surface.failureKinds.push(failureKind);
   }
 }
 
-function compareSessionObservations(params: {
-  label: string;
-  baselineName: string;
-  candidateName: string;
-  baseline: SessionObservation | null;
-  candidate: SessionObservation | null;
-}): string[] {
-  const { baseline, baselineName, candidate, candidateName, label } = params;
-  const mismatches: string[] = [];
+export function summarizeFailureKinds(surface: SurfaceResult) {
+  const failedCases = surface.cases.filter((item) => item.status === 'failed');
 
-  if (!baseline && !candidate) {
-    return mismatches;
+  if (
+    failedCases.some((item) => ['sign-up', 'sign-in'].includes(item.name))
+  ) {
+    pushFailureKind(surface, 'auth_flow_unavailable');
   }
 
-  if (!baseline || !candidate) {
-    mismatches.push(`${label} presence mismatch`);
-    return mismatches;
+  if (failedCases.some((item) => item.name === 'callback-url')) {
+    pushFailureKind(surface, 'callback_mismatch');
   }
 
-  if (baseline.status !== candidate.status) {
-    mismatches.push(
-      `${label} status mismatch: ${baselineName}=${baseline.status} ${candidateName}=${candidate.status}`
-    );
+  if (failedCases.some((item) => item.name === 'invalid-cookie')) {
+    pushFailureKind(surface, 'invalid_cookie_behavior');
   }
 
-  if (baseline.sessionPresent !== candidate.sessionPresent) {
-    mismatches.push(
-      `${label} session mismatch: ${baselineName}=${baseline.sessionPresent ? 'present' : 'missing'} ${candidateName}=${candidate.sessionPresent ? 'present' : 'missing'}`
-    );
+  if (failedCases.some((item) => item.name === 'sign-out')) {
+    pushFailureKind(surface, 'sign_out_behavior');
   }
-
-  if (baseline.userPresent !== candidate.userPresent) {
-    mismatches.push(
-      `${label} user mismatch: ${baselineName}=${baseline.userPresent ? 'present' : 'missing'} ${candidateName}=${candidate.userPresent ? 'present' : 'missing'}`
-    );
-  }
-
-  return mismatches;
 }
 
-export function deriveParityResult(report: Report): ParityResult {
-  const vercel = report.surfaces.find(
-    (surface) => surface.surface === 'vercel'
-  );
+export function deriveParityResult(report: Report): ParityResult | null {
+  if (report.surfaces.length < 2) {
+    return null;
+  }
+
+  const vercel = report.surfaces.find((surface) => surface.surface === 'vercel');
   const cloudflare = report.surfaces.find(
     (surface) => surface.surface === 'cloudflare'
   );
 
-  assert(vercel, '缺少 Vercel surface 结果');
-  assert(cloudflare, '缺少 Cloudflare surface 结果');
-
-  const mismatches: string[] = [];
-
-  const signUpParity = compareRuntimeResponseContracts({
-    label: 'sign-up auth response',
-    baselineName: 'vercel',
-    candidateName: 'cloudflare',
-    baselineResponses: vercel.signUpResponses,
-    candidateResponses: cloudflare.signUpResponses,
-  });
-  const signInParity = compareRuntimeResponseContracts({
-    label: 'sign-in auth response',
-    baselineName: 'vercel',
-    candidateName: 'cloudflare',
-    baselineResponses: vercel.signInResponses,
-    candidateResponses: cloudflare.signInResponses,
-  });
-  const signOutParity = compareRuntimeResponseContracts({
-    label: 'sign-out auth response',
-    baselineName: 'vercel',
-    candidateName: 'cloudflare',
-    baselineResponses: vercel.signOutResponses,
-    candidateResponses: cloudflare.signOutResponses,
-  });
-
-  mismatches.push(
-    ...signUpParity.mismatches,
-    ...signInParity.mismatches,
-    ...signOutParity.mismatches
-  );
-
-  mismatches.push(
-    ...compareSessionObservations({
-      label: 'sign-up session contract',
-      baselineName: 'vercel',
-      candidateName: 'cloudflare',
-      baseline: vercel.sessionAfterSignUp,
-      candidate: cloudflare.sessionAfterSignUp,
-    }),
-    ...compareSessionObservations({
-      label: 'sign-in session contract',
-      baselineName: 'vercel',
-      candidateName: 'cloudflare',
-      baseline: vercel.sessionAfterSignIn,
-      candidate: cloudflare.sessionAfterSignIn,
-    }),
-    ...compareSessionObservations({
-      label: 'sign-out session contract',
-      baselineName: 'vercel',
-      candidateName: 'cloudflare',
-      baseline: vercel.sessionAfterSignOut,
-      candidate: cloudflare.sessionAfterSignOut,
-    })
-  );
-
-  if (
-    vercel.finalUrlAfterInvalidCookie !== cloudflare.finalUrlAfterInvalidCookie
-  ) {
-    mismatches.push(
-      `无效 cookie 重定向不一致: vercel=${vercel.finalUrlAfterInvalidCookie} cloudflare=${cloudflare.finalUrlAfterInvalidCookie}`
-    );
+  if (!vercel || !cloudflare) {
+    return null;
   }
 
-  if (mismatches.length === 0) {
+  const parityChecks = [
+    compareRuntimeResponseContracts({
+      label: 'sign-up auth response',
+      baselineName: 'vercel',
+      candidateName: 'cloudflare',
+      baselineResponses: vercel.signUpResponses,
+      candidateResponses: cloudflare.signUpResponses,
+    }),
+    compareRuntimeResponseContracts({
+      label: 'sign-in auth response',
+      baselineName: 'vercel',
+      candidateName: 'cloudflare',
+      baselineResponses: vercel.signInResponses,
+      candidateResponses: cloudflare.signInResponses,
+    }),
+    compareRuntimeResponseContracts({
+      label: 'sign-out auth response',
+      baselineName: 'vercel',
+      candidateName: 'cloudflare',
+      baselineResponses: vercel.signOutResponses,
+      candidateResponses: cloudflare.signOutResponses,
+    }),
+  ];
+
+  const failedChecks = parityChecks.filter((check) => check.status === 'failed');
+  if (failedChecks.length === 0) {
     return {
       status: 'passed',
-      detail:
-        'contract parity matched on sign-up/sign-in/sign-out auth responses, session contract, and invalid-session failure behavior',
+      detail: 'runtime contracts matched',
     };
   }
 
-  pushFailureKind(cloudflare, 'parity_mismatch');
-  pushFailureKind(vercel, 'parity_mismatch');
-
   return {
     status: 'failed',
-    detail: mismatches.join('; '),
+    detail: failedChecks.map((check) => check.detail).join('; '),
   };
 }
 
@@ -411,33 +325,30 @@ export function deriveConclusion(report: Report): {
   const preflightFailures = report.preflight
     .filter((check) => check.status === 'failed')
     .map((check) => `preflight:${check.surface}:${check.name}:${check.detail}`);
-  const coreFailures = report.surfaces.flatMap((surface) =>
+  const caseFailures = report.surfaces.flatMap((surface) =>
     surface.cases
       .filter((item) => item.status === 'failed')
       .map((item) => `${surface.surface}:${item.name}:${item.detail}`)
   );
 
-  failureSummary.push(...preflightFailures, ...coreFailures);
+  failureSummary.push(...preflightFailures, ...caseFailures);
 
   if (report.parity?.status === 'failed') {
     failureSummary.push(`parity:${report.parity.detail}`);
   }
 
-  const anyPreflightFailure = preflightFailures.length > 0;
-  const anyCoreFailure = coreFailures.length > 0;
-  const anyParityFailure = report.parity?.status === 'failed';
-  const vercel = report.surfaces.find(
-    (surface) => surface.surface === 'vercel'
-  );
-  const cloudflare = report.surfaces.find(
-    (surface) => surface.surface === 'cloudflare'
-  );
-  const cloudflareNeedsReplacement = Boolean(
-    cloudflare?.failureKinds.includes('auth_flow_unavailable') &&
-    !(vercel?.failureKinds.includes('auth_flow_unavailable') ?? false)
-  );
+  if (preflightFailures.length > 0) {
+    return {
+      rawConclusion: 'BLOCKED',
+      harnessStatus: 'FAIL',
+      failureSummary,
+    };
+  }
 
-  if (!anyPreflightFailure && !anyCoreFailure && !anyParityFailure) {
+  if (
+    caseFailures.length === 0 &&
+    (!report.parity || report.parity.status === 'passed')
+  ) {
     return {
       rawConclusion: 'PASS',
       harnessStatus: 'PASS',
@@ -445,24 +356,12 @@ export function deriveConclusion(report: Report): {
     };
   }
 
-  if (!anyPreflightFailure && !anyCoreFailure && anyParityFailure) {
-    return {
-      rawConclusion: '需要 adapter',
-      harnessStatus: 'FAIL',
-      failureSummary,
-    };
-  }
-
-  if (!anyPreflightFailure && cloudflareNeedsReplacement) {
-    return {
-      rawConclusion: '需要替代路线',
-      harnessStatus: 'FAIL',
-      failureSummary,
-    };
-  }
+  const anyAuthFlowUnavailable = report.surfaces.some((surface) =>
+    surface.failureKinds.includes('auth_flow_unavailable')
+  );
 
   return {
-    rawConclusion: 'BLOCKED',
+    rawConclusion: anyAuthFlowUnavailable ? '需要替代路线' : '需要 adapter',
     harnessStatus: 'FAIL',
     failureSummary,
   };

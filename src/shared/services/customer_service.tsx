@@ -5,6 +5,7 @@ import {
   CustomerServiceManager,
   TawkCustomerServiceProvider,
 } from '@/extensions/customer-service';
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
@@ -45,6 +46,11 @@ export function getCustomerServiceWithConfigs(configs: Configs) {
 /**
  * global customer service
  */
-export async function getCustomerService(): Promise<CustomerServiceManager> {
-  return await buildServiceFromLatestConfigs(getCustomerServiceWithConfigs);
+export async function getCustomerService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<CustomerServiceManager> {
+  return await buildServiceFromLatestConfigs(
+    getCustomerServiceWithConfigs,
+    options
+  );
 }

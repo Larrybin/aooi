@@ -2,7 +2,9 @@
 
 import { useTranslations } from 'next-intl';
 
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { getBrandPreviewHost } from '@/shared/lib/brand-url';
+import { resolveStoredAssetUrl } from '@/shared/lib/storage-public-url';
 import { cn } from '@/shared/lib/utils';
 
 type BrandAssetsPreviewProps = {
@@ -11,16 +13,21 @@ type BrandAssetsPreviewProps = {
   appLogo: string;
   appFavicon: string;
   appPreviewImage: string;
+  storagePublicBaseUrl: string;
 };
 
 function PreviewImage({
   src,
   alt,
   className,
+  width,
+  height,
 }: {
   src: string;
   alt: string;
   className?: string;
+  width: number;
+  height: number;
 }) {
   if (!src) {
     return (
@@ -36,11 +43,12 @@ function PreviewImage({
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <AppImage
       src={src}
       alt={alt}
       className={cn('rounded-md object-cover', className)}
+      width={width}
+      height={height}
     />
   );
 }
@@ -51,12 +59,25 @@ export function BrandAssetsPreview({
   appLogo,
   appFavicon,
   appPreviewImage,
+  storagePublicBaseUrl,
 }: BrandAssetsPreviewProps) {
   const t = useTranslations('admin.settings.brand_preview');
 
   const name = appName.trim() || 'YourAppName';
   const url = appUrl.trim() || 'https://your-domain.com';
   const previewHost = getBrandPreviewHost(url);
+  const logoUrl = resolveStoredAssetUrl({
+    value: appLogo,
+    storagePublicBaseUrl,
+  });
+  const faviconUrl = resolveStoredAssetUrl({
+    value: appFavicon,
+    storagePublicBaseUrl,
+  });
+  const previewImageUrl = resolveStoredAssetUrl({
+    value: appPreviewImage,
+    storagePublicBaseUrl,
+  });
 
   return (
     <div className="border-border bg-muted/20 mt-8 space-y-6 rounded-xl border p-4">
@@ -70,9 +91,11 @@ export function BrandAssetsPreview({
           <div className="border-border bg-background overflow-hidden rounded-xl border">
             <div className="border-border flex items-center gap-3 border-b px-4 py-3">
               <PreviewImage
-                src={appLogo}
+                src={logoUrl}
                 alt={t('logo.alt')}
                 className="h-10 w-10 rounded-lg object-contain"
+                width={40}
+                height={40}
               />
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{name}</div>
@@ -87,9 +110,11 @@ export function BrandAssetsPreview({
                 {t('preview_card.title')}
               </div>
               <PreviewImage
-                src={appPreviewImage}
+                src={previewImageUrl}
                 alt={t('preview.alt')}
                 className="aspect-[1200/630] w-full rounded-lg border object-cover"
+                width={1200}
+                height={630}
               />
               <div className="space-y-1">
                 <div className="line-clamp-1 text-sm font-semibold">
@@ -111,9 +136,11 @@ export function BrandAssetsPreview({
             <div className="mb-3 text-sm font-medium">{t('favicon.title')}</div>
             <div className="flex items-center gap-3">
               <PreviewImage
-                src={appFavicon}
+                src={faviconUrl}
                 alt={t('favicon.alt')}
                 className="h-8 w-8 rounded-md border object-contain"
+                width={32}
+                height={32}
               />
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{name}</div>

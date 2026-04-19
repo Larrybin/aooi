@@ -73,7 +73,7 @@
         "features_title": "包含入门版功能，此外",
         "features": [
           "200 积分，有效期 3 个月",
-          "支持 Vercel 或 Cloudflare 部署",
+          "支持 Cloudflare 部署",
           "自动生成隐私政策&服务条款",
           "集成 Google Analytics",
           "集成 Google Search Console",
@@ -190,7 +190,7 @@
         "features_title": "包含入门版功能，此外",
         "features": [
           "200 积分，有效期 1 个月",
-          "支持 Vercel 或 Cloudflare 部署",
+          "支持 Cloudflare 部署",
           "自动生成隐私政策&服务条款",
           "集成 Google Analytics",
           "集成 Google Search Console",
@@ -291,7 +291,7 @@
         "features_title": "包含入门版功能，此外",
         "features": [
           "200 积分，有效期 1 年",
-          "支持 Vercel 或 Cloudflare 部署",
+          "支持 Cloudflare 部署",
           "自动生成隐私政策&服务条款",
           "集成 Google Analytics",
           "集成 Google Search Console",

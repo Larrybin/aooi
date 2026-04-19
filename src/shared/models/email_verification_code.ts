@@ -5,10 +5,10 @@ import { and, desc, eq, ne } from 'drizzle-orm';
 
 import { db } from '@/core/db';
 import { verification } from '@/config/db/schema';
-import { serverEnv } from '@/config/server';
 import { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 import { normalizeEmail } from '@/shared/lib/email';
 import { getUuid } from '@/shared/lib/hash';
+import { getServerRuntimeEnv } from '@/shared/lib/runtime/env.server';
 
 export { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 
@@ -19,8 +19,9 @@ function buildIdentifier(input: { userId: string; email: string }): string {
 }
 
 function hashCode(input: { identifier: string; code: string }): string {
+  const { authSecret } = getServerRuntimeEnv();
   return createHash('sha256')
-    .update(`${input.identifier}:${serverEnv.authSecret}:${input.code}`)
+    .update(`${input.identifier}:${authSecret}:${input.code}`)
     .digest('hex');
 }
 

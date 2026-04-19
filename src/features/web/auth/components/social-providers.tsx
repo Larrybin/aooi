@@ -9,7 +9,10 @@ import { normalizeSocialAuthorizationUrl } from '@/core/auth/social-authorizatio
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { usePublicAppContext } from '@/shared/contexts/app';
-import { normalizeCallbackUrl } from '@/shared/lib/callback-url';
+import {
+  normalizeCallbackUrl,
+  withCallbackUrl,
+} from '@/shared/lib/callback-url';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import { cn } from '@/shared/lib/utils';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
@@ -37,12 +40,18 @@ export function SocialProviders({
     locale,
     defaultLocale,
   });
+  const localizedErrorCallbackUrl = localizeCallbackUrl({
+    callbackUrl: withCallbackUrl('/sign-in', safeCallbackUrl),
+    locale,
+    defaultLocale,
+  });
 
   const handleSignIn = async ({ provider }: { provider: string }) => {
     const result = await signIn.social(
       {
         provider: provider,
         callbackURL: localizedCallbackUrl,
+        errorCallbackURL: localizedErrorCallbackUrl,
         disableRedirect: true,
       },
       withAuthJsonRequest({

@@ -4,11 +4,13 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { logger } from '@/shared/lib/logger.server';
 import {
   ProviderRegistry,
   trimmedProviderNameKey,
 } from '@/shared/lib/providers/provider-registry';
+import { isProductionEnv } from '@/shared/lib/env';
 import type { Configs } from '@/shared/models/config';
 import { buildServiceFromLatestConfigs } from '@/shared/services/config_refresh_policy';
 import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
@@ -26,7 +28,7 @@ async function addStripeProvider(
 ) {
   const { StripeProvider } = await import('@/core/payment/providers/stripe');
   const defaultProvider = configs.default_payment_provider;
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = isProductionEnv();
   const signingSecret = configs.stripe_signing_secret || '';
 
   if (isProduction && !signingSecret.trim()) {
@@ -205,6 +207,8 @@ export async function getPaymentServiceWithConfigs(configs: Configs) {
   } satisfies PaymentService;
 }
 
-export async function getPaymentService(): Promise<PaymentService> {
-  return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs);
+export async function getPaymentService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<PaymentService> {
+  return await buildServiceFromLatestConfigs(getPaymentServiceWithConfigs, options);
 }

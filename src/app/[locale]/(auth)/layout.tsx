@@ -1,14 +1,14 @@
-// data: envConfigs (app name) + auth shell UI (locale toggle)
+// data: server public env configs (app name) + auth shell UI (locale toggle)
 // cache: default (no request-bound data; no explicit fetch)
 // reason: keep auth pages lightweight; user-specific data starts after sign-in
 import { setRequestLocale } from 'next-intl/server';
 
-import { envConfigs } from '@/config';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 
 export default async function AuthLayout({
   children,
@@ -19,13 +19,14 @@ export default async function AuthLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   const publicConfigs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(publicConfigs);
   const isLocaleSwitcherEnabled =
     publicConfigs.general_locale_switcher_enabled === 'true';
 
-  const appName = brand.appName || envConfigs.app_name;
+  const appName = brand.appName || serverPublicEnvConfigs.app_name;
   return (
     <ScopedIntlProvider
       locale={locale}
@@ -37,7 +38,7 @@ export default async function AuthLayout({
             brand={{
               title: appName,
               logo: {
-                src: brand.appLogo || envConfigs.app_logo,
+                src: brand.appLogo || serverPublicEnvConfigs.app_logo,
                 alt: appName,
               },
               url: '/',

@@ -1,25 +1,12 @@
 import assert from 'node:assert/strict';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
-  createPreviewManager,
   ensureCiDevVars,
   normalizePreviewBaseUrl,
   parsePreviewReadyUrlFromLogs,
   resolveAuthSecret,
   resolveConfiguredPreviewBaseUrl,
-} from './lib/cloudflare-dev-runtime.mjs';
-import {
-  renderCloudflareLocalTopologyLogs,
-  resolveCloudflareLocalDatabaseUrl,
-  startCloudflareLocalDevTopology,
-} from './lib/cloudflare-local-topology.mjs';
-
-const rootDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..'
-);
+} from './cloudflare-dev-runtime.mjs';
 
 const PREVIEW_READY_TIMEOUT_MS = Number.parseInt(
   process.env.CF_LOCAL_SMOKE_READY_TIMEOUT_MS || '180000',
@@ -42,7 +29,6 @@ const PREVIEW_READY_CONSECUTIVE_SUCCESSES = Number.parseInt(
 );
 
 export {
-  createPreviewManager,
   ensureCiDevVars,
   normalizePreviewBaseUrl,
   parsePreviewReadyUrlFromLogs,
@@ -226,60 +212,4 @@ export async function resolvePreviewBaseUrl({
       clearTimeout(timeoutId);
     }
   }
-}
-
-async function main() {
-  const fallbackBaseUrl = resolveConfiguredPreviewBaseUrl(
-    process.env.CF_LOCAL_SMOKE_URL
-  );
-  const reuseServer = process.env.CF_LOCAL_SMOKE_REUSE_SERVER === 'true';
-
-  if (reuseServer) {
-    console.log(`Reusing Cloudflare preview server: ${fallbackBaseUrl}`);
-    await waitForPreviewReady({ baseUrl: fallbackBaseUrl });
-    await runCloudflarePreviewSmoke({ baseUrl: fallbackBaseUrl });
-    console.log('Cloudflare preview DB smoke passed');
-    return;
-  }
-
-  const wranglerConfigPath =
-    process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(rootDir, 'wrangler.cloudflare.toml');
-  const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
-    processEnv: process.env,
-    wranglerConfigPath,
-  });
-  const topology = await startCloudflareLocalDevTopology({
-    databaseUrl,
-    routerTemplatePath: wranglerConfigPath,
-    routerBaseUrl: fallbackBaseUrl,
-    authSecret: resolveAuthSecret(),
-  });
-  const baseUrl = topology.getRouterBaseUrl();
-
-  try {
-    await waitForPreviewReady({ baseUrl });
-    await runCloudflarePreviewSmoke({ baseUrl });
-    console.log('Cloudflare preview DB smoke passed');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`Cloudflare preview DB smoke failed: ${message}`);
-
-    const recentLogs = renderCloudflareLocalTopologyLogs(topology);
-    if (recentLogs) {
-      console.error(recentLogs);
-    }
-
-    process.exitCode = 1;
-  } finally {
-    await topology.stop();
-  }
-}
-
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  void main().catch((error) => {
-    const message = error instanceof Error ? error.stack || error.message : String(error);
-    console.error(message);
-    process.exitCode = 1;
-  });
 }

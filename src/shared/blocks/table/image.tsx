@@ -1,4 +1,4 @@
-import { LazyImage } from '@/shared/blocks/common/lazy-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { cn } from '@/shared/lib/utils';
 
 export function Image({
@@ -29,7 +29,7 @@ export function Image({
   const height = metadata?.height || 40;
 
   return (
-    <LazyImage
+    <AppImage
       src={value}
       alt={alt ?? placeholder ?? value}
       width={width}

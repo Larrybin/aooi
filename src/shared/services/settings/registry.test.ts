@@ -188,15 +188,11 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'plausible_src',
     'promotekit_enabled',
     'promotekit_id',
-    'r2_access_key',
-    'r2_bucket_name',
-    'r2_domain',
-    'r2_endpoint',
-    'r2_secret_key',
     'replicate_api_token',
     'resend_api_key',
     'resend_sender_email',
     'select_payment_enabled',
+    'storage_public_base_url',
     'stripe_enabled',
     'stripe_payment_methods',
     'stripe_publishable_key',
@@ -205,7 +201,6 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'tawk_enabled',
     'tawk_property_id',
     'tawk_widget_id',
-    'vercel_analytics_enabled',
   ]);
 });
 

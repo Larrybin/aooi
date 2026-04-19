@@ -1,7 +1,14 @@
 import { toNextJsHandler } from 'better-auth/next-js';
 
 import { getAuth } from '@/core/auth';
+import {
+  normalizeAuthSpikeRedirectLocationValue,
+  resolveAuthSpikeRedirectRequestUrl,
+  toRelativeSameOriginAuthSpikeRedirectLocationValue,
+} from '@/core/auth/auth-spike-redirect';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
+import { getRuntimeEnvString } from '@/shared/lib/runtime/env.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +20,7 @@ function normalizeAuthSpikeRedirectLocation(
   response: Response,
   request: Request
 ): Response {
-  if (process.env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK !== 'true') {
+  if (!isAuthSpikeOAuthUpstreamMockEnabled()) {
     return response;
   }
 
@@ -22,22 +29,42 @@ function normalizeAuthSpikeRedirectLocation(
     return response;
   }
 
-  try {
-    const requestOrigin = new URL(request.url).origin;
-    const locationUrl = new URL(location, request.url);
-
-    if (locationUrl.origin === requestOrigin) {
-      return response;
-    }
-
-    const normalizedLocation = new URL(locationUrl.toString());
-    normalizedLocation.protocol = new URL(requestOrigin).protocol;
-    normalizedLocation.host = new URL(requestOrigin).host;
-
-    return setResponseHeader(response, 'Location', normalizedLocation.toString());
-  } catch {
+  const runtimeBaseUrl =
+    getRuntimeEnvString('NEXT_PUBLIC_APP_URL') ||
+    getRuntimeEnvString('AUTH_URL') ||
+    getRuntimeEnvString('BETTER_AUTH_URL') ||
+    null;
+  const requestUrlForNormalization = resolveAuthSpikeRedirectRequestUrl(request, {
+    runtimeBaseUrl,
+  });
+  const normalizedLocation = normalizeAuthSpikeRedirectLocationValue(
+    location,
+    requestUrlForNormalization
+  );
+  const rewrittenLocation =
+    normalizedLocation &&
+    toRelativeSameOriginAuthSpikeRedirectLocationValue(
+      normalizedLocation,
+      requestUrlForNormalization
+    );
+  if (getRuntimeEnvString('CF_LOCAL_AUTH_DEBUG') === 'true') {
+    process.stderr.write(
+      `[auth-redirect-debug] ${JSON.stringify({
+        requestUrl: request.url,
+        requestUrlForNormalization,
+        runtimeBaseUrl,
+        rawLocation: location,
+        normalizedLocation,
+        rewrittenLocation,
+      })}\n`
+    );
+  }
+  const finalLocation = rewrittenLocation || normalizedLocation;
+  if (!finalLocation || finalLocation === location) {
     return response;
   }
+
+  return setResponseHeader(response, 'Location', finalLocation);
 }
 
 function toStandardAuthRequest(request: Request): Request {

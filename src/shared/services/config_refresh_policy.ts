@@ -1,24 +1,39 @@
 import 'server-only';
 
-import { getAllConfigs, type Configs } from '@/shared/models/config';
+import { type ConfigConsistencyMode } from '@/shared/lib/config-consistency';
+import {
+  getAllConfigsCached,
+  getAllConfigsFresh,
+  type Configs,
+} from '@/shared/models/config';
+import { readServiceConfigsByMode } from './config-read-mode';
 
-export type ConfigRefreshPolicy = 'always';
+export type ConfigRefreshPolicy = 'cached';
 
 /**
  * Explicit refresh strategy for config-backed services.
  *
- * Current policy is intentionally "always":
- * - Keep strong consistency with admin-updated configs
- * - Match the existing behavior (previously implemented via `if (true)` blocks)
+ * Current policy is intentionally "cached":
+ * - Preserve production query budget for config-backed services
+ * - Keep strong consistency opt-in limited to local Cloudflare smoke harness
  *
  * Note: This is a code-level policy (no env) by design for this repo.
  */
-export const CONFIG_REFRESH_POLICY: ConfigRefreshPolicy = 'always';
+export const CONFIG_REFRESH_POLICY: ConfigRefreshPolicy = 'cached';
 
 export async function buildServiceFromLatestConfigs<T>(
-  buildWithConfigs: (configs: Configs) => T | Promise<T>
+  buildWithConfigs: (configs: Configs) => T | Promise<T>,
+  options: {
+    mode?: ConfigConsistencyMode;
+  } = {}
 ): Promise<T> {
-  const configs = await getAllConfigs();
+  const configs = await readServiceConfigsByMode(
+    options.mode ?? CONFIG_REFRESH_POLICY,
+    {
+      getAllConfigsCachedImpl: getAllConfigsCached,
+      getAllConfigsFreshImpl: getAllConfigsFresh,
+    }
+  );
   return await buildWithConfigs(configs);
 }
 
@@ -28,13 +43,16 @@ export async function buildServiceFromLatestConfigs<T>(
  * Important: Callers must create a new getter per request to avoid cross-request caching.
  */
 export function createRequestScopedServiceGetter<T>(
-  buildWithConfigs: (configs: Configs) => T | Promise<T>
+  buildWithConfigs: (configs: Configs) => T | Promise<T>,
+  options: {
+    mode?: ConfigConsistencyMode;
+  } = {}
 ) {
   let servicePromise: Promise<T> | null = null;
 
   return async (): Promise<T> => {
     if (!servicePromise) {
-      servicePromise = buildServiceFromLatestConfigs(buildWithConfigs);
+      servicePromise = buildServiceFromLatestConfigs(buildWithConfigs, options);
     }
     return await servicePromise;
   };

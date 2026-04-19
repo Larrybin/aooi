@@ -1,11 +1,15 @@
 import { loadEnvConfig } from '@next/env';
 import { defineConfig } from 'drizzle-kit';
 
+import {
+  getTrimmedEnvValue,
+  isProductionEnv,
+} from '@/config/env-contract';
 import { assertPostgresOnlyDatabaseProvider } from './postgres-only';
 
 function loadDotenvForDrizzleKit() {
   try {
-    const isDev = process.env.NODE_ENV !== 'production';
+    const isDev = !isProductionEnv();
     loadEnvConfig(process.cwd(), isDev);
   } catch {
     // optional
@@ -14,12 +18,14 @@ function loadDotenvForDrizzleKit() {
 
 loadDotenvForDrizzleKit();
 
-const databaseUrl = process.env.DATABASE_URL ?? '';
+const databaseUrl = getTrimmedEnvValue(undefined, 'DATABASE_URL') ?? '';
 if (!databaseUrl) {
   throw new Error('DATABASE_URL is not set');
 }
 
-assertPostgresOnlyDatabaseProvider(process.env.DATABASE_PROVIDER);
+assertPostgresOnlyDatabaseProvider(
+  getTrimmedEnvValue(undefined, 'DATABASE_PROVIDER')
+);
 
 export default defineConfig({
   out: './src/config/db/migrations',

@@ -1,30 +1,34 @@
+import '@/config/load-dotenv';
+
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { ensureCiDevVars } from './lib/cloudflare-dev-runtime.mjs';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { ensureCiDevVars } from './lib/cloudflare-dev-runtime.mjs';
+import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
 import {
   sleep,
   stopChild,
   waitForManagerReady,
 } from './lib/harness/runtime.mjs';
-import { waitForPreviewReady } from './run-cf-preview-smoke.mjs';
+import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..'
 );
 
+injectCloudflareLocalSmokeDevVars();
+
 const DEFAULT_NODE_BASE_URL = 'http://127.0.0.1:3000';
 const DEFAULT_CF_BASE_URL = 'http://localhost:8787';
-const DEFAULT_AUTH_SPIKE_SECRET =
-  'local-auth-spike-secret-0123456789abcdef';
+const DEFAULT_AUTH_SPIKE_SECRET = 'local-auth-spike-secret-0123456789abcdef';
 const NODE_READY_TIMEOUT_MS = Number.parseInt(
   process.env.AUTH_SPIKE_NODE_READY_TIMEOUT_MS || '180000',
   10
@@ -53,8 +57,7 @@ export function readWranglerLocalConnectionString(content) {
 
 export function readNextDevLockBaseUrl(content) {
   const parsed = JSON.parse(content);
-  const appUrl =
-    typeof parsed?.appUrl === 'string' ? parsed.appUrl.trim() : '';
+  const appUrl = typeof parsed?.appUrl === 'string' ? parsed.appUrl.trim() : '';
   if (appUrl) {
     return appUrl;
   }
@@ -328,8 +331,7 @@ async function main() {
           AUTH_SPIKE_PASSWORD:
             process.env.AUTH_SPIKE_PASSWORD?.trim() || 'AuthSpike123!auth',
           AUTH_SPIKE_CALLBACK_PATH:
-            process.env.AUTH_SPIKE_CALLBACK_PATH?.trim() ||
-            '/settings/profile',
+            process.env.AUTH_SPIKE_CALLBACK_PATH?.trim() || '/settings/profile',
         },
         stdio: 'inherit',
       }

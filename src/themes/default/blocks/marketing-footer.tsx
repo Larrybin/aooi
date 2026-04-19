@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { defaultLocale } from '@/config/locale';
-import { BrandImage } from '@/shared/blocks/common/brand-image';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { Configs } from '@/shared/models/config';
@@ -49,7 +49,7 @@ export function MarketingFooter({
                 className={`flex items-center gap-2 ${footer.brand.className || ''}`}
               >
                 {footer.brand.logo ? (
-                  <BrandImage
+                  <AppImage
                     src={footer.brand.logo.src}
                     alt={footer.brand.logo.alt || ''}
                     width={40}

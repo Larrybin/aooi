@@ -149,15 +149,15 @@ export function resolveConfiguredAICapability(
 }
 
 export async function listPublicAICapabilities() {
-  const { getAllConfigs } = await import('@/shared/models/config');
-  const configs = await getAllConfigs();
+  const { getAllConfigsCached } = await import('@/shared/models/config');
+  const configs = await getAllConfigsCached();
 
   return listConfiguredAICapabilities(configs);
 }
 
 export async function resolvePublicAICapability(selection: AICapabilitySelection) {
-  const { getAllConfigs } = await import('@/shared/models/config');
-  const configs = await getAllConfigs();
+  const { getAllConfigsCached } = await import('@/shared/models/config');
+  const configs = await getAllConfigsCached();
 
   return resolveConfiguredAICapability(configs, selection);
 }

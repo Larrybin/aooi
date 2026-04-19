@@ -5,6 +5,7 @@ import {
   AffonsoAffiliateProvider,
   PromoteKitAffiliateProvider,
 } from '@/extensions/affiliate';
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import type { Configs } from '@/shared/models/config';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
@@ -38,6 +39,11 @@ export function getAffiliateManagerWithConfigs(configs: Configs) {
 /**
  * global affiliate service
  */
-export async function getAffiliateService(): Promise<AffiliateManager> {
-  return await buildServiceFromLatestConfigs(getAffiliateManagerWithConfigs);
+export async function getAffiliateService(options: {
+  mode?: ConfigConsistencyMode;
+} = {}): Promise<AffiliateManager> {
+  return await buildServiceFromLatestConfigs(
+    getAffiliateManagerWithConfigs,
+    options
+  );
 }

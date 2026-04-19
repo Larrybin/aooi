@@ -2,7 +2,7 @@ import { Link } from '@/core/i18n/navigation';
 import { Pagination } from '@/shared/blocks/common/pagination';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Tabs } from '@/shared/blocks/common/tabs';
-import { Table } from '@/shared/blocks/table';
+import { Table } from '@/shared/blocks/table/table';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,

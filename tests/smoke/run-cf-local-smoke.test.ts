@@ -24,40 +24,59 @@ INVALID_LINE
   );
 });
 
-test('injectCloudflareLocalSmokeDevVars 从 .dev.vars 补齐缺失变量且不覆盖显式传入值', () => {
+test('injectCloudflareLocalSmokeDevVars 只注入 allowlist 内变量且不覆盖显式传入值', () => {
   const processEnv = {
-    DATABASE_URL: '',
-    AUTH_SPIKE_DATABASE_URL: 'postgresql://explicit',
+    AUTH_SECRET: '',
+    BETTER_AUTH_SECRET: 'explicit-better-auth-secret',
   };
 
   injectCloudflareLocalSmokeDevVars(processEnv, {
     devVarsPath: '/tmp/.dev.vars',
     readFileSyncImpl: () => `
-DATABASE_URL=postgresql://from-dev-vars
-AUTH_SPIKE_DATABASE_URL=postgresql://from-dev-vars-auth
+AUTH_SECRET=from-dev-vars-auth-secret
+BETTER_AUTH_SECRET=from-dev-vars-better-auth-secret
+NEXT_PUBLIC_APP_URL=http://127.0.0.1:8787
 `,
   });
 
   assert.deepEqual(processEnv, {
-    DATABASE_URL: 'postgresql://from-dev-vars',
-    AUTH_SPIKE_DATABASE_URL: 'postgresql://explicit',
+    AUTH_SECRET: 'from-dev-vars-auth-secret',
+    BETTER_AUTH_SECRET: 'explicit-better-auth-secret',
+    NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:8787',
   });
 });
 
-test('resolveLocalSmokeDatabaseUrl 优先 AUTH_SPIKE_DATABASE_URL，其次 DATABASE_URL', () => {
+test('injectCloudflareLocalSmokeDevVars 拒绝 .dev.vars 中的数据库连接串', () => {
+  assert.throws(
+    () =>
+      injectCloudflareLocalSmokeDevVars(
+        {},
+        {
+          devVarsPath: '/tmp/.dev.vars',
+          readFileSyncImpl: () => `
+DATABASE_URL=postgresql://from-dev-vars
+AUTH_SPIKE_DATABASE_URL=postgresql://from-dev-vars-auth
+`,
+        }
+      ),
+    /\.dev\.vars contains unsupported keys: AUTH_SPIKE_DATABASE_URL, DATABASE_URL/
+  );
+});
+
+test('resolveLocalSmokeDatabaseUrl 优先 DATABASE_URL，其次 AUTH_SPIKE_DATABASE_URL', () => {
   assert.equal(
     resolveLocalSmokeDatabaseUrl({
-      AUTH_SPIKE_DATABASE_URL: 'postgresql://auth-spike',
       DATABASE_URL: 'postgresql://database',
+      AUTH_SPIKE_DATABASE_URL: 'postgresql://auth-spike',
     }),
-    'postgresql://auth-spike'
+    'postgresql://database'
   );
 
   assert.equal(
     resolveLocalSmokeDatabaseUrl({
-      DATABASE_URL: 'postgresql://database',
+      AUTH_SPIKE_DATABASE_URL: 'postgresql://auth-spike',
     }),
-    'postgresql://database'
+    'postgresql://auth-spike'
   );
 
   assert.equal(resolveLocalSmokeDatabaseUrl({}), '');

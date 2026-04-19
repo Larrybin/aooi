@@ -2,7 +2,9 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import { createMDX } from 'fumadocs-mdx/next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
-if (process.env.NODE_ENV === 'development' && !process.env.VERCEL) {
+import { NEXT_IMAGE_REMOTE_PATTERNS } from './src/shared/config/image-policy.mjs';
+
+if (process.env.NODE_ENV === 'development') {
   import('@opennextjs/cloudflare').then((m) =>
     m.initOpenNextCloudflareForDev()
   );
@@ -24,8 +26,9 @@ const nextConfig = {
   reactStrictMode: true,
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
+  serverExternalPackages: ['postgres'],
   images: {
-    unoptimized: true,
+    remotePatterns: NEXT_IMAGE_REMOTE_PATTERNS,
   },
   async redirects() {
     return [];
@@ -39,8 +42,7 @@ const nextConfig = {
   },
   experimental: {
     turbopackFileSystemCacheForDev: true,
-    // Disable mdxRs for Vercel deployment compatibility with fumadocs-mdx
-    ...(process.env.VERCEL ? {} : { mdxRs: true }),
+    mdxRs: true,
   },
   reactCompiler: false,
 };

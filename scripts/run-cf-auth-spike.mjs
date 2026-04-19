@@ -1,8 +1,10 @@
+import '@/config/load-dotenv';
+
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as authSpikeSharedModule from '../tests/smoke/auth-spike.shared.ts';
-import * as authSpikeBrowserModule from '../tests/smoke/auth-spike.browser.ts';
+import * as authSpikeBrowserModule from '../src/testing/auth-spike.browser.ts';
+import * as authSpikeSharedModule from '../src/testing/auth-spike.shared.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
@@ -13,7 +15,7 @@ import {
   resolveAuthSecret,
   runCloudflarePreviewSmoke,
   waitForPreviewReady,
-} from './run-cf-preview-smoke.mjs';
+} from './lib/cloudflare-preview-smoke.mjs';
 import {
   createReportArtifacts,
   formatHarnessSummaryLines,
@@ -23,9 +25,13 @@ import {
   createTimestamp,
   readCommitShaSafely,
 } from './lib/harness/runtime.mjs';
+import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 
 const authSpikeShared = authSpikeSharedModule.default ?? authSpikeSharedModule;
-const authSpikeBrowser = authSpikeBrowserModule.default ?? authSpikeBrowserModule;
+const authSpikeBrowser =
+  authSpikeBrowserModule.default ?? authSpikeBrowserModule;
+
+injectCloudflareLocalSmokeDevVars();
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import { IconUpload, IconX } from '@tabler/icons-react';
 import { ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -12,12 +11,15 @@ import { fetchApiData, isPlainObject } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 import { cn } from '@/shared/lib/utils';
 
+import { AppImage } from './app-image';
+
 export type UploadStatus = 'idle' | 'uploading' | 'uploaded' | 'error';
 
 export interface ImageUploaderValue {
   id: string;
   preview: string;
   url?: string;
+  value?: string;
   status: UploadStatus;
   size?: number;
 }
@@ -30,13 +32,15 @@ interface ImageUploaderProps {
   title?: string;
   emptyHint?: string;
   className?: string;
-  defaultPreviews?: string[];
+  defaultItems?: Array<{ preview: string; value: string }>;
   onChange?: (items: ImageUploaderValue[]) => void;
 }
 
 interface UploadItem extends ImageUploaderValue {
   file?: File;
 }
+
+type ItemsAction = UploadItem[] | ((currentItems: UploadItem[]) => UploadItem[]);
 
 const formatBytes = (bytes?: number) => {
   if (!bytes) return '';
@@ -55,7 +59,7 @@ export function ImageUploader({
   title,
   emptyHint,
   className,
-  defaultPreviews,
+  defaultItems,
   onChange,
 }: ImageUploaderProps) {
   const t = useTranslations('common.uploader.image');
@@ -66,18 +70,19 @@ export function ImageUploader({
   const isInternalChangeRef = useRef(false);
   const itemsRef = useRef<UploadItem[]>([]);
 
-  // 使用 defaultPreviews 初始化 items，只在组件挂载时执行一次
-  const [items, setItems] = useState<UploadItem[]>(() => {
-    if (defaultPreviews?.length) {
-      return defaultPreviews.map((url, index) => ({
-        id: `preset-${url}-${index}`,
-        preview: url,
-        url,
+  const [items, dispatchItems] = useReducer(
+    (currentItems: UploadItem[], action: ItemsAction) =>
+      typeof action === 'function' ? action(currentItems) : action,
+    defaultItems,
+    (initialDefaultItems = []) =>
+      initialDefaultItems.map(({ preview, value }, index) => ({
+        id: `preset-${value || preview}-${index}`,
+        preview,
+        url: preview,
+        value,
         status: 'uploaded' as UploadStatus,
-      }));
-    }
-    return [];
-  });
+      }))
+  );
 
   const maxCount = allowMultiple ? maxImages : 1;
   const maxBytes = maxSizeMB * 1024 * 1024;
@@ -86,19 +91,36 @@ export function ImageUploader({
     const formData = new FormData();
     formData.append('files', file);
 
-    const data = await fetchApiData<{ urls: string[] }>(
+    const data = await fetchApiData<{
+      results: Array<{ key: string; url: string }>;
+    }>(
       '/api/storage/upload-image',
       { method: 'POST', body: formData },
       {
-        validate: (value): value is { urls: string[] } =>
+        validate: (
+          value
+        ): value is {
+          results: Array<{ key: string; url: string }>;
+        } =>
           isPlainObject(value) &&
-          Array.isArray((value as { urls?: unknown }).urls) &&
-          typeof (value as { urls: unknown[] }).urls[0] === 'string',
+          Array.isArray((value as { results?: unknown }).results) &&
+          isPlainObject((value as { results: unknown[] }).results[0]) &&
+          typeof (
+            (value as { results: Array<{ key?: unknown; url?: unknown }> })
+              .results[0]?.key
+          ) === 'string' &&
+          typeof (
+            (value as { results: Array<{ key?: unknown; url?: unknown }> })
+              .results[0]?.url
+          ) === 'string',
         invalidDataMessage: t('invalid_upload_response'),
       }
     );
 
-    return data.urls[0].trim();
+    return {
+      key: data.results[0].key.trim(),
+      url: data.results[0].url.trim(),
+    };
   };
 
   // 保持最新 items 引用（用于卸载时清理 blob URL）
@@ -111,55 +133,49 @@ export function ImageUploader({
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // 同步 defaultPreviews 的变化（只在外部变化时同步，避免循环）
   useEffect(() => {
-    // 跳过初始化
     if (!isInitializedRef.current) {
       return;
     }
 
-    // 如果是内部变化触发的，跳过
     if (isInternalChangeRef.current) {
       isInternalChangeRef.current = false;
       return;
     }
 
-    const defaultUrls = defaultPreviews || [];
+    const normalizedDefaultItems = defaultItems || [];
 
-    // 使用函数式更新来访问最新的 items
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItems((currentItems) => {
-      const currentUrls = currentItems
+    dispatchItems((currentItems) => {
+      const currentValues = currentItems
         .filter((item) => item.status === 'uploaded' && item.url)
-        .map((item) => item.url as string);
+        .map((item) => item.value || item.url || '');
 
-      // 比较当前 items 和 defaultPreviews 是否一致
       const isSame =
-        defaultUrls.length === currentUrls.length &&
-        defaultUrls.every((url, index) => url === currentUrls[index]);
+        normalizedDefaultItems.length === currentValues.length &&
+        normalizedDefaultItems.every(
+          (item, index) => item.value === currentValues[index]
+        );
 
-      // 只有当不一致时才返回新的 items
       if (!isSame) {
-        // defaultPreviews 覆盖时：回收即将被替换的 blob URL，避免泄漏
         currentItems.forEach((item) => {
           if (item.preview.startsWith('blob:')) {
             URL.revokeObjectURL(item.preview);
           }
         });
 
-        return defaultUrls.map((url, index) => ({
-          id: `preset-${url}-${index}`,
-          preview: url,
-          url,
+        return normalizedDefaultItems.map(({ preview, value }, index) => ({
+          id: `preset-${value || preview}-${index}`,
+          preview,
+          url: preview,
+          value,
           status: 'uploaded' as UploadStatus,
         }));
       }
 
       return currentItems;
     });
-  }, [defaultPreviews]);
+  }, [defaultItems]);
 
-  // 保底清理：组件卸载时回收仍存活的 blob URL
   useEffect(() => {
     return () => {
       itemsRef.current.forEach((item) => {
@@ -170,21 +186,20 @@ export function ImageUploader({
     };
   }, []);
 
-  // 当 items 变化时触发 onChange，但跳过初始化时的调用
   useEffect(() => {
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
       return;
     }
 
-    // 标记这是内部变化
     isInternalChangeRef.current = true;
 
     onChangeRef.current?.(
-      items.map(({ id, preview, url, status, size }) => ({
+      items.map(({ id, preview, url, value, status, size }) => ({
         id,
         preview,
         url,
+        value,
         status,
         size,
       }))
@@ -228,24 +243,24 @@ export function ImageUploader({
       status: 'uploading' as UploadStatus,
     }));
 
-    setItems((prev) => [...prev, ...newItems]);
+    dispatchItems((prev) => [...prev, ...newItems]);
 
     // Upload in parallel
     Promise.all(
       newItems.map(async (item) => {
         try {
-          const url = await uploadImageFile(item.file as File);
-          setItems((prev) => {
+          const result = await uploadImageFile(item.file as File);
+          dispatchItems((prev) => {
             const next = prev.map((current) => {
               if (current.id === item.id) {
-                // Revoke the blob URL since we have the uploaded URL now
                 if (current.preview.startsWith('blob:')) {
                   URL.revokeObjectURL(current.preview);
                 }
                 return {
                   ...current,
-                  preview: url, // Replace preview with uploaded URL
-                  url,
+                  preview: result.url,
+                  url: result.url,
+                  value: result.key,
                   status: 'uploaded' as UploadStatus,
                   file: undefined,
                 };
@@ -262,7 +277,7 @@ export function ImageUploader({
               ? t('upload_failed_with_reason', { reason: error.message })
               : t('upload_failed')
           );
-          setItems((prev) => {
+          dispatchItems((prev) => {
             const next = prev.map((current) =>
               current.id === item.id
                 ? { ...current, status: 'error' as UploadStatus }
@@ -280,7 +295,7 @@ export function ImageUploader({
   };
 
   const handleRemove = (id: string) => {
-    setItems((prev) => {
+    dispatchItems((prev) => {
       const next = prev.filter((item) => item.id !== id);
       const removed = prev.find((item) => item.id === id);
       if (removed?.preview.startsWith('blob:')) {
@@ -332,7 +347,7 @@ export function ImageUploader({
             className="group border-border bg-muted/50 hover:border-border hover:bg-muted relative overflow-hidden rounded-xl border p-1 shadow-sm transition"
           >
             <div className="relative overflow-hidden rounded-lg">
-              <Image
+              <AppImage
                 src={item.preview}
                 alt={t('reference_alt')}
                 className="h-32 w-32 rounded-lg object-cover"

@@ -17,7 +17,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 import { requireAdminAccess } from '@/shared/services/rbac_guard';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 

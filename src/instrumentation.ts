@@ -1,3 +1,7 @@
+import { getTrimmedEnvValue } from '@/config/env-contract';
+import { isProductionEnv } from '@/shared/lib/env';
+import { getServerRuntimeEnv } from '@/shared/lib/runtime/env.server';
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -5,7 +9,7 @@ function isNonEmptyString(value: unknown): value is string {
 export const runtime = 'nodejs';
 
 function getAuthSecret(): string | null {
-  const secret = process.env.BETTER_AUTH_SECRET ?? process.env.AUTH_SECRET;
+  const secret = getServerRuntimeEnv().authSecret;
   return isNonEmptyString(secret) ? secret.trim() : null;
 }
 
@@ -14,13 +18,12 @@ function formatConfigError(parts: string[]): Error {
 }
 
 export async function register() {
-  const runtime = process.env.NEXT_RUNTIME;
+  const runtime = getTrimmedEnvValue(undefined, 'NEXT_RUNTIME');
   if (runtime === 'edge') {
     return;
   }
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  if (!isProduction) {
+  if (!isProductionEnv()) {
     return;
   }
 

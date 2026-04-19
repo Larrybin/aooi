@@ -1,21 +1,26 @@
 import '@/config/load-dotenv';
+
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import * as envContractNamespace from '../src/config/env-contract.ts';
 import { resolveCloudflareAuthSecretValue } from './create-cf-secrets-file.mjs';
-import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
-import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { waitForPreviewReady } from './run-cf-preview-smoke.mjs';
+import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
+import { runPhaseSequence } from './lib/harness/scenario.mjs';
+import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..'
 );
+const envContractModule =
+  envContractNamespace.default ?? envContractNamespace;
+const { assertAllowedEnvKeys, DEV_VARS_ALLOWED_KEYS } = envContractModule;
 const defaultTemplatePath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
 const defaultDevVarsPath = path.resolve(rootDir, '.dev.vars');
 const defaultBaseUrl = 'http://localhost:8787';
@@ -61,8 +66,8 @@ export function parseEnvFileContent(content) {
 export function injectCloudflareLocalSmokeDevVars(
   processEnv = process.env,
   {
-    devVarsPath =
-      processEnv.CF_LOCAL_SMOKE_DEV_VARS_PATH?.trim() || defaultDevVarsPath,
+    devVarsPath = processEnv.CF_LOCAL_SMOKE_DEV_VARS_PATH?.trim() ||
+      defaultDevVarsPath,
     readFileSyncImpl = readFileSync,
   } = {}
 ) {
@@ -78,6 +83,9 @@ export function injectCloudflareLocalSmokeDevVars(
   }
 
   const envEntries = parseEnvFileContent(content);
+  const devVarsLabel = path.relative(rootDir, devVarsPath) || devVarsPath;
+  assertAllowedEnvKeys(envEntries, DEV_VARS_ALLOWED_KEYS, devVarsLabel);
+
   for (const [name, value] of Object.entries(envEntries)) {
     if (processEnv[name]?.trim()) {
       continue;
@@ -93,8 +101,8 @@ injectCloudflareLocalSmokeDevVars();
 
 export function resolveLocalSmokeDatabaseUrl(processEnv = process.env) {
   return (
-    processEnv.AUTH_SPIKE_DATABASE_URL?.trim() ||
     processEnv.DATABASE_URL?.trim() ||
+    processEnv.AUTH_SPIKE_DATABASE_URL?.trim() ||
     ''
   );
 }

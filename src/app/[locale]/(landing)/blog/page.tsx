@@ -11,7 +11,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { logger } from '@/shared/lib/logger.server';
-import { getPublicConfigsCached } from '@/shared/lib/public-configs-cache';
+import { getPublicConfigsCached } from '@/shared/models/config';
 import { getMetadata } from '@/shared/lib/seo';
 import type {
   Blog as BlogType,

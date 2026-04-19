@@ -1,3 +1,8 @@
+import {
+  getTrimmedEnvValue,
+  isProductionEnv,
+} from '@/config/env-contract';
+
 export const locales = [
   'en',
   'zh',
@@ -81,14 +86,15 @@ const rtlLocaleSet: ReadonlySet<string> = new Set(rtlLocales);
 export const isRtlLocale = (locale: string) => rtlLocaleSet.has(locale);
 
 const fallbackLocale = locales[0];
-const envDefaultLocale = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en';
+const envDefaultLocale =
+  getTrimmedEnvValue(undefined, 'NEXT_PUBLIC_DEFAULT_LOCALE') || 'en';
 
 const resolvedDefaultLocale = locales.includes(envDefaultLocale as Locale)
   ? (envDefaultLocale as Locale)
   : fallbackLocale;
 
 if (
-  process.env.NODE_ENV !== 'production' &&
+  !isProductionEnv() &&
   envDefaultLocale &&
   envDefaultLocale !== resolvedDefaultLocale
 ) {

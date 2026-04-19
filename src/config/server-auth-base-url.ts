@@ -10,12 +10,17 @@ function normalizeOrigin(value: string, label: string): string {
   }
 }
 
+type ServerAuthBaseUrlEnv = Partial<
+  Pick<NodeJS.ProcessEnv, 'NEXT_PUBLIC_APP_URL' | 'BETTER_AUTH_URL' | 'AUTH_URL'>
+>;
+
 export function resolveServerAuthBaseUrl(
-  env: NodeJS.ProcessEnv = process.env
+  env?: ServerAuthBaseUrlEnv
 ): string {
-  const rawAppUrl = env.NEXT_PUBLIC_APP_URL?.trim() || '';
-  const rawBetterAuthUrl = env.BETTER_AUTH_URL?.trim() || '';
-  const rawAuthUrl = env.AUTH_URL?.trim() || '';
+  const runtimeEnv = env ?? process.env;
+  const rawAppUrl = runtimeEnv.NEXT_PUBLIC_APP_URL?.trim() || '';
+  const rawBetterAuthUrl = runtimeEnv.BETTER_AUTH_URL?.trim() || '';
+  const rawAuthUrl = runtimeEnv.AUTH_URL?.trim() || '';
 
   if (!rawAppUrl) {
     if (rawBetterAuthUrl) {

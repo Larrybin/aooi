@@ -32,8 +32,8 @@
 
 - `pnpm cf:check` validates the multi-worker config contract.
 - `pnpm cf:build` validates OpenNext multi-bundle generation and hard-fails if any required bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
-- `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: all server Workers start under `wrangler dev`, the router starts under `opennextjs-cloudflare preview`, and the read-only smoke runs against the router origin.
-- `pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for admin/settings storage semantics: direct DB seeding, real `/api/storage/upload-image`, topology restart, public config projection, and the explicit `storage_public_base_url` missing-error path. It must not depend on OpenNext tag-cache Durable Object RPC during local multi-worker dev.
+- `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: the router and all server Workers start under one `wrangler dev` multi-config session, required `.open-next` artifacts are checked before boot, and the read-only smoke runs against the router origin.
+- `pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for admin/settings storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `storage_public_base_url` missing-error path inside the same local Cloudflare runtime session.
 - `pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
 - `cloudflare-production-deploy` may run only after `Cloudflare Deploy Acceptance` succeeds on `push main`; if release metadata reports schema changes, `cloudflare-production-migrate` must complete first.
 - `cloudflare-production-migrate` remains the only manual production workflow; manual deploy by arbitrary SHA is intentionally unsupported.

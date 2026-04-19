@@ -1,60 +1,27 @@
-import type {
-  StorageProvider,
-  StorageUploadOptions,
-  StorageUploadResult,
-} from '@/extensions/storage';
+import { isEnvEnabled } from '@/config/env-contract';
+import type { StorageUploadResult } from '@/extensions/storage';
 
 export function isStorageSpikeUploadMockEnabled(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ) {
-  return env.STORAGE_SPIKE_UPLOAD_MOCK === 'true';
+  return isEnvEnabled(env, 'STORAGE_SPIKE_UPLOAD_MOCK');
 }
 
 export function buildStorageSpikeUploadMockResult(params: {
   key: string;
-  providerName: string;
+  providerName?: string;
   publicDomain?: string;
 }): StorageUploadResult {
   const normalizedKey = params.key.replace(/^\/+/, '');
   const baseUrl = (params.publicDomain || 'https://storage-spike.example.com')
     .replace(/\/+$/, '');
-  const url = `${baseUrl}/${params.providerName}/${normalizedKey}`;
+  const url = `${baseUrl}/${normalizedKey}`;
 
   return {
     success: true,
-    provider: params.providerName,
+    provider: params.providerName || 'cloudflare-r2',
     key: normalizedKey,
     url,
     location: url,
-  };
-}
-
-export function wrapStorageProviderWithUploadMock(
-  provider: StorageProvider
-): StorageProvider {
-  return {
-    ...provider,
-    async uploadFile(
-      options: StorageUploadOptions
-    ): Promise<StorageUploadResult> {
-      return buildStorageSpikeUploadMockResult({
-        key: options.key,
-        providerName: provider.name,
-        publicDomain:
-          typeof provider.configs.publicDomain === 'string'
-            ? provider.configs.publicDomain
-            : undefined,
-      });
-    },
-    async downloadAndUpload(options) {
-      return buildStorageSpikeUploadMockResult({
-        key: options.key,
-        providerName: provider.name,
-        publicDomain:
-          typeof provider.configs.publicDomain === 'string'
-            ? provider.configs.publicDomain
-            : undefined,
-      });
-    },
   };
 }

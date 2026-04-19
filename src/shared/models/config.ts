@@ -3,18 +3,18 @@ import 'server-only';
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/core/db';
-import { envConfigs } from '@/config';
 import { config } from '@/config/db/schema';
-import { serverEnv } from '@/config/server';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
 import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
-import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
 import {
-  PUBLIC_SETTING_NAMES,
-  type KnownSettingKey,
-} from '@/shared/services/settings/registry';
+  getServerPublicEnvConfigs,
+  getServerRuntimeEnv,
+  isCloudflareWorkersRuntime,
+} from '@/shared/lib/runtime/env.server';
+import { readPublicConfigsByMode } from '@/shared/models/public-configs';
+import { type KnownSettingKey } from '@/shared/services/settings/registry';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
@@ -44,7 +44,9 @@ export function getBool(configs: Configs, key: KnownConfigKey): boolean {
 }
 
 export const CONFIGS_CACHE_TAG = 'db-configs';
+export const PUBLIC_CONFIGS_CACHE_TAG = 'public-configs';
 const CONFIGS_CACHE_REVALIDATE_SECONDS = 60;
+const PUBLIC_CONFIGS_CACHE_REVALIDATE_SECONDS = 60 * 60;
 
 export async function saveConfigs(configs: Record<string, string>) {
   const entries = Object.entries(configs);
@@ -72,8 +74,9 @@ export async function addConfig(newConfig: NewConfig) {
 
 async function getConfigsFromDb(): Promise<Configs> {
   const configs: Record<string, string> = {};
+  const runtimeEnv = getServerRuntimeEnv();
 
-  if (!serverEnv.databaseUrl && !isCloudflareWorkersRuntime()) {
+  if (!runtimeEnv.databaseUrl && !isCloudflareWorkersRuntime()) {
     return mergeAuthSpikeOAuthConfigSeedConfigs(configs);
   }
 
@@ -86,6 +89,11 @@ async function getConfigsFromDb(): Promise<Configs> {
   return mergeCloudflareLocalSmokeConfigSeedConfigs(
     mergeAuthSpikeOAuthConfigSeedConfigs(configs)
   );
+}
+
+export async function getConfigsFresh(): Promise<Configs> {
+  const configs = await getConfigsFromDb();
+  return { ...configs };
 }
 
 const getConfigsCached = unstable_cache(
@@ -117,16 +125,27 @@ export async function getConfigsSafe(): Promise<{
   }
 }
 
-export async function getAllConfigs(): Promise<Configs> {
+export async function getAllConfigsCached(): Promise<Configs> {
   const dbConfigs = await getConfigs();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   // DB is allowed to override env for compatibility (app_url/app_name/locale...)
   const configs = {
-    ...envConfigs,
+    ...serverPublicEnvConfigs,
     ...dbConfigs,
   };
 
   return configs;
+}
+
+export async function getAllConfigsFresh(): Promise<Configs> {
+  const dbConfigs = await getConfigsFresh();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+
+  return {
+    ...serverPublicEnvConfigs,
+    ...dbConfigs,
+  };
 }
 
 export async function getAllConfigsSafe(): Promise<{
@@ -134,27 +153,39 @@ export async function getAllConfigsSafe(): Promise<{
   error?: Error;
 }> {
   const { configs: dbConfigs, error } = await getConfigsSafe();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   return {
     configs: {
-      ...envConfigs,
+      ...serverPublicEnvConfigs,
       ...dbConfigs,
     },
     error,
   };
 }
 
-export async function getPublicConfigs(): Promise<Configs> {
-  const { configs: allConfigs } = await getAllConfigsSafe();
-
-  const publicConfigs: Record<string, string> = {};
-
-  for (const key of PUBLIC_SETTING_NAMES) {
-    const value = allConfigs[key];
-    if (value !== undefined) {
-      publicConfigs[key] = value;
-    }
+const readPublicConfigsCached = unstable_cache(
+  async (): Promise<Configs> =>
+    await readPublicConfigsByMode('cached', {
+      getAllConfigsSafeImpl: getAllConfigsSafe,
+      getAllConfigsFreshImpl: getAllConfigsFresh,
+    }),
+  [PUBLIC_CONFIGS_CACHE_TAG],
+  {
+    tags: [PUBLIC_CONFIGS_CACHE_TAG],
+    revalidate: PUBLIC_CONFIGS_CACHE_REVALIDATE_SECONDS,
   }
+);
 
-  return publicConfigs;
+export async function getPublicConfigsCached(): Promise<Configs> {
+  const configs = await readPublicConfigsCached();
+  return { ...configs };
+}
+
+export async function getPublicConfigsFresh(): Promise<Configs> {
+  const configs = await readPublicConfigsByMode('fresh', {
+    getAllConfigsSafeImpl: getAllConfigsSafe,
+    getAllConfigsFreshImpl: getAllConfigsFresh,
+  });
+  return { ...configs };
 }

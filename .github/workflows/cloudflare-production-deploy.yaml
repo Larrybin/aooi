@@ -2,7 +2,7 @@ name: Cloudflare Production Deploy
 
 on:
   workflow_run:
-    workflows: ['Single Origin Deploy Acceptance']
+    workflows: ['Cloudflare Deploy Acceptance']
     types: [completed]
 
 concurrency:
@@ -29,7 +29,8 @@ jobs:
     steps:
       - name: Resolve release artifact metadata
         id: artifact
-        uses: actions/github-script@v7
+        # pinned from v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const runId = context.payload.workflow_run.id;
@@ -66,7 +67,8 @@ jobs:
 
       - name: Reject historical acceptance reruns
         id: main-head
-        uses: actions/github-script@v7
+        # pinned from v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const currentMainRef = await github.rest.git.getRef({
@@ -145,17 +147,20 @@ jobs:
 
     steps:
       - name: Checkout target commit
-        uses: actions/checkout@v4
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.prepare-release.outputs.head_sha }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        # pinned from v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
         with:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        # pinned from v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: 22
           cache: pnpm

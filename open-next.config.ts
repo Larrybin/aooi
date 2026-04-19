@@ -11,12 +11,9 @@ import {
   getSplitWorker,
 } from './src/shared/config/cloudflare-worker-splits';
 
-const disableTagCacheForAdminSettingsSmoke =
-  process.env.CF_ADMIN_SETTINGS_SMOKE_DISABLE_TAG_CACHE === 'true';
-
 const baseConfig = defineCloudflareConfig({
   incrementalCache: r2IncrementalCache,
-  tagCache: disableTagCacheForAdminSettingsSmoke ? 'dummy' : doShardedTagCache(),
+  tagCache: doShardedTagCache(),
   queue: doQueue,
 });
 

@@ -27,7 +27,7 @@ import {
   getChatMessageWindow,
   type NewChatMessage,
 } from '@/shared/models/chat_message';
-import { getAllConfigs } from '@/shared/models/config';
+import { getAllConfigsCached } from '@/shared/models/config';
 import {
   consumeCredits,
   refundConsumedCreditById,
@@ -55,7 +55,7 @@ export const POST = withApi(async (req: Request) => {
 
   await requireOwnedChat(chatId, user.id);
 
-  const configs = await getAllConfigs();
+  const configs = await getAllConfigsCached();
   const openrouterApiKey = configs.openrouter_api_key;
   if (!openrouterApiKey) {
     log.error('chat: openrouter_api_key is missing');

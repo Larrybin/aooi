@@ -1,10 +1,12 @@
+import '@/config/load-dotenv';
+
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import * as oauthSpikeBrowserModule from '../src/testing/oauth-spike.browser.ts';
+import * as oauthSpikeSharedModule from '../src/testing/oauth-spike.shared.ts';
 import * as oauthSpikeReportModule from './lib/cf-oauth-spike-report.ts';
 import * as oauthSpikeScriptModule from './lib/cf-oauth-spike.ts';
-import * as oauthSpikeSharedModule from '../tests/smoke/oauth-spike.shared.ts';
-import * as oauthSpikeBrowserModule from '../tests/smoke/oauth-spike.browser.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
@@ -15,7 +17,7 @@ import {
   resolveConfiguredPreviewBaseUrl,
   runCloudflarePreviewSmoke,
   waitForPreviewReady,
-} from './run-cf-preview-smoke.mjs';
+} from './lib/cloudflare-preview-smoke.mjs';
 import {
   createReportArtifacts,
   formatHarnessSummaryLines,
@@ -25,6 +27,7 @@ import {
   createTimestamp,
   readCommitShaSafely,
 } from './lib/harness/runtime.mjs';
+import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 
 const oauthSpikeShared =
   oauthSpikeSharedModule.default ?? oauthSpikeSharedModule;
@@ -34,6 +37,8 @@ const oauthSpikeScript =
   oauthSpikeScriptModule.default ?? oauthSpikeScriptModule;
 const oauthSpikeReport =
   oauthSpikeReportModule.default ?? oauthSpikeReportModule;
+
+injectCloudflareLocalSmokeDevVars();
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -187,7 +192,8 @@ async function writeReports(report, baseUrl) {
   await writeReportArtifacts({
     paths: reportPaths,
     report,
-    renderMarkdown: (sanitizedReport) => renderMarkdown(sanitizedReport, baseUrl),
+    renderMarkdown: (sanitizedReport) =>
+      renderMarkdown(sanitizedReport, baseUrl),
     sanitizeReport: oauthSpikeReport.sanitizeOAuthSpikeReport,
   });
 }
@@ -290,10 +296,8 @@ async function main() {
     const conclusion = oauthSpikeShared.deriveOAuthSpikeConclusion(report);
     const cleanupFailed = cleanupFailures.length > 0;
     const runFailed = cleanupFailed || fatalError !== null;
-    report.rawConclusion =
-      runFailed ? 'BLOCKED' : conclusion.rawConclusion;
-    report.harnessStatus =
-      runFailed ? 'FAIL' : conclusion.harnessStatus;
+    report.rawConclusion = runFailed ? 'BLOCKED' : conclusion.rawConclusion;
+    report.harnessStatus = runFailed ? 'FAIL' : conclusion.harnessStatus;
     report.failureSummary = Array.from(
       new Set([
         ...report.failureSummary,

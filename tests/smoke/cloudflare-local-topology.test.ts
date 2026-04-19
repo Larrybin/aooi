@@ -5,17 +5,15 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 import {
+  assertCloudflareLocalBuildArtifactsReady,
   findAvailablePort,
   prepareCloudflareLocalTopologyArtifacts,
   startCloudflareLocalDevTopology,
 } from '../../scripts/lib/cloudflare-local-topology.mjs';
+import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 
-const {
-  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
-  getServerWorkerMetadata,
-} = cloudflareWorkerSplits;
+const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS } = cloudflareWorkerSplits;
 
 test('findAvailablePort 会跳过仅占用 127.0.0.1 的端口', async () => {
   const server = net.createServer();
@@ -45,6 +43,21 @@ test('findAvailablePort 会跳过仅占用 127.0.0.1 的端口', async () => {
   }
 });
 
+test('assertCloudflareLocalBuildArtifactsReady 缺少 .open-next 构建产物时给出明确 cf:build 提示', async () => {
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'cf-local-build-artifacts-')
+  );
+
+  try {
+    await assert.rejects(
+      assertCloudflareLocalBuildArtifactsReady({ rootPath: tempDir }),
+      /Run `pnpm cf:build` before starting Cloudflare local smoke or spikes/i
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server worker 配置，并注入同一组本地值', async () => {
   const tempDir = await fs.mkdtemp(
     path.join(os.tmpdir(), 'cf-local-topology-test-')
@@ -67,8 +80,17 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
         artifacts.serverWorkers.length,
         CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.length
       );
+      assert.equal(
+        artifacts.wranglerConfigPaths.length,
+        CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.length + 1
+      );
+      assert.equal(artifacts.persistDir, path.join(artifacts.tempDir, 'state'));
+      await assert.doesNotReject(fs.stat(artifacts.persistDir));
 
-      const routerConfig = await fs.readFile(artifacts.router.configPath, 'utf8');
+      const routerConfig = await fs.readFile(
+        artifacts.router.configPath,
+        'utf8'
+      );
       assert.match(
         routerConfig,
         /localConnectionString = "postgresql:\/\/demo:demo@127\.0\.0\.1:5432\/demo"/
@@ -92,14 +114,7 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
         );
         assert.match(config, /\[dev\][\s\S]*host = "127\.0\.0\.1"/);
         assert.match(config, /\[dev\][\s\S]*upstream_protocol = "http"/);
-        assert.equal(worker.persistDir, path.join(artifacts.tempDir, 'state', worker.target));
-        await assert.doesNotReject(fs.stat(worker.persistDir));
       }
-
-      assert.equal(
-        new Set(artifacts.serverWorkers.map((worker) => worker.persistDir)).size,
-        CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.length
-      );
 
       const devVars = await fs.readFile(devVarsPath, 'utf8');
       assert.match(devVars, /AUTH_SECRET=topology-secret-0123456789abcdef/);
@@ -111,7 +126,6 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
       assert.match(devVars, /AUTH_URL=http:\/\/127\.0\.0\.1:9787/);
       assert.match(devVars, /BETTER_AUTH_URL=http:\/\/127\.0\.0\.1:9787/);
       assert.match(devVars, /CF_LOCAL_SMOKE_WORKERS_DEV=true/);
-      assert.doesNotMatch(devVars, /CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE=/);
     } finally {
       await artifacts.cleanup();
     }
@@ -148,169 +162,105 @@ test('prepareCloudflareLocalTopologyArtifacts 默认在临时 topology 目录内
   }
 });
 
-test('startCloudflareLocalDevTopology 先启动全部 server workers，再等待 ready，最后启动 router', async () => {
+test('startCloudflareLocalDevTopology 只创建一个 unified manager，并在 stop 时清理 topology', async () => {
   const events: string[] = [];
-  const readyResolvers = new Map<string, (value: string) => void>();
-  const workerEnvs: Array<Record<string, string | undefined>> = [];
-  const workerPersistDirs: string[] = [];
-  const routerEnvs: Array<Record<string, string | undefined>> = [];
+  const managerEnvs: Array<Record<string, string | undefined>> = [];
   let cleanupCount = 0;
 
-  const startPromise = startCloudflareLocalDevTopology(
+  const topology = await startCloudflareLocalDevTopology(
     {
       databaseUrl: 'postgresql://demo',
       authSecret: 'topology-secret-0123456789abcdef',
       processEnv: {},
     },
     {
+      assertCloudflareLocalBuildArtifactsReadyImpl: async () => {
+        events.push('preflight:build-artifacts');
+      },
       prepareCloudflareLocalTopologyArtifactsImpl: async () => ({
         router: {
           configPath: '/tmp/router.toml',
-          label: 'Cloudflare preview',
+          label: 'Cloudflare local topology',
           baseUrl: 'http://127.0.0.1:8787',
           port: 8787,
         },
-        serverWorkers: CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target, index) => ({
+        serverWorkers: CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => ({
           target,
           label: `Cloudflare server worker ${target}`,
           configPath: `/tmp/${target}.toml`,
-          persistDir: `/tmp/state/${target}`,
-          port: 8788 + index,
-          workerName: getServerWorkerMetadata(target).workerName,
+          workerName: target,
         })),
+        wranglerConfigPaths: [
+          '/tmp/router.toml',
+          ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
+            (target) => `/tmp/${target}.toml`
+          ),
+        ],
+        persistDir: '/tmp/state/local-topology',
+        devVars: {
+          devVarsPath: '/tmp/.dev.vars',
+        },
         async cleanup() {
           cleanupCount += 1;
         },
       }),
-      createWranglerDevManagerImpl: ({ label, env, persistTo }) => {
+      createWranglerMultiConfigDevManagerImpl: ({
+        label,
+        wranglerConfigPaths,
+        persistTo,
+        env,
+      }) => {
         events.push(`create:${label}`);
-        workerEnvs.push({
+        events.push(`configs:${wranglerConfigPaths.join(',')}`);
+        events.push(`persist:${persistTo}`);
+        managerEnvs.push({
           NEXT_PUBLIC_APP_URL: env?.NEXT_PUBLIC_APP_URL,
           AUTH_URL: env?.AUTH_URL,
           BETTER_AUTH_URL: env?.BETTER_AUTH_URL,
           CF_LOCAL_SMOKE_WORKERS_DEV: env?.CF_LOCAL_SMOKE_WORKERS_DEV,
-          CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE:
-            env?.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE,
-        });
-        workerPersistDirs.push(persistTo);
-        const readyUrlPromise = new Promise<string>((resolve) => {
-          readyResolvers.set(label, resolve);
         });
 
         return {
           label,
           recentLogs: [],
-          readyUrlPromise,
+          readyUrlPromise: Promise.resolve('http://127.0.0.1:8787'),
           async stop() {
             events.push(`stop:${label}`);
           },
         };
       },
-      createPreviewManagerImpl: ({ wranglerConfigPath, env }) => {
-        events.push(`create:router:${wranglerConfigPath}`);
-        routerEnvs.push({
-          NEXT_PUBLIC_APP_URL: env?.NEXT_PUBLIC_APP_URL,
-          AUTH_URL: env?.AUTH_URL,
-          BETTER_AUTH_URL: env?.BETTER_AUTH_URL,
-          CF_LOCAL_SMOKE_WORKERS_DEV: env?.CF_LOCAL_SMOKE_WORKERS_DEV,
-          CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE:
-            env?.CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE,
-        });
-
-        return {
-          label: 'Cloudflare preview',
-          recentLogs: [],
-          readyUrlPromise: Promise.resolve('http://127.0.0.1:8787'),
-          async stop() {
-            events.push('stop:router');
-          },
-        };
-      },
     }
   );
 
-  await Promise.resolve();
-
-  assert.deepEqual(
-    events,
-    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
-      (target) => `create:Cloudflare server worker ${target}`
-    )
-  );
-
-  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
-    readyResolvers
-      .get(`Cloudflare server worker ${target}`)
-      ?.(`http://127.0.0.1/${target}`);
-  }
-
-  const topology = await startPromise;
-  assert.equal(events.at(-1), 'create:router:/tmp/router.toml');
-  assert.deepEqual(workerEnvs, CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(() => ({
-    NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:8787',
-    AUTH_URL: 'http://127.0.0.1:8787',
-    BETTER_AUTH_URL: 'http://127.0.0.1:8787',
-    CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
-    CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: undefined,
-  })));
-  assert.deepEqual(
-    workerPersistDirs,
-    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
-      (target) => `/tmp/state/${target}`
-    )
-  );
-  assert.deepEqual(routerEnvs, [
+  assert.deepEqual(events.slice(0, 4), [
+    'preflight:build-artifacts',
+    'create:Cloudflare local topology',
+    `configs:${[
+      '/tmp/router.toml',
+      ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
+        (target) => `/tmp/${target}.toml`
+      ),
+    ].join(',')}`,
+    'persist:/tmp/state/local-topology',
+  ]);
+  assert.deepEqual(managerEnvs, [
     {
       NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:8787',
       AUTH_URL: 'http://127.0.0.1:8787',
       BETTER_AUTH_URL: 'http://127.0.0.1:8787',
       CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
-      CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: undefined,
     },
   ]);
+  assert.equal(topology.getRouterBaseUrl(), 'http://127.0.0.1:8787');
 
   await topology.stop();
 
-  assert.deepEqual(
-    events.slice(-1 - CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.length),
-    [
-      'stop:router',
-      ...[...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS]
-        .reverse()
-        .map((target) => `stop:Cloudflare server worker ${target}`),
-    ]
-  );
+  assert.equal(events.at(-1), 'stop:Cloudflare local topology');
   assert.equal(cleanupCount, 1);
 });
 
-test('prepareCloudflareLocalTopologyArtifacts 仅在显式请求时透传 admin/settings smoke cache bypass 标记', async () => {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cf-topology-admin-cache-'));
-  const devVarsPath = path.join(tempDir, '.dev.vars');
-
-  try {
-    const artifacts = await prepareCloudflareLocalTopologyArtifacts({
-      databaseUrl: 'postgresql://demo:demo@127.0.0.1:5432/demo',
-      authSecret: 'topology-secret-0123456789abcdef',
-      processEnv: {
-        CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE: 'true',
-      },
-      devVarsPath,
-    });
-
-    try {
-      const devVars = await fs.readFile(devVarsPath, 'utf8');
-      assert.match(devVars, /CF_ADMIN_SETTINGS_SMOKE_BYPASS_NEXT_CACHE=true/);
-    } finally {
-      await artifacts.cleanup();
-    }
-  } finally {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  }
-});
-
-test('startCloudflareLocalDevTopology 在某个 server worker ready 前失败时返回带 label 的错误', async () => {
+test('startCloudflareLocalDevTopology 在 unified manager ready 前失败时返回带 label 的错误', async () => {
   let cleanupCount = 0;
-  const failedTarget = 'public-web';
 
   await assert.rejects(
     startCloudflareLocalDevTopology(
@@ -320,27 +270,25 @@ test('startCloudflareLocalDevTopology 在某个 server worker ready 前失败时
         processEnv: {},
       },
       {
+        assertCloudflareLocalBuildArtifactsReadyImpl: async () => undefined,
         prepareCloudflareLocalTopologyArtifactsImpl: async () => ({
           router: {
             configPath: '/tmp/router.toml',
-            label: 'Cloudflare preview',
+            label: 'Cloudflare local topology',
             baseUrl: 'http://127.0.0.1:8787',
             port: 8787,
           },
-          serverWorkers: [
-            {
-              target: failedTarget,
-              label: `Cloudflare server worker ${failedTarget}`,
-              configPath: `/tmp/${failedTarget}.toml`,
-              port: 8788,
-              workerName: getServerWorkerMetadata(failedTarget).workerName,
-            },
-          ],
+          serverWorkers: [],
+          wranglerConfigPaths: ['/tmp/router.toml'],
+          persistDir: '/tmp/state/local-topology',
+          devVars: {
+            devVarsPath: '/tmp/.dev.vars',
+          },
           async cleanup() {
             cleanupCount += 1;
           },
         }),
-        createWranglerDevManagerImpl: ({ label }) => ({
+        createWranglerMultiConfigDevManagerImpl: ({ label }) => ({
           label,
           recentLogs: ['boom\n'],
           readyUrlPromise: Promise.reject(new Error('exited before ready')),
@@ -348,7 +296,7 @@ test('startCloudflareLocalDevTopology 在某个 server worker ready 前失败时
         }),
       }
     ),
-    /Cloudflare server worker public-web failed to start: exited before ready/
+    /Cloudflare local topology failed to start: exited before ready/
   );
 
   assert.equal(cleanupCount, 1);

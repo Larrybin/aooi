@@ -36,6 +36,18 @@ declare module '../../.open-next/middleware/handler.mjs' {
   ): Promise<Request | Response>;
 }
 
+declare module '../../.open-next/.build/durable-objects/queue.js' {
+  export class DOQueueHandler {
+    fetch(request: Request): Promise<Response> | Response;
+  }
+}
+
+declare module '../../.open-next/.build/durable-objects/sharded-tag-cache.js' {
+  export class DOShardedTagCache {
+    fetch(request: Request): Promise<Response> | Response;
+  }
+}
+
 declare module '../../.open-next/server-functions/default/handler.mjs' {
   export function handler(
     request: Request,

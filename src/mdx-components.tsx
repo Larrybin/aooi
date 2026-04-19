@@ -4,11 +4,11 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Heading } from 'fumadocs-ui/components/heading';
 import type { MDXComponents } from 'mdx/types';
 
-import { envConfigs } from '@/config';
 import {
   getDefaultSupportEmailFromOrigin,
   getDomainFromOrigin,
 } from '@/shared/lib/support-email';
+import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
 
 // Custom link component with nofollow for external links
 const CustomLink = ({
@@ -85,8 +85,9 @@ function normalizePath(path: string): string {
 }
 
 function buildDefaultBrandMdxComponents(): MDXComponents {
-  const appName = envConfigs.app_name || '';
-  const appUrl = envConfigs.app_url || '';
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const appName = serverPublicEnvConfigs.app_name || '';
+  const appUrl = serverPublicEnvConfigs.app_url || '';
   const domain = getDomainFromOrigin(appUrl);
   const supportEmail = getDefaultSupportEmailFromOrigin(appUrl);
 

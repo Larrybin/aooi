@@ -14,6 +14,13 @@ const {
 
 const rootDir = process.cwd();
 const routerConfigPath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
+const SHARED_INCREMENTAL_CACHE_BUCKET = 'roller-rabbit-opennext-cache';
+const SHARED_APP_STORAGE_BUCKET = 'roller-rabbit-storage';
+const ROUTER_DO_BINDINGS = new Map([
+  ['NEXT_CACHE_DO_QUEUE', { className: 'DOQueueHandler' }],
+  ['NEXT_TAG_CACHE_DO_SHARDED', { className: 'DOShardedTagCache' }],
+  ['STATEFUL_LIMITERS', { className: 'StatefulLimitersDurableObject' }],
+]);
 const serverConfigPaths = Object.fromEntries(
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
     target,
@@ -82,6 +89,14 @@ function readSection(content, sectionName) {
   return match[1];
 }
 
+function readOptionalSection(content, sectionName) {
+  const pattern = new RegExp(
+    String.raw`\[${sectionName}\]\s*([\s\S]*?)(?=\n\[\[|\n\[|$)`
+  );
+  const match = content.match(pattern);
+  return match?.[1] ?? null;
+}
+
 function readFlags(content) {
   const match = content.match(/^\s*compatibility_flags\s*=\s*\[(.+?)\]/m);
   if (!match?.[1]) {
@@ -148,6 +163,41 @@ function assertSharedSettings(content, label) {
     fail(`${label}.assets.binding must equal ASSETS`);
   }
 
+  const r2BucketTables = readArrayTable(content, 'r2_buckets');
+  const incrementalCacheBucket = r2BucketTables.find((table) =>
+    /^\s*binding\s*=\s*"NEXT_INC_CACHE_R2_BUCKET"/m.test(table)
+  );
+  if (!incrementalCacheBucket) {
+    fail(`${label} missing [[r2_buckets]] binding = "NEXT_INC_CACHE_R2_BUCKET"`);
+  }
+  const incrementalBucketName = readQuotedValue(
+    incrementalCacheBucket,
+    `${label}.r2_buckets.NEXT_INC_CACHE_R2_BUCKET.bucket_name`,
+    /^\s*bucket_name\s*=\s*"([^"\n]+)"/m
+  );
+  if (incrementalBucketName !== SHARED_INCREMENTAL_CACHE_BUCKET) {
+    fail(
+      `${label}.NEXT_INC_CACHE_R2_BUCKET bucket_name must equal ${SHARED_INCREMENTAL_CACHE_BUCKET}`
+    );
+  }
+
+  const appStorageBucket = r2BucketTables.find((table) =>
+    /^\s*binding\s*=\s*"APP_STORAGE_R2_BUCKET"/m.test(table)
+  );
+  if (!appStorageBucket) {
+    fail(`${label} missing [[r2_buckets]] binding = "APP_STORAGE_R2_BUCKET"`);
+  }
+  const appStorageBucketName = readQuotedValue(
+    appStorageBucket,
+    `${label}.r2_buckets.APP_STORAGE_R2_BUCKET.bucket_name`,
+    /^\s*bucket_name\s*=\s*"([^"\n]+)"/m
+  );
+  if (appStorageBucketName !== SHARED_APP_STORAGE_BUCKET) {
+    fail(
+      `${label}.APP_STORAGE_R2_BUCKET bucket_name must equal ${SHARED_APP_STORAGE_BUCKET}`
+    );
+  }
+
   const hyperdriveTables = readArrayTable(content, 'hyperdrive');
   const hyperdrive = hyperdriveTables.find((table) =>
     /^\s*binding\s*=\s*"HYPERDRIVE"/m.test(table)
@@ -211,6 +261,16 @@ function assertRouterConfig() {
     fail('router.main must equal cloudflare/workers/router.ts');
   }
 
+  const imagesSection = readSection(content, 'images');
+  const imagesBinding = readQuotedValue(
+    imagesSection,
+    'router.images.binding',
+    /^\s*binding\s*=\s*"([^"\n]+)"/m
+  );
+  if (imagesBinding !== 'IMAGES') {
+    fail('router.images.binding must equal IMAGES');
+  }
+
   const serviceTables = readArrayTable(content, 'services');
   const expectedServices = new Map([
     ['WORKER_SELF_REFERENCE', CLOUDFLARE_ROUTER_WORKER_NAME],
@@ -248,6 +308,32 @@ function assertRouterConfig() {
         'm'
       )
     );
+  }
+
+  const doTables = readArrayTable(content, 'durable_objects.bindings');
+  for (const [bindingName, { className }] of ROUTER_DO_BINDINGS) {
+    const table = doTables.find((entry) =>
+      new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
+    );
+    if (!table) {
+      fail(`router missing [[durable_objects.bindings]] name = "${bindingName}"`);
+    }
+
+    const actualClassName = readQuotedValue(
+      table,
+      `router.durable_objects.${bindingName}.class_name`,
+      /^\s*class_name\s*=\s*"([^"\n]+)"/m
+    );
+    if (actualClassName !== className) {
+      fail(
+        `router.durable_objects.${bindingName}.class_name must equal ${className}`
+      );
+    }
+  }
+
+  const migrationTables = readArrayTable(content, 'migrations');
+  if (migrationTables.length === 0) {
+    fail('router missing [[migrations]]');
   }
 }
 
@@ -299,6 +385,43 @@ function assertServerConfig(target, configPath) {
     fail(
       `${target}.services.WORKER_SELF_REFERENCE.service must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`
     );
+  }
+
+  const imagesSection = readOptionalSection(content, 'images');
+  if (imagesSection) {
+    fail(`${target} must not define [images]`);
+  }
+
+  const doTables = readArrayTable(content, 'durable_objects.bindings');
+  for (const [bindingName, { className }] of ROUTER_DO_BINDINGS) {
+    const table = doTables.find((entry) =>
+      new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
+    );
+    if (!table) {
+      fail(`${target} missing [[durable_objects.bindings]] name = "${bindingName}"`);
+    }
+
+    const actualClassName = readQuotedValue(
+      table,
+      `${target}.durable_objects.${bindingName}.class_name`,
+      /^\s*class_name\s*=\s*"([^"\n]+)"/m
+    );
+    if (actualClassName !== className) {
+      fail(
+        `${target}.durable_objects.${bindingName}.class_name must equal ${className}`
+      );
+    }
+
+    const scriptName = readQuotedValue(
+      table,
+      `${target}.durable_objects.${bindingName}.script_name`,
+      /^\s*script_name\s*=\s*"([^"\n]+)"/m
+    );
+    if (scriptName !== CLOUDFLARE_ROUTER_WORKER_NAME) {
+      fail(
+        `${target}.durable_objects.${bindingName}.script_name must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`
+      );
+    }
   }
 }
 

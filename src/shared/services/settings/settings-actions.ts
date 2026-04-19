@@ -9,9 +9,9 @@ import {
 } from '@/shared/lib/action/guard';
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { PUBLIC_CONFIGS_CACHE_TAG } from '@/shared/lib/public-configs-cache';
 import {
   CONFIGS_CACHE_TAG,
+  PUBLIC_CONFIGS_CACHE_TAG,
   saveConfigs,
   type Configs,
 } from '@/shared/models/config';

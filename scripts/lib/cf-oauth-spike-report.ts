@@ -1,4 +1,4 @@
-import type { OAuthSpikeReport } from '../../tests/smoke/oauth-spike.shared';
+import type { OAuthSpikeReport } from '../../src/testing/oauth-spike.shared';
 
 const BETTER_AUTH_COOKIE_VALUE_PATTERN =
   /(__Secure-better-auth\.[^=;\s]+)=([^;\r\n]+)/g;
