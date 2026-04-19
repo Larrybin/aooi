@@ -102,7 +102,7 @@ function getAuthRuntimeContext(request?: Request) {
   };
 }
 
-function buildAuthOptionsBase() {
+function buildAuthOptionsBase(): BetterAuthOptions {
   const {
     runtimeEnv,
     publicEnvConfigs,
@@ -130,7 +130,7 @@ function buildAuthOptionsBase() {
       enabled: true,
     },
     logger: {
-      verboseLogging: !isProduction,
+      level: isProduction ? 'info' : 'debug',
       // Disable logs in production to reduce noise; keep debug in non-production
       disabled: isProduction && !isAuthSpikeOAuthUpstreamMockEnabled(),
     },
@@ -160,7 +160,9 @@ type SendResetPasswordData = Parameters<
 
 // Dynamic auth options - WITH database connection
 // Only used in API routes that actually need database access
-export async function getAuthOptions(request?: Request) {
+export async function getAuthOptions(
+  request?: Request
+): Promise<BetterAuthOptions> {
   installAuthSpikeOAuthFetchMock();
   assertAuthEnv();
   const baseAuthOptions = buildAuthOptionsBase();
