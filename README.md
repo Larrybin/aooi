@@ -205,9 +205,9 @@ Read `content/docs` to start your AI SaaS project.
   - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
   - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
   - `pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && scripts/smoke.mjs cf-admin-settings`
-- `.github/workflows/cloudflare-acceptance.yaml` is the only acceptance gate. On `push main`, it uploads `release-metadata.json` for the exact accepted `head_sha`; `.github/workflows/cloudflare-production-deploy.yaml` consumes that artifact and deploys the same commit to Cloudflare production.
-- `.github/workflows/cloudflare-production-migrate.yaml` is the production schema gate. When `release-metadata.json` reports `db_schema_changed=true`, the deploy workflow runs the migrate workflow first, then proceeds according to `release_kind`: `pnpm cf:deploy:migration` for Durable Object migration releases, otherwise `pnpm cf:deploy:rollout`.
-- `.github/workflows/cloudflare-production-deploy.yaml` only runs from successful `Cloudflare Deploy Acceptance` workflow runs on `main`. Historical acceptance reruns are rejected if their `head_sha` is no longer the current `main` head.
+- The only authoritative production deploy channel is a hand-operated local `wrangler` session authenticated through Wrangler OAuth on the operator machine.
+- `.github/workflows/cloudflare-acceptance.yaml` remains a CI acceptance gate, but it is not a production deploy authority.
+- Any GitHub-side deploy or migrate workflow that still exists in the repo is informational or fallback-only; release authority stays with the local operator session.
 - Cloudflare-only deployment governance is documented in `docs/architecture/cloudflare-deployment-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
@@ -216,14 +216,14 @@ Read `content/docs` to start your AI SaaS project.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
 - Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and canonical `NEXT_PUBLIC_APP_URL`.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
-- GitHub Environment `cloudflare-production` must define `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `BETTER_AUTH_SECRET`, and `PRODUCTION_DATABASE_URL`.
-- Any change to `src/config/db/schema.ts` must ship with committed files under `src/config/db/migrations/**`; acceptance fails otherwise and blocks auto-deploy.
+- The operator workstation must have a valid Wrangler OAuth login with Cloudflare Workers write access; verify with `pnpm exec wrangler whoami` before production deploy.
+- Any change to `src/config/db/schema.ts` must ship with committed files under `src/config/db/migrations/**`; acceptance must fail before deploy if they are missing.
 
 ### Cloudflare Deployment Runbook
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is now a hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` now boots the full split-worker topology through a single local `wrangler dev` multi-config session, and production release now defaults to GitHub Actions automation: `push main` -> acceptance -> optional production DB migrate workflow -> `release_kind=migration ? pnpm cf:deploy:migration : pnpm cf:deploy:rollout` -> post-deploy `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:rollout` or `pnpm cf:deploy:migration` on the operator machine, followed by `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -301,13 +301,13 @@ Recommended:
 - In multi-worker Cloudflare mode, set the same `BETTER_AUTH_SECRET` on the router worker and every `cloudflare/wrangler.server-*.toml` worker config
 - Use `BETTER_AUTH_SECRET` and leave `AUTH_SECRET` unset unless you have a compatibility reason
 
-#### 4. Local and CI runtime wiring
+#### 4. Local runtime and deploy wiring
 
 Do not put a real local PostgreSQL DSN into tracked Wrangler files.
 
 - Local smoke uses an explicit `DATABASE_URL` plus `pnpm test:cf-local-smoke`; tracked `.dev.vars` must stay on the non-DB allowlist and cannot carry PostgreSQL DSNs
-- CI generates temporary Wrangler configs and temporary secrets files before local runtime smoke
-- `pnpm cf:deploy:rollout` and `pnpm cf:deploy:migration` both deploy from temporary Wrangler configs or `--secrets-file`; tracked templates stay secret-free
+- Local manual deploy uses temporary Wrangler configs or `--secrets-file`; tracked templates stay secret-free
+- If you still run CI smoke around this path, keep the same temporary-config discipline there as well
 - Generate the secret with `openssl rand -base64 32`
 
 Optional feature secrets such as Resend, Stripe, Creem, or storage credentials are only required if you actually enable those modules.
@@ -329,13 +329,12 @@ DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
 
 Run this before the first production deploy and before any later deploy that includes schema changes.
 
-For GitHub Actions auto-deploy:
+Deploy authority and migration discipline:
 
-- `cloudflare-production-deploy` reuses the accepted `head_sha` from `release-metadata.json`; it never deploys `main` blindly.
-- `cloudflare-production-deploy` only accepts the current `main` head. Re-running an older successful acceptance workflow will be rejected before migrate/deploy starts.
-- If `release-metadata.json` marks `db_schema_changed=true`, GitHub Actions first calls `cloudflare-production-migrate`, which runs `pnpm db:migrate` against `PRODUCTION_DATABASE_URL`.
-- If `release-metadata.json` marks `release_kind=migration`, GitHub Actions then runs `pnpm cf:deploy:migration`; otherwise it runs `pnpm cf:deploy:rollout`.
-- The only manual recovery path kept in-repo is `cloudflare-production-migrate` with `target_sha`. Manual production deploy by arbitrary SHA is intentionally unsupported.
+- Production deploy authority is the local operator machine authenticated with Wrangler OAuth
+- Run `pnpm exec wrangler whoami` before deploy and confirm the expected account plus Workers write scopes
+- If the release changes `src/config/db/schema.ts`, run `pnpm db:migrate` against production before `pnpm cf:deploy:migration` or `pnpm cf:deploy:rollout`
+- If you keep GitHub workflows around, do not treat them as the release authority or as the canonical source of deploy intent
 
 #### 5. Run the build gates
 
@@ -350,7 +349,19 @@ pnpm cf:build
 
 #### 6. Deploy
 
-The normal production rollout command is:
+The authoritative production rollout command is:
+
+```bash
+pnpm cf:deploy:rollout
+```
+
+Before running it, confirm your local Wrangler OAuth session with:
+
+```bash
+pnpm exec wrangler whoami
+```
+
+Then run:
 
 ```bash
 pnpm cf:deploy:rollout
@@ -365,7 +376,7 @@ pnpm cf:deploy:migration
 ```
 
 `pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:rollout`.
-In normal operation you should not need to run either command locally anymore: GitHub Actions executes the correct subcommand automatically after `push main` acceptance succeeds. Local `pnpm cf:deploy` remains the manual escape hatch for normal rollouts only.
+This local authenticated path is the release authority. Do not treat GitHub Actions automation as the canonical production deploy mechanism.
 
 #### 7. Verify production immediately
 

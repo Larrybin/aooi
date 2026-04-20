@@ -19,9 +19,9 @@
 - `wrangler.cloudflare.toml` represents the router Worker.
 - `cloudflare/wrangler.server-*.toml` represent the server Workers.
 - Router-to-server dispatch must use Cloudflare version affinity.
-- `push main` release automation must deploy the exact accepted `head_sha`, not the default branch tip at deploy time.
-- Acceptance must publish release metadata for Cloudflare auto-deploy; deploy automation must consume that metadata instead of recomputing release intent later.
-- Historical acceptance reruns must not publish to production once their `head_sha` is no longer the current `main` head.
+- Production deploy authority belongs to a hand-operated local `wrangler` session authenticated through Wrangler OAuth on the operator machine.
+- The operator must deploy the exact checked-out revision that passed local build and smoke gates; do not delegate release authority to branch-tip automation.
+- GitHub Actions acceptance may inform the operator, but it must not be treated as the production deploy authority.
 - Cloudflare preview is removed from the supported contract as a user-facing deploy command.
 - `CF_FALLBACK_ORIGIN` is forbidden.
 - Any protected route redirecting to another origin is a failure.
@@ -36,8 +36,9 @@
 - `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: the router and all server Workers start under one `wrangler dev` multi-config session, required `.open-next` artifacts are checked before boot, and the read-only smoke runs against the router origin.
 - `pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for admin/settings storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `storage_public_base_url` missing-error path inside the same local Cloudflare runtime session.
 - `pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
-- `cloudflare-production-deploy` may run only after `Cloudflare Deploy Acceptance` succeeds on `push main`; if release metadata reports schema changes, `cloudflare-production-migrate` must complete first.
-- `cloudflare-production-migrate` remains the only manual production workflow; manual deploy by arbitrary SHA is intentionally unsupported.
+- Before production deploy, the operator must verify `pnpm exec wrangler whoami`, then run `pnpm cf:check`, `pnpm cf:build`, and the relevant smoke or migration gates locally.
+- If schema changes are present, the operator must run production DB migration before `pnpm cf:deploy:migration` or `pnpm cf:deploy:rollout`.
+- GitHub-side deploy workflows are non-authoritative and must not replace the local Wrangler OAuth release path.
 - Public smoke package command names are stable. Internally, `scripts/smoke.mjs <scenario>` dispatches `cf-local`, `cf-app`, and `cf-admin-settings` to their concrete runner scripts.
 
 ## Raw Conclusion Governance
