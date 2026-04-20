@@ -9,13 +9,19 @@ const rootDir = process.cwd();
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 const SCHEMA_PATH = 'src/config/db/schema.ts';
 const MIGRATIONS_PREFIX = 'src/config/db/migrations/';
-const ROUTER_WRANGLER_PATH = 'wrangler.cloudflare.toml';
-const DO_MIGRATION_ALLOWLIST = [
+const STATE_WRANGLER_PATH = 'cloudflare/wrangler.state.toml';
+const STATE_RELEASE_PATHS = [
+  STATE_WRANGLER_PATH,
+  'cloudflare/workers/state.ts',
+  'cloudflare/workers/stateful-limiters.ts',
+];
+const STATE_DEPLOY_ALLOWLIST = [
   '.github/workflows/',
   'scripts/',
   'tests/',
+  'cloudflare/workers/state.ts',
   'cloudflare/workers/stateful-limiters.ts',
-  ROUTER_WRANGLER_PATH,
+  STATE_WRANGLER_PATH,
   'README.md',
   'AGENTS.md',
   'docs/',
@@ -94,7 +100,7 @@ function pathMatchesPrefixOrFile(filePath, allowedPath) {
 }
 
 function isAllowedDoMigrationPath(filePath) {
-  return DO_MIGRATION_ALLOWLIST.some((allowedPath) =>
+  return STATE_DEPLOY_ALLOWLIST.some((allowedPath) =>
     pathMatchesPrefixOrFile(filePath, allowedPath)
   );
 }
@@ -129,8 +135,8 @@ export async function readFileAtRevision(revision, filePath) {
 
 export async function detectDurableObjectMigrationChange(baseSha, headSha) {
   const [baseContent, headContent] = await Promise.all([
-    readFileAtRevision(baseSha, ROUTER_WRANGLER_PATH),
-    readFileAtRevision(headSha, ROUTER_WRANGLER_PATH),
+    readFileAtRevision(baseSha, STATE_WRANGLER_PATH),
+    readFileAtRevision(headSha, STATE_WRANGLER_PATH),
   ]);
 
   return (
@@ -139,11 +145,20 @@ export async function detectDurableObjectMigrationChange(baseSha, headSha) {
   );
 }
 
+export function detectStateReleaseChange(changedPaths) {
+  return changedPaths.some((changedPath) =>
+    STATE_RELEASE_PATHS.some((statePath) =>
+      pathMatchesPrefixOrFile(changedPath, statePath)
+    )
+  );
+}
+
 export function buildReleaseMetadata({
   baseSha,
   headSha,
   changedPaths,
-  doMigrationChanged,
+  stateChanged,
+  stateMigrationsChanged,
 }) {
   const schemaFileChanged = changedPaths.includes(SCHEMA_PATH);
   const dbMigrationsChanged = changedPaths.some((value) =>
@@ -158,12 +173,12 @@ export function buildReleaseMetadata({
   }
 
   const hasIllegalDoMigrationCompanionChange =
-    doMigrationChanged &&
+    stateMigrationsChanged &&
     changedPaths.some((changedPath) => !isAllowedDoMigrationPath(changedPath));
 
   if (hasIllegalDoMigrationCompanionChange) {
     throw new Error(
-      `Durable Object migration changes must be released separately. Split this main commit into a migration-only release and a normal rollout.`
+      `State Durable Object migration changes must be released separately. Split this main commit into a state deploy and an app deploy.`
     );
   }
 
@@ -171,8 +186,8 @@ export function buildReleaseMetadata({
     base_sha: baseSha,
     head_sha: headSha,
     db_schema_changed: dbSchemaChanged,
-    do_migration_changed: doMigrationChanged,
-    release_kind: doMigrationChanged ? 'migration' : 'normal',
+    state_changed: stateChanged,
+    state_migrations_changed: stateMigrationsChanged,
     changed_paths: changedPaths,
   };
 }
@@ -181,7 +196,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const baseSha = await resolveBaseSha(options.baseSha, options.headSha);
   const changedPaths = await readChangedPaths(baseSha, options.headSha);
-  const doMigrationChanged = await detectDurableObjectMigrationChange(
+  const stateChanged = detectStateReleaseChange(changedPaths);
+  const stateMigrationsChanged = await detectDurableObjectMigrationChange(
     baseSha,
     options.headSha
   );
@@ -189,7 +205,8 @@ async function main() {
     baseSha,
     headSha: options.headSha,
     changedPaths,
-    doMigrationChanged,
+    stateChanged,
+    stateMigrationsChanged,
   });
 
   await mkdir(path.dirname(options.out), { recursive: true });
@@ -200,7 +217,7 @@ async function main() {
   );
 
   process.stdout.write(
-    `[cloudflare-release] head=${metadata.head_sha} base=${metadata.base_sha} db_schema_changed=${metadata.db_schema_changed} do_migration_changed=${metadata.do_migration_changed} release_kind=${metadata.release_kind}\n`
+    `[cloudflare-release] head=${metadata.head_sha} base=${metadata.base_sha} db_schema_changed=${metadata.db_schema_changed} state_changed=${metadata.state_changed} state_migrations_changed=${metadata.state_migrations_changed}\n`
   );
 }
 

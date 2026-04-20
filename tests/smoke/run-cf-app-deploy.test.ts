@@ -1,0 +1,238 @@
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import test from 'node:test';
+
+import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
+import {
+  buildRouterAppVersionIds,
+  buildRouterDirectDeployArgs,
+  buildRouterDeployConfigContent,
+  buildVersionDeploySpecs,
+  deployCloudflareApp,
+  determineDeployMode,
+  parseWranglerJsonPayload,
+  resolvePostDeploySmokeUrl,
+} from '../../scripts/run-cf-app-deploy.mjs';
+
+const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
+  cloudflareWorkerSplits;
+
+test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 改写为部署态配置', () => {
+  const template = `
+name = "roller-rabbit"
+main = "cloudflare/workers/router.ts"
+
+[assets]
+directory = ".open-next/assets"
+
+[vars]
+PUBLIC_WEB_WORKER_VERSION_ID = ""
+AUTH_WORKER_VERSION_ID = ""
+PAYMENT_WORKER_VERSION_ID = ""
+MEMBER_WORKER_VERSION_ID = ""
+CHAT_WORKER_VERSION_ID = ""
+ADMIN_WORKER_VERSION_ID = ""
+`;
+
+  const versionIds = Object.fromEntries(
+    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target, index) => [
+      target,
+      `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    ])
+  );
+
+  const config = buildRouterDeployConfigContent(template, versionIds);
+
+  assert.match(
+    config,
+    new RegExp(
+      `main = "${escapeRegExp(path.relative(path.resolve(process.cwd(), '.tmp'), path.resolve(process.cwd(), 'cloudflare/workers/router.ts')))}"`
+    )
+  );
+  assert.match(
+    config,
+    new RegExp(
+      `directory = "${escapeRegExp(path.relative(path.resolve(process.cwd(), '.tmp'), path.resolve(process.cwd(), '.open-next/assets')))}"`
+    )
+  );
+
+  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
+    const versionVar = CLOUDFLARE_VERSION_ID_VARS[target];
+    assert.match(config, new RegExp(`${versionVar} = "${versionIds[target]}"`));
+  }
+});
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+test('resolvePostDeploySmokeUrl 在未显式传 env 时回退到 router wrangler 的 NEXT_PUBLIC_APP_URL', () => {
+  const smokeUrl = resolvePostDeploySmokeUrl({
+    processEnv: {},
+    routerConfigContent: `
+[vars]
+NEXT_PUBLIC_APP_URL = "https://mamamiya.pdfreprinting.net/"
+`,
+  });
+
+  assert.equal(smokeUrl, 'https://mamamiya.pdfreprinting.net/');
+});
+
+test('determineDeployMode 在 router 或任一 server 缺 deployment 时标记为 missing-deployments', () => {
+  const servers = Object.fromEntries(
+    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [target, `v-${target}`])
+  );
+
+  assert.equal(
+    determineDeployMode({
+      router: null,
+      servers,
+    }),
+    'missing-deployments'
+  );
+
+  assert.equal(
+    determineDeployMode({
+      router: 'v-router',
+      servers: {
+        ...servers,
+        member: null,
+      },
+    }),
+    'missing-deployments'
+  );
+
+  assert.equal(
+    determineDeployMode({
+      router: 'v-router',
+      servers,
+    }),
+    'steady-state'
+  );
+});
+
+test('buildVersionDeploySpecs 生成缺省版本与 steady-state 的部署顺序', () => {
+  assert.deepEqual(buildVersionDeploySpecs(null, 'v-next'), ['v-next@100%']);
+  assert.deepEqual(buildVersionDeploySpecs('v-current', 'v-next'), [
+    'v-next@100%',
+    'v-current@0%',
+  ]);
+});
+
+test('buildRouterDirectDeployArgs 对 router 固定使用 wrangler deploy 与 keep-vars', () => {
+  const args = buildRouterDirectDeployArgs({
+    configPath: '/tmp/router.wrangler.toml',
+    secretsPath: '/tmp/router.secrets.env',
+    message: 'router-direct-deploy',
+  });
+
+  assert.deepEqual(args, [
+    'deploy',
+    '--config',
+    '/tmp/router.wrangler.toml',
+    '--name',
+    'roller-rabbit',
+    '--message',
+    'router-direct-deploy',
+    '--keep-vars',
+    '--secrets-file',
+    '/tmp/router.secrets.env',
+  ]);
+  assert.equal(args.includes('versions'), false);
+});
+
+test('buildRouterAppVersionIds 先保留当前 server 版本，再切到新 server 版本', () => {
+  const currentVersions = {
+    router: 'router-current',
+    servers: Object.fromEntries(
+      CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+        target,
+        `current-${target}`,
+      ])
+    ),
+  };
+  const nextVersions = Object.fromEntries(
+    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+      target,
+      `next-${target}`,
+    ])
+  );
+
+  assert.deepEqual(buildRouterAppVersionIds(currentVersions, nextVersions), {
+    compatibility: Object.fromEntries(
+      CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+        target,
+        `current-${target}`,
+      ])
+    ),
+    target: Object.fromEntries(
+      CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+        target,
+        `next-${target}`,
+      ])
+    ),
+  });
+});
+
+test('parseWranglerJsonPayload 能从 wrangler 前置日志中提取 JSON', () => {
+  const payload = parseWranglerJsonPayload(`
+Proxy environment variables detected. We'll use your proxy for fetch requests.
+[
+  {
+    "name": "BETTER_AUTH_SECRET",
+    "type": "secret_text"
+  }
+]
+`);
+
+  assert.deepEqual(payload, [
+    {
+      name: 'BETTER_AUTH_SECRET',
+      type: 'secret_text',
+    },
+  ]);
+});
+
+test('deployCloudflareApp 在 steady-state 时走 app rollout 分支', async () => {
+  const calls = [];
+
+  await deployCloudflareApp({
+    async collectCurrentVersionsImpl() {
+      return {
+        router: 'router-v1',
+        servers: Object.fromEntries(
+          CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+            target,
+            `v-${target}`,
+          ])
+        ),
+      };
+    },
+    async deploySteadyStateImpl(currentVersions) {
+      calls.push(['steady-state', currentVersions]);
+    },
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'steady-state');
+});
+
+test('deployCloudflareApp 在缺少部署版本时直接失败并要求先跑 state deploy', async () => {
+  await assert.rejects(
+    () =>
+      deployCloudflareApp({
+        async collectCurrentVersionsImpl() {
+          return {
+            router: null,
+            servers: Object.fromEntries(
+              CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [target, null])
+            ),
+          };
+        },
+        async deploySteadyStateImpl() {
+          throw new Error('should not reach steady-state deploy');
+        },
+      }),
+    /Run "pnpm cf:deploy:state" first, then run "pnpm cf:deploy:app" or "pnpm cf:deploy"/i
+  );
+});

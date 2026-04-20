@@ -16,11 +16,11 @@ test('cloudflare production workflow 导出双通道 release metadata', () => {
   );
   assert.match(
     workflowContent,
-    /do_migration_changed:\s*\$\{\{\s*steps\.release\.outputs\.do_migration_changed\s*\}\}/
+    /state_changed:\s*\$\{\{\s*steps\.release\.outputs\.state_changed\s*\}\}/
   );
   assert.match(
     workflowContent,
-    /release_kind:\s*\$\{\{\s*steps\.release\.outputs\.release_kind\s*\}\}/
+    /state_migrations_changed:\s*\$\{\{\s*steps\.release\.outputs\.state_migrations_changed\s*\}\}/
   );
 });
 
@@ -31,20 +31,20 @@ test('cloudflare production workflow 在 db schema 变更时先运行 migrate-db
   );
 });
 
-test('cloudflare production workflow 的 migration 通道只运行 migration deploy', () => {
+test('cloudflare production workflow 在 state 变更时先运行 state deploy', () => {
   assert.match(
     workflowContent,
-    /deploy-do-migration:\n[\s\S]*?if:\s*>-\s*[\s\S]*?always\(\)\s*&&[\s\S]*?needs\.prepare-release\.outputs\.release_kind == 'migration'[\s\S]*?needs\.migrate-db\.result == 'skipped'[\s\S]*?run:\s*pnpm cf:deploy:migration/
+    /deploy-state:\n[\s\S]*?if:\s*>-\s*[\s\S]*?always\(\)\s*&&[\s\S]*?needs\.prepare-release\.outputs\.state_changed == 'true'[\s\S]*?needs\.migrate-db\.result == 'skipped'[\s\S]*?run:\s*pnpm cf:deploy:state/
   );
 });
 
-test('cloudflare production workflow 的 normal 通道只运行 normal rollout', () => {
+test('cloudflare production workflow 总是以 app deploy 收尾', () => {
   assert.match(
     workflowContent,
-    /deploy-normal-rollout:\n[\s\S]*?if:\s*>-\s*[\s\S]*?always\(\)\s*&&[\s\S]*?needs\.prepare-release\.outputs\.release_kind == 'normal'[\s\S]*?needs\.migrate-db\.result == 'skipped'[\s\S]*?run:\s*pnpm cf:deploy:rollout/
+    /deploy-app:\n[\s\S]*?needs:\s*\[prepare-release, migrate-db, deploy-state\][\s\S]*?run:\s*pnpm cf:deploy/
   );
   assert.doesNotMatch(
     workflowContent,
-    /run:\s*pnpm cf:deploy\s*$/m
+    /cf:deploy:rollout|cf:deploy:migration/
   );
 });
