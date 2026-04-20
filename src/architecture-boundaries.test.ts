@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -8,6 +8,18 @@ const srcRoot = path.resolve(repoRoot, 'src');
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const DIRS_TO_SKIP = new Set(['.next', 'node_modules']);
+const requiredTargetDirectories = [
+  'src/domains/chat',
+  'src/domains/account',
+  'src/domains/billing',
+  'src/domains/settings',
+  'src/domains/access-control',
+  'src/domains/content',
+  'src/surfaces/admin',
+  'src/infra/platform',
+  'src/infra/adapters',
+  'src/infra/runtime',
+];
 
 type DirtyImportRule = {
   label: string;
@@ -125,6 +137,17 @@ function readImportSpecifiers(source: string) {
   return [...specifiers];
 }
 
+test('architecture: 目标收敛目录必须存在', async () => {
+  for (const requiredDir of requiredTargetDirectories) {
+    const dirStat = await stat(path.resolve(repoRoot, requiredDir));
+    assert.equal(
+      dirStat.isDirectory(),
+      true,
+      `${requiredDir} 必须存在，避免后续能力继续落回 shared/core/features`
+    );
+  }
+});
+
 test('architecture: 旧脏入口引用数量只减不增', async () => {
   const files = (await readSourceFiles()).filter(
     ({ repoPath }) => repoPath !== 'src/architecture-boundaries.test.ts'
@@ -165,6 +188,22 @@ test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP sc
   }
 });
 
+test('architecture: 新目标目录不回引旧架构入口', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/(?:domains|surfaces|infra)\//.test(repoPath)
+  );
+  const forbiddenLegacyImportPattern =
+    /@\/(?:core|features|shared\/models|shared\/services)(?:\/|['"])/;
+
+  for (const file of files) {
+    assert.equal(
+      forbiddenLegacyImportPattern.test(file.content),
+      false,
+      `${file.repoPath} 不应回引 core/features/shared models/services`
+    );
+  }
+});
+
 test('architecture: access-control domain/application 不包含 Web 拒绝行为', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
     /^src\/domains\/access-control\//.test(repoPath)
@@ -175,6 +214,22 @@ test('architecture: access-control domain/application 不包含 Web 拒绝行为
       /next\/navigation|redirect\s*\(|notFound\s*\(/.test(file.content),
       false,
       `${file.repoPath} 不应包含 redirect/notFound/next/navigation`
+    );
+  }
+});
+
+test('architecture: content domain 不拥有 composition/platform/runtime 职责', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/domains\/content\//.test(repoPath)
+  );
+  const forbiddenContentImportPattern =
+    /@\/(?:app|infra\/platform\/i18n|infra\/runtime|themes)(?:\/|['"])|next\/navigation|generateMetadata|Metadata\s+from\s+['"]next/;
+
+  for (const file of files) {
+    assert.equal(
+      forbiddenContentImportPattern.test(file.content),
+      false,
+      `${file.repoPath} 不应拥有 SEO/i18n runtime/route segmentation/theme rendering 职责`
     );
   }
 });
