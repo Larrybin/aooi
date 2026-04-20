@@ -33,6 +33,16 @@ import {
   UpstreamError,
 } from '@/shared/lib/api/errors';
 
+type StripeCheckoutSessionParams = NonNullable<
+  Parameters<Stripe['checkout']['sessions']['create']>[0]
+>;
+type StripeCheckoutLineItemPriceData = NonNullable<
+  NonNullable<StripeCheckoutSessionParams['line_items']>[number]['price_data']
+>;
+type StripeCheckoutRecurringInterval = NonNullable<
+  StripeCheckoutLineItemPriceData['recurring']
+>['interval'];
+
 export class StripeProvider implements PaymentProvider {
   readonly name = 'stripe';
   configs: StripeConfigs;
@@ -56,7 +66,7 @@ export class StripeProvider implements PaymentProvider {
       throw new BadRequestError('price is required');
     }
 
-    const priceData: Stripe.Checkout.SessionCreateParams.LineItem.PriceData = {
+    const priceData: StripeCheckoutLineItemPriceData = {
       currency: order.price.currency,
       unit_amount: order.price.amount,
       product_data: {
@@ -70,8 +80,7 @@ export class StripeProvider implements PaymentProvider {
       }
 
       priceData.recurring = {
-        interval:
-          order.plan.interval as Stripe.Checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval,
+        interval: order.plan.interval as StripeCheckoutRecurringInterval,
       };
     }
 
@@ -93,7 +102,7 @@ export class StripeProvider implements PaymentProvider {
       }
     }
 
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    const sessionParams: StripeCheckoutSessionParams = {
       mode:
         order.type === PaymentType.SUBSCRIPTION ? 'subscription' : 'payment',
       line_items: [

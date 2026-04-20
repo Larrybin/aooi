@@ -15,6 +15,9 @@ export interface StripeConfigs extends PaymentConfigs {
 }
 
 type StripeClientLike = Pick<Stripe, 'checkout' | 'customers' | 'invoices' | 'billingPortal' | 'subscriptions' | 'webhooks'>;
+type StripeCheckoutSessionParams = NonNullable<
+  Parameters<StripeClientLike['checkout']['sessions']['create']>[0]
+>;
 
 export class StripeTransport {
   private readonly client: StripeClientLike;
@@ -41,7 +44,7 @@ export class StripeTransport {
     return await this.client.customers.create(input);
   }
 
-  async createCheckoutSession(input: Stripe.Checkout.SessionCreateParams) {
+  async createCheckoutSession(input: StripeCheckoutSessionParams) {
     return await this.client.checkout.sessions.create(input);
   }
 
