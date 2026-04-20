@@ -127,6 +127,17 @@ async function assertBundleExists(target) {
     return;
   }
 
+  if (target.label === 'state') {
+    const workerPath = path.resolve(
+      rootDir,
+      CLOUDFLARE_STATE_WORKER.workerEntryRelativePath
+    );
+    if (!fs.existsSync(workerPath)) {
+      fail(`missing ${path.relative(rootDir, workerPath)}`);
+    }
+    return;
+  }
+
   const metadata = getServerWorkerMetadata(target.label);
   const handlerPath = path.resolve(
     rootDir,
@@ -247,7 +258,7 @@ async function main() {
       const sizes = parseDryRunUploadSize(`${result.stdout}\n${result.stderr}`);
       const formatted = formatSizeKiB(sizes.gzipKiB);
       const diagnostics =
-        target.label === 'router'
+        target.label === 'router' || target.label === 'state'
           ? null
           : await readServerBundleDiagnostics(target.label);
 

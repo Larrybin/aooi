@@ -376,6 +376,7 @@ pnpm cf:deploy
 `pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:app`.
 `pnpm cf:deploy:app` is a pure app release command. It does not bootstrap router/server workers, and it fails fast if any app worker deployment is missing.
 For a brand-new or partially initialized production environment, the required order is always `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
+`pnpm test:cf-app-smoke` belongs after the full state-plus-app release sequence, not after a standalone state deploy.
 This local authenticated path is the release authority. Do not treat GitHub Actions automation as the canonical production deploy mechanism.
 
 #### 7. Verify production immediately

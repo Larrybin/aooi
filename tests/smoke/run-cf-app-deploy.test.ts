@@ -134,6 +134,7 @@ test('buildRouterDirectDeployArgs 对 router 固定使用 wrangler deploy 与 ke
     'roller-rabbit',
     '--message',
     'router-direct-deploy',
+    '--experimental-autoconfig=false',
     '--keep-vars',
     '--secrets-file',
     '/tmp/router.secrets.env',

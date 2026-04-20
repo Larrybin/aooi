@@ -264,6 +264,7 @@ export function buildRouterDirectDeployArgs({
     name,
     '--message',
     message,
+    '--experimental-autoconfig=false',
     '--keep-vars',
     '--secrets-file',
     secretsPath,

@@ -6,7 +6,6 @@ import { pathToFileURL } from 'node:url';
 
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
-import { resolvePostDeploySmokeUrl } from './run-cf-app-deploy.mjs';
 import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 
 const { CLOUDFLARE_STATE_WORKER, CLOUDFLARE_STATE_WORKER_NAME } =
@@ -17,7 +16,6 @@ const stateConfigPath = path.resolve(
   rootDir,
   CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath
 );
-const routerConfigPath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
 
 function log(message) {
   console.log(`[cf:deploy:state] ${message}`);
@@ -41,6 +39,7 @@ export function buildStateDeployWranglerArgs({
     name,
     '--message',
     message,
+    '--experimental-autoconfig=false',
     '--keep-vars',
     '--secrets-file',
     secretsPath,
@@ -110,33 +109,9 @@ async function createStateDeployArtifacts() {
   };
 }
 
-async function runPostDeploySmoke() {
-  log('running post-deploy smoke');
-  const routerConfigContent = await readFile(routerConfigPath, 'utf8');
-  const smokeUrl = resolvePostDeploySmokeUrl({ routerConfigContent });
-  const smokeExitCode = await new Promise((resolve) => {
-    const child = spawn('pnpm', ['test:cf-app-smoke'], {
-      cwd: rootDir,
-      env: {
-        ...process.env,
-        CF_APP_SMOKE_URL: smokeUrl,
-      },
-      stdio: 'inherit',
-    });
-
-    child.once('error', () => resolve(1));
-    child.once('exit', (code) => resolve(code ?? 1));
-  });
-
-  if (smokeExitCode !== 0) {
-    throw new Error('post-deploy Cloudflare smoke failed');
-  }
-}
-
 export async function deployCloudflareState({
   createArtifacts = createStateDeployArtifacts,
   runWranglerCommand = runWrangler,
-  runSmoke = runPostDeploySmoke,
 } = {}) {
   const artifacts = await createArtifacts();
 
@@ -148,7 +123,6 @@ export async function deployCloudflareState({
         secretsPath: artifacts.secretsPath,
       })
     );
-    await runSmoke();
   } finally {
     await artifacts.cleanup();
   }
