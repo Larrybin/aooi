@@ -20,7 +20,6 @@ const rootDir = process.cwd();
 const routerConfigPath = path.resolve(rootDir, CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath);
 const stateConfigPath = path.resolve(rootDir, CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath);
 const DO_OWNER_WORKER_NAME = CLOUDFLARE_STATE_WORKER_NAME;
-const DO_OWNER_CONFIG_PATH = stateConfigPath;
 const SHARED_INCREMENTAL_CACHE_BUCKET = 'roller-rabbit-opennext-cache';
 const SHARED_APP_STORAGE_BUCKET = 'roller-rabbit-storage';
 const DO_BINDINGS = new Map(

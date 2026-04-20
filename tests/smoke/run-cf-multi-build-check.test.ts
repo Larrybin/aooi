@@ -8,8 +8,8 @@ import {
 } from '../../scripts/run-cf-multi-build-check.mjs';
 
 test('加载 run-cf-multi-build-check 时 state worker 不依赖 server bundle metadata', async () => {
-  const module = await import('../../scripts/run-cf-multi-build-check.mjs');
-  assert.equal(typeof module.buildStateDryRunArgs, 'function');
+  const loadedModule = await import('../../scripts/run-cf-multi-build-check.mjs');
+  assert.equal(typeof loadedModule.buildStateDryRunArgs, 'function');
 });
 
 test('parseDryRunUploadSize 解析 wrangler dry-run 输出中的 total/gzip 体积', () => {

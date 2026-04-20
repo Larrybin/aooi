@@ -17,6 +17,7 @@ const FORBIDDEN_GENERATED_DIRS = new Set([
 ]);
 const STATIC_IMPORT_ALLOWLIST = new Set([
   resolve(REPO_ROOT, 'cloudflare/workers/router.ts'),
+  resolve(REPO_ROOT, 'cloudflare/workers/state.ts'),
 ]);
 
 async function collectSourceFiles(dir: string): Promise<string[]> {

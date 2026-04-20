@@ -49,6 +49,32 @@ module.exports = {
       },
       to: { path: '^src/testing/' },
     },
+    {
+      name: 'no-surfaces-to-infra-adapters',
+      severity: 'error',
+      from: { path: '^src/surfaces/' },
+      to: { path: '^src/infra/adapters/' },
+    },
+    {
+      name: 'no-domain-domain-to-app-surfaces-adapters-or-api-schemas',
+      severity: 'error',
+      from: { path: '^src/domains/[^/]+/domain/' },
+      to: {
+        path: '^src/(app|surfaces|infra/adapters|shared/schemas/api)/',
+      },
+    },
+    {
+      name: 'no-infra-to-app-surfaces-or-domain-application',
+      severity: 'error',
+      from: { path: '^src/infra/' },
+      to: { path: '^src/(app|surfaces|domains/[^/]+/application)/' },
+    },
+    {
+      name: 'no-shared-to-domains-surfaces-or-infra',
+      severity: 'error',
+      from: { path: '^src/shared/' },
+      to: { path: '^src/(domains|surfaces|infra)/' },
+    },
   ],
   options: {
     doNotFollow: {
