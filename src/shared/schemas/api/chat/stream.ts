@@ -1,7 +1,3 @@
-/**
- * Usage: `parseJson(req, ChatStreamBodySchema)`
- */
-
 import { z } from 'zod';
 
 import { CHAT_ALLOWED_MODELS } from '@/shared/constants/chat-model-policy';

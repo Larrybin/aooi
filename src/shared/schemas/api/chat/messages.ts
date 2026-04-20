@@ -1,7 +1,3 @@
-/**
- * Usage: `parseJson(req, ChatMessagesBodySchema)`
- */
-
 import { z } from 'zod';
 
 export const ChatMessagesBodySchema = z.object({
