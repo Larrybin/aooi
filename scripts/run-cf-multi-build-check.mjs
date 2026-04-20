@@ -10,7 +10,10 @@ import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 
 const {
+  CLOUDFLARE_STATE_WORKER,
+  CLOUDFLARE_STATE_WORKER_NAME,
   CLOUDFLARE_ROUTER_WORKER_NAME,
+  CLOUDFLARE_ROUTER_WORKER,
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
   CLOUDFLARE_SERVER_WORKERS,
   getServerWorkerMetadata,
@@ -20,9 +23,16 @@ const rootDir = process.cwd();
 const fallbackBuildSecret = 'cf-build-dry-run-secret-0123456789abcdef';
 const uploadTargets = [
   {
+    label: 'state',
+    name: CLOUDFLARE_STATE_WORKER_NAME,
+    configPath: path.resolve(rootDir, CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath),
+    dryRunCommand: 'deploy',
+  },
+  {
     label: 'router',
     name: CLOUDFLARE_ROUTER_WORKER_NAME,
-    configPath: path.resolve(rootDir, 'wrangler.cloudflare.toml'),
+    configPath: path.resolve(rootDir, CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath),
+    dryRunCommand: 'versions-upload',
   },
   ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => ({
     label: target,
@@ -31,6 +41,7 @@ const uploadTargets = [
       rootDir,
       getServerWorkerMetadata(target).wranglerConfigRelativePath
     ),
+    dryRunCommand: 'versions-upload',
   })),
 ];
 
@@ -126,6 +137,34 @@ async function assertBundleExists(target) {
   }
 }
 
+export function buildStateDryRunArgs({ configPath, secretsPath, name }) {
+  return [
+    'deploy',
+    '--dry-run',
+    '--config',
+    configPath,
+    '--name',
+    name,
+    '--keep-vars',
+    '--secrets-file',
+    secretsPath,
+  ];
+}
+
+export function buildVersionUploadDryRunArgs({ configPath, secretsPath, name }) {
+  return [
+    'versions',
+    'upload',
+    '--dry-run',
+    '--config',
+    configPath,
+    '--name',
+    name,
+    '--secrets-file',
+    secretsPath,
+  ];
+}
+
 async function readServerBundleDiagnostics(target) {
   const metadata = getServerWorkerMetadata(target);
   const handlerPath = path.resolve(
@@ -192,17 +231,19 @@ async function main() {
         `$1${emptyAssetsDir}$3`
       );
       await writeFile(tempConfigPath, generatedConfig, 'utf8');
-      const result = await runWrangler([
-        'versions',
-        'upload',
-        '--dry-run',
-        '--config',
-        tempConfigPath,
-        '--name',
-        target.name,
-        '--secrets-file',
-        secretsPath,
-      ]);
+      const result = await runWrangler(
+        target.dryRunCommand === 'deploy'
+          ? buildStateDryRunArgs({
+              configPath: tempConfigPath,
+              name: target.name,
+              secretsPath,
+            })
+          : buildVersionUploadDryRunArgs({
+              configPath: tempConfigPath,
+              name: target.name,
+              secretsPath,
+            })
+      );
       const sizes = parseDryRunUploadSize(`${result.stdout}\n${result.stderr}`);
       const formatted = formatSizeKiB(sizes.gzipKiB);
       const diagnostics =

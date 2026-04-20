@@ -134,3 +134,36 @@ NEXT_PUBLIC_APP_URL = "https://example.com"
     /\[dev\]\nhost = "localhost"\n(?:\n)?upstream_protocol = "http"\n/
   );
 });
+
+test('buildCloudflareWranglerConfig 支持 state 模板且不强制要求 R2 buckets', () => {
+  const template = `
+main = "workers/state.ts"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "roller-rabbit"
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+
+[vars]
+DEPLOY_TARGET = "cloudflare"
+NEXT_PUBLIC_APP_URL = "https://example.com"
+`;
+
+  const outputPath = '/repo/.tmp/state.toml';
+  const config = buildCloudflareWranglerConfig({
+    template,
+    templatePath: '/repo/cloudflare/wrangler.state.toml',
+    outputPath,
+    validateTemplateContract: true,
+  });
+
+  assert.match(
+    config,
+    new RegExp(
+      `main = "${escapeRegExp(path.relative(path.dirname(outputPath), '/repo/cloudflare/workers/state.ts'))}"`
+    )
+  );
+});

@@ -7,6 +7,7 @@ const rootDir = process.cwd();
 const REQUIRED_INCREMENTAL_CACHE_BINDING = 'NEXT_INC_CACHE_R2_BUCKET';
 const REQUIRED_APP_STORAGE_BINDING = 'APP_STORAGE_R2_BUCKET';
 const REQUIRED_STATEFUL_LIMITERS_BINDING = 'STATEFUL_LIMITERS';
+const STATE_TEMPLATE_NAME = 'wrangler.state.toml';
 
 function readArrayTables(content, tableName) {
   const pattern = new RegExp(
@@ -34,33 +35,37 @@ function assertTemplateContract(content, templatePath) {
   const r2Buckets = readArrayTables(content, 'r2_buckets');
   const doBindings = readArrayTables(content, 'durable_objects.bindings');
   const imagesSection = readSection(content, 'images');
+  const isStateTemplate =
+    path.basename(templatePath) === STATE_TEMPLATE_NAME;
 
-  if (
-    !r2Buckets.some((table) =>
-      hasQuotedValue(
-        table,
-        /^\s*binding\s*=\s*"([^"\n]+)"/m,
-        REQUIRED_INCREMENTAL_CACHE_BINDING
+  if (!isStateTemplate) {
+    if (
+      !r2Buckets.some((table) =>
+        hasQuotedValue(
+          table,
+          /^\s*binding\s*=\s*"([^"\n]+)"/m,
+          REQUIRED_INCREMENTAL_CACHE_BINDING
+        )
       )
-    )
-  ) {
-    throw new Error(
-      `${label} must declare [[r2_buckets]] binding = "${REQUIRED_INCREMENTAL_CACHE_BINDING}"`
-    );
-  }
+    ) {
+      throw new Error(
+        `${label} must declare [[r2_buckets]] binding = "${REQUIRED_INCREMENTAL_CACHE_BINDING}"`
+      );
+    }
 
-  if (
-    !r2Buckets.some((table) =>
-      hasQuotedValue(
-        table,
-        /^\s*binding\s*=\s*"([^"\n]+)"/m,
-        REQUIRED_APP_STORAGE_BINDING
+    if (
+      !r2Buckets.some((table) =>
+        hasQuotedValue(
+          table,
+          /^\s*binding\s*=\s*"([^"\n]+)"/m,
+          REQUIRED_APP_STORAGE_BINDING
+        )
       )
-    )
-  ) {
-    throw new Error(
-      `${label} must declare [[r2_buckets]] binding = "${REQUIRED_APP_STORAGE_BINDING}"`
-    );
+    ) {
+      throw new Error(
+        `${label} must declare [[r2_buckets]] binding = "${REQUIRED_APP_STORAGE_BINDING}"`
+      );
+    }
   }
 
   if (
@@ -264,13 +269,15 @@ export function buildCloudflareWranglerConfig({
     outputPath,
   });
 
-  nextContent = rebaseRelativeTomlPath({
-    content: nextContent,
-    pattern: /(^\s*directory\s*=\s*")([^"\n]*)(")/m,
-    label: 'assets.directory',
-    templatePath,
-    outputPath,
-  });
+  if (/(^\s*directory\s*=\s*")([^"\n]*)(")/m.test(nextContent)) {
+    nextContent = rebaseRelativeTomlPath({
+      content: nextContent,
+      pattern: /(^\s*directory\s*=\s*")([^"\n]*)(")/m,
+      label: 'assets.directory',
+      templatePath,
+      outputPath,
+    });
+  }
 
   return nextContent;
 }

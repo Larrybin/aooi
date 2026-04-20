@@ -1,9 +1,9 @@
 /**
  * Cloudflare Workers 运行时的最小全局类型兜底。
  *
- * `wrangler types` 生成的 `src/shared/types/cloudflare.d.ts` 当前被 `.gitignore`
- * 忽略，而仓库仍需要一份稳定存在的最小类型来支撑构建期 typecheck。
- * 这里只保留源码真实依赖的最小全局类型，避免 CI 构建依赖本地生成产物。
+ * 仓库会提交 `wrangler types` 生成的 `src/shared/types/cloudflare.d.ts` 作为
+ * 完整 Cloudflare 契约，但源码层仍保留这份最小全局类型兜底，避免在类型生成
+ * 尚未执行前阻塞基础 typecheck。
  */
 interface ExecutionContext<Props = unknown> {
   waitUntil(promise: Promise<unknown>): void;

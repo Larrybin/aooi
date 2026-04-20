@@ -60,22 +60,17 @@ localConnectionString = ""
 [[durable_objects.bindings]]
 name = "NEXT_CACHE_DO_QUEUE"
 class_name = "DOQueueHandler"
+script_name = "roller-rabbit-state"
 
 [[durable_objects.bindings]]
 name = "NEXT_TAG_CACHE_DO_SHARDED"
 class_name = "DOShardedTagCache"
+script_name = "roller-rabbit-state"
 
 [[durable_objects.bindings]]
 name = "STATEFUL_LIMITERS"
 class_name = "StatefulLimitersDurableObject"
-
-[[migrations]]
-tag = "cloudflare-only-v1"
-new_sqlite_classes = [
-  "DOQueueHandler",
-  "DOShardedTagCache",
-  "StatefulLimitersDurableObject",
-]
+script_name = "roller-rabbit-state"
 
 [observability]
 enabled = true

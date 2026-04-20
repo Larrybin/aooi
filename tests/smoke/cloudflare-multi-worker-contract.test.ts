@@ -11,6 +11,7 @@ import {
   CLOUDFLARE_SERVER_WORKERS,
   CLOUDFLARE_SERVICE_BINDINGS,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
+  CLOUDFLARE_STATE_WORKER_NAME,
   getServerWorkerMetadata,
 } from '../../src/shared/config/cloudflare-worker-splits';
 
@@ -25,6 +26,9 @@ test('router worker 不直接 import server handler', async () => {
     'utf8'
   );
 
+  assert.ok(!routerSource.includes('DOQueueHandler'));
+  assert.ok(!routerSource.includes('DOShardedTagCache'));
+  assert.ok(!routerSource.includes('StatefulLimitersDurableObject'));
   assert.ok(!routerSource.includes('server-functions/auth/handler.mjs'));
   assert.ok(!routerSource.includes('server-functions/payment/handler.mjs'));
   assert.ok(!routerSource.includes('server-functions/chat/handler.mjs'));
@@ -178,6 +182,41 @@ test('split manifest 覆盖 canonical split 服务绑定', async () => {
       new RegExp(`binding = "${CLOUDFLARE_SERVICE_BINDINGS[target]}"`)
     );
   }
+});
+
+test('router 与 server worker 的 Durable Object bindings 全部指向 state worker', async () => {
+  const configPaths = [
+    path.join(rootDir, 'wrangler.cloudflare.toml'),
+    ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) =>
+      path.join(rootDir, `cloudflare/wrangler.server-${target}.toml`)
+    ),
+  ];
+
+  for (const configPath of configPaths) {
+    const source = await fs.readFile(configPath, 'utf8');
+    assert.match(source, new RegExp(`script_name = "${CLOUDFLARE_STATE_WORKER_NAME}"`));
+    assert.doesNotMatch(source, /\[\[migrations\]\]/);
+  }
+});
+
+test('只有 state worker 保留 Durable Object exports 与 migrations', async () => {
+  const source = await fs.readFile(
+    path.join(rootDir, 'cloudflare/workers/state.ts'),
+    'utf8'
+  );
+  const stateWrangler = await fs.readFile(
+    path.join(rootDir, 'cloudflare/wrangler.state.toml'),
+    'utf8'
+  );
+
+  assert.match(source, /DOQueueHandler/);
+  assert.match(source, /DOShardedTagCache/);
+  assert.match(source, /StatefulLimitersDurableObject/);
+  assert.match(stateWrangler, /\[\[migrations\]\]/);
+  assert.match(
+    stateWrangler,
+    new RegExp(`name = "${CLOUDFLARE_STATE_WORKER_NAME}"`)
+  );
 });
 
 test('tracked wrangler templates 不允许提交真实 localConnectionString', async () => {
