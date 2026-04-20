@@ -191,16 +191,18 @@ Read `content/docs` to start your AI SaaS project.
 - Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
 - `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
-- Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical multi-worker topology under the authoritative `wrangler versions upload --dry-run` gzip gate. The measured gzip sizes were `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, and `router 0.14 MiB`.
+- Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical state/app topology under the authoritative dry-run upload gate. The state worker uses `wrangler deploy --dry-run`; router and server workers use `wrangler versions upload --dry-run`.
 - Cloudflare helper commands:
 - `pnpm cf:check`
 - `pnpm cf:build`
+- `pnpm cf:typegen`
+- `pnpm cf:typegen:check`
 - `pnpm test:cf-local-smoke`
 - `pnpm test:cf-admin-settings-smoke`
 - `pnpm test:cf-app-smoke`
-- `pnpm cf:deploy:rollout`
-- `pnpm cf:deploy:migration`
-- `pnpm cf:deploy` (`pnpm cf:deploy:rollout` 的别名)
+- `pnpm cf:deploy:state`
+- `pnpm cf:deploy:app`
+- `pnpm cf:deploy` (`pnpm cf:deploy:app` 的别名)
 - Smoke runner scenarios:
   - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
   - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
@@ -223,7 +225,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:rollout` or `pnpm cf:deploy:migration` on the operator machine, followed by `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -239,7 +241,7 @@ If you were planning to put auth on another domain, stop. That topology is inten
 
 #### 2. Update router + server Wrangler configs
 
-Edit [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml) and the relevant `cloudflare/wrangler.server-*.toml` files together:
+Edit [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml), [cloudflare/wrangler.state.toml](/Users/bin/Desktop/project/aooi/cloudflare/wrangler.state.toml), and the relevant `cloudflare/wrangler.server-*.toml` files together:
 
 ```toml
 name = "your-router-worker-name"
@@ -282,9 +284,11 @@ Rules that matter:
 
 - `NEXT_PUBLIC_APP_URL` must be a pure origin and must match the route exactly
 - `service` under `WORKER_SELF_REFERENCE` must match `name`
+- `cloudflare/wrangler.state.toml` is the only template allowed to keep `[[migrations]]`
 - each server worker needs its own `cloudflare/wrangler.server-*.toml` with no public `[[routes]]`
 - the canonical server worker set is `public-web/auth/payment/member/chat/admin`; keep names, bindings, and split ownership aligned with `src/shared/config/cloudflare-worker-splits.ts`
 - router services and server worker names must stay in sync with `src/shared/config/cloudflare-worker-splits.ts`
+- router and all app workers must point Durable Object bindings at `roller-rabbit-state`
 - tracked Wrangler templates must keep `localConnectionString = ""`; local and CI DSNs only enter generated temporary configs
 - Do not add `CF_FALLBACK_ORIGIN`; single-origin Cloudflare mode forbids it
 
@@ -333,7 +337,7 @@ Deploy authority and migration discipline:
 
 - Production deploy authority is the local operator machine authenticated with Wrangler OAuth
 - Run `pnpm exec wrangler whoami` before deploy and confirm the expected account plus Workers write scopes
-- If the release changes `src/config/db/schema.ts`, run `pnpm db:migrate` against production before `pnpm cf:deploy:migration` or `pnpm cf:deploy:rollout`
+- If the release changes `src/config/db/schema.ts`, run `pnpm db:migrate` against production before `pnpm cf:deploy:state` or `pnpm cf:deploy`
 - If you keep GitHub workflows around, do not treat them as the release authority or as the canonical source of deploy intent
 
 #### 5. Run the build gates
@@ -345,14 +349,14 @@ pnpm cf:check
 pnpm cf:build
 ```
 
-`pnpm cf:build` must keep every deployable Worker bundle under the Cloudflare 3 MiB gzip limit as verified by `wrangler versions upload --dry-run`. If it fails, do not deploy.
+`pnpm cf:build` must keep every deployable Worker bundle under the Cloudflare 3 MiB gzip limit as verified by state/app dry-run upload checks. If it fails, do not deploy.
 
 #### 6. Deploy
 
-The authoritative production rollout command is:
+The authoritative production app release command is:
 
 ```bash
-pnpm cf:deploy:rollout
+pnpm cf:deploy
 ```
 
 Before running it, confirm your local Wrangler OAuth session with:
@@ -364,18 +368,14 @@ pnpm exec wrangler whoami
 Then run:
 
 ```bash
-pnpm cf:deploy:rollout
+pnpm cf:deploy:state
+pnpm cf:deploy
 ```
 
-This command runs config checks, builds the OpenNext multi-worker bundles, bootstraps brand-new workers when needed, and otherwise uploads server worker versions plus the router version with version-affinity overrides before deploying the batch.
-
-For a Durable Object migration-only release, use:
-
-```bash
-pnpm cf:deploy:migration
-```
-
-`pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:rollout`.
+`pnpm cf:deploy:state` always uses `wrangler deploy` and is the only command allowed to apply Durable Object migrations.
+`pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:app`.
+`pnpm cf:deploy:app` is a pure app release command. It does not bootstrap router/server workers, and it fails fast if any app worker deployment is missing.
+For a brand-new or partially initialized production environment, the required order is always `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 This local authenticated path is the release authority. Do not treat GitHub Actions automation as the canonical production deploy mechanism.
 
 #### 7. Verify production immediately
@@ -409,7 +409,10 @@ pnpm install
 DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
 pnpm cf:check
 pnpm cf:build
-pnpm cf:deploy:rollout
+pnpm cf:typegen
+pnpm cf:typegen:check
+pnpm cf:deploy:state
+pnpm cf:deploy
 ```
 
 If that succeeds, open the production domain and complete one real auth flow before calling the release done.

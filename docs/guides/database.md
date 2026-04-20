@@ -286,15 +286,17 @@ Cloudflare helper commands:
 - `pnpm test:cf-local-smoke`
 - `pnpm test:cf-admin-settings-smoke`
 - `pnpm test:cf-app-smoke`
-- `pnpm cf:deploy:rollout`
-- `pnpm cf:deploy:migration`
-- `pnpm cf:deploy` (`pnpm cf:deploy:rollout` 的别名)
+- `pnpm cf:typegen`
+- `pnpm cf:typegen:check`
+- `pnpm cf:deploy:state`
+- `pnpm cf:deploy:app`
+- `pnpm cf:deploy` (`pnpm cf:deploy:app` 的别名)
 
 Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, admin/settings storage smoke uses `cf-admin-settings`, and production read-only app smoke uses `cf-app`.
 
 `pnpm test:cf-admin-settings-smoke` is intentionally a smaller local acceptance chain: it seeds the required settings rows directly in Postgres, uploads brand assets through the real Cloudflare runtime API, and then validates public config projection plus the missing-`storage_public_base_url` failure path inside the same generated local Cloudflare runtime session.
 
-`pnpm cf:build` now validates deployable Worker bundles through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
+`pnpm cf:build` now validates the state worker through `wrangler deploy --dry-run` and app workers through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
 
 `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke: landing, sign-in, sign-up, docs, public config API, sitemap, robots, and same-origin protected-route redirects back to `/sign-in`.
 
@@ -302,7 +304,8 @@ The smoke is read-only. It must not upsert public config values or mutate the `c
 
 The governed deployment posture is now Cloudflare-only: production deploys must use the canonical multi-worker OpenNext + Hyperdrive topology.
 
-Durable Object migration-only releases must stay migration-safe. Router request dispatch changes belong in a normal `pnpm cf:deploy:rollout`, not `pnpm cf:deploy:migration`.
+State Worker migrations must stay state-safe. Router request dispatch changes belong in `pnpm cf:deploy:app`, while Durable Object owner/migration changes belong in `pnpm cf:deploy:state`.
+`pnpm cf:deploy:app` is a pure app release step. It does not bootstrap missing router/server deployments, so brand-new or partially initialized production environments must run `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 
 `Cloudflare Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
 
