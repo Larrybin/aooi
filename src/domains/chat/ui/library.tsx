@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { IconDots, IconMessageCircle } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -22,12 +22,9 @@ import type { Chat } from '@/shared/types/chat';
 export function ChatLibrary() {
   const t = useTranslations('ai.chat.library');
   const params = useParams();
-
   const snapshot = useAuthSnapshot();
-
   const { chats, setChats } = useChatContext();
   const [hasMore, setHasMore] = useState(false);
-
   const didToastFetchChatsError = useRef(false);
 
   const page = 1;
@@ -82,36 +79,6 @@ export function ChatLibrary() {
                   <span>{chat.title}</span>
                 </Link>
               </SidebarMenuButton>
-              {/* <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuAction
-                    showOnHover
-                    className="data-[state=open]:bg-accent rounded-sm"
-                  >
-                    <IconDots />
-                    <span className="sr-only">{t('more')}</span>
-                  </SidebarMenuAction>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-24 rounded-lg"
-                  side={isMobile ? 'bottom' : 'right'}
-                  align={isMobile ? 'end' : 'start'}
-                >
-                  <DropdownMenuItem>
-                    <IconPencil />
-                    <span>{t('actions.edit_title')}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <IconShare3 />
-                    <span>{t('actions.share')}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive">
-                    <IconTrash />
-                    <span>{t('actions.delete')}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu> */}
             </SidebarMenuItem>
           ))}
 

@@ -44,7 +44,6 @@ export function ChatInput({
 }) {
   const t = useTranslations('ai.chat.generator');
 
-  // todo: get models from api
   const models: ChatModel[] = [
     {
       title: 'Kimi K2 Thinking',
@@ -86,11 +85,6 @@ export function ChatInput({
         globalDrop
         multiple
       >
-        {/* <PromptInputHeader>
-        <PromptInputAttachments>
-          {(attachment) => <PromptInputAttachment data={attachment} />}
-        </PromptInputAttachments>
-      </PromptInputHeader> */}
         <PromptInputBody>
           <PromptInputTextarea
             className="overflow-hidden p-4 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -105,25 +99,11 @@ export function ChatInput({
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
-            {/* <PromptInputActionMenu>
-            <PromptInputActionMenuTrigger />
-            <PromptInputActionMenuContent>
-              <PromptInputActionAddAttachments />
-            </PromptInputActionMenuContent>
-          </PromptInputActionMenu>
-          <PromptInputButton
-            variant={webSearch ? 'default' : 'ghost'}
-            onClick={() => setWebSearch(!webSearch)}
-          >
-            <GlobeIcon size={16} />
-            <span>Search</span>
-          </PromptInputButton> */}
             <div className="flex items-center">
               <Switch
                 id="prompt-reasoning-switch"
                 checked={reasoning}
                 onCheckedChange={setReasoning}
-                // className="peer sr-only"
               />
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -149,9 +129,9 @@ export function ChatInput({
                 </PromptInputSelectValue>
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>
-                {models.map((model) => (
-                  <PromptInputSelectItem key={model.name} value={model.name}>
-                    {model.title}
+                {models.map((entry) => (
+                  <PromptInputSelectItem key={entry.name} value={entry.name}>
+                    {entry.title}
                   </PromptInputSelectItem>
                 ))}
               </PromptInputSelectContent>

@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Link, usePathname, useRouter } from '@/core/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/infra/platform/i18n/navigation';
+import { Empty } from '@/shared/blocks/common/empty';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { Pagination } from '@/shared/blocks/common/pagination';
-import { Empty } from '@/shared/blocks/common/empty';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
@@ -122,7 +122,7 @@ export function ChatHistory() {
     if (!snapshot) {
       return;
     }
-    fetchChats();
+    void fetchChats();
   }, [fetchChats, snapshot]);
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export function ChatHistory() {
   }, [chats.length, handlePageChange, loading, page, snapshot, total, totalPages]);
 
   const handleRetry = () => {
-    fetchChats();
+    void fetchChats();
   };
 
   const renderContent = () => {
@@ -196,9 +196,7 @@ export function ChatHistory() {
                   <div className="flex flex-col items-start gap-2 text-left sm:items-end sm:text-right">
                     <div className="flex flex-wrap items-center gap-2">
                       {chat.model && (
-                        <Badge variant="outline" className="">
-                          {chat.model}
-                        </Badge>
+                        <Badge variant="outline">{chat.model}</Badge>
                       )}
                     </div>
                   </div>
@@ -218,18 +216,23 @@ export function ChatHistory() {
         <div className="flex-1" />
         <LocaleSelector />
       </header>
-      <main className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-          <div className="flex flex-col gap-2">
+      <div className="mx-auto flex w-full flex-1 flex-col px-4 py-6 md:max-w-4xl">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
             <h1 className="text-2xl font-semibold">{t('title')}</h1>
             <p className="text-muted-foreground text-sm">{t('description')}</p>
           </div>
-          <section className="">{renderContent()}</section>
-          <div className="px-2 py-4">
-            <Pagination page={page} total={total} limit={limit} />
-          </div>
         </div>
-      </main>
+        <div className="flex-1">{renderContent()}</div>
+        <div className="pt-6">
+          <Pagination
+            currentPage={page}
+            pageSize={limit}
+            total={total}
+            onPageChange={handlePageChange}
+          />
+        </div>
+      </div>
     </div>
   );
 }

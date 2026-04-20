@@ -20,11 +20,9 @@ export function ChatBox({
 }) {
   const { setChat } = useChatContext();
 
-  // create chat instance
   const chatInstance = useChat({
     id: initialChat?.id,
     messages: initialMessages,
-
     transport: new DefaultChatTransport({
       api: '/api/chat',
       prepareSendMessagesRequest({ messages, id, body }) {

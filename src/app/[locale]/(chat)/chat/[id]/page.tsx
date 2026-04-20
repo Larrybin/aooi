@@ -2,7 +2,7 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: user-specific chat content; must not cache across users/roles
 import { redirect } from 'next/navigation';
-import { ChatThreadShell } from '@/features/web/chat/components/thread-shell';
+import { ChatThreadShell } from '@/domains/chat/ui/thread-shell';
 import type { UIMessage } from 'ai';
 
 import { buildPermissionGuardCondition } from '@/core/rbac';

@@ -5,7 +5,7 @@ import type { UIMessage, UseChatHelpers } from '@ai-sdk/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { useRouter } from '@/core/i18n/navigation';
+import { useRouter } from '@/infra/platform/i18n/navigation';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';
@@ -25,9 +25,7 @@ import { ChatInput } from './input';
 export function ChatGenerator() {
   const router = useRouter();
   const locale = useLocale();
-
   const t = useTranslations('ai.chat.generator');
-
   const snapshot = useAuthSnapshot();
   const { setIsShowSignModal } = usePublicAppContext();
   const { chats, setChats, setChat } = useChatContext();
@@ -45,7 +43,7 @@ export function ChatGenerator() {
     try {
       const data = await fetchJson<Chat>(
         '/api/chat/new',
-        { method: 'POST', body: { message: msg, body: body } },
+        { method: 'POST', body: { message: msg, body } },
         {
           validate: (value): value is Chat =>
             isPlainObject(value) &&
@@ -56,13 +54,8 @@ export function ChatGenerator() {
       );
 
       const id = data.id.trim();
-
       setChats([data, ...chats]);
-
-      const path = `/chat/${id}`;
-      router.push(path, {
-        locale,
-      });
+      router.push(`/chat/${id}`, { locale });
       setStatus(undefined);
       setError(null);
     } catch (e: unknown) {
@@ -83,13 +76,11 @@ export function ChatGenerator() {
     message: PromptInputMessage,
     body: Record<string, unknown>
   ) => {
-    // check user sign
     if (!snapshot) {
       setIsShowSignModal(true);
       return;
     }
 
-    // check user input
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
     if (!(hasText || hasAttachments)) {

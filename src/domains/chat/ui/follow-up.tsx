@@ -131,7 +131,6 @@ export function FollowUp({
       chat.createdAt &&
       messages.length === 0
     ) {
-      // auto send message in new chat
       const parsedMessage = safeJsonParse<unknown>(chat.content);
       const parsedBody = safeJsonParse<unknown>(chat.metadata);
 

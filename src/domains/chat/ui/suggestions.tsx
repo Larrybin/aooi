@@ -15,17 +15,12 @@ export function ChatSuggestions() {
     'Explain cloud computing basics',
   ];
 
-  const handleSuggestionClick = (_suggestion: string) => {
-    // setStatus('submitted');
-    // addUserMessage(suggestion);
-  };
-
   return (
     <Suggestions className="px-4">
       {suggestions.map((suggestion) => (
         <Suggestion
           key={suggestion}
-          onClick={() => handleSuggestionClick(suggestion)}
+          onClick={() => undefined}
           suggestion={suggestion}
         />
       ))}

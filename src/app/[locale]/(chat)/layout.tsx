@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { SignModal } from '@/features/web/auth/components/sign-modal';
-import { ChatLibrary } from '@/features/web/chat/components/library';
+import { ChatLibrary } from '@/domains/chat/ui/library';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
