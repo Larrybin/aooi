@@ -3,19 +3,14 @@
 // reason: user-specific write flow
 import { getTranslations } from 'next-intl/server';
 
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { createOwnApikeyUseCase } from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { getNonceStr, getUuid } from '@/shared/lib/hash';
-import {
-  ApikeyStatus,
-  createApikey,
-  type NewApikey,
-} from '@/shared/models/apikey';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form as FormType } from '@/shared/types/blocks/form';
@@ -55,20 +50,15 @@ export default async function CreateApiKeyPage() {
               message: 'title is required',
             }
           );
-
-          const key = `sk-${getNonceStr(32)}`;
-
-          const newApikey: NewApikey = {
-            id: getUuid(),
-            userId: user.id,
-            title,
-            key,
-            status: ApikeyStatus.ACTIVE,
-          };
-
-          await createApikey(newApikey);
-
-          return actionOk('API Key created', '/settings/apikeys');
+          return createOwnApikeyUseCase(
+            {
+              userId: user.id,
+              title,
+            },
+            accountRuntimeDeps,
+            'API Key created',
+            '/settings/apikeys'
+          );
         });
       },
       button: {

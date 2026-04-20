@@ -3,15 +3,15 @@
 // reason: user-specific settings page
 import { getTranslations } from 'next-intl/server';
 
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { updateProfileUseCase } from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { logger } from '@/shared/lib/logger.server';
-import { updateUser, type UpdateUser } from '@/shared/models/user';
 import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-profile';
 import type { Form as FormType } from '@/shared/types/blocks/form';
 
@@ -69,14 +69,16 @@ export default async function ProfilePage() {
             isString: typeof imageValue === 'string',
           });
 
-          const updatedUser: UpdateUser = {
-            name,
-            image: image ?? '',
-          };
-
-          await updateUser(user.id, updatedUser);
-
-          return actionOk(t('messages.updated'), '/settings/profile');
+          return updateProfileUseCase(
+            {
+              userId: user.id,
+              name,
+              image: image ?? '',
+            },
+            accountRuntimeDeps,
+            t('messages.updated'),
+            '/settings/profile'
+          );
         });
       },
       button: {
