@@ -2,12 +2,34 @@ import type {
   SelfUserDetails,
   UserCreditsSummary,
 } from '@/shared/types/auth-session';
+import type { ActionResult } from '@/shared/lib/action/result';
 
-type AccountActionResult = {
-  status: 'success';
-  message: string;
-  redirect_url?: string;
-};
+type AccountActionResult = ActionResult;
+
+export const ACCOUNT_APIKEY_STATUS = {
+  ACTIVE: 'active',
+  DELETED: 'deleted',
+} as const;
+
+export type AccountApikeyStatus =
+  (typeof ACCOUNT_APIKEY_STATUS)[keyof typeof ACCOUNT_APIKEY_STATUS];
+
+export const ACCOUNT_CREDIT_STATUS = {
+  ACTIVE: 'active',
+  EXPIRED: 'expired',
+  DELETED: 'deleted',
+} as const;
+
+export type AccountCreditStatus =
+  (typeof ACCOUNT_CREDIT_STATUS)[keyof typeof ACCOUNT_CREDIT_STATUS];
+
+export const ACCOUNT_CREDIT_TRANSACTION_TYPE = {
+  GRANT: 'grant',
+  CONSUME: 'consume',
+} as const;
+
+export type AccountCreditTransactionType =
+  (typeof ACCOUNT_CREDIT_TRANSACTION_TYPE)[keyof typeof ACCOUNT_CREDIT_TRANSACTION_TYPE];
 
 type AccountCreditsSummary =
   | {
@@ -33,15 +55,15 @@ type AccountCreditsDeps = {
   getRemainingCredits: (userId: string) => Promise<number>;
   getCredits: (params: {
     userId: string;
-    status: string;
-    transactionType?: string;
+    status: AccountCreditStatus;
+    transactionType?: AccountCreditTransactionType;
     page: number;
     limit: number;
   }) => Promise<AccountCreditRecord[]>;
   getCreditsCount: (params: {
     userId: string;
-    status: string;
-    transactionType?: string;
+    status: AccountCreditStatus;
+    transactionType?: AccountCreditTransactionType;
   }) => Promise<number>;
 };
 
@@ -80,13 +102,13 @@ export type AccountCreditRecord = {
 type AccountApikeyDeps = {
   getApikeys: (params: {
     userId: string;
-    status: string;
+    status: AccountApikeyStatus;
     page: number;
     limit: number;
   }) => Promise<AccountApikeyRecord[]>;
   getApikeysCount: (params: {
     userId: string;
-    status: string;
+    status: AccountApikeyStatus;
   }) => Promise<number>;
   findApikeyById: (id: string) => Promise<AccountApikeyRecord | undefined>;
   createApikey: (record: {
@@ -94,13 +116,13 @@ type AccountApikeyDeps = {
     userId: string;
     title: string;
     key: string;
-    status: string;
+    status: AccountApikeyStatus;
   }) => Promise<AccountApikeyRecord>;
   updateApikey: (
     id: string,
     update: {
       title?: string;
-      status?: string;
+      status?: AccountApikeyStatus;
       deletedAt?: Date;
     }
   ) => Promise<AccountApikeyRecord>;
@@ -119,6 +141,9 @@ const ADMIN_ACCESS_PERMISSION = 'admin.access';
 export const ACCOUNT_APIKEY_ACTIVE_STATUS = 'active';
 export const ACCOUNT_APIKEY_DELETED_STATUS = 'deleted';
 export const ACCOUNT_CREDIT_ACTIVE_STATUS = 'active';
+const ACCOUNT_APIKEY_ACTIVE_ENUM = ACCOUNT_APIKEY_STATUS.ACTIVE;
+const ACCOUNT_APIKEY_DELETED_ENUM = ACCOUNT_APIKEY_STATUS.DELETED;
+const ACCOUNT_CREDIT_ACTIVE_ENUM = ACCOUNT_CREDIT_STATUS.ACTIVE;
 
 function actionOk(
   message: string,
@@ -178,7 +203,7 @@ export async function readAccountRemainingCreditsUseCase(
 export async function listOwnCreditsUseCase(
   input: {
     userId: string;
-    transactionType?: string;
+    transactionType?: AccountCreditTransactionType;
     page: number;
     limit: number;
   },
@@ -187,14 +212,14 @@ export async function listOwnCreditsUseCase(
   const [data, total] = await Promise.all([
     deps.getCredits({
       userId: input.userId,
-      status: ACCOUNT_CREDIT_ACTIVE_STATUS,
+      status: ACCOUNT_CREDIT_ACTIVE_ENUM,
       transactionType: input.transactionType,
       page: input.page,
       limit: input.limit,
     }),
     deps.getCreditsCount({
       userId: input.userId,
-      status: ACCOUNT_CREDIT_ACTIVE_STATUS,
+      status: ACCOUNT_CREDIT_ACTIVE_ENUM,
       transactionType: input.transactionType,
     }),
   ]);
@@ -236,13 +261,13 @@ export async function listOwnApikeysUseCase(
   const [data, total] = await Promise.all([
     deps.getApikeys({
       userId: input.userId,
-      status: ACCOUNT_APIKEY_ACTIVE_STATUS,
+      status: ACCOUNT_APIKEY_ACTIVE_ENUM,
       page: input.page,
       limit: input.limit,
     }),
     deps.getApikeysCount({
       userId: input.userId,
-      status: ACCOUNT_APIKEY_ACTIVE_STATUS,
+      status: ACCOUNT_APIKEY_ACTIVE_ENUM,
     }),
   ]);
 
@@ -281,13 +306,13 @@ export async function createOwnApikeyUseCase(
   deps: Pick<AccountApikeyDeps, 'createApikey' | 'createId' | 'createSecretKey'>,
   successMessage: string,
   redirectUrl: string
-): Promise<ActionResult> {
+): Promise<AccountActionResult> {
   await deps.createApikey({
     id: deps.createId(),
     userId: input.userId,
     title: input.title,
     key: deps.createSecretKey(),
-    status: ACCOUNT_APIKEY_ACTIVE_STATUS,
+    status: ACCOUNT_APIKEY_ACTIVE_ENUM,
   });
 
   return actionOk(successMessage, redirectUrl);
@@ -302,7 +327,7 @@ export async function renameOwnApikeyUseCase(
   deps: Pick<AccountApikeyDeps, 'findApikeyById' | 'updateApikey'>,
   successMessage: string,
   redirectUrl: string
-): Promise<ActionResult | null> {
+): Promise<AccountActionResult | null> {
   const apikey = await requireOwnedApikeyUseCase(input, deps);
   if (!apikey) {
     return null;
@@ -320,14 +345,14 @@ export async function deleteOwnApikeyUseCase(
   deps: Pick<AccountApikeyDeps, 'findApikeyById' | 'updateApikey'>,
   successMessage: string,
   redirectUrl: string
-): Promise<ActionResult | null> {
+): Promise<AccountActionResult | null> {
   const apikey = await requireOwnedApikeyUseCase(input, deps);
   if (!apikey) {
     return null;
   }
 
   await deps.updateApikey(apikey.id, {
-    status: ACCOUNT_APIKEY_DELETED_STATUS,
+    status: ACCOUNT_APIKEY_DELETED_ENUM,
     deletedAt: new Date(),
   });
   return actionOk(successMessage, redirectUrl);

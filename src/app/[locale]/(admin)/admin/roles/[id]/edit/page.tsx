@@ -1,10 +1,10 @@
 // data: admin session (RBAC) + role record (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: role metadata is permission-gated; avoid caching across admins
-import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
+import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { findRoleById } from '@/core/rbac';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
@@ -27,7 +27,7 @@ export default async function RoleEditPage({
 
   const t = await getTranslations('admin.roles');
 
-  const role = await findRoleById(id as string);
+  const role = await accessControlRuntimeDeps.findRoleById(id as string);
   if (!role) {
     return <Empty message={t('errors.not_found')} />;
   }

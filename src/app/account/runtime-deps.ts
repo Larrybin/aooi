@@ -1,6 +1,16 @@
-import { checkUserPermission } from '@/core/rbac';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import {
+  ACCOUNT_APIKEY_STATUS,
+  ACCOUNT_CREDIT_STATUS,
+  type AccountApikeyRecord,
+  type AccountApikeyStatus,
+  type AccountCreditRecord,
+  type AccountCreditStatus,
+  type AccountCreditTransactionType,
+} from '@/domains/account/application/use-cases';
 import { getNonceStr, getUuid } from '@/shared/lib/hash';
 import {
+  ApikeyStatus,
   createApikey,
   findApikeyById,
   getApikeys,
@@ -8,6 +18,8 @@ import {
   updateApikey,
 } from '@/shared/models/apikey';
 import {
+  CreditStatus,
+  CreditTransactionType,
   getCredits,
   getCreditsCount,
   getRemainingCredits,
@@ -16,19 +28,167 @@ import {
 import { getCurrentSubscription } from '@/shared/models/subscription';
 import { updateUser } from '@/shared/models/user';
 
+function toCreditStatus(status: AccountCreditStatus): CreditStatus {
+  switch (status) {
+    case ACCOUNT_CREDIT_STATUS.ACTIVE:
+      return CreditStatus.ACTIVE;
+    case ACCOUNT_CREDIT_STATUS.EXPIRED:
+      return CreditStatus.EXPIRED;
+    case ACCOUNT_CREDIT_STATUS.DELETED:
+      return CreditStatus.DELETED;
+  }
+}
+
+function toCreditTransactionType(
+  transactionType?: AccountCreditTransactionType
+): CreditTransactionType | undefined {
+  if (!transactionType) {
+    return undefined;
+  }
+
+  switch (transactionType) {
+    case 'grant':
+      return CreditTransactionType.GRANT;
+    case 'consume':
+      return CreditTransactionType.CONSUME;
+  }
+}
+
+function toApikeyStatus(status: AccountApikeyStatus): ApikeyStatus {
+  switch (status) {
+    case ACCOUNT_APIKEY_STATUS.ACTIVE:
+      return ApikeyStatus.ACTIVE;
+    case ACCOUNT_APIKEY_STATUS.DELETED:
+      return ApikeyStatus.DELETED;
+  }
+}
+
+function mapApikeyRecord(record: Awaited<ReturnType<typeof findApikeyById>>): AccountApikeyRecord | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  return {
+    id: record.id,
+    userId: record.userId,
+    title: record.title,
+    key: record.key,
+    status: record.status,
+    deletedAt: record.deletedAt,
+    createdAt: record.createdAt,
+  };
+}
+
+function mapCreditRecord(record: Awaited<ReturnType<typeof getCredits>>[number]): AccountCreditRecord {
+  return {
+    id: record.id,
+    userId: record.userId,
+    transactionNo: record.transactionNo,
+    description: record.description,
+    transactionType: record.transactionType,
+    transactionScene: record.transactionScene,
+    credits: record.credits,
+    expiresAt: record.expiresAt,
+    createdAt: record.createdAt,
+  };
+}
+
 export const accountRuntimeDeps = {
-  hasPermission: checkUserPermission,
+  hasPermission: accessControlRuntimeDeps.checkUserPermission,
   getRemainingCreditsSummary,
   getRemainingCredits,
-  getCredits,
-  getCreditsCount,
+  getCredits: async ({
+    userId,
+    status,
+    transactionType,
+    page,
+    limit,
+  }: {
+    userId: string;
+    status: AccountCreditStatus;
+    transactionType?: AccountCreditTransactionType;
+    page: number;
+    limit: number;
+  }) =>
+    (
+      await getCredits({
+        userId,
+        status: toCreditStatus(status),
+        transactionType: toCreditTransactionType(transactionType),
+        page,
+        limit,
+      })
+    ).map(mapCreditRecord),
+  getCreditsCount: ({
+    userId,
+    status,
+    transactionType,
+  }: {
+    userId: string;
+    status: AccountCreditStatus;
+    transactionType?: AccountCreditTransactionType;
+  }) =>
+    getCreditsCount({
+      userId,
+      status: toCreditStatus(status),
+      transactionType: toCreditTransactionType(transactionType),
+    }),
   getCurrentSubscription,
   updateUser,
-  getApikeys,
-  getApikeysCount,
-  findApikeyById,
-  createApikey,
-  updateApikey,
+  getApikeys: async ({
+    userId,
+    status,
+    page,
+    limit,
+  }: {
+    userId: string;
+    status: AccountApikeyStatus;
+    page: number;
+    limit: number;
+  }) =>
+    (
+      await getApikeys({
+        userId,
+        status: toApikeyStatus(status),
+        page,
+        limit,
+      })
+    ).map((record) => mapApikeyRecord(record) as AccountApikeyRecord),
+  getApikeysCount: ({
+    userId,
+    status,
+  }: {
+    userId: string;
+    status: AccountApikeyStatus;
+  }) =>
+    getApikeysCount({
+      userId,
+      status: toApikeyStatus(status),
+    }),
+  findApikeyById: async (id: string) => mapApikeyRecord(await findApikeyById(id)),
+  createApikey: async (record: {
+    id: string;
+    userId: string;
+    title: string;
+    key: string;
+    status: AccountApikeyStatus;
+  }) =>
+    (await createApikey({
+      ...record,
+      status: toApikeyStatus(record.status),
+    })) as AccountApikeyRecord,
+  updateApikey: async (
+    id: string,
+    update: {
+      title?: string;
+      status?: AccountApikeyStatus;
+      deletedAt?: Date;
+    }
+  ) =>
+    (await updateApikey(id, {
+      ...update,
+      status: update.status ? toApikeyStatus(update.status) : undefined,
+    })) as AccountApikeyRecord,
   createId: getUuid,
   createSecretKey: () => `sk-${getNonceStr(32)}`,
 };

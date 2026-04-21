@@ -4,7 +4,7 @@ import type { BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { oneTap } from 'better-auth/plugins';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import * as schema from '@/config/db/schema';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';

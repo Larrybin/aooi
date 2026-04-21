@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { paymentWebhookAudit } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
 

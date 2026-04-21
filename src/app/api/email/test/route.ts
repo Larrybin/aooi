@@ -2,7 +2,7 @@ import { randomInt } from 'crypto';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   TooManyRequestsError,
@@ -45,7 +45,7 @@ type EmailTestRouteDeps = {
 function getDefaultEmailTestRouteDeps(): EmailTestRouteDeps {
   return {
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as EmailTestApiContext;
     },
     getEmailService: async () => {

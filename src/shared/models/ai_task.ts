@@ -2,7 +2,7 @@ import 'server-only';
 
 import { and, count, desc, eq } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { aiTask } from '@/config/db/schema';
 import { AITaskStatus } from '@/extensions/ai';
 import { logger } from '@/shared/lib/logger.server';

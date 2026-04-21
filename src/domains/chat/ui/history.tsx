@@ -226,10 +226,10 @@ export function ChatHistory() {
         <div className="flex-1">{renderContent()}</div>
         <div className="pt-6">
           <Pagination
-            currentPage={page}
-            pageSize={limit}
             total={total}
-            onPageChange={handlePageChange}
+            page={page}
+            limit={limit}
+            url={pathname}
           />
         </div>
       </div>

@@ -13,7 +13,7 @@ import {
   sum,
 } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { credit } from '@/config/db/schema';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import { safeJsonParse } from '@/shared/lib/json';

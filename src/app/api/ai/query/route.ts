@@ -1,5 +1,5 @@
 import { AITaskStatus } from '@/extensions/ai';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   ForbiddenError,
@@ -63,7 +63,7 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
       await mod.requireAiEnabled();
     },
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as AiQueryApiContext;
     },
     findAITaskById: async (id) => {

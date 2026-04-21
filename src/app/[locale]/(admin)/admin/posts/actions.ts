@@ -1,7 +1,7 @@
 'use server';
 
-import { AdminPostFormSchema } from '@/features/admin/schemas/post';
-import { validateAndParseForm } from '@/features/admin/server/action-utils';
+import { AdminPostFormSchema } from '@/surfaces/admin/schemas/post';
+import { validateAndParseForm } from '@/surfaces/admin/server/action-utils';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';

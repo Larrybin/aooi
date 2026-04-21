@@ -2,6 +2,10 @@
 
 import { z } from 'zod';
 
+import {
+  requireActionPermission,
+  requireActionUser,
+} from '@/app/access-control/action-guard';
 import { findOrderByInvoiceId, findOrderByOrderNo, findOrderByTransactionId } from '@/shared/models/order';
 import {
   findPaymentWebhookInboxByIds,
@@ -31,7 +35,6 @@ import {
   runPaymentWebhookReplay,
   type PaymentWebhookReplaySummary,
 } from '@/core/payment/webhooks/replay';
-import { requireActionPermission, requireActionUser } from '@/shared/lib/action/guard';
 
 const ReplayActionSchema = z.object({
   inboxIds: jsonStringArraySchema,

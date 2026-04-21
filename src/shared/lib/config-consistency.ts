@@ -1,4 +1,4 @@
-import { isCloudflareLocalWorkersDevRuntime } from '@/core/db/runtime-mode';
+import { isCloudflareLocalWorkersDevRuntime } from '@/infra/runtime/runtime-mode';
 import { isRuntimeEnvEnabled } from '@/shared/lib/runtime/env.server';
 
 export const CONFIG_CONSISTENCY_HEADER = 'x-aooi-config-consistency';

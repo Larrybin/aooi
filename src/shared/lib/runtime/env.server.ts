@@ -6,7 +6,7 @@ import {
   type PublicEnvConfigs,
 } from '@/config/public-env';
 import { resolveServerAuthBaseUrl } from '@/config/server-auth-base-url';
-import { assertPostgresOnlyDatabaseProvider } from '@/core/db/postgres-only';
+import { assertPostgresOnlyDatabaseProvider } from '@/infra/runtime/database-provider';
 import { isCloudflareWorker } from '@/shared/lib/env';
 
 export type RuntimePlatform = 'node' | 'cloudflare-workers';

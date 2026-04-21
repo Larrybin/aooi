@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { createApiContext } from '@/shared/lib/api/context';
+import { createApiContext } from '@/app/api/_lib/context';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';

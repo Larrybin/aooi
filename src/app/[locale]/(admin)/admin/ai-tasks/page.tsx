@@ -2,11 +2,11 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: task logs are sensitive; avoid caching across users/roles
 import { notFound } from 'next/navigation';
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminAiTasksListQuerySchema,
   type AdminAiTasksListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
 import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';

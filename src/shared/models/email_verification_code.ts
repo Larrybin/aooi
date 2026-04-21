@@ -3,7 +3,7 @@ import 'server-only';
 import { createHash, timingSafeEqual } from 'crypto';
 import { and, desc, eq, ne } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { verification } from '@/config/db/schema';
 import { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 import { normalizeEmail } from '@/shared/lib/email';

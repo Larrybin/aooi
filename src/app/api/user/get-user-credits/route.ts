@@ -1,4 +1,4 @@
-import { createApiContext } from '@/shared/lib/api/context';
+import { createApiContext } from '@/app/api/_lib/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { readAccountCreditsSummaryUseCase } from '@/domains/account/application/use-cases';

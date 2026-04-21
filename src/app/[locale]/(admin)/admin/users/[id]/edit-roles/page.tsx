@@ -1,16 +1,16 @@
 // data: admin session (RBAC) + user/roles/permissions (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: role assignment is sensitive and permission-gated; avoid caching across admins
-import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
+import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { listRoles, listUserRoles } from '@/core/rbac';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { findUserById } from '@/shared/models/user';
-import { requireAllPermissions } from '@/shared/services/rbac_guard';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserRolesAction } from '../../actions';
@@ -27,7 +27,7 @@ export default async function UserEditRolesPage({
     locale,
     permission: PERMISSIONS.USERS_WRITE,
   });
-  await requireAllPermissions({
+  await requireAllPagePermissions({
     codes: [PERMISSIONS.USERS_WRITE, PERMISSIONS.ROLES_WRITE],
     redirectUrl: '/admin/no-permission',
     locale,
@@ -46,14 +46,14 @@ export default async function UserEditRolesPage({
     { key: 'edit_roles.crumbs.edit_roles' },
   ]);
 
-  const roles = await listRoles();
+  const roles = await accessControlRuntimeDeps.listRoles();
   const rolesOptions = roles.map((role) => ({
     title: role.title,
     description: role.description,
     value: role.id,
   }));
 
-  const userRoles = await listUserRoles(user.id as string);
+  const userRoles = await accessControlRuntimeDeps.listUserRoles(user.id as string);
   const userRoleIds = userRoles.map((role) => role.id);
 
   const form: Form<typeof user & { roles: string[] }, { user: typeof user }> = {

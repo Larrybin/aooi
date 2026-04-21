@@ -1,28 +1,22 @@
 'use server';
 
-import { AdminRoleUpdateFormSchema } from '@/features/admin/schemas/role';
+import { AdminRoleUpdateFormSchema } from '@/surfaces/admin/schemas/role';
 import {
   validateAndParseForm,
   validatePermission,
-} from '@/features/admin/server/action-utils';
+} from '@/surfaces/admin/server/action-utils';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { db } from '@/core/db';
-import {
-  findRoleById,
-  replaceRolePermissions,
-  restoreRoleRecord,
-  softDeleteRole,
-  updateRoleRecord,
-  type UpdateRoleRecord,
-} from '@/core/rbac';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { db } from '@/infra/adapters/db';
 import { role } from '@/config/db/schema';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import type { UpdateRoleRecord } from '@/infra/adapters/access-control/repository';
 
 /**
  * Update role title and description
@@ -36,7 +30,7 @@ export async function updateRoleAction(id: string, formData: FormData) {
       errorMessage: 'title and description are required',
     });
 
-    const roleRow = await findRoleById(id);
+    const roleRow = await accessControlRuntimeDeps.findRoleById(id);
     if (!roleRow) {
       throw new ActionError('Role not found');
     }
@@ -46,7 +40,7 @@ export async function updateRoleAction(id: string, formData: FormData) {
       description: data.description,
     };
 
-    const result = await updateRoleRecord(id, newRole, {
+    const result = await accessControlRuntimeDeps.updateRoleRecord(id, newRole, {
       actorUserId: user.id,
       source: 'admin.roles.updateRoleAction',
     });
@@ -68,7 +62,7 @@ export async function updateRolePermissionsAction(
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
 
-    const roleRow = await findRoleById(id);
+    const roleRow = await accessControlRuntimeDeps.findRoleById(id);
     if (!roleRow) {
       throw new ActionError('Role not found');
     }
@@ -80,7 +74,7 @@ export async function updateRolePermissionsAction(
       throw new ActionError('invalid permissions');
     }
 
-    await replaceRolePermissions(
+    await accessControlRuntimeDeps.replaceRolePermissions(
       roleRow.id as string,
       parsed.data.permissions,
       {
@@ -109,7 +103,7 @@ export async function deleteRoleAction(id: string) {
       throw new ActionError('Role not found');
     }
 
-    await softDeleteRole(id, {
+    await accessControlRuntimeDeps.softDeleteRole(id, {
       actorUserId: user.id,
       source: 'admin.roles.deleteRoleAction',
     });
@@ -134,7 +128,7 @@ export async function restoreRoleAction(id: string) {
     }
 
     try {
-      await restoreRoleRecord(id, {
+      await accessControlRuntimeDeps.restoreRoleRecord(id, {
         actorUserId: user.id,
         source: 'admin.roles.restoreRoleAction',
       });

@@ -1,13 +1,13 @@
 // data: admin session (RBAC) + users list (db) + roles/credits (db) + pagination/search
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin data is user/role-specific; avoid caching across users
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminUsersListQuerySchema,
   type AdminUsersListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
-import { listUserRoles } from '@/core/rbac';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getRemainingCredits } from '@/shared/models/credit';
@@ -56,7 +56,7 @@ export default createAdminTablePage<User, AdminUsersListQuery>({
       name: 'roles',
       title: t('fields.roles'),
       callback: async (item) => {
-        const roles = await listUserRoles(item.id);
+        const roles = await accessControlRuntimeDeps.listUserRoles(item.id);
 
         return (
           <div className="flex flex-col gap-2">

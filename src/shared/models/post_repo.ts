@@ -2,7 +2,7 @@ import 'server-only';
 
 import { and, count, desc, eq, like, or } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { post } from '@/config/db/schema';
 
 export type PostRow = typeof post.$inferSelect;

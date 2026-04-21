@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 
 import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { paymentWebhookInbox } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
 import { PaymentEventType, type PaymentEvent } from '@/shared/types/payment';

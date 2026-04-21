@@ -2,7 +2,7 @@ import 'server-only';
 
 import { sql } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { config } from '@/config/db/schema';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
 import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';

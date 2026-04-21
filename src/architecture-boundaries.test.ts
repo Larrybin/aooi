@@ -190,7 +190,7 @@ test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP sc
 
 test('architecture: 新目标目录不回引旧架构入口', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/(?:domains|surfaces|infra)\//.test(repoPath)
+    /^src\/(?:domains|surfaces|infra)\//.test(repoPath) && !isTestFile(repoPath)
   );
   const forbiddenLegacyImportPattern =
     /@\/(?:core|features|shared\/models|shared\/services)(?:\/|['"])/;

@@ -5,11 +5,11 @@ import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
+import { requireActionUser } from '@/app/access-control/action-guard';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';

@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation';
 
-import { PaymentType } from '@/core/payment/domain';
 import { handleCheckoutSuccess } from '@/core/payment/flows/flows';
 import { getPaymentService } from '@/core/payment/providers/service';
-import { createApiContext } from '@/shared/lib/api/context';
+import { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   ForbiddenError,
@@ -20,6 +19,7 @@ import {
   PaymentCallbackBodySchema,
   PaymentCallbackQuerySchema,
 } from '@/shared/schemas/api/payment/callback';
+import { PaymentType } from '@/shared/types/payment';
 
 function appendOrderNoToUrl(
   url: string,
@@ -111,12 +111,8 @@ export const POST = withApi(async (req: Request) => {
   const paymentService = await getPaymentService({
     mode: resolveConfigConsistencyMode(req),
   });
-  const paymentProvider = paymentService.getProvider(order.paymentProvider);
-  if (!paymentProvider) {
-    throw new NotFoundError('payment provider not found');
-  }
-
-  const session = await paymentProvider.getPaymentSession({
+  const session = await paymentService.getPaymentSession({
+    provider: order.paymentProvider,
     sessionId: order.paymentSessionId,
   });
 

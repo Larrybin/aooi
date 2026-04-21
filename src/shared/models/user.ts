@@ -2,7 +2,7 @@ import 'server-only';
 
 import { count, desc, eq, inArray } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { user } from '@/config/db/schema';
 
 export type User = typeof user.$inferSelect;

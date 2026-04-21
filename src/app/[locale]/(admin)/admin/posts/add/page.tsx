@@ -1,7 +1,7 @@
 // data: admin session (RBAC) + post create form + categories (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin write flow; avoid caching across users/roles
-import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
+import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
 import { FormCard } from '@/shared/blocks/form';

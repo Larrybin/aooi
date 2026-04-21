@@ -13,6 +13,10 @@ import {
 } from '@/shared/lib/api/errors';
 import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
 
+import {
+  CHAT_MESSAGE_STATUS,
+  CHAT_STATUS,
+} from './types';
 import type {
   ChatApplicationDeps,
   ChatLog,
@@ -22,8 +26,8 @@ import type {
   NewChatMessageRecord,
 } from './types';
 
-const CHAT_STATUS_CREATED = 'created';
-const CHAT_MESSAGE_STATUS_CREATED = 'created';
+const CHAT_STATUS_CREATED = CHAT_STATUS.CREATED;
+const CHAT_MESSAGE_STATUS_CREATED = CHAT_MESSAGE_STATUS.CREATED;
 
 type StreamChatDeps = Pick<
   ChatApplicationDeps,
@@ -85,7 +89,7 @@ export type ChatListResult = {
 
 export type ChatMessagesResult = {
   list: Array<
-    ChatMessageRecord & {
+    Omit<ChatMessageRecord, 'parts' | 'metadata'> & {
       parts: unknown[];
       metadata: unknown;
     }
@@ -427,9 +431,16 @@ export async function streamChatUseCase(
 
 function toUiMessage(message: ChatMessageRecord): UIMessage {
   const parsed = safeJsonParse<unknown>(message.parts);
+  const role =
+    message.role === 'assistant' ||
+    message.role === 'system' ||
+    message.role === 'user'
+      ? message.role
+      : 'assistant';
+
   return {
     id: message.id,
-    role: message.role,
+    role,
     parts: Array.isArray(parsed) ? (parsed as UIMessage['parts']) : [],
   };
 }

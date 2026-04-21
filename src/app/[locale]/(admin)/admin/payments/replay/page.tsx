@@ -25,8 +25,8 @@ import {
 import {
   getPaymentWebhookInboxPreview,
 } from '@/shared/models/payment_webhook_inbox';
-import { requirePermission } from '@/shared/services/rbac_guard';
 import type { Crumb } from '@/shared/types/blocks/common';
+import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
 
 function parseDateTime(value: string | undefined): Date | null {
   if (!value?.trim()) return null;
@@ -69,7 +69,7 @@ export default async function PaymentReplayPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  await requirePermission({
+  await requirePagePermission({
     code: PERMISSIONS.PAYMENTS_WRITE,
     redirectUrl: '/admin/no-permission',
     locale,

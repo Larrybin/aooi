@@ -1,5 +1,4 @@
-import { createApiContext } from '@/shared/lib/api/context';
-import { NotFoundError } from '@/shared/lib/api/errors';
+import { createApiContext } from '@/app/api/_lib/context';
 import { withApi } from '@/shared/lib/api/route';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { logger } from '@/shared/lib/logger.server';
@@ -81,14 +80,14 @@ function buildPaymentNotifyPostLogic(
     const paymentService = await deps.getPaymentService({
       mode: resolveConfigConsistencyMode(req),
     });
-    const paymentProvider = paymentService.getProvider(provider);
-    if (!paymentProvider) {
-      throw new NotFoundError('payment provider not found');
-    }
 
     const flowDeps: PaymentNotifyFlowDeps = {
       ...deps,
-      getPaymentEvent: (inputReq) => paymentProvider.getPaymentEvent({ req: inputReq }),
+      getPaymentEvent: (inputReq) =>
+        paymentService.getPaymentEvent({
+          provider,
+          req: inputReq,
+        }),
       onProcessFailure: ({ provider: failedProvider, inboxId, error }) => {
         logger.error('payment: webhook inbox process failed', {
           provider: failedProvider,

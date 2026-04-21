@@ -1,5 +1,5 @@
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
@@ -36,7 +36,7 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
   return {
     resolveConfigConsistencyMode,
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as ApiContextLike;
     },
     readUploadRequestInput: async (req) => {

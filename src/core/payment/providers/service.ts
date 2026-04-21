@@ -157,7 +157,9 @@ export type PaymentService = {
   }): Promise<PaymentEvent>;
 };
 
-export async function getPaymentServiceWithConfigs(configs: Configs) {
+export async function getPaymentServiceWithConfigs(
+  configs: Configs
+): Promise<PaymentService> {
   const registry = new ProviderRegistry<PaymentProvider>({
     toNameKey: trimmedProviderNameKey,
   });

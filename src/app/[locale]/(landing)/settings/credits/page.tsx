@@ -5,6 +5,8 @@ import { getTranslations } from 'next-intl/server';
 
 import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import {
+  ACCOUNT_CREDIT_TRANSACTION_TYPE,
+  type AccountCreditTransactionType,
   listOwnCreditsUseCase,
   readAccountRemainingCreditsUseCase,
   type AccountCreditRecord,
@@ -16,6 +18,24 @@ import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
+function toCreditTransactionType(
+  value?: string
+): AccountCreditTransactionType | undefined {
+  if (!value || value === 'all') {
+    return undefined;
+  }
+
+  if (value === ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT) {
+    return ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT;
+  }
+
+  if (value === ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME) {
+    return ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME;
+  }
+
+  return undefined;
+}
+
 export default async function CreditsPage({
   searchParams,
 }: {
@@ -24,6 +44,7 @@ export default async function CreditsPage({
   const { page: pageNum, pageSize, type } = await searchParams;
   const page = pageNum || 1;
   const limit = pageSize || 20;
+  const transactionType = toCreditTransactionType(type);
 
   const user = await getSignedInUserIdentity();
   if (!user) {
@@ -34,7 +55,7 @@ export default async function CreditsPage({
   const result = await listOwnCreditsUseCase(
     {
       userId: user.id,
-      transactionType: type && type !== 'all' ? type : undefined,
+      transactionType,
       page,
       limit,
     },

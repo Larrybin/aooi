@@ -1,5 +1,5 @@
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
@@ -37,7 +37,7 @@ type VerifyCodeRouteDeps = {
 function getDefaultVerifyCodeRouteDeps(): VerifyCodeRouteDeps {
   return {
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as VerifyCodeApiContext;
     },
     consumeSettingsEmailVerificationCode: async (input) => {

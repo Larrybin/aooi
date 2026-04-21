@@ -3,7 +3,7 @@ import 'server-only';
 import { and, eq, gt } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { session, user } from '@/config/db/schema';
 import type {
   AuthSessionUserIdentity,

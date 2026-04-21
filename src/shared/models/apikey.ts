@@ -2,7 +2,7 @@ import 'server-only';
 
 import { and, count, desc, eq } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { apikey } from '@/config/db/schema';
 
 import { appendUserToResult, type User } from './user';

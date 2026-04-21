@@ -2,7 +2,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { convertToModelMessages, generateId, streamText } from 'ai';
 
 import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
-import { createApiContext } from '@/shared/lib/api/context';
+import { createApiContext } from '@/app/api/_lib/context';
 
 import {
   chatInfoDeps,

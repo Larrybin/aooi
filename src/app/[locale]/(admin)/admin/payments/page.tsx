@@ -1,14 +1,14 @@
 // data: admin session (RBAC) + payments/orders list (db) + pagination/search/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing data is sensitive; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminPaymentsListQuerySchema,
   type AdminPaymentsListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
-import { PaymentType } from '@/core/payment/domain';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { PaymentType } from '@/shared/types/payment';
 import {
   getOrders,
   getOrdersCount,

@@ -1,6 +1,8 @@
-import type { UIMessage } from 'ai';
-
-import type { ChatAllowedModel } from '@/shared/constants/chat-model-policy';
+import type {
+  convertToModelMessages,
+  streamText,
+} from 'ai';
+import type { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 export type ChatUser = {
   id: string;
@@ -13,10 +15,26 @@ export type ChatLog = {
   error: (message: string, meta?: unknown) => void;
 };
 
+export const CHAT_STATUS = {
+  PENDING: 'pending',
+  CREATED: 'created',
+  DELETED: 'deleted',
+} as const;
+
+export type ChatStatus = (typeof CHAT_STATUS)[keyof typeof CHAT_STATUS];
+
+export const CHAT_MESSAGE_STATUS = {
+  CREATED: 'created',
+  DELETED: 'deleted',
+} as const;
+
+export type ChatMessageStatus =
+  (typeof CHAT_MESSAGE_STATUS)[keyof typeof CHAT_MESSAGE_STATUS];
+
 export type ChatRecord = {
   id: string;
   userId: string;
-  status?: string | null;
+  status?: ChatStatus | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
   model?: string | null;
@@ -31,22 +49,42 @@ export type ChatMessageRecord = {
   id: string;
   chatId: string;
   userId: string;
-  status?: string | null;
+  status?: ChatMessageStatus | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
-  role: 'system' | 'user' | 'assistant';
+  role: string;
   parts?: string | null;
   metadata?: string | null;
   model?: string | null;
   provider?: string | null;
 };
 
-export type NewChatRecord = Omit<ChatRecord, 'status'> & {
-  status: string;
+export type NewChatRecord = {
+  id: string;
+  userId: string;
+  status: ChatStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  model: string;
+  provider: string;
+  title?: string | null;
+  parts?: string | null;
+  metadata?: string | null;
+  content?: string | null;
 };
 
-export type NewChatMessageRecord = Omit<ChatMessageRecord, 'status'> & {
-  status: string;
+export type NewChatMessageRecord = {
+  id: string;
+  chatId: string;
+  userId: string;
+  status: ChatMessageStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  role: string;
+  parts: string;
+  metadata?: string | null;
+  model: string;
+  provider: string;
 };
 
 export type RefundConsumedCreditResult =
@@ -55,41 +93,23 @@ export type RefundConsumedCreditResult =
 
 export type ChatConfigs = Record<string, string>;
 
-export type ChatStream = {
-  toUIMessageStreamResponse: (options: {
-    sendSources: boolean;
-    sendReasoning: boolean;
-    originalMessages: UIMessage[];
-    generateMessageId: () => string;
-    onError: (error: unknown) => string;
-    onFinish: (event: {
-      messages: UIMessage[];
-      finishReason?: string | null;
-    }) => Promise<void>;
-  }) => Response;
-};
-
-export type ChatModelProvider = {
-  chat: (model: ChatAllowedModel) => unknown;
-};
-
 export type ChatApplicationDeps = {
   generateId: () => string;
   now: () => Date;
-  createProvider: (params: { apiKey: string }) => ChatModelProvider;
-  streamText: (params: { model: unknown; messages: unknown[] }) => ChatStream;
-  convertToModelMessages: (messages: UIMessage[]) => unknown[];
+  createProvider: typeof createOpenRouter;
+  streamText: typeof streamText;
+  convertToModelMessages: typeof convertToModelMessages;
   findChatById: (id: string) => Promise<ChatRecord | undefined>;
   createChat: (chat: NewChatRecord) => Promise<ChatRecord>;
   getChats: (params: {
     userId: string;
-    status: string;
+    status: ChatStatus;
     page: number;
     limit: number;
   }) => Promise<ChatRecord[]>;
   getChatsCount: (params: {
     userId: string;
-    status: string;
+    status: ChatStatus;
   }) => Promise<number>;
   createChatMessage: (
     message: NewChatMessageRecord
@@ -103,7 +123,7 @@ export type ChatApplicationDeps = {
   getChatMessageWindow: (params: {
     userId: string;
     chatId: string;
-    status: string;
+    status: ChatMessageStatus;
     limit: number;
   }) => Promise<ChatMessageRecord[]>;
   getAllConfigs: () => Promise<ChatConfigs>;

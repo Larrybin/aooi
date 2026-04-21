@@ -1,7 +1,7 @@
 'use server';
 
-import { AdminCategoryFormSchema } from '@/features/admin/schemas/category';
-import { validateAndParseForm } from '@/features/admin/server/action-utils';
+import { AdminCategoryFormSchema } from '@/surfaces/admin/schemas/category';
+import { validateAndParseForm } from '@/surfaces/admin/server/action-utils';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';

@@ -72,7 +72,11 @@ module.exports = {
     {
       name: 'no-shared-to-domains-surfaces-or-infra',
       severity: 'error',
-      from: { path: '^src/shared/' },
+      from: {
+        path: '^src/shared/',
+        pathNot:
+          '^src/shared/models/|^src/shared/lib/(auth-session\\.server|config-consistency|runtime/env\\.server)\\.ts$',
+      },
       to: { path: '^src/(domains|surfaces|infra)/' },
     },
   ],

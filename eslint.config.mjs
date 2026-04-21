@@ -87,7 +87,7 @@ const clientSurfaceNoRestrictedImports = {
   patterns: [
     ...(baseNoRestrictedImports.patterns || []),
     {
-      group: ['@/core/db', '@/core/db/**'],
+      group: ['@/infra/adapters/db', '@/core/db/**'],
       allowTypeImports: true,
       message:
         "Client 模块禁止导入 '@/core/db/**'（DB 访问必须保持 server-only）。",
@@ -550,7 +550,7 @@ const eslintConfig = [
             {
               regex: '^@/core/(?!db($|/)).*',
               message:
-                "shared/models 仅允许依赖 '@/core/db'；其它 core 依赖会放大耦合面。",
+                "shared/models 仅允许依赖 '@/infra/adapters/db'；其它 core 依赖会放大耦合面。",
             },
             {
               group: ['@/core/docs/**', '@/mdx-components'],

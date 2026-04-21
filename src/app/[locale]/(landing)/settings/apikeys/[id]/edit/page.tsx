@@ -4,6 +4,7 @@
 import { getTranslations } from 'next-intl/server';
 
 import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { requireActionUser } from '@/app/access-control/action-guard';
 import {
   renameOwnApikeyUseCase,
   requireOwnedApikeyUseCase,
@@ -12,7 +13,6 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionUser } from '@/shared/lib/action/guard';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
@@ -83,7 +83,7 @@ export default async function EditApiKeyPage({
               message: 'title is required',
             }
           );
-          return renameOwnApikeyUseCase(
+          const result = await renameOwnApikeyUseCase(
             {
               apikeyId: apikey.id,
               userId: user.id,
@@ -93,6 +93,10 @@ export default async function EditApiKeyPage({
             'API Key updated',
             '/settings/apikeys'
           );
+          if (!result) {
+            throw new ActionError('no permission');
+          }
+          return result;
         });
       },
       button: {

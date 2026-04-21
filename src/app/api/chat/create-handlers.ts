@@ -8,7 +8,7 @@ import {
   listChatsUseCase,
   streamChatUseCase,
 } from '@/domains/chat/application/use-cases';
-import type { ApiContext } from '@/shared/lib/api/context';
+import type { ApiContext } from '@/app/api/_lib/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 import { ChatInfoBodySchema } from '@/shared/schemas/api/chat/info';
@@ -18,7 +18,6 @@ import type { ChatListBody } from '@/shared/schemas/api/chat/list';
 import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
 import type { ChatMessagesBody } from '@/shared/schemas/api/chat/messages';
 import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
-import type { ChatNewBody } from '@/shared/schemas/api/chat/new';
 import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
 import type { ChatStreamBody } from '@/shared/schemas/api/chat/stream';
 
@@ -31,13 +30,7 @@ import type {
 } from './deps';
 
 export type ChatApiContext = Pick<ApiContext, 'log' | 'requireUser'> & {
-  parseJson: {
-    (schema: typeof ChatNewBodySchema): Promise<ChatNewBody>;
-    (schema: typeof ChatListBodySchema): Promise<ChatListBody>;
-    (schema: typeof ChatInfoBodySchema): Promise<ChatInfoBody>;
-    (schema: typeof ChatMessagesBodySchema): Promise<ChatMessagesBody>;
-    (schema: typeof ChatStreamBodySchema): Promise<ChatStreamBody>;
-  };
+  parseJson: ApiContext['parseJson'];
 };
 
 export type ChatHandlerDeps = {
@@ -89,7 +82,9 @@ export function createChatListPostAction(
     await deps.requireAiEnabled();
 
     const api = deps.createApiContext(request);
-    const { page, limit } = await api.parseJson(ChatListBodySchema);
+    const { page, limit }: ChatListBody = await api.parseJson(
+      ChatListBodySchema
+    );
     const user = await api.requireUser();
 
     const result = await listChatsUseCase(
@@ -115,7 +110,7 @@ export function createChatInfoPostAction(
     await deps.requireAiEnabled();
 
     const api = deps.createApiContext(request);
-    const { chatId } = await api.parseJson(ChatInfoBodySchema);
+    const { chatId }: ChatInfoBody = await api.parseJson(ChatInfoBodySchema);
     const user = await api.requireUser();
 
     const chat = await getChatInfoUseCase(
@@ -140,7 +135,9 @@ export function createChatMessagesPostAction(
 
     const api = deps.createApiContext(request);
     const { log } = api;
-    const { chatId, page, limit } = await api.parseJson(ChatMessagesBodySchema);
+    const { chatId, page, limit }: ChatMessagesBody = await api.parseJson(
+      ChatMessagesBodySchema
+    );
     const user = await api.requireUser();
 
     const result = await listChatMessagesUseCase(
@@ -170,13 +167,8 @@ export function createChatStreamPostAction(
 
     const api = deps.createApiContext(request);
     const { log } = api;
-    const {
-      chatId,
-      message: rawMessage,
-      model,
-      webSearch,
-      reasoning,
-    } = await api.parseJson(ChatStreamBodySchema);
+    const parsed: ChatStreamBody = await api.parseJson(ChatStreamBodySchema);
+    const { chatId, message: rawMessage, model, webSearch, reasoning } = parsed;
     const user = await api.requireUser();
 
     const response = await streamChatUseCase(

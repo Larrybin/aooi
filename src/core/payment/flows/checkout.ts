@@ -332,15 +332,6 @@ export async function createPaymentCheckoutSession({
     }
   }
 
-  const paymentService = await getPaymentService();
-  const provider = paymentService.getProvider(paymentProviderName);
-  if (!provider || !provider.name) {
-    log.error('payment: payment provider unavailable', {
-      paymentProviderName,
-    });
-    throw new ServiceUnavailableError('payment provider not configured');
-  }
-
   const paymentInterval: PaymentInterval =
     pricingItem.interval || PaymentInterval.ONE_TIME;
 
@@ -403,7 +394,7 @@ export async function createPaymentCheckoutSession({
     orderNo,
     pricingItem,
     user: { id: user.id, email: user.email },
-    providerName: provider.name,
+    providerName: paymentProviderName,
     pricingContext,
     paymentType,
     paymentInterval,
@@ -413,10 +404,13 @@ export async function createPaymentCheckoutSession({
     currentTime,
   });
 
+  const paymentService = await getPaymentService();
+
   await createOrder(order);
 
   try {
-    const result = await provider.createPayment({
+    const result = await paymentService.createPayment({
+      provider: paymentProviderName,
       order: checkoutOrder,
     });
 
@@ -439,7 +433,7 @@ export async function createPaymentCheckoutSession({
     log.error('payment: checkout failed', {
       orderNo,
       paymentProviderName,
-      paymentProvider: provider.name,
+      paymentProvider: paymentProviderName,
       productId: pricingItem.product_id,
       currency: pricingContext.checkoutCurrency,
       error: e,

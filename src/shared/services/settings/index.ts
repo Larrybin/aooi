@@ -17,7 +17,6 @@ export {
   type PublicSettingKey,
 } from './registry';
 export { getSettingTabs } from './tabs';
-export { createSettingsSubmitAction } from './settings-actions';
 export { mapSettingsToForms } from './settings-form-mapper';
 export { normalizeSettingOverrides } from './settings-normalizers';
 

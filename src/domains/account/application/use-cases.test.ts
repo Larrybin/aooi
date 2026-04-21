@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  ACCOUNT_CREDIT_TRANSACTION_TYPE,
   ACCOUNT_CREDIT_ACTIVE_STATUS,
   createOwnApikeyUseCase,
   deleteOwnApikeyUseCase,
@@ -103,19 +104,25 @@ test('listOwnCreditsUseCase 返回分页 credits 结果', async () => {
   const result = await listOwnCreditsUseCase(
     {
       userId: 'user_1',
-      transactionType: 'grant',
+      transactionType: ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT,
       page: 1,
       limit: 10,
     },
     {
       getCredits: async (params) => {
         assert.equal(params.status, ACCOUNT_CREDIT_ACTIVE_STATUS);
-        assert.equal(params.transactionType, 'grant');
+        assert.equal(
+          params.transactionType,
+          ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT
+        );
         return [{ id: 'credit_1', userId: 'user_1', credits: 5 }];
       },
       getCreditsCount: async (params) => {
         assert.equal(params.status, ACCOUNT_CREDIT_ACTIVE_STATUS);
-        assert.equal(params.transactionType, 'grant');
+        assert.equal(
+          params.transactionType,
+          ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT
+        );
         return 1;
       },
     }

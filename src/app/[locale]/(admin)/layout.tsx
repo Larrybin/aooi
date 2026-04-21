@@ -18,7 +18,7 @@ import {
 } from '@/shared/lib/brand-placeholders.server';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/shared/models/config';
-import { requireAdminAccess } from '@/shared/services/rbac_guard';
+import { requireAdminPageAccess } from './_guards/page-access';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 /**
@@ -35,7 +35,7 @@ export default async function AdminLayout({
   setRequestLocale(locale);
 
   // Check if user has admin access permission
-  const signedInUser = await requireAdminAccess({
+  const signedInUser = await requireAdminPageAccess({
     redirectUrl: `/admin/no-permission`,
     locale: locale || '',
   });
