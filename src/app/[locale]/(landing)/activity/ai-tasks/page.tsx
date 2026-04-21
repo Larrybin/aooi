@@ -9,7 +9,8 @@ import { AudioPlayer } from '@/shared/blocks/common/audio-player';
 import { AppImage } from '@/shared/blocks/common/app-image';
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
-import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
@@ -25,7 +26,7 @@ export default async function AiTasksPage({
 }: {
   searchParams: Promise<{ page?: number; pageSize?: number; type?: string }>;
 }) {
-  if (!(await isAiEnabledCached())) {
+  if (!isAiEnabled(await getPublicConfigsCached())) {
     notFound();
   }
 

@@ -9,14 +9,15 @@ import {
 } from '@/surfaces/admin/schemas/list';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
 
 export default createAdminTablePage<Chat, AdminChatsListQuery>({
   namespace: 'admin.chats',
   permission: PERMISSIONS.AITASKS_READ,
   beforeLoad: async () => {
-    if (!(await isAiEnabledCached())) {
+    if (!isAiEnabled(await getPublicConfigsCached())) {
       notFound();
     }
   },

@@ -7,7 +7,8 @@ import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/infra/platform/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common/empty';
-import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { findAITaskById, updateAITaskById } from '@/domains/ai/infra/ai-task';
 import { getAIService } from '@/domains/ai/application/service';
 
@@ -16,7 +17,7 @@ export default async function RefreshAITaskPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
-  if (!(await isAiEnabledCached())) {
+  if (!isAiEnabled(await getPublicConfigsCached())) {
     notFound();
   }
 

@@ -1,11 +1,12 @@
 import 'server-only';
 
-import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
 import { NotFoundError } from '@/shared/lib/api/errors';
 
 export async function requireAiEnabled(): Promise<void> {
-  if (await isAiEnabledCached()) {
+  if (isAiEnabled(await getPublicConfigsCached())) {
     return;
   }
 

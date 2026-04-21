@@ -1,10 +1,14 @@
 import type { Button, NavItem } from '@/shared/types/blocks/common';
 
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
+import {
+  GENERAL_AI_ENABLED,
+  isAiEnabled,
+} from '@/domains/ai/domain/enablement';
 
 export const GENERAL_BLOG_ENABLED = 'general_blog_enabled';
 export const GENERAL_DOCS_ENABLED = 'general_docs_enabled';
-export const GENERAL_AI_ENABLED = 'general_ai_enabled';
+export { GENERAL_AI_ENABLED, isAiEnabled };
 
 export function isLandingBlogEnabled(
   publicConfigs: Record<string, string> | undefined
@@ -16,11 +20,6 @@ export function isLandingDocsEnabled(
   publicConfigs: Record<string, string> | undefined
 ) {
   return isConfigTrue(publicConfigs ?? {}, GENERAL_DOCS_ENABLED);
-}
-
-export function isAiEnabled(publicConfigs: Record<string, string> | undefined) {
-  const configs = publicConfigs ?? {};
-  return isConfigTrue(configs, GENERAL_AI_ENABLED);
 }
 
 export function isLandingAiEnabled(

@@ -6,7 +6,8 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
-import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
 import type { Button } from '@/shared/types/blocks/common';
@@ -17,7 +18,7 @@ export default async function ChatsPage({
 }: {
   searchParams: Promise<{ page?: number; pageSize?: number }>;
 }) {
-  if (!(await isAiEnabledCached())) {
+  if (!isAiEnabled(await getPublicConfigsCached())) {
     notFound();
   }
 

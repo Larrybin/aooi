@@ -10,7 +10,8 @@ import {
 
 import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
   getAITasks,
   getAITasksCount,
@@ -21,7 +22,7 @@ export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
   namespace: 'admin.ai-tasks',
   permission: PERMISSIONS.AITASKS_READ,
   beforeLoad: async () => {
-    if (!(await isAiEnabledCached())) {
+    if (!isAiEnabled(await getPublicConfigsCached())) {
       notFound();
     }
   },

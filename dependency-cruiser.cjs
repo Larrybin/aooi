@@ -33,7 +33,7 @@ module.exports = {
       severity: 'error',
       from: {
         path: '^(src/|cloudflare/)',
-        pathNot: '^src/testing/',
+        pathNot: '^src/testing/|^src/architecture-boundaries\\.test\\.ts$',
       },
       to: { path: '^src/testing/' },
     },
