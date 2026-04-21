@@ -62,9 +62,13 @@ export async function resolvePaymentCallbackPricingFallbackUrl(
     'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
   >
 ) {
-  const resolvedDeps = deps ?? (await getPaymentCallbackPricingDeps());
-  const appUrl = await resolveAppUrl(resolvedDeps);
-  return toPricingFallbackUrl(appUrl);
+  try {
+    const resolvedDeps = deps ?? (await getPaymentCallbackPricingDeps());
+    const appUrl = await resolveAppUrl(resolvedDeps);
+    return toPricingFallbackUrl(appUrl);
+  } catch {
+    return '/pricing';
+  }
 }
 
 async function getPaymentCallbackReadDeps(): Promise<

@@ -103,6 +103,19 @@ test('resolvePaymentCallbackPricingFallbackUrl 返回绝对 pricing fallback url
   assert.equal(result, 'https://app.example.com/pricing');
 });
 
+test('resolvePaymentCallbackPricingFallbackUrl 在 appUrl 解析失败时返回相对 /pricing', async () => {
+  const result = await resolvePaymentCallbackPricingFallbackUrl({
+    readRuntimeSettingsCached: async () => {
+      throw new Error('app url unavailable');
+    },
+    getServerPublicEnvConfigs: () => {
+      throw new Error('env unavailable');
+    },
+  });
+
+  assert.equal(result, '/pricing');
+});
+
 test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付', async () => {
   await assert.rejects(
     () =>

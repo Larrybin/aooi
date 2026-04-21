@@ -86,6 +86,27 @@ test('payment/callback GET 缺少或非法 order_no 时回退到 /pricing', asyn
   );
 });
 
+test('payment/callback GET 在 fallback helper 返回相对 /pricing 时仍重定向', async () => {
+  const handler = buildPaymentCallbackGetHandler({
+    createApiContext: createApiContextStub({
+      orderNo: 'order_1',
+      requireUserError: new Error('no auth, please sign in'),
+    }),
+    resolveRedirectQuery: async () => {
+      throw new Error('should not resolve redirect query');
+    },
+    resolvePricingFallbackUrl: async () => '/pricing',
+  });
+
+  await assert.rejects(
+    () => handler(new Request('http://localhost/api/payment/callback?order_no=order_1')),
+    (error: unknown) => {
+      assertRedirectDigest(error, '/pricing');
+      return true;
+    }
+  );
+});
+
 test('payment/callback GET 正常时跳到 application 解析的 redirect url', async () => {
   const handler = buildPaymentCallbackGetHandler({
     createApiContext: createApiContextStub({
