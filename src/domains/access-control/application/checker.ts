@@ -20,6 +20,79 @@ export type AccessControlRepository = {
   listUserRoles: (userId: string) => Promise<Array<{ name: string }>>;
 };
 
+export type AccessControlRoleRecord = {
+  id: string;
+  name: string;
+  title?: string | null;
+  description?: string | null;
+  status?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+  deletedAt?: Date | null;
+};
+
+export type AccessControlPermissionRecord = {
+  id: string;
+  code: string;
+  resource?: string | null;
+  action?: string | null;
+  title?: string | null;
+  description?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+};
+
+export type AccessControlAuditInput = {
+  actorUserId?: string;
+  source?: string;
+};
+
+export type AccessControlAdminReadDeps = {
+  listRoles: (args?: {
+    includeDeleted?: boolean;
+  }) => Promise<AccessControlRoleRecord[]>;
+  findRoleById: (
+    roleId: string,
+    args?: {
+      includeDeleted?: boolean;
+    }
+  ) => Promise<AccessControlRoleRecord | undefined>;
+  listPermissions: () => Promise<AccessControlPermissionRecord[]>;
+  listRolePermissions: (
+    roleId: string
+  ) => Promise<AccessControlPermissionRecord[]>;
+  listUserRolesDetailed: (
+    userId: string
+  ) => Promise<Array<{ id: string; title?: string | null }>>;
+};
+
+export type AccessControlAdminMutationDeps = {
+  updateRoleRecord: (
+    roleId: string,
+    updates: {
+      title?: string;
+      description?: string;
+    },
+    audit?: AccessControlAuditInput
+  ) => Promise<AccessControlRoleRecord | undefined>;
+  replaceRolePermissions: (
+    roleId: string,
+    permissionIds: string[],
+    audit?: AccessControlAuditInput
+  ) => Promise<void>;
+  softDeleteRole: (
+    roleId: string,
+    audit?: AccessControlAuditInput
+  ) => Promise<void>;
+  restoreRoleRecord: (
+    roleId: string,
+    audit?: AccessControlAuditInput
+  ) => Promise<
+    | { status: 'restored' }
+    | { status: 'name_conflict' }
+  >;
+};
+
 export function createAccessControlChecker(
   userId: string,
   repository: Pick<AccessControlRepository, 'readUserPermissionCodes'>
@@ -106,6 +179,179 @@ export async function checkUserHasAnyRoles(
     userRoles.map((role) => role.name),
     roleNames
   );
+}
+
+export async function listAdminRolesUseCase(
+  input: { includeDeleted?: boolean },
+  deps: Pick<AccessControlAdminReadDeps, 'listRoles'>
+) {
+  return deps.listRoles({ includeDeleted: input.includeDeleted });
+}
+
+export async function listAdminPermissionsUseCase(
+  deps: Pick<AccessControlAdminReadDeps, 'listPermissions'>
+) {
+  return deps.listPermissions();
+}
+
+export async function readAdminRoleUseCase(
+  roleId: string,
+  deps: Pick<AccessControlAdminReadDeps, 'findRoleById'>
+) {
+  return deps.findRoleById(roleId, { includeDeleted: true });
+}
+
+export async function readAdminRoleDetailUseCase(
+  roleId: string,
+  deps: Pick<
+    AccessControlAdminReadDeps,
+    'findRoleById' | 'listPermissions' | 'listRolePermissions'
+  >
+) {
+  const role = await deps.findRoleById(roleId, { includeDeleted: true });
+  if (!role) {
+    return null;
+  }
+
+  const [permissions, rolePermissions] = await Promise.all([
+    deps.listPermissions(),
+    deps.listRolePermissions(roleId),
+  ]);
+
+  return {
+    role,
+    permissions,
+    rolePermissions,
+  };
+}
+
+export async function readAdminUserRoleOptionsUseCase(
+  userId: string,
+  deps: Pick<AccessControlAdminReadDeps, 'listRoles' | 'listUserRolesDetailed'>
+) {
+  const [roles, userRoles] = await Promise.all([
+    deps.listRoles(),
+    deps.listUserRolesDetailed(userId),
+  ]);
+
+  return {
+    roles,
+    userRoles,
+  };
+}
+
+export async function updateRoleMetadataUseCase(
+  input: {
+    roleId: string;
+    title: string;
+    description: string;
+    actorUserId: string;
+    source: string;
+  },
+  deps: Pick<
+    AccessControlAdminReadDeps,
+    'findRoleById'
+  > &
+    Pick<AccessControlAdminMutationDeps, 'updateRoleRecord'>
+) {
+  const role = await deps.findRoleById(input.roleId);
+  if (!role) {
+    return null;
+  }
+
+  return deps.updateRoleRecord(
+    input.roleId,
+    {
+      title: input.title,
+      description: input.description,
+    },
+    {
+      actorUserId: input.actorUserId,
+      source: input.source,
+    }
+  );
+}
+
+export async function replaceRolePermissionsUseCase(
+  input: {
+    roleId: string;
+    permissionIds: string[];
+    actorUserId: string;
+    source: string;
+  },
+  deps: Pick<
+    AccessControlAdminReadDeps,
+    'findRoleById'
+  > &
+    Pick<AccessControlAdminMutationDeps, 'replaceRolePermissions'>
+) {
+  const role = await deps.findRoleById(input.roleId);
+  if (!role) {
+    return null;
+  }
+
+  await deps.replaceRolePermissions(input.roleId, input.permissionIds, {
+    actorUserId: input.actorUserId,
+    source: input.source,
+  });
+
+  return role;
+}
+
+export async function deleteRoleUseCase(
+  input: {
+    roleId: string;
+    actorUserId: string;
+    source: string;
+  },
+  deps: Pick<
+    AccessControlAdminReadDeps,
+    'findRoleById'
+  > &
+    Pick<AccessControlAdminMutationDeps, 'softDeleteRole'>
+) {
+  const role = await deps.findRoleById(input.roleId);
+  if (!role || role.deletedAt) {
+    return null;
+  }
+
+  await deps.softDeleteRole(input.roleId, {
+    actorUserId: input.actorUserId,
+    source: input.source,
+  });
+
+  return role;
+}
+
+export async function restoreRoleUseCase(
+  input: {
+    roleId: string;
+    actorUserId: string;
+    source: string;
+  },
+  deps: Pick<
+    AccessControlAdminReadDeps,
+    'findRoleById'
+  > &
+    Pick<AccessControlAdminMutationDeps, 'restoreRoleRecord'>
+) {
+  const role = await deps.findRoleById(input.roleId, { includeDeleted: true });
+  if (!role) {
+    return { status: 'not_found' } as const;
+  }
+  if (!role.deletedAt) {
+    return { status: 'not_deleted' } as const;
+  }
+
+  const restoreResult = await deps.restoreRoleRecord(input.roleId, {
+    actorUserId: input.actorUserId,
+    source: input.source,
+  });
+  if (restoreResult.status === 'name_conflict') {
+    return { status: 'name_conflict' } as const;
+  }
+
+  return { status: 'restored', role } as const;
 }
 
 export {

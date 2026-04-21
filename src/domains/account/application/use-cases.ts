@@ -77,6 +77,16 @@ type AccountProfileDeps = {
   ) => Promise<unknown>;
 };
 
+type AdminUsersDeps = {
+  getUsers: (params: {
+    email?: string;
+    page: number;
+    limit: number;
+  }) => Promise<AccountAdminUserRecord[]>;
+  getUsersCount: (params: { email?: string }) => Promise<number>;
+  getRemainingCredits: (userId: string) => Promise<number>;
+};
+
 export type AccountApikeyRecord = {
   id: string;
   userId: string;
@@ -97,6 +107,22 @@ export type AccountCreditRecord = {
   credits?: number | null;
   expiresAt?: Date | null;
   createdAt?: Date | null;
+};
+
+export type AccountAdminUserRole = {
+  id: string;
+  title?: string | null;
+};
+
+export type AccountAdminUserRecord = {
+  id: string;
+  name?: string | null;
+  image?: string | null;
+  email?: string | null;
+  emailVerified?: boolean | null;
+  createdAt?: Date | null;
+  roles?: AccountAdminUserRole[];
+  remainingCredits?: number;
 };
 
 type AccountApikeyDeps = {
@@ -356,4 +382,34 @@ export async function deleteOwnApikeyUseCase(
     deletedAt: new Date(),
   });
   return actionOk(successMessage, redirectUrl);
+}
+
+export async function listAdminUsersUseCase(
+  input: {
+    email?: string;
+    page: number;
+    limit: number;
+  },
+  deps: AdminUsersDeps & AccountPermissionDeps
+) {
+  const [users, total] = await Promise.all([
+    deps.getUsers({
+      email: input.email,
+      page: input.page,
+      limit: input.limit,
+    }),
+    deps.getUsersCount({
+      email: input.email,
+    }),
+  ]);
+
+  const rows = await Promise.all(
+    users.map(async (user) => ({
+      ...user,
+      roles: user.roles ?? [],
+      remainingCredits: await deps.getRemainingCredits(user.id),
+    }))
+  );
+
+  return { rows, total };
 }

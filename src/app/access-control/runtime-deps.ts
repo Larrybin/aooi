@@ -16,11 +16,13 @@ import {
   createRoleRecord,
   findPermissionByCode,
   findRoleById,
+  findRoleByIdIncludingDeleted,
   findRoleByName,
   getAccessControlAuditLogger,
   listPermissions,
   listRolePermissions,
   listRoles,
+  listRolesIncludingDeleted,
   listUserIdsByRole,
   listUserPermissions,
   listUserRoles,
@@ -50,6 +52,7 @@ export const getPermissionCheckerForRequest = createPermissionCheckerCache(
 export const accessControlRuntimeDeps = {
   readUserPermissionCodes,
   listUserRoles,
+  listUserRolesDetailed: listUserRoles,
   checkUserPermission: (userId: string, code: string) =>
     checkUserPermission(userId, code, accessControlRepository),
   checkUserHasAnyPermissions: (userId: string, codes: string[]) =>
@@ -64,8 +67,17 @@ export const accessControlRuntimeDeps = {
   buildAnyPermissionGuardCondition,
   buildAllPermissionGuardCondition,
   getPermissionCheckerForRequest,
-  listRoles,
-  findRoleById,
+  listRoles: async ({ includeDeleted }: { includeDeleted?: boolean } = {}) =>
+    includeDeleted ? listRolesIncludingDeleted() : listRoles(),
+  findRoleById: async (
+    roleId: string,
+    options?: {
+      includeDeleted?: boolean;
+    }
+  ) =>
+    options?.includeDeleted
+      ? findRoleByIdIncludingDeleted(roleId)
+      : findRoleById(roleId),
   findRoleByName,
   createRoleRecord,
   updateRoleRecord,

@@ -7,14 +7,16 @@ import {
   type AdminSubscriptionsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
-  getSubscriptions,
-  getSubscriptionsCount,
-  type Subscription,
-} from '@/domains/billing/infra/subscription';
+  listAdminSubscriptionsQuery,
+  type AdminSubscriptionRow,
+} from '@/domains/billing/application/member-billing.query';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<Subscription, AdminSubscriptionsListQuery>({
+export default createAdminTablePage<
+  AdminSubscriptionRow,
+  AdminSubscriptionsListQuery
+>({
   namespace: 'admin.subscriptions',
   permission: PERMISSIONS.SUBSCRIPTIONS_READ,
   crumbs: [
@@ -36,21 +38,12 @@ export default createAdminTablePage<Subscription, AdminSubscriptionsListQuery>({
   ],
   query: {
     schema: AdminSubscriptionsListQuerySchema,
-    load: async ({ page, pageSize, interval }) => {
-      const [rows, total] = await Promise.all([
-        getSubscriptions({
-          interval,
-          getUser: true,
-          page,
-          limit: pageSize,
-        }),
-        getSubscriptionsCount({
-          interval,
-        }),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize, interval }) =>
+      listAdminSubscriptionsQuery({
+        page,
+        limit: pageSize,
+        interval,
+      }),
   },
   columns: ({ t }) => [
     {

@@ -8,12 +8,15 @@ import {
   type AdminChatsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
+import {
+  listAdminChatsQuery,
+  type AdminChatRow,
+} from '@/domains/chat/application/admin-chats.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
 
-export default createAdminTablePage<Chat, AdminChatsListQuery>({
+export default createAdminTablePage<AdminChatRow, AdminChatsListQuery>({
   namespace: 'admin.chats',
   permission: PERMISSIONS.AITASKS_READ,
   beforeLoad: async () => {
@@ -27,18 +30,11 @@ export default createAdminTablePage<Chat, AdminChatsListQuery>({
   ],
   query: {
     schema: AdminChatsListQuerySchema,
-    load: async ({ page, pageSize }) => {
-      const [rows, total] = await Promise.all([
-        getChats({
-          page,
-          limit: pageSize,
-          getUser: true,
-        }),
-        getChatsCount({}),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize }) =>
+      listAdminChatsQuery({
+        page,
+        limit: pageSize,
+      }),
   },
   columns: ({ t }) => [
     { name: 'title', title: t('fields.title'), type: 'copy' },

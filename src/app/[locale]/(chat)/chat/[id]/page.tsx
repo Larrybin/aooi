@@ -8,12 +8,8 @@ import type { UIMessage } from 'ai';
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { safeJsonParse } from '@/shared/lib/json';
-import { findChatByIdForViewer } from '@/domains/chat/infra/chat';
-import {
-  ChatMessageStatus,
-  getChatMessages,
-} from '@/domains/chat/infra/chat-message';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+import { readMemberChatThreadQuery } from '@/domains/chat/application/member-chats.query';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({
@@ -31,24 +27,26 @@ export default async function ChatPage({
     );
   }
 
-  const chat = await findChatByIdForViewer({
+  const viewerHasAdminAccess =
+    await accessControlRuntimeDeps.checkUserPermission(
+      user.id,
+      PERMISSIONS.ADMIN_ACCESS
+    );
+
+  const chatResult = await readMemberChatThreadQuery({
     chatId,
     viewerUserId: user.id,
-    allowAccessCondition: accessControlRuntimeDeps.buildPermissionGuardCondition({
-      userId: user.id,
-      permissionCode: PERMISSIONS.ADMIN_ACCESS,
+    viewerHasAdminAccess,
+    log: createUseCaseLogger({
+      domain: 'chat',
+      useCase: 'member-chat-thread',
+      operation: 'page-load',
     }),
   });
-  if (!chat) {
+  if (chatResult.status !== 'ok') {
     redirect(`/${locale}/no-permission`);
   }
-
-  const messages = await getChatMessages({
-    chatId,
-    status: ChatMessageStatus.CREATED,
-    page: 1,
-    limit: 100,
-  });
+  const { chat, messages } = chatResult.thread;
 
   const initialChat = {
     id: chat.id,
@@ -67,8 +65,8 @@ export default async function ChatPage({
   const initialMessages: UIMessage[] = messages.map((message) => ({
     id: message.id,
     role: message.role as UIMessage['role'],
-    parts: safeJsonParse(message.parts) ?? [],
-    metadata: safeJsonParse(message.metadata) ?? undefined,
+    parts: message.parts,
+    metadata: message.metadata ?? undefined,
   })) as UIMessage[];
 
   return (

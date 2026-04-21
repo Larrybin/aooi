@@ -42,6 +42,38 @@ export const ARCHITECTURE_RULES = {
     '^@/infra/platform/logging(?:/|$)',
     '^@/infra/platform/request-context(?:/|$)',
   ],
+  appOnlyFacades: [
+    'src/app/account/runtime-deps.ts',
+    'src/app/access-control/runtime-deps.ts',
+  ],
+  appOnlyFacadeImportPatterns: [
+    '^@/app/account/runtime-deps$',
+    '^@/app/access-control/runtime-deps$',
+  ],
+  appAdminForbiddenImports: [
+    '^@/domains/[^/]+/infra(?:/|$)',
+    '^@/infra/adapters(?:/|$)',
+  ],
+  memberSettingsForbiddenImports: [
+    '^@/domains/billing/infra(?:/|$)',
+    '^@/infra/adapters/payment(?:/|$)',
+  ],
+  memberActivityForbiddenImports: [
+    '^@/domains/chat/infra(?:/|$)',
+    '^@/domains/ai/infra(?:/|$)',
+  ],
+  memberChatForbiddenImports: [
+    '^@/domains/chat/infra(?:/|$)',
+  ],
+  paymentCallbackRouteForbiddenImports: [
+    '^@/domains/billing/infra(?:/|$)',
+    '^@/infra/adapters/payment(?:/|$)',
+  ],
+  surfacesAdminForbiddenImports: [
+    '^@/app/(?:account|access-control)/runtime-deps$',
+    '^@/domains/[^/]+/infra(?:/|$)',
+    '^@/infra/adapters(?:/|$)',
+  ],
   applicationPlatformImportExceptions: [
     {
       file: 'src/domains/content/application/local-content.tsx',

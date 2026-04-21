@@ -9,16 +9,13 @@ import {
   requireActionUser,
 } from '@/app/access-control/action-guard';
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import {
-  findUserById,
-  updateUser,
-  type UpdateUser,
-} from '@/domains/account/infra/user';
 
 /**
  * Update user profile (name, image)
@@ -32,17 +29,17 @@ export async function updateUserAction(id: string, formData: FormData) {
       errorMessage: 'name is required',
     });
 
-    const user = await findUserById(id);
+    const user = await readAdminUserQuery(id, {
+      findUserById: accountRuntimeDeps.findUserById,
+    });
     if (!user) {
       throw new ActionError('User not found');
     }
 
-    const newUser: UpdateUser = {
+    const result = await accountRuntimeDeps.updateUser(user.id, {
       name: data.name,
       image: data.image ?? '',
-    };
-
-    const result = await updateUser(user.id as string, newUser);
+    });
     if (!result) {
       throw new ActionError('update user failed');
     }
@@ -63,7 +60,9 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
       PERMISSIONS.ROLES_WRITE
     );
 
-    const user = await findUserById(id);
+    const user = await readAdminUserQuery(id, {
+      findUserById: accountRuntimeDeps.findUserById,
+    });
     if (!user) {
       throw new ActionError('User not found');
     }

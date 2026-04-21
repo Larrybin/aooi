@@ -7,16 +7,15 @@ import {
   type AdminPaymentsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
+import {
+  ADMIN_PAYMENT_FILTER_STATUSES,
+  listAdminPaymentsQuery,
+  type AdminPaymentRow,
+} from '@/domains/billing/application/member-billing.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { PaymentType } from '@/domains/billing/domain/payment';
-import {
-  getOrders,
-  getOrdersCount,
-  OrderStatus,
-  type Order,
-} from '@/domains/billing/infra/order';
 
-export default createAdminTablePage<Order, AdminPaymentsListQuery>({
+export default createAdminTablePage<AdminPaymentRow, AdminPaymentsListQuery>({
   namespace: 'admin.payments',
   permission: PERMISSIONS.PAYMENTS_READ,
   crumbs: [
@@ -43,15 +42,15 @@ export default createAdminTablePage<Order, AdminPaymentsListQuery>({
       options: [
         { value: 'all', labelKey: 'list.filters.status.options.all' },
         {
-          value: OrderStatus.PAID,
+          value: ADMIN_PAYMENT_FILTER_STATUSES[0],
           labelKey: 'list.filters.status.options.paid',
         },
         {
-          value: OrderStatus.CREATED,
+          value: ADMIN_PAYMENT_FILTER_STATUSES[1],
           labelKey: 'list.filters.status.options.created',
         },
         {
-          value: OrderStatus.FAILED,
+          value: ADMIN_PAYMENT_FILTER_STATUSES[2],
           labelKey: 'list.filters.status.options.failed',
         },
       ],
@@ -85,26 +84,15 @@ export default createAdminTablePage<Order, AdminPaymentsListQuery>({
   ],
   query: {
     schema: AdminPaymentsListQuerySchema,
-    load: async ({ page, pageSize, orderNo, provider, status, type }) => {
-      const params = {
+    load: async ({ page, pageSize, orderNo, provider, status, type }) =>
+      listAdminPaymentsQuery({
+        page,
+        limit: pageSize,
         orderNo,
         paymentType: type as PaymentType | undefined,
         paymentProvider: provider,
-        status: status as OrderStatus | undefined,
-      };
-
-      const [rows, total] = await Promise.all([
-        getOrders({
-          ...params,
-          getUser: true,
-          page,
-          limit: pageSize,
-        }),
-        getOrdersCount(params),
-      ]);
-
-      return { rows, total };
-    },
+        status: status as AdminPaymentRow['status'],
+      }),
   },
   columns: ({ t }) => [
     { name: 'orderNo', title: t('fields.order_no'), type: 'copy' },

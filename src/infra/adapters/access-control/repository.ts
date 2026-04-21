@@ -1,5 +1,6 @@
 import { and, eq, exists, gt, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
+import type postgres from 'postgres';
 
 import { db } from '@/infra/adapters/db';
 import {
@@ -102,6 +103,18 @@ export function normalizeAccessControlSchemaError(error: unknown): never {
   throw new Error(hint);
 }
 
+function isRoleAliveUniqueConflict(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const postgresError = error as postgres.PostgresError;
+  return (
+    postgresError.code === '23505' &&
+    postgresError.constraint_name === 'role_name_alive_unique'
+  );
+}
+
 export function buildActiveUserRoleWhereClause(userId: string, now: Date) {
   return and(
     eq(userRole.userId, userId),
@@ -156,6 +169,10 @@ export async function listRoles(): Promise<RoleRecord[]> {
     );
 }
 
+export async function listRolesIncludingDeleted(): Promise<RoleRecord[]> {
+  return await db().select().from(role).orderBy(sql`${role.createdAt} desc`);
+}
+
 export async function findRoleById(
   roleId: string
 ): Promise<RoleRecord | undefined> {
@@ -163,6 +180,16 @@ export async function findRoleById(
     .select()
     .from(role)
     .where(and(eq(role.id, roleId), isNull(role.deletedAt)));
+  return result;
+}
+
+export async function findRoleByIdIncludingDeleted(
+  roleId: string
+): Promise<RoleRecord | undefined> {
+  const [result] = await db()
+    .select()
+    .from(role)
+    .where(eq(role.id, roleId));
   return result;
 }
 
@@ -236,14 +263,34 @@ export async function softDeleteRole(
 export async function restoreRoleRecord(
   roleId: string,
   audit?: AccessControlAuditContext
-): Promise<void> {
-  await db()
-    .update(role)
-    .set({ deletedAt: null, updatedAt: new Date() })
-    .where(eq(role.id, roleId));
+): Promise<
+  | { status: 'restored' }
+  | { status: 'name_conflict' }
+> {
+  try {
+    await db()
+      .update(role)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(eq(role.id, roleId));
+  } catch (error: unknown) {
+    if (isRoleAliveUniqueConflict(error)) {
+      getAccessControlAuditLogger(audit).warn(
+        '[access-control] role restore blocked by alive-name conflict',
+        {
+          roleId,
+          operation: 'restore-role',
+          constraintName: 'role_name_alive_unique',
+        }
+      );
+      return { status: 'name_conflict' };
+    }
+    throw error;
+  }
+
   getAccessControlAuditLogger(audit).info('[access-control] role restored', {
     roleId,
   });
+  return { status: 'restored' };
 }
 
 export async function listPermissions(): Promise<PermissionRecord[]> {

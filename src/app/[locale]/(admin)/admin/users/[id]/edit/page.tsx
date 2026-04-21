@@ -8,7 +8,8 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { findUserById } from '@/domains/account/infra/user';
+import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserAction } from '../../actions';
@@ -27,7 +28,9 @@ export default async function UserEditPage({
 
   const t = await getTranslations('admin.users');
 
-  const user = await findUserById(id);
+  const user = await readAdminUserQuery(id, {
+    findUserById: accountRuntimeDeps.findUserById,
+  });
   if (!user) {
     return <Empty message={t('errors.not_found')} />;
   }

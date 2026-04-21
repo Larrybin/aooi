@@ -5,12 +5,11 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { redirect } from '@/infra/platform/i18n/navigation';
-import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common/empty';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { findAITaskById, updateAITaskById } from '@/domains/ai/infra/ai-task';
-import { getAIService } from '@/domains/ai/application/service';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { refreshMemberAiTaskUseCase } from '@/domains/ai/application/member-ai-tasks.actions';
 
 export default async function RefreshAITaskPage({
   params,
@@ -23,37 +22,20 @@ export default async function RefreshAITaskPage({
 
   const { locale, id } = await params;
   const t = await getTranslations('activity.ai-tasks');
-
-  const task = await findAITaskById(id);
-  if (!task || !task.taskId || !task.provider || !task.status) {
+  const user = await getSignedInUserIdentity();
+  if (!user) {
     return <Empty message={t('errors.task_not_found')} />;
   }
 
-  // query task
-  if (
-    [AITaskStatus.PENDING, AITaskStatus.PROCESSING].includes(
-      task.status as AITaskStatus
-    )
-  ) {
-    const aiService = await getAIService();
-    const aiProvider = aiService.getProvider(task.provider);
-    if (!aiProvider) {
-      return <Empty message={t('errors.invalid_ai_provider')} />;
-    }
-
-    const result = await aiProvider?.query?.({
-      taskId: task.taskId,
-    });
-
-    if (result && result.taskStatus && result.taskInfo) {
-      await updateAITaskById(task.id, {
-        status: result.taskStatus,
-        taskInfo: result.taskInfo ? JSON.stringify(result.taskInfo) : null,
-        taskResult: result.taskResult
-          ? JSON.stringify(result.taskResult)
-          : null,
-      });
-    }
+  const result = await refreshMemberAiTaskUseCase({
+    taskId: id,
+    actorUserId: user.id,
+  });
+  if (result.status === 'hidden') {
+    return <Empty message={t('errors.task_not_found')} />;
+  }
+  if (result.status === 'invalid_provider') {
+    return <Empty message={t('errors.invalid_ai_provider')} />;
   }
 
   redirect({ href: `/activity/ai-tasks`, locale });

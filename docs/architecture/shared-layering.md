@@ -40,6 +40,11 @@ Old business roots `src/shared/models/**` and `src/shared/services/**` have been
 - Platform/runtime capability: `src/infra/platform/**` or `src/infra/runtime/**`
 - External implementation: `src/infra/adapters/**`
 
+`src/app/account/runtime-deps.ts` and `src/app/access-control/runtime-deps.ts`
+are not part of shared layering. They are app-only facades for account and
+access-control entrypoints, and structure guards must keep them inside
+`src/app/**`.
+
 ## `shared/lib` Allowlist
 
 `src/testing/architecture-rules.ts` allowlists the current `shared/lib` path

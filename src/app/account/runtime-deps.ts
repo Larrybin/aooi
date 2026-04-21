@@ -1,5 +1,6 @@
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import {
+  type AccountAdminUserRecord,
   ACCOUNT_APIKEY_STATUS,
   ACCOUNT_CREDIT_STATUS,
   type AccountApikeyRecord,
@@ -26,7 +27,12 @@ import {
   getRemainingCreditsSummary,
 } from '@/domains/account/infra/credit';
 import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
-import { updateUser } from '@/domains/account/infra/user';
+import {
+  findUserById,
+  getUsers,
+  getUsersCount,
+  updateUser,
+} from '@/domains/account/infra/user';
 
 function toCreditStatus(status: AccountCreditStatus): CreditStatus {
   switch (status) {
@@ -93,6 +99,36 @@ function mapCreditRecord(record: Awaited<ReturnType<typeof getCredits>>[number])
   };
 }
 
+function mapAdminUserRecord(
+  record: Awaited<ReturnType<typeof getUsers>>[number]
+): AccountAdminUserRecord {
+  return {
+    id: record.id,
+    name: record.name,
+    image: record.image,
+    email: record.email,
+    emailVerified: record.emailVerified,
+    createdAt: record.createdAt,
+  };
+}
+
+function mapUserRecord(
+  record: Awaited<ReturnType<typeof findUserById>>
+): AccountAdminUserRecord | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  return {
+    id: record.id,
+    name: record.name,
+    image: record.image,
+    email: record.email,
+    emailVerified: record.emailVerified,
+    createdAt: record.createdAt,
+  };
+}
+
 export const accountRuntimeDeps = {
   hasPermission: accessControlRuntimeDeps.checkUserPermission,
   getRemainingCreditsSummary,
@@ -133,6 +169,17 @@ export const accountRuntimeDeps = {
       status: toCreditStatus(status),
       transactionType: toCreditTransactionType(transactionType),
     }),
+  getUsers: async ({
+    email,
+    page,
+    limit,
+  }: {
+    email?: string;
+    page: number;
+    limit: number;
+  }) => (await getUsers({ email, page, limit })).map(mapAdminUserRecord),
+  getUsersCount: ({ email }: { email?: string }) => getUsersCount({ email }),
+  findUserById: async (userId: string) => mapUserRecord(await findUserById(userId)),
   getCurrentSubscription,
   updateUser,
   getApikeys: async ({

@@ -4,13 +4,15 @@
 import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { findUserById } from '@/domains/account/infra/user';
+import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
+import { readAdminUserRoleOptionsUseCase } from '@/domains/access-control/application/checker';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserRolesAction } from '../../actions';
@@ -35,7 +37,9 @@ export default async function UserEditRolesPage({
 
   const t = await getTranslations('admin.users');
 
-  const user = await findUserById(id);
+  const user = await readAdminUserQuery(id, {
+    findUserById: accountRuntimeDeps.findUserById,
+  });
   if (!user) {
     return <Empty message={t('errors.not_found')} />;
   }
@@ -46,14 +50,16 @@ export default async function UserEditRolesPage({
     { key: 'edit_roles.crumbs.edit_roles' },
   ]);
 
-  const roles = await accessControlRuntimeDeps.listRoles();
+  const { roles, userRoles } = await readAdminUserRoleOptionsUseCase(
+    user.id,
+    accessControlRuntimeDeps
+  );
   const rolesOptions = roles.map((role) => ({
-    title: role.title,
+    title: role.title ?? role.name,
     description: role.description,
     value: role.id,
   }));
 
-  const userRoles = await accessControlRuntimeDeps.listUserRoles(user.id as string);
   const userRoleIds = userRoles.map((role) => role.id);
 
   const form: Form<typeof user & { roles: string[] }, { user: typeof user }> = {

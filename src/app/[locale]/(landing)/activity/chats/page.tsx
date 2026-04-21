@@ -9,7 +9,10 @@ import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
+import {
+  listMemberChatsQuery,
+  type MemberChatRow,
+} from '@/domains/chat/application/member-chats.query';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -33,17 +36,13 @@ export default async function ChatsPage({
     return <Empty message={t('errors.no_auth')} />;
   }
 
-  const chats = await getChats({
+  const { rows: chats, total } = await listMemberChatsQuery({
     userId: user.id,
     page,
     limit,
   });
 
-  const total = await getChatsCount({
-    userId: user.id,
-  });
-
-  const table: Table<Chat> = {
+  const table: Table<MemberChatRow> = {
     title: t('list.title'),
     columns: [
       { name: 'title', title: t('fields.title'), type: 'copy' },
@@ -55,7 +54,7 @@ export default async function ChatsPage({
         name: 'action',
         title: t('fields.action'),
         type: 'dropdown',
-        callback: (item: Chat) => {
+        callback: (item: MemberChatRow) => {
           const items: Button[] = [
             {
               title: t('list.buttons.view'),

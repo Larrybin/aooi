@@ -1,118 +1,18 @@
 'use server';
 
-import { z } from 'zod';
-
 import {
   requireActionPermission,
   requireActionUser,
 } from '@/app/access-control/action-guard';
-import {
-  findOrderByInvoiceId,
-  findOrderByOrderNo,
-  findOrderByTransactionId,
-} from '@/domains/billing/infra/order';
-import {
-  findPaymentWebhookInboxByIds,
-  markPaymentWebhookInboxAttempt,
-  markPaymentWebhookInboxProcessFailed,
-  markPaymentWebhookInboxProcessed,
-} from '@/domains/billing/infra/payment-webhook-inbox';
-import { deserializePaymentWebhookCanonicalEvent } from '@/domains/billing/infra/payment-webhook-canonical-event';
-import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/domains/billing/infra/payment-webhook-inbox.shared';
-import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
-import { findSubscriptionByProviderSubscriptionId } from '@/domains/billing/infra/subscription';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
-import { jsonStringArraySchema, parseFormData } from '@/shared/lib/action/form';
+import { parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
-  handleCheckoutSuccess,
-  handleSubscriptionCanceled,
-  handleSubscriptionRenewal,
-  handleSubscriptionUpdated,
-} from '@/domains/billing/application/flows';
-import type { PaymentNotifyDeps } from '@/domains/billing/application/process-payment-notify';
-import { processPaymentNotifyEvent } from '@/domains/billing/application/process-payment-notify';
-import {
-  runPaymentWebhookReplay,
-  type PaymentWebhookReplaySummary,
-} from '@/domains/billing/application/replay';
-
-const ReplayActionSchema = z.object({
-  inboxIds: jsonStringArraySchema,
-  operationKind: z.enum([
-    PAYMENT_WEBHOOK_OPERATION_KIND.REPLAY,
-    PAYMENT_WEBHOOK_OPERATION_KIND.COMPENSATION,
-  ]),
-  note: z.string().optional(),
-  returnPath: z.string().optional(),
-});
-
-const replayDeps: PaymentNotifyDeps = {
-  findOrderByInvoiceId,
-  findOrderByOrderNo,
-  findOrderByTransactionId,
-  findSubscriptionByProviderSubscriptionId,
-  recordUnknownWebhookEvent: recordPaymentWebhookAudit,
-  handleCheckoutSuccess,
-  handleSubscriptionCanceled,
-  handleSubscriptionRenewal,
-  handleSubscriptionUpdated,
-};
-
-const baseReplayLog = createUseCaseLogger({
-  domain: 'billing',
-  useCase: 'payment-webhook-replay',
-});
-
-function createReplayLog(userId: string, operationKind: string) {
-  return {
-    debug(message: string, meta?: Record<string, unknown>) {
-      baseReplayLog.debug(message, {
-        operation: 'replay-webhook-events',
-        ...meta,
-        operatorUserId: userId,
-        operationKind,
-      });
-    },
-    info(message: string, meta?: Record<string, unknown>) {
-      baseReplayLog.info(message, {
-        operation: 'replay-webhook-events',
-        ...meta,
-        operatorUserId: userId,
-        operationKind,
-      });
-    },
-    warn(message: string, meta?: Record<string, unknown>) {
-      baseReplayLog.warn(message, {
-        operation: 'replay-webhook-events',
-        ...meta,
-        operatorUserId: userId,
-        operationKind,
-      });
-    },
-    error(message: string, meta?: Record<string, unknown>) {
-      baseReplayLog.error(message, {
-        operation: 'replay-webhook-events',
-        ...meta,
-        operatorUserId: userId,
-        operationKind,
-      });
-    },
-  };
-}
-
-function buildReturnPath(
-  returnPath: string | undefined,
-  summary: { processed: number; failed: number; skipped: number }
-) {
-  const basePath =
-    returnPath?.trim() || '/admin/payments/replay?preview=1';
-  const separator = basePath.includes('?') ? '&' : '?';
-  return `${basePath}${separator}executed=1&processed=${summary.processed}&failed=${summary.failed}&skipped=${summary.skipped}`;
-}
+  executeAdminPaymentReplay,
+  PaymentReplayActionSchema as ReplayActionSchema,
+} from '@/domains/billing/application/admin-payment-replay';
 
 export async function executePaymentWebhookReplayAction(formData: FormData) {
   return withAction(async () => {
@@ -123,30 +23,20 @@ export async function executePaymentWebhookReplayAction(formData: FormData) {
       message: 'invalid replay payload',
     });
 
-    const rows = await findPaymentWebhookInboxByIds(data.inboxIds);
-    if (rows.length === 0) {
+    const result = await executeAdminPaymentReplay({
+      inboxIds: data.inboxIds,
+      operationKind: data.operationKind,
+      note: data.note,
+      returnPath: data.returnPath,
+      actorUserId: user.id,
+    });
+    if (result.status === 'not_found') {
       throw new ActionError('No webhook inbox records selected');
     }
 
-    const summary: PaymentWebhookReplaySummary = await runPaymentWebhookReplay({
-      rows,
-      userId: user.id,
-      operationKind: data.operationKind,
-      note: data.note,
-      deps: {
-        replayDeps,
-        createLog: createReplayLog,
-        markPaymentWebhookInboxAttempt,
-        markPaymentWebhookInboxProcessFailed,
-        markPaymentWebhookInboxProcessed,
-        deserializePaymentWebhookCanonicalEvent,
-        processPaymentNotifyEvent,
-      },
-    });
-
     return actionOk(
-      `replay finished: ${summary.processed} processed, ${summary.failed} failed, ${summary.skipped} skipped`,
-      buildReturnPath(data.returnPath, summary)
+      `replay finished: ${result.summary.processed} processed, ${result.summary.failed} failed, ${result.summary.skipped} skipped`,
+      result.redirectUrl
     );
   });
 }

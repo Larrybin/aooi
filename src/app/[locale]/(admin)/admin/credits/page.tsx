@@ -7,16 +7,35 @@ import {
   type AdminCreditsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
-  CreditStatus,
-  CreditTransactionType,
-  getCredits,
-  getCreditsCount,
-  type Credit,
-} from '@/domains/account/infra/credit';
+  ACCOUNT_CREDIT_TRANSACTION_TYPE,
+  type AccountCreditTransactionType,
+} from '@/domains/account/application/use-cases';
+import {
+  listAdminCreditsQuery,
+  type AdminCreditRow,
+} from '@/domains/account/application/admin-credits.query';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<Credit, AdminCreditsListQuery>({
+function toAdminCreditTransactionType(
+  value?: string
+): AccountCreditTransactionType | undefined {
+  if (!value || value === 'all') {
+    return undefined;
+  }
+
+  if (value === ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT) {
+    return ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT;
+  }
+
+  if (value === ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME) {
+    return ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME;
+  }
+
+  return undefined;
+}
+
+export default createAdminTablePage<AdminCreditRow, AdminCreditsListQuery>({
   namespace: 'admin.credits',
   permission: PERMISSIONS.CREDITS_READ,
   crumbs: [
@@ -26,35 +45,24 @@ export default createAdminTablePage<Credit, AdminCreditsListQuery>({
   tabs: [
     { name: 'all', titleKey: 'list.tabs.all' },
     {
-      name: CreditTransactionType.GRANT,
+      name: ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT,
       titleKey: 'list.tabs.grant',
-      queryPatch: { type: CreditTransactionType.GRANT },
+      queryPatch: { type: ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT },
     },
     {
-      name: CreditTransactionType.CONSUME,
+      name: ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME,
       titleKey: 'list.tabs.consume',
-      queryPatch: { type: CreditTransactionType.CONSUME },
+      queryPatch: { type: ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME },
     },
   ],
   query: {
     schema: AdminCreditsListQuerySchema,
-    load: async ({ page, pageSize, type }) => {
-      const [rows, total] = await Promise.all([
-        getCredits({
-          transactionType: type as CreditTransactionType | undefined,
-          status: CreditStatus.ACTIVE,
-          getUser: true,
-          page,
-          limit: pageSize,
-        }),
-        getCreditsCount({
-          transactionType: type as CreditTransactionType | undefined,
-          status: CreditStatus.ACTIVE,
-        }),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize, type }) =>
+      listAdminCreditsQuery({
+        page,
+        limit: pageSize,
+        transactionType: toAdminCreditTransactionType(type),
+      }),
   },
   columns: ({ t }) => [
     {

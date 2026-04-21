@@ -14,10 +14,9 @@ import { getPublicConfigsCached } from '@/domains/settings/application/public-co
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
-  getAITasks,
-  getAITasksCount,
-  type AITask,
-} from '@/domains/ai/infra/ai-task';
+  listMemberAiTasksQuery,
+  type MemberAiTaskRow,
+} from '@/domains/ai/application/member-ai-tasks.query';
 import type { Button, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -41,19 +40,14 @@ export default async function AiTasksPage({
     return <Empty message={t('errors.no_auth')} />;
   }
 
-  const aiTasks = await getAITasks({
+  const { rows: aiTasks, total } = await listMemberAiTasksQuery({
     userId: user.id,
     mediaType: type,
     page,
     limit,
   });
 
-  const total = await getAITasksCount({
-    userId: user.id,
-    mediaType: type,
-  });
-
-  const table: Table<AITask> = {
+  const table: Table<MemberAiTaskRow> = {
     title: t('list.title'),
     columns: [
       { name: 'prompt', title: t('fields.prompt'), type: 'copy' },
@@ -66,7 +60,7 @@ export default async function AiTasksPage({
       {
         name: 'result',
         title: t('fields.result'),
-        callback: (item: AITask) => {
+        callback: (item: MemberAiTaskRow) => {
           if (!item.taskInfo) {
             return '-';
           }
@@ -151,7 +145,7 @@ export default async function AiTasksPage({
         name: 'action',
         title: t('fields.action'),
         type: 'dropdown',
-        callback: (item: AITask) => {
+        callback: (item: MemberAiTaskRow) => {
           const items: Button[] = [];
 
           if (

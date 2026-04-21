@@ -6,16 +6,14 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
+import {
+  MEMBER_BILLING_ACTIVE_STATUSES,
+  readMemberBillingOverviewQuery,
+  type MemberSubscriptionRow,
+} from '@/domains/billing/application/member-billing.query';
 import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import {
-  getCurrentSubscription,
-  getSubscriptions,
-  getSubscriptionsCount,
-  SubscriptionStatus,
-  type Subscription,
-} from '@/domains/billing/infra/subscription';
 import type { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -53,21 +51,15 @@ export default async function BillingPage({
     return <Empty message={t('errors.no_auth')} />;
   }
 
-  const currentSubscription = await getCurrentSubscription(user.id);
+  const { currentSubscription, subscriptions, total } =
+    await readMemberBillingOverviewQuery({
+      userId: user.id,
+      status,
+      page,
+      limit,
+    });
 
-  const total = await getSubscriptionsCount({
-    userId: user.id,
-    status,
-  });
-
-  const subscriptions = await getSubscriptions({
-    userId: user.id,
-    status,
-    page,
-    limit,
-  });
-
-  const table: Table<Subscription> = {
+  const table: Table<MemberSubscriptionRow> = {
     title: t('list.title'),
     columns: [
       {
@@ -93,7 +85,7 @@ export default async function BillingPage({
       },
       {
         title: t('fields.amount'),
-        callback: function (item: Subscription) {
+        callback: function (item: MemberSubscriptionRow) {
           const currency = (item.currency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -146,10 +138,7 @@ export default async function BillingPage({
         title: t('fields.action'),
         type: 'dropdown',
         callback: function (item) {
-          if (
-            item.status !== SubscriptionStatus.ACTIVE &&
-            item.status !== SubscriptionStatus.TRIALING
-          ) {
+          if (!MEMBER_BILLING_ACTIVE_STATUSES.includes(item.status as never)) {
             return null;
           }
 
@@ -265,8 +254,9 @@ export default async function BillingPage({
         </div>
         {currentSubscription ? (
           <>
-            {currentSubscription?.status === SubscriptionStatus.ACTIVE ||
-            currentSubscription?.status === SubscriptionStatus.TRIALING ? (
+            {MEMBER_BILLING_ACTIVE_STATUSES.includes(
+              currentSubscription?.status as never
+            ) ? (
               <div className="text-muted-foreground mt-4 text-sm font-normal">
                 {t('view.tip', {
                   date: moment(currentSubscription?.currentPeriodEnd).format(

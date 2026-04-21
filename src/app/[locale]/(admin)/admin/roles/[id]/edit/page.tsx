@@ -5,6 +5,7 @@ import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { readAdminRoleQuery } from '@/domains/access-control/application/admin-roles.query';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
@@ -27,7 +28,7 @@ export default async function RoleEditPage({
 
   const t = await getTranslations('admin.roles');
 
-  const role = await accessControlRuntimeDeps.findRoleById(id as string);
+  const role = await readAdminRoleQuery(id, accessControlRuntimeDeps);
   if (!role) {
     return <Empty message={t('errors.not_found')} />;
   }

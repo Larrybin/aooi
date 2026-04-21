@@ -8,17 +8,16 @@ import {
   type AdminAiTasksListQuery,
 } from '@/surfaces/admin/schemas/list';
 
+import {
+  listAdminAiTasksQuery,
+  type AdminAiTaskRow,
+} from '@/domains/ai/application/admin-ai-tasks.query';
 import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import {
-  getAITasks,
-  getAITasksCount,
-  type AITask,
-} from '@/domains/ai/infra/ai-task';
 
-export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
+export default createAdminTablePage<AdminAiTaskRow, AdminAiTasksListQuery>({
   namespace: 'admin.ai-tasks',
   permission: PERMISSIONS.AITASKS_READ,
   beforeLoad: async () => {
@@ -60,21 +59,12 @@ export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
   ],
   query: {
     schema: AdminAiTasksListQuerySchema,
-    load: async ({ page, pageSize, type }) => {
-      const [rows, total] = await Promise.all([
-        getAITasks({
-          getUser: true,
-          page,
-          limit: pageSize,
-          mediaType: type,
-        }),
-        getAITasksCount({
-          mediaType: type,
-        }),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize, type }) =>
+      listAdminAiTasksQuery({
+        page,
+        limit: pageSize,
+        mediaType: type,
+      }),
   },
   columns: ({ t }) => [
     { name: 'id', title: t('fields.task_id'), type: 'copy' },

@@ -6,15 +6,15 @@ import {
   AdminRolesListQuerySchema,
   type AdminRolesListQuery,
 } from '@/surfaces/admin/schemas/list';
-import { desc } from 'drizzle-orm';
 
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
-import { db } from '@/infra/adapters/db';
-import { role } from '@/config/db/schema';
+import {
+  listAdminRolesQuery,
+  type AdminRoleRow,
+} from '@/domains/access-control/application/admin-roles.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import type { RoleRecord } from '@/infra/adapters/access-control/repository';
 
-export default createAdminTablePage<RoleRecord, AdminRolesListQuery>({
+export default createAdminTablePage<AdminRoleRow, AdminRolesListQuery>({
   namespace: 'admin.roles',
   permission: PERMISSIONS.ROLES_READ,
   crumbs: [
@@ -36,11 +36,8 @@ export default createAdminTablePage<RoleRecord, AdminRolesListQuery>({
   ],
   query: {
     schema: AdminRolesListQuerySchema,
-    load: async ({ includeDeleted }) => ({
-      rows: includeDeleted
-        ? await db().select().from(role).orderBy(desc(role.createdAt))
-        : await accessControlRuntimeDeps.listRoles(),
-    }),
+    load: async ({ includeDeleted }) =>
+      listAdminRolesQuery({ includeDeleted }, accessControlRuntimeDeps),
   },
   columns: ({ t, query }) => [
     { name: 'name', title: t('fields.name') },

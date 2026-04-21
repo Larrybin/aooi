@@ -1,136 +1,22 @@
-import { redirect } from 'next/navigation';
-
-import { handleCheckoutSuccess } from '@/domains/billing/application/flows';
 import { createApiContext } from '@/app/api/_lib/context';
-import {
-  BadRequestError,
-  ForbiddenError,
-  NotFoundError,
-  UnauthorizedError,
-} from '@/shared/lib/api/errors';
-import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import {
-  readRuntimeSettingsCached,
-  readRuntimeSettingsFresh,
-} from '@/domains/settings/application/settings-runtime.query';
-import { findOrderByOrderNo } from '@/domains/billing/infra/order';
-import {
-  PaymentCallbackBodySchema,
-  PaymentCallbackQuerySchema,
-} from '@/shared/schemas/api/payment/callback';
-import { PaymentType } from '@/domains/billing/domain/payment';
-import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
+  buildPaymentCallbackGetHandler,
+  buildPaymentCallbackPostAction,
+} from './route-logic';
 
-function appendOrderNoToUrl(
-  url: string,
-  orderNo: string,
-  appUrl: string
-): string {
-  try {
-    const full = new URL(url, appUrl);
-    full.searchParams.set('order_no', orderNo);
-    return full.toString();
-  } catch {
-    return url;
-  }
-}
-
-function toPaymentFallbackUrl(
-  type: string | null | undefined,
-  appUrl: string
-): string {
-  return type === PaymentType.SUBSCRIPTION
-    ? `${appUrl}/settings/billing`
-    : `${appUrl}/settings/payments`;
-}
+const getHandler = buildPaymentCallbackGetHandler({
+  createApiContext,
+});
 
 export async function GET(req: Request) {
-  const api = createApiContext(req);
-  const { log } = api;
-  let redirectUrl = '';
-
-  const configs = await readRuntimeSettingsCached();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-  const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
-
-  try {
-    // get callback params
-    const { order_no: orderNo } = api.parseQuery(PaymentCallbackQuerySchema);
-
-    // require signed-in user (GET is safe: CSRF guard only checks cookie + write requests)
-    const user = await api.requireUser();
-
-    // get order
-    const order = await findOrderByOrderNo(orderNo);
-    if (!order) {
-      throw new NotFoundError('order not found');
-    }
-
-    if (order.userId !== user.id) {
-      throw new ForbiddenError('order and user not match');
-    }
-
-    const base =
-      order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl);
-    redirectUrl = appendOrderNoToUrl(base, orderNo, appUrl);
-  } catch (e: unknown) {
-    log.error('payment: checkout callback failed', { error: e });
-    redirectUrl = `${appUrl}/pricing`;
-  }
-
-  redirect(redirectUrl);
+  return getHandler(req);
 }
 
-export const POST = withApi(async (req: Request) => {
-  const api = createApiContext(req);
-  const { log } = api;
-  const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
-
-  const configs = await readRuntimeSettingsCached();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-  const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
-
-  const user = await api.requireUser();
-  if (!user.email) {
-    throw new UnauthorizedError('no auth, please sign in');
-  }
-
-  const order = await findOrderByOrderNo(orderNo);
-  if (!order) {
-    throw new NotFoundError('order not found');
-  }
-
-  if (order.userId !== user.id) {
-    throw new ForbiddenError('no permission');
-  }
-
-  if (!order.paymentSessionId || !order.paymentProvider) {
-    throw new BadRequestError('invalid order');
-  }
-
-  const mode = resolveConfigConsistencyMode(req);
-  const paymentService = await getPaymentServiceWithConfigs(
-    mode === 'fresh'
-      ? await readRuntimeSettingsFresh()
-      : await readRuntimeSettingsCached()
-  );
-  const session = await paymentService.getPaymentSession({
-    provider: order.paymentProvider,
-    sessionId: order.paymentSessionId,
-  });
-
-  await handleCheckoutSuccess({
-    order,
-    session,
-    log,
-  });
-
-  return jsonOk({
-    orderNo,
-    redirectUrl:
-      order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl),
-  });
-});
+export const POST = withApi(
+  buildPaymentCallbackPostAction({
+    createApiContext,
+    resolveMode: resolveConfigConsistencyMode,
+  })
+);

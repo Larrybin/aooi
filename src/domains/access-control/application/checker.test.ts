@@ -9,6 +9,7 @@ import {
   checkUserRole,
   createAccessControlChecker,
   getPermissionMatchCandidates,
+  restoreRoleUseCase,
 } from './checker';
 
 test('getPermissionMatchCandidates 生成精确与通配符候选', () => {
@@ -63,4 +64,96 @@ test('checkUserPermission 家族读取 repository 并返回纯授权结果', asy
     await checkUserHasAnyRoles('user_1', ['viewer', 'editor'], roleRepository),
     true
   );
+});
+
+test('restoreRoleUseCase 返回 not_found', async () => {
+  const result = await restoreRoleUseCase(
+    {
+      roleId: 'role_1',
+      actorUserId: 'user_1',
+      source: 'test.restore',
+    },
+    {
+      findRoleById: async () => undefined,
+      restoreRoleRecord: async () => ({ status: 'restored' as const }),
+    }
+  );
+
+  assert.deepEqual(result, { status: 'not_found' });
+});
+
+test('restoreRoleUseCase 返回 not_deleted', async () => {
+  const result = await restoreRoleUseCase(
+    {
+      roleId: 'role_1',
+      actorUserId: 'user_1',
+      source: 'test.restore',
+    },
+    {
+      findRoleById: async () =>
+        ({
+          id: 'role_1',
+          name: 'editor',
+          deletedAt: null,
+        }) as never,
+      restoreRoleRecord: async () => ({ status: 'restored' as const }),
+    }
+  );
+
+  assert.deepEqual(result, { status: 'not_deleted' });
+});
+
+test('restoreRoleUseCase 返回 name_conflict', async () => {
+  const result = await restoreRoleUseCase(
+    {
+      roleId: 'role_1',
+      actorUserId: 'user_1',
+      source: 'test.restore',
+    },
+    {
+      findRoleById: async () =>
+        ({
+          id: 'role_1',
+          name: 'editor',
+          deletedAt: new Date('2026-04-01T00:00:00.000Z'),
+        }) as never,
+      restoreRoleRecord: async () => ({ status: 'name_conflict' as const }),
+    }
+  );
+
+  assert.deepEqual(result, { status: 'name_conflict' });
+});
+
+test('restoreRoleUseCase 返回 restored 并透传审计上下文', async () => {
+  const auditCalls: Array<{ actorUserId?: string; source?: string }> = [];
+  const deletedAt = new Date('2026-04-01T00:00:00.000Z');
+
+  const result = await restoreRoleUseCase(
+    {
+      roleId: 'role_1',
+      actorUserId: 'user_1',
+      source: 'test.restore',
+    },
+    {
+      findRoleById: async () =>
+        ({
+          id: 'role_1',
+          name: 'editor',
+          deletedAt,
+        }) as never,
+      restoreRoleRecord: async (_roleId, audit) => {
+        auditCalls.push(audit ?? {});
+        return { status: 'restored' as const };
+      },
+    }
+  );
+
+  assert.equal(result.status, 'restored');
+  assert.equal(result.role.id, 'role_1');
+  assert.deepEqual(auditCalls, [
+    {
+      actorUserId: 'user_1',
+      source: 'test.restore',
+    },
+  ]);
 });

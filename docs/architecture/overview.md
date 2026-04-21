@@ -37,6 +37,8 @@ src/config
 - Owns Next.js routes, layouts, route handlers, metadata, redirects, and `notFound`.
 - Converts HTTP/form/page transport models into application use-case inputs.
 - Does not own business rules, repositories, provider selection, or cross-domain orchestration.
+- `src/app/account/runtime-deps.ts` and `src/app/access-control/runtime-deps.ts` are the only stable app-only facades.
+- These facades may be imported only from `src/app/**`; they are not a shared escape hatch and must not expand to other domains.
 
 ### `src/surfaces`
 
@@ -92,6 +94,19 @@ shared/* -> no business capability modules
 ```
 
 Old architecture roots are removed: `src/core`, `src/features`, `src/shared/models`, and `src/shared/services`.
+
+### App-Only Facade Matrix
+
+- `src/app/**`
+  - may import `src/surfaces/**`, `src/domains/*/application/**`, required `src/infra/platform/**`, required `src/infra/runtime/**`, and the two app-only facades
+  - must not import `src/domains/*/infra/**` or `src/infra/adapters/**`
+- `src/app/[locale]/(admin)/admin/**`
+  - must be application-first; pages and actions may not talk to domain infra or adapters directly
+- `src/app/[locale]/(landing)/settings/**`
+  - member billing/settings entrypoints may not import billing infra or payment adapters directly
+- `src/surfaces/admin/**`
+  - may compose domain application and shared building blocks only
+  - must not import app-only facades, domain infra, or infra adapters
 
 ## Anti-Regression Rules
 

@@ -4,15 +4,13 @@
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
+import {
+  listMemberPaymentsQuery,
+  type MemberPaymentRow,
+} from '@/domains/billing/application/member-billing.query';
 import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import {
-  getOrders,
-  getOrdersCount,
-  OrderStatus,
-  type Order,
-} from '@/domains/billing/infra/order';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 import type { PaymentType } from '@/domains/billing/domain/payment';
@@ -51,21 +49,14 @@ export default async function PaymentsPage({
 
   const t = await getTranslations('settings.payments');
 
-  const total = await getOrdersCount({
-    paymentType: type as PaymentType,
+  const { orders, total } = await listMemberPaymentsQuery({
     userId: user.id,
-    status: OrderStatus.PAID,
-  });
-
-  const orders = await getOrders({
     paymentType: type as PaymentType,
-    userId: user.id,
-    status: OrderStatus.PAID,
     page,
     limit,
   });
 
-  const table: Table<Order> = {
+  const table: Table<MemberPaymentRow> = {
     title: t('list.title'),
     columns: [
       { name: 'orderNo', title: t('fields.order_no'), type: 'copy' },
@@ -84,7 +75,7 @@ export default async function PaymentsPage({
       },
       {
         title: t('fields.price'),
-        callback: function (item: Order) {
+        callback: function (item: MemberPaymentRow) {
           const currency = (item.currency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -107,7 +98,7 @@ export default async function PaymentsPage({
       },
       {
         title: t('fields.paid_amount'),
-        callback: function (item: Order) {
+        callback: function (item: MemberPaymentRow) {
           const currency = (item.paymentCurrency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -130,7 +121,7 @@ export default async function PaymentsPage({
       },
       {
         title: t('fields.discount_amount'),
-        callback: function (item: Order) {
+        callback: function (item: MemberPaymentRow) {
           const currency = (item.discountCurrency || 'USD').toUpperCase();
 
           let prefix = '';
@@ -159,7 +150,7 @@ export default async function PaymentsPage({
       {
         name: 'actions',
         type: 'dropdown',
-        callback: (item: Order) => {
+        callback: (item: MemberPaymentRow) => {
           if (item.invoiceUrl) {
             return [
               {

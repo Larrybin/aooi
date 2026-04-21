@@ -18,6 +18,7 @@
   - 依赖方向与 Server/Client 边界以 `eslint.config.mjs` 为单一事实来源（不要靠口头约定）。
   - 架构结构守卫以 `src/testing/architecture-rules.ts` 为机器可读 source of truth；`src/architecture-boundaries.test.ts` 只是它的执行投影。
   - `src/shared` 分层约定见 `docs/architecture/shared-layering.md`（变更触及边界时，优先用 ESLint 规则固化）。
+  - `src/app/account/runtime-deps.ts` 与 `src/app/access-control/runtime-deps.ts` 是仅有的 app-only façade；review 时必须确认它们没有向 surfaces/domains/shared 扩散。
 - 新旧代码策略：
   - 本次是**第一次全量审查**，允许识别并记录历史技术债，但评论时明确“建议后续拆卡处理”。
   - 后续日常开发优先保证“新代码符合当前标准”，旧代码按需渐进式治理。
@@ -39,6 +40,7 @@
   - `src/app` 下的 `page.tsx` / `layout.tsx` / `template.tsx` 保持瘦：路由结构 + 数据注入，不堆叠业务细节。
   - 复杂 UI 抽到 `src/shared/blocks` / `src/shared/components` 或对应 `src/domains/<domain>/ui`；业务编排下沉到 `src/domains/<domain>/application`；业务规则进入 `src/domains/<domain>/domain`；三方实现适配进入 `src/infra/adapters`。
   - Public composition helper 放在 `src/surfaces/public/**`，不要回流到 `shared/lib`。
+  - `page` / `layout` / Server Action 不得直连 `domains/*/infra` 或 `infra/adapters/*`；account/access-control 只允许通过 app-only façade，其余能力域一律通过 application 入口。
 
 ### 1.2 TypeScript 边界约束
 

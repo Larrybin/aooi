@@ -19,45 +19,15 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Badge } from '@/shared/components/ui/badge';
 import {
+  buildPaymentReplayReturnPath,
+  getPaymentReplayPreviewLabel,
+  listAdminPaymentReplayPreview,
+  parsePaymentReplayDateTime,
   PAYMENT_WEBHOOK_INBOX_STATUS,
   PAYMENT_WEBHOOK_OPERATION_KIND,
-} from '@/domains/billing/infra/payment-webhook-inbox.shared';
-import {
-  getPaymentWebhookInboxPreview,
-} from '@/domains/billing/infra/payment-webhook-inbox';
+} from '@/domains/billing/application/admin-payment-replay';
 import type { Crumb } from '@/shared/types/blocks/common';
 import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
-
-function parseDateTime(value: string | undefined): Date | null {
-  if (!value?.trim()) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function buildReturnPath(params: Record<string, string | undefined>) {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (!value?.trim()) continue;
-    search.set(key, value);
-  }
-  return `/admin/payments/replay${search.size > 0 ? `?${search.toString()}` : ''}`;
-}
-
-function getPreviewLabel(row: {
-  canonicalEvent: string | null;
-  status: string;
-}) {
-  if (!row.canonicalEvent) {
-    return 'unsupported_legacy';
-  }
-  if (row.status === PAYMENT_WEBHOOK_INBOX_STATUS.PROCESS_FAILED) {
-    return 'retry_failed';
-  }
-  if (row.status === PAYMENT_WEBHOOK_INBOX_STATUS.PARSE_FAILED) {
-    return 'parse_failed';
-  }
-  return 'will_process';
-}
 
 export default async function PaymentReplayPage({
   params,
@@ -90,20 +60,20 @@ export default async function PaymentReplayPage({
   const previewEnabled = query.preview === '1';
 
   const rows = previewEnabled
-    ? await getPaymentWebhookInboxPreview({
+    ? await listAdminPaymentReplayPreview({
         provider: provider || undefined,
         eventId: eventId || undefined,
         status:
           status === 'all'
             ? 'all'
             : (status as typeof PAYMENT_WEBHOOK_INBOX_STATUS[keyof typeof PAYMENT_WEBHOOK_INBOX_STATUS]),
-        receivedFrom: parseDateTime(receivedFrom),
-        receivedTo: parseDateTime(receivedTo),
+        receivedFrom: parsePaymentReplayDateTime(receivedFrom),
+        receivedTo: parsePaymentReplayDateTime(receivedTo),
       })
     : [];
 
   const executableRows = rows.filter((row) => Boolean(row.canonicalEvent));
-  const returnPath = buildReturnPath({
+  const returnPath = buildPaymentReplayReturnPath({
     preview: '1',
     provider,
     eventId,
@@ -237,7 +207,7 @@ export default async function PaymentReplayPage({
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{row.provider}</Badge>
                         <Badge variant="secondary">{row.status}</Badge>
-                        <Badge variant="outline">{getPreviewLabel(row)}</Badge>
+                        <Badge variant="outline">{getPaymentReplayPreviewLabel(row)}</Badge>
                       </div>
                       <div className="space-y-1 text-sm">
                         <p>Inbox ID: {row.id}</p>

@@ -7,14 +7,13 @@ import {
   type AdminApikeysListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
-  getApikeys,
-  getApikeysCount,
-  type Apikey,
-} from '@/domains/account/infra/apikey';
+  listAdminApikeysQuery,
+  type AdminApikeyRow,
+} from '@/domains/account/application/admin-apikeys.query';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<Apikey, AdminApikeysListQuery>({
+export default createAdminTablePage<AdminApikeyRow, AdminApikeysListQuery>({
   namespace: 'admin.apikeys',
   permission: PERMISSIONS.APIKEYS_READ,
   crumbs: [
@@ -23,18 +22,11 @@ export default createAdminTablePage<Apikey, AdminApikeysListQuery>({
   ],
   query: {
     schema: AdminApikeysListQuerySchema,
-    load: async ({ page, pageSize }) => {
-      const [rows, total] = await Promise.all([
-        getApikeys({
-          getUser: true,
-          page,
-          limit: pageSize,
-        }),
-        getApikeysCount({}),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize }) =>
+      listAdminApikeysQuery({
+        page,
+        limit: pageSize,
+      }),
   },
   columns: ({ t }) => [
     { name: 'title', title: t('fields.title') },

@@ -7,12 +7,15 @@ import {
   type AdminPermissionsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
+import {
+  listAdminPermissionsQuery,
+  type AdminPermissionRow,
+} from '@/domains/access-control/application/admin-roles.query';
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import type { PermissionRecord } from '@/infra/adapters/access-control/repository';
 
 export default createAdminTablePage<
-  PermissionRecord,
+  AdminPermissionRow,
   AdminPermissionsListQuery
 >({
   namespace: 'admin.permissions',
@@ -23,9 +26,7 @@ export default createAdminTablePage<
   ],
   query: {
     schema: AdminPermissionsListQuerySchema,
-    load: async () => ({
-      rows: await accessControlRuntimeDeps.listPermissions(),
-    }),
+    load: async () => listAdminPermissionsQuery(accessControlRuntimeDeps),
   },
   columns: ({ t }) => [
     { name: 'code', title: t('fields.code') },
