@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
-import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
+import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
@@ -15,7 +15,7 @@ import {
   getSubscriptionsCount,
   SubscriptionStatus,
   type Subscription,
-} from '@/shared/models/subscription';
+} from '@/domains/billing/infra/subscription';
 import type { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

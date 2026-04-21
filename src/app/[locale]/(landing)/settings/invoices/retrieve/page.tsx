@@ -6,11 +6,12 @@ import { redirect } from 'next/navigation';
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import {
   findOrderByOrderNo,
   updateOrderByOrderNo,
-} from '@/shared/models/order';
-import { getPaymentService } from '@/core/payment/providers/service';
+} from '@/domains/billing/infra/order';
+import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
 
 export default async function RetrieveInvoicePage({
   params,
@@ -44,7 +45,9 @@ export default async function RetrieveInvoicePage({
     return <Empty message="no permission" />;
   }
 
-  const paymentService = await getPaymentService();
+  const paymentService = await getPaymentServiceWithConfigs(
+    await readRuntimeSettingsCached()
+  );
   const paymentProvider = paymentService.getProvider(order.paymentProvider);
   if (!paymentProvider) {
     return <Empty message="payment provider not found" />;

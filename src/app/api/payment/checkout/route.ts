@@ -7,8 +7,8 @@ import { withApi } from '@/shared/lib/api/route';
 import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import type { Pricing } from '@/shared/types/blocks/pricing';
-import { createPaymentCheckoutSession } from '@/core/payment/flows/checkout';
-import { findPricingItemByProductId } from '@/core/payment/flows/pricing';
+import { createPaymentCheckoutSession } from '@/domains/billing/application/checkout';
+import { findPricingItemByProductId } from '@/domains/billing/domain/pricing';
 
 export const POST = withApi(async (req: Request) => {
   const api = createApiContext(req);

@@ -8,11 +8,12 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import {
   findSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNo,
-} from '@/shared/models/subscription';
-import { getPaymentService } from '@/core/payment/providers/service';
+} from '@/domains/billing/infra/subscription';
+import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
 
 export default async function RetrieveBillingPage({
   params,
@@ -47,7 +48,9 @@ export default async function RetrieveBillingPage({
     return <Empty message={t('errors.no_permission')} />;
   }
 
-  const paymentService = await getPaymentService();
+  const paymentService = await getPaymentServiceWithConfigs(
+    await readRuntimeSettingsCached()
+  );
   const paymentProvider = paymentService.getProvider(
     subscription.paymentProvider
   );

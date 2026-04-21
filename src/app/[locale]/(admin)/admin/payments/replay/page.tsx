@@ -21,10 +21,10 @@ import { Badge } from '@/shared/components/ui/badge';
 import {
   PAYMENT_WEBHOOK_INBOX_STATUS,
   PAYMENT_WEBHOOK_OPERATION_KIND,
-} from '@/shared/models/payment_webhook_inbox.shared';
+} from '@/domains/billing/infra/payment-webhook-inbox.shared';
 import {
   getPaymentWebhookInboxPreview,
-} from '@/shared/models/payment_webhook_inbox';
+} from '@/domains/billing/infra/payment-webhook-inbox';
 import type { Crumb } from '@/shared/types/blocks/common';
 import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
 

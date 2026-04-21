@@ -13,12 +13,13 @@ import { parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import {
   findSubscriptionBySubscriptionNo,
   SubscriptionStatus,
   updateSubscriptionBySubscriptionNo,
-} from '@/shared/models/subscription';
-import { getPaymentService } from '@/core/payment/providers/service';
+} from '@/domains/billing/infra/subscription';
+import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form } from '@/shared/types/blocks/form';
 
@@ -56,7 +57,9 @@ export default async function CancelBillingPage({
     return <Empty message={tb('errors.no_permission')} />;
   }
 
-  const paymentService = await getPaymentService();
+  const paymentService = await getPaymentServiceWithConfigs(
+    await readRuntimeSettingsCached()
+  );
   const paymentProvider = paymentService.getProvider(
     subscription.paymentProvider
   );
@@ -106,7 +109,9 @@ export default async function CancelBillingPage({
         throw new ActionError('subscription is not active or trialing');
       }
 
-      const paymentService = await getPaymentService();
+      const paymentService = await getPaymentServiceWithConfigs(
+        await readRuntimeSettingsCached()
+      );
       const paymentProvider = paymentService.getProvider(
         subscription.paymentProvider
       );

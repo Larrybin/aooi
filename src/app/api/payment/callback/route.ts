@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { handleCheckoutSuccess } from '@/core/payment/flows/flows';
-import { getPaymentService } from '@/core/payment/providers/service';
+import { handleCheckoutSuccess } from '@/domains/billing/application/flows';
 import { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
@@ -13,13 +12,17 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
-import { findOrderByOrderNo } from '@/shared/models/order';
+import {
+  readRuntimeSettingsCached,
+  readRuntimeSettingsFresh,
+} from '@/domains/settings/application/settings-store';
+import { findOrderByOrderNo } from '@/domains/billing/infra/order';
 import {
   PaymentCallbackBodySchema,
   PaymentCallbackQuerySchema,
 } from '@/shared/schemas/api/payment/callback';
-import { PaymentType } from '@/shared/types/payment';
+import { PaymentType } from '@/domains/billing/domain/payment';
+import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
 
 function appendOrderNoToUrl(
   url: string,
@@ -108,9 +111,12 @@ export const POST = withApi(async (req: Request) => {
     throw new BadRequestError('invalid order');
   }
 
-  const paymentService = await getPaymentService({
-    mode: resolveConfigConsistencyMode(req),
-  });
+  const mode = resolveConfigConsistencyMode(req);
+  const paymentService = await getPaymentServiceWithConfigs(
+    mode === 'fresh'
+      ? await readRuntimeSettingsFresh()
+      : await readRuntimeSettingsCached()
+  );
   const session = await paymentService.getPaymentSession({
     provider: order.paymentProvider,
     sessionId: order.paymentSessionId,

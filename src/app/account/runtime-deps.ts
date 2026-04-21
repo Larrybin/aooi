@@ -25,7 +25,7 @@ import {
   getRemainingCredits,
   getRemainingCreditsSummary,
 } from '@/shared/models/credit';
-import { getCurrentSubscription } from '@/shared/models/subscription';
+import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
 import { updateUser } from '@/shared/models/user';
 
 function toCreditStatus(status: AccountCreditStatus): CreditStatus {

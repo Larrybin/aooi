@@ -4,7 +4,7 @@
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
-import { PaymentCallbackHandler } from '@/shared/blocks/payment/payment-callback';
+import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import {
@@ -12,10 +12,10 @@ import {
   getOrdersCount,
   OrderStatus,
   type Order,
-} from '@/shared/models/order';
+} from '@/domains/billing/infra/order';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
-import type { PaymentType } from '@/shared/types/payment';
+import type { PaymentType } from '@/domains/billing/domain/payment';
 
 export default async function PaymentsPage({
   searchParams,

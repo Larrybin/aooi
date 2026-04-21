@@ -8,13 +8,13 @@ import {
 } from '@/surfaces/admin/schemas/list';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { PaymentType } from '@/shared/types/payment';
+import { PaymentType } from '@/domains/billing/domain/payment';
 import {
   getOrders,
   getOrdersCount,
   OrderStatus,
   type Order,
-} from '@/shared/models/order';
+} from '@/domains/billing/infra/order';
 
 export default createAdminTablePage<Order, AdminPaymentsListQuery>({
   namespace: 'admin.payments',

@@ -12,7 +12,7 @@ import {
   getSubscriptions,
   getSubscriptionsCount,
   type Subscription,
-} from '@/shared/models/subscription';
+} from '@/domains/billing/infra/subscription';
 
 export default createAdminTablePage<Subscription, AdminSubscriptionsListQuery>({
   namespace: 'admin.subscriptions',

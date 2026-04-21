@@ -1,6 +1,5 @@
 import type { Button } from '@/types/blocks/base/button';
-
-import type { PaymentInterval } from '@/shared/types/payment';
+type PaymentInterval = 'one-time' | 'day' | 'week' | 'month' | 'year';
 
 export interface PricingGroup {
   name?: string;

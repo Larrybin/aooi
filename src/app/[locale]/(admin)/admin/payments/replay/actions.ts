@@ -6,17 +6,21 @@ import {
   requireActionPermission,
   requireActionUser,
 } from '@/app/access-control/action-guard';
-import { findOrderByInvoiceId, findOrderByOrderNo, findOrderByTransactionId } from '@/shared/models/order';
+import {
+  findOrderByInvoiceId,
+  findOrderByOrderNo,
+  findOrderByTransactionId,
+} from '@/domains/billing/infra/order';
 import {
   findPaymentWebhookInboxByIds,
   markPaymentWebhookInboxAttempt,
   markPaymentWebhookInboxProcessFailed,
   markPaymentWebhookInboxProcessed,
-} from '@/shared/models/payment_webhook_inbox';
-import { deserializePaymentWebhookCanonicalEvent } from '@/shared/models/payment_webhook_canonical_event';
-import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/shared/models/payment_webhook_inbox.shared';
-import { recordPaymentWebhookAudit } from '@/shared/models/payment_webhook_audit';
-import { findSubscriptionByProviderSubscriptionId } from '@/shared/models/subscription';
+} from '@/domains/billing/infra/payment-webhook-inbox';
+import { deserializePaymentWebhookCanonicalEvent } from '@/domains/billing/infra/payment-webhook-canonical-event';
+import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/domains/billing/infra/payment-webhook-inbox.shared';
+import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
+import { findSubscriptionByProviderSubscriptionId } from '@/domains/billing/infra/subscription';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema, parseFormData } from '@/shared/lib/action/form';
@@ -28,13 +32,13 @@ import {
   handleSubscriptionCanceled,
   handleSubscriptionRenewal,
   handleSubscriptionUpdated,
-} from '@/core/payment/flows/flows';
-import type { PaymentNotifyDeps } from '@/core/payment/webhooks/process-payment-notify';
-import { processPaymentNotifyEvent } from '@/core/payment/webhooks/process-payment-notify';
+} from '@/domains/billing/application/flows';
+import type { PaymentNotifyDeps } from '@/domains/billing/application/process-payment-notify';
+import { processPaymentNotifyEvent } from '@/domains/billing/application/process-payment-notify';
 import {
   runPaymentWebhookReplay,
   type PaymentWebhookReplaySummary,
-} from '@/core/payment/webhooks/replay';
+} from '@/domains/billing/application/replay';
 
 const ReplayActionSchema = z.object({
   inboxIds: jsonStringArraySchema,

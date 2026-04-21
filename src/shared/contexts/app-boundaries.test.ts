@@ -117,11 +117,11 @@ test('shared/common 不再持有 markdown-it 解析器实现', async () => {
 
 test('非 payment surface 不允许直接 import payment provider 实现', async () => {
   const srcRoot = path.resolve(repoRoot, 'src');
-  const allowedPrefixes = [path.resolve(srcRoot, 'core/payment')];
+  const allowedPrefixes = [path.resolve(srcRoot, 'infra/adapters/payment')];
   const providerImportPatterns = [
-    '@/core/payment/providers/stripe',
-    '@/core/payment/providers/paypal',
-    '@/core/payment/providers/creem',
+    '@/infra/adapters/payment/stripe',
+    '@/infra/adapters/payment/paypal',
+    '@/infra/adapters/payment/creem',
   ];
 
   for (const file of await collectSourceFiles(srcRoot)) {
