@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next';
 
 import { defaultLocale, locales } from '@/config/locale';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import {
   isLandingBlogEnabled,
   isLandingDocsEnabled,
-} from '@/shared/lib/landing-visibility';
+} from '@/surfaces/public/navigation/landing-visibility';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 

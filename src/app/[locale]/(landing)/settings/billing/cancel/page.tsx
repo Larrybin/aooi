@@ -12,7 +12,7 @@ import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   findSubscriptionBySubscriptionNo,

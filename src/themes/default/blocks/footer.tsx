@@ -4,7 +4,7 @@ import { Copyright } from '@/shared/blocks/common/copyright';
 import { GeneralSocialLinks } from '@/shared/blocks/common/general-social-links';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';

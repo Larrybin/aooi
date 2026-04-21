@@ -59,7 +59,7 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
   return {
     resolveConfigConsistencyMode,
     requireAiEnabled: async () => {
-      const mod = await import('@/shared/lib/api/ai-guard');
+      const mod = await import('@/app/api/ai/_lib/guard');
       await mod.requireAiEnabled();
     },
     getApiContext: async (req) => {

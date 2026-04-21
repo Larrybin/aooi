@@ -9,7 +9,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { routing } from '@/infra/platform/i18n/config';
 import { HtmlLangProvider } from '@/infra/platform/i18n/html-lang-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-runtime.query';
 

@@ -10,13 +10,13 @@ import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
-import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-user-snapshot';
-import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
+import { toAuthSessionUserSnapshot } from '@/infra/platform/auth/user-snapshot';
+import { applyBrandToSidebar } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+} from '@/infra/platform/brand/placeholders.server';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { requireAdminPageAccess } from './_guards/page-access';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';

@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   createRequestScopedAuthSessionReader,
   readSignedInUserIdentityFromCookieHeader,
-} from './auth-session-reader';
+} from './session-reader';
 
 function createMemoizedCache() {
   return <Args extends [string | null], Result>(fn: (...args: Args) => Result) => {

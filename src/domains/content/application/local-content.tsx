@@ -9,11 +9,11 @@ import {
   postsI18n,
   postsSource,
 } from '@/domains/content/infra/source';
-import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
+import { replaceBrandPlaceholdersInReactNode } from '@/infra/platform/brand/placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';

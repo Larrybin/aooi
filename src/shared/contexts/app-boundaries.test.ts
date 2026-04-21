@@ -65,8 +65,8 @@ test('仓库源码不再引用旧的 get-user-info 路径', async () => {
   const filesToCheck = [
     'src/shared/contexts/app.tsx',
     'src/themes/default/blocks/pricing.tsx',
-    'src/shared/blocks/generator/image.tsx',
-    'src/shared/blocks/generator/music.tsx',
+    'src/domains/ai/ui/image-generator.tsx',
+    'src/domains/ai/ui/music-generator.tsx',
   ];
 
   for (const file of filesToCheck) {
@@ -78,8 +78,8 @@ test('仓库源码不再引用旧的 get-user-info 路径', async () => {
 test('公共消费方不再在首屏隐式读取 useSession', async () => {
   const filesToCheck = [
     'src/themes/default/blocks/pricing.tsx',
-    'src/shared/blocks/generator/image.tsx',
-    'src/shared/blocks/generator/music.tsx',
+    'src/domains/ai/ui/image-generator.tsx',
+    'src/domains/ai/ui/music-generator.tsx',
   ];
 
   for (const file of filesToCheck) {

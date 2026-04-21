@@ -1,4 +1,4 @@
-import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 
 type MockProfile = {
   email: string;

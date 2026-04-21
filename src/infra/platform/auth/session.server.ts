@@ -9,7 +9,7 @@ import type {
   AuthSessionUserIdentity,
   AuthSessionUserSnapshot,
 } from '@/shared/types/auth-session';
-import { createRequestScopedAuthSessionReader } from '@/shared/lib/auth-session-reader';
+import { createRequestScopedAuthSessionReader } from '@/infra/platform/auth/session-reader';
 
 async function readSignedInUserIdentityBySessionToken(
   sessionToken: string

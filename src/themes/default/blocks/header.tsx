@@ -24,7 +24,7 @@ import {
 } from '@/shared/components/ui/navigation-menu';
 import { listenEvent } from '@/shared/lib/dom/event-listener';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';

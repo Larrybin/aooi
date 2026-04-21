@@ -23,7 +23,7 @@ import {
   updateOrderByOrderNo,
   type NewOrder,
 } from '@/domains/billing/infra/order';
-import { parseCreemProductIdsMappingConfig } from '@/shared/lib/payment-config';
+import { parseCreemProductIdsMappingConfig } from '@/domains/billing/domain/payment-config';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
 
 import { resolveCheckoutPricingContext } from '@/domains/billing/domain/pricing';

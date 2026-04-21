@@ -8,7 +8,7 @@ import { db } from '@/infra/adapters/db';
 import * as schema from '@/config/db/schema';
 import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
 import { getUuid } from '@/shared/lib/hash';
-import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 import { isProductionEnv } from '@/shared/lib/env';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-runtime.query';

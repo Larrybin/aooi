@@ -31,7 +31,7 @@ import {
   normalizeCallbackUrl,
   withCallbackUrl,
 } from '@/shared/lib/callback-url';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem, UserNav } from '@/shared/types/blocks/common';
 

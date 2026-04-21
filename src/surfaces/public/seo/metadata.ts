@@ -4,7 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { defaultLocale, locales } from '@/config/locale';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 type MetadataFields = {

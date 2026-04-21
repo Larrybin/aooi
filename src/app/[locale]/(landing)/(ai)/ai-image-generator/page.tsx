@@ -5,8 +5,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { PageHeader } from '@/shared/blocks/common/page-header';
-import { ImageGenerator } from '@/shared/blocks/generator';
-import { getMetadata } from '@/shared/lib/seo';
+import { ImageGenerator } from '@/domains/ai/ui';
+import { getMetadata } from '@/surfaces/public/seo/metadata';
 import { CTA, FAQ } from '@/themes/default/blocks';
 
 export const generateMetadata = getMetadata({

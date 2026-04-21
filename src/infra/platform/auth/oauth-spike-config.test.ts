@@ -7,7 +7,7 @@ import {
   isAuthSpikeOAuthConfigSeedEnabled,
   isAuthSpikeOAuthUpstreamMockEnabled,
   mergeAuthSpikeOAuthConfigSeedConfigs,
-} from './auth-spike-oauth-config';
+} from './oauth-spike-config';
 
 function createEnv(
   overrides: Partial<NodeJS.ProcessEnv> = {}

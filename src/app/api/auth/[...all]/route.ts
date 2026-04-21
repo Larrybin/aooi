@@ -6,7 +6,7 @@ import {
   resolveAuthSpikeRedirectRequestUrl,
   toRelativeSameOriginAuthSpikeRedirectLocationValue,
 } from '@/infra/platform/auth/auth-spike-redirect';
-import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 

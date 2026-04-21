@@ -9,10 +9,10 @@ import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { getMetadata } from '@/shared/lib/seo';
+import { getMetadata } from '@/surfaces/public/seo/metadata';
 import type {
   Blog as BlogType,
   Category as CategoryType,

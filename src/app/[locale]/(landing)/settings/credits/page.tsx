@@ -14,7 +14,7 @@ import {
 import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

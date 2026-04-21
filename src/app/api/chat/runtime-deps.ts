@@ -1,7 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { convertToModelMessages, generateId, streamText } from 'ai';
 
-import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
+import { requireAiEnabled } from '@/app/api/ai/_lib/guard';
 import { createApiContext } from '@/app/api/_lib/context';
 
 import {

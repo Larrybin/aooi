@@ -7,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/infra/platform/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common/empty';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
 import { findAITaskById, updateAITaskById } from '@/domains/ai/infra/ai-task';
 import { getAIService } from '@/domains/ai/application/service';
 

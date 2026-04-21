@@ -1,8 +1,8 @@
 import 'server-only';
 
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
 
-import { NotFoundError } from './errors';
+import { NotFoundError } from '@/shared/lib/api/errors';
 
 export async function requireAiEnabled(): Promise<void> {
   if (await isAiEnabledCached()) {

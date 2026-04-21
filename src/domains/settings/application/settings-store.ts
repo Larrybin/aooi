@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 
 import { db } from '@/infra/adapters/db';
 import { config } from '@/config/db/schema';
-import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
+import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/infra/platform/auth/oauth-spike-config';
 import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';

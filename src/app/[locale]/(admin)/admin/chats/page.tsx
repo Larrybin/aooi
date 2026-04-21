@@ -9,7 +9,7 @@ import {
 } from '@/surfaces/admin/schemas/list';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
 import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
 
 export default createAdminTablePage<Chat, AdminChatsListQuery>({

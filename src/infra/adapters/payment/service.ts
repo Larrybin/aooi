@@ -10,7 +10,7 @@ import {
   trimmedProviderNameKey,
 } from '@/shared/lib/providers/provider-registry';
 import { isProductionEnv } from '@/shared/lib/env';
-import { parseStripePaymentMethodsConfig } from '@/shared/lib/payment-config';
+import { parseStripePaymentMethodsConfig } from '@/domains/billing/domain/payment-config';
 import type {
   CheckoutSession,
   PaymentEvent,

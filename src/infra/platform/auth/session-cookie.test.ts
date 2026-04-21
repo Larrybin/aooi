@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { readSessionTokenFromCookieHeader } from './auth-session-cookie';
+import { readSessionTokenFromCookieHeader } from './session-cookie';
 
 test('readSessionTokenFromCookieHeader 读取 better-auth 默认 session cookie', () => {
   assert.equal(

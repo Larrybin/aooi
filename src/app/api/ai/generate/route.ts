@@ -1,4 +1,4 @@
-import { requireAiEnabled } from '@/shared/lib/api/ai-guard';
+import { requireAiEnabled } from '@/app/api/ai/_lib/guard';
 import { createApiContext } from '@/app/api/_lib/context';
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';

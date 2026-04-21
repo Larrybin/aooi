@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { toAuthSessionUserSnapshot } from './auth-user-snapshot';
+import { toAuthSessionUserSnapshot } from './user-snapshot';
 
 test('toAuthSessionUserSnapshot 只保留 name/email/image 三个轻字段', () => {
   assert.deepEqual(

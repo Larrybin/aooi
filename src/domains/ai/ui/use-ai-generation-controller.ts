@@ -25,7 +25,7 @@ import {
   getRequestIdFromError,
   RequestIdError,
 } from '@/shared/lib/api/request-id';
-import { resolveAICapabilitySelection } from '@/shared/lib/ai-capability-selection';
+import { resolveAICapabilitySelection } from '@/domains/ai/application/capability-selection';
 import type { AICapability } from '@/shared/types/ai-capability';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 

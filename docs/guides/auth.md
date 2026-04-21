@@ -251,7 +251,7 @@ The reset page accepts query params:
 Prefer `getSignedInUserIdentity()` / `getSignedInUserSnapshot()` in Server Components and server-only helpers:
 
 ```typescript
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 
 const user = await getSignedInUserIdentity();
 ```

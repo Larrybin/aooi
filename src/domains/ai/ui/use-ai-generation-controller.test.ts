@@ -42,7 +42,7 @@ test('useAiGenerationController: capability 选择逻辑只从 canonical 纯函�
 
   assert.equal(
     content.includes(
-      "import { resolveAICapabilitySelection } from '@/shared/lib/ai-capability-selection';"
+      "import { resolveAICapabilitySelection } from '@/domains/ai/application/capability-selection';"
     ),
     true
   );

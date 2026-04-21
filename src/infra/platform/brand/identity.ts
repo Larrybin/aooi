@@ -1,4 +1,4 @@
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import type { Footer, Header } from '@/shared/types/blocks/landing';
 import type { Sidebar } from '@/shared/types/blocks/workspace';
 

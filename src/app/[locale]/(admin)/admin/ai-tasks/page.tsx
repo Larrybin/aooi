@@ -10,7 +10,7 @@ import {
 
 import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
+import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
 import {
   getAITasks,
   getAITasksCount,

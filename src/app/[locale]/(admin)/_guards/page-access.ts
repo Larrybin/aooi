@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { redirect } from '@/infra/platform/i18n/navigation';
 
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';

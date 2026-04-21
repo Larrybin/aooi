@@ -7,7 +7,7 @@ import type { UIMessage } from 'ai';
 
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import { findChatByIdForViewer } from '@/domains/chat/infra/chat';
 import {

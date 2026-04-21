@@ -13,13 +13,13 @@ import { WorkspaceLayout } from '@/shared/blocks/workspace';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
 import { ChatContextProvider } from '@/shared/contexts/chat';
-import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
-import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
+import { getSignedInUserSnapshot } from '@/infra/platform/auth/session.server';
+import { applyBrandToSidebar } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { isAiEnabled } from '@/shared/lib/landing-visibility';
+} from '@/infra/platform/brand/placeholders.server';
+import { isAiEnabled } from '@/surfaces/public/navigation/landing-visibility';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 

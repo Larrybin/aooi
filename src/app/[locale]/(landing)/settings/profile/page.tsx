@@ -10,7 +10,7 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-profile';
 import type { Form as FormType } from '@/shared/types/blocks/form';

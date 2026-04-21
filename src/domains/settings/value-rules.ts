@@ -9,7 +9,7 @@ import { normalizeAssetSettingValue } from '@/domains/settings/validators/genera
 import {
   parseCreemProductIdsMappingConfig,
   parseStripePaymentMethodsConfig,
-} from '@/shared/lib/payment-config';
+} from '@/domains/settings/validators/payment';
 
 import type { NormalizedSettingValueResult } from './types';
 

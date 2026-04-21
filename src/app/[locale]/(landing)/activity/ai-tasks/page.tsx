@@ -9,8 +9,8 @@ import { AudioPlayer } from '@/shared/blocks/common/audio-player';
 import { AppImage } from '@/shared/blocks/common/app-image';
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { isAiEnabledCached } from '@/domains/ai/application/ai-enabled.query';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
   getAITasks,

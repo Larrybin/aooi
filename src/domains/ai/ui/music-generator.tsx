@@ -41,7 +41,7 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import {
   useAiGenerationController,
   type AIGenerationTaskAdapter,
-} from '@/shared/hooks/use-ai-generation-controller';
+} from '@/domains/ai/ui/use-ai-generation-controller';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
 import { cn } from '@/shared/lib/utils';
 

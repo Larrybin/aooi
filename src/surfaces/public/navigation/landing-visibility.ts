@@ -1,6 +1,6 @@
 import type { Button, NavItem } from '@/shared/types/blocks/common';
 
-import { isConfigTrue } from './general-ui.client';
+import { isConfigTrue } from '@/shared/lib/general-ui.client';
 
 export const GENERAL_BLOG_ENABLED = 'general_blog_enabled';
 export const GENERAL_DOCS_ENABLED = 'general_docs_enabled';

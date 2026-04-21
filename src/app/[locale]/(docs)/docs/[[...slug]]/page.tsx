@@ -16,11 +16,11 @@ import {
   listDocsStaticParams,
   readDocsPage,
 } from '@/domains/content/application/docs-content.query';
-import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
+import { replaceBrandPlaceholdersInReactNode } from '@/infra/platform/brand/placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 

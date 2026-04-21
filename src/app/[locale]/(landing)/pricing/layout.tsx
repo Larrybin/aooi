@@ -6,11 +6,11 @@ import { getTranslations } from 'next-intl/server';
 
 import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
 import { PublicAppProvider } from '@/shared/contexts/app';
-import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type {

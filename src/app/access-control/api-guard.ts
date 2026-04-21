@@ -7,7 +7,7 @@
 import 'server-only';
 
 import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { assertCsrf } from '@/shared/lib/api/csrf.server';
 import {
   ForbiddenError,

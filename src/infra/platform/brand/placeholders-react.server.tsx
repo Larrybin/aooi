@@ -5,7 +5,7 @@ import React from 'react';
 import {
   replaceBrandPlaceholders,
   type BrandPlaceholderValues,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 
 function replaceInStringProps(
   props: Record<string, unknown>,

@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { Empty } from '@/shared/blocks/common/empty';
 import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import {
   getOrders,
   getOrdersCount,

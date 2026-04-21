@@ -10,7 +10,7 @@ import {
 } from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

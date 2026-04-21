@@ -8,10 +8,10 @@ import { locales } from '@/config/locale';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { getMetadata } from '@/shared/lib/seo';
+import { getMetadata } from '@/surfaces/public/seo/metadata';
 import type {
   FAQ as FAQType,
   Testimonials as TestimonialsType,

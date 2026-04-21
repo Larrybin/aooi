@@ -1,7 +1,7 @@
 import { cache } from 'react';
 
-import { readSessionTokenFromCookieHeader } from '@/shared/lib/auth-session-cookie';
-import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-user-snapshot';
+import { readSessionTokenFromCookieHeader } from '@/infra/platform/auth/session-cookie';
+import { toAuthSessionUserSnapshot } from '@/infra/platform/auth/user-snapshot';
 import type {
   AuthSessionUserIdentity,
   AuthSessionUserSnapshot,

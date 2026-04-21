@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { ActionError } from '@/shared/lib/action/errors';
 
 import { getPermissionCheckerForRequest } from './runtime-deps';

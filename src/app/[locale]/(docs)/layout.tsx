@@ -11,8 +11,8 @@ import {
   readDocsPageTree,
   resolveDocsLocale,
 } from '@/domains/content/application/docs-content.query';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
+import { isLandingDocsEnabled } from '@/surfaces/public/navigation/landing-visibility';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
 import { baseOptions } from './layout.config';

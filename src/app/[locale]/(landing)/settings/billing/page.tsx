@@ -8,7 +8,7 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
 import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import {
   getCurrentSubscription,
   getSubscriptions,
