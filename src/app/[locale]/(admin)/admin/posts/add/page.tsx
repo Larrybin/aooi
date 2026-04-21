@@ -11,7 +11,7 @@ import {
   getTaxonomies,
   TaxonomyStatus,
   TaxonomyType,
-} from '@/shared/models/taxonomy';
+} from '@/domains/content/application/taxonomy-management';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { createPostAction } from '../actions';

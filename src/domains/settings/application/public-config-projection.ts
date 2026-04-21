@@ -1,7 +1,7 @@
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { PUBLIC_SETTING_NAMES } from '@/domains/settings/registry';
 
-type ConfigMap = Record<string, string>;
+export type ConfigMap = Record<string, string>;
 
 export function buildPublicConfigs(allConfigs: ConfigMap): ConfigMap {
   const publicConfigs: Record<string, string> = {};

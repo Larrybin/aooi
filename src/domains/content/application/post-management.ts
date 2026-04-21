@@ -2,8 +2,6 @@ import 'server-only';
 
 import type { post } from '@/config/db/schema';
 import { logger } from '@/shared/lib/logger.server';
-import { formatPostDate } from '@/shared/lib/post-date';
-import { buildPostTocFromMarkdown } from '@/shared/lib/post-toc';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import {
@@ -12,7 +10,9 @@ import {
   getPostRows,
   getPostRowsCount,
   updatePostRow,
-} from './post_repo';
+} from '@/domains/content/infra/post-repo';
+import { generateTOC } from '@/domains/content/domain/toc';
+import { formatPostDate } from '@/domains/content/domain/post-date';
 
 export type Post = typeof post.$inferSelect;
 export type NewPost = typeof post.$inferInsert;
@@ -111,7 +111,7 @@ export async function getPost({
         content,
         inlineAdContent: content,
         body: undefined,
-        toc: content ? buildPostTocFromMarkdown(content) : undefined,
+        toc: content ? generateTOC(content) : undefined,
         created_at:
           getPostDate({
             created_at: postData.createdAt.toISOString(),

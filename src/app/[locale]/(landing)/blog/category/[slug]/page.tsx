@@ -6,7 +6,7 @@ import {
   getBlogCategory,
   getBlogCategoryPostsAndCategories,
   getPublicBlogCategoryStaticSlugs,
-} from '@/features/docs/server/content';
+} from '@/domains/content/application/public-content.query';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';

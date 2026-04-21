@@ -1,8 +1,7 @@
 import 'server-only';
 
-import { postsI18n } from '@/core/docs/source';
+import { postsI18n } from '@/domains/content/infra/source';
 import { logger } from '@/shared/lib/logger.server';
-import { formatPostDate } from '@/shared/lib/post-date';
 import {
   PostType as DbPostType,
   getPosts,
@@ -10,7 +9,7 @@ import {
   getPost as getRemotePost,
   PostStatus,
   type Post as RemotePost,
-} from '@/shared/models/post';
+} from '@/domains/content/application/post-management';
 import {
   findTaxonomy,
   getTaxonomies,
@@ -18,11 +17,12 @@ import {
   TaxonomyStatus,
   TaxonomyType,
   type Taxonomy,
-} from '@/shared/models/taxonomy';
+} from '@/domains/content/application/taxonomy-management';
 import type {
   Category as BlogCategoryType,
   Post as BlogPostType,
 } from '@/shared/types/blocks/blog';
+import { formatPostDate } from '@/domains/content/domain/post-date';
 
 import {
   getDefaultBlogPageSize,
@@ -35,7 +35,7 @@ import {
   getLocalBlogPostEntries,
   getLocalPage,
   getLocalPost,
-} from './post-content';
+} from './local-content';
 
 export async function getDocsPage({
   slug,

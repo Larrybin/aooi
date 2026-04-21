@@ -3,19 +3,24 @@ import 'server-only';
 import { createElement, type ElementType, type ReactNode } from 'react';
 import { getMDXComponents } from '@/mdx-components';
 
-import { pagesI18n, pagesSource, postsI18n, postsSource } from '@/core/docs/source';
+import {
+  pagesI18n,
+  pagesSource,
+  postsI18n,
+  postsSource,
+} from '@/domains/content/infra/source';
 import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/shared/lib/brand-placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
-import { formatPostDate } from '@/shared/lib/post-date';
-import { buildPostTocFromMarkdown as buildMarkdownToc } from '@/shared/lib/post-toc';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import { toSortTimestamp, type BlogPostEntry } from './blog-feed';
+import { generateTOC } from '@/domains/content/domain/toc';
+import { formatPostDate } from '@/domains/content/domain/post-date';
 
 function resolveContentLocale(locale: string, languages: string[]) {
   return languages.includes(locale) ? locale : 'en';
@@ -53,7 +58,7 @@ export async function getLocalPost({
     return null;
   }
 
-  const configs = await readRuntimeSettingsCached();
+  const configs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(configs);
 
   const MDXContent = localPost.data.body;
@@ -112,7 +117,7 @@ export async function getLocalPage({
     return null;
   }
 
-  const configs = await readRuntimeSettingsCached();
+  const configs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(configs);
 
   const MDXContent = localPage.data.body;
@@ -176,7 +181,7 @@ export async function getLocalBlogPostEntries({
     return [] satisfies BlogPostEntry[];
   }
 
-  const configs = await readRuntimeSettingsCached();
+  const configs = await getPublicConfigsCached();
   const brand = buildBrandPlaceholderValues(configs);
 
   return localPosts.map((post) => {
@@ -211,7 +216,7 @@ export async function getLocalBlogPostEntries({
 }
 
 export function buildPostTocFromMarkdown(content: string) {
-  return buildMarkdownToc(content);
+  return generateTOC(content);
 }
 
 function getPostSlugFromUrl({

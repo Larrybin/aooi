@@ -7,8 +7,10 @@ import type { Translations } from 'fumadocs-ui/i18n';
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
 import { RootProvider } from 'fumadocs-ui/provider';
 
-import { docsSource } from '@/core/docs/source';
-import { resolveDocsLocale } from '@/core/docs/route-params';
+import {
+  readDocsPageTree,
+  resolveDocsLocale,
+} from '@/domains/content/application/docs-content.query';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
@@ -74,7 +76,7 @@ export default async function DocsRootLayout({
     >
       <DocsLayout
         {...options}
-        tree={docsSource.pageTree[lang]}
+        tree={readDocsPageTree(lang)}
         nav={{ ...options.nav, mode: 'top' }}
         sidebar={{
           tabs: [],

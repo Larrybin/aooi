@@ -8,12 +8,12 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { findPost } from '@/shared/models/post';
+import { findPost } from '@/domains/content/application/post-management';
 import {
   getTaxonomies,
   TaxonomyStatus,
   TaxonomyType,
-} from '@/shared/models/taxonomy';
+} from '@/domains/content/application/taxonomy-management';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updatePostAction } from '../../actions';

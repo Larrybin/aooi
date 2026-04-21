@@ -13,7 +13,7 @@ import {
   getTaxonomiesCount,
   TaxonomyType,
   type Taxonomy,
-} from '@/shared/models/taxonomy';
+} from '@/domains/content/application/taxonomy-management';
 
 export default createAdminTablePage<Taxonomy, AdminCategoriesListQuery>({
   namespace: 'admin.categories',

@@ -15,7 +15,7 @@ import {
   TaxonomyType,
   updateTaxonomy,
   type NewTaxonomy,
-} from '@/shared/models/taxonomy';
+} from '@/domains/content/application/taxonomy-management';
 
 /**
  * Create a new category

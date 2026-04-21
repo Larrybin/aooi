@@ -15,7 +15,7 @@ import {
   PostType,
   updatePost,
   type NewPost,
-} from '@/shared/models/post';
+} from '@/domains/content/application/post-management';
 
 /**
  * Create a new post

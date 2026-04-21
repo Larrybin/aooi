@@ -13,8 +13,8 @@ import {
   getPostsCount,
   PostType,
   type Post,
-} from '@/shared/models/post';
-import { getTaxonomies } from '@/shared/models/taxonomy';
+} from '@/domains/content/application/post-management';
+import { getTaxonomies } from '@/domains/content/application/taxonomy-management';
 
 export default createAdminTablePage<Post, AdminPostsListQuery>({
   namespace: 'admin.posts',

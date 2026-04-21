@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { normalizeDocsSlug, resolveDocsLocale } from './route-params';
+import { normalizeDocsSlug, resolveDocsLocale } from './docs-route';
 
 test('normalizeDocsSlug 会把 docs 根页 rewrite 的 index slug 还原成空 slug', () => {
   assert.deepEqual(normalizeDocsSlug(), []);

@@ -5,8 +5,8 @@ import { notFound } from 'next/navigation';
 import {
   getBlogPost,
   getPublicBlogPostStaticSlugs,
-} from '@/features/docs/server/content';
-import { MarkdownContent } from '@/features/docs/server/markdown-content';
+} from '@/domains/content/application/public-content.query';
+import { MarkdownContent } from '@/domains/content/ui/markdown-content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';

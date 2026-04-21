@@ -8,7 +8,7 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { findTaxonomy } from '@/shared/models/taxonomy';
+import { findTaxonomy } from '@/domains/content/application/taxonomy-management';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateCategoryAction } from '../../actions';

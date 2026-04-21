@@ -5,7 +5,7 @@ import { createFromSource } from 'fumadocs-core/search/server';
 import { loader } from 'fumadocs-core/source';
 import { icons } from 'lucide-react';
 
-import { toLoaderSource } from '@/core/docs/source';
+import { toLoaderSource } from '@/domains/content/infra/source';
 
 // 针对搜索单独使用英文索引，避免 Orama 多语言兼容问题
 const searchI18n: I18nConfig = {

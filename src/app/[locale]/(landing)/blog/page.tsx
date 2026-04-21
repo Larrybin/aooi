@@ -1,7 +1,7 @@
 // data: blog translations + posts/categories (content + db)
 // cache: static (generateStaticParams) + default RSC
 // reason: public blog listing should be statically prerenderable
-import { getBlogPostsAndCategories } from '@/features/docs/server/content';
+import { getBlogPostsAndCategories } from '@/domains/content/application/public-content.query';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
