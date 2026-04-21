@@ -236,7 +236,7 @@ const eslintConfig = [
       'src/config/load-dotenv.ts',
       'src/config/public-env.ts',
       'src/config/server-auth-base-url.ts',
-      'src/shared/lib/runtime/env.server.ts',
+      'src/infra/runtime/env.server.ts',
       'cloudflare/workers/create-server-worker.ts',
     ],
     rules: {

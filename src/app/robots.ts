@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 import { defaultLocale, locales } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;

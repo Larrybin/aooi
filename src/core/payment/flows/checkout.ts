@@ -17,14 +17,14 @@ import {
   UpstreamError,
 } from '@/shared/lib/api/errors';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 import {
   createOrder,
   OrderStatus,
   updateOrderByOrderNo,
   type NewOrder,
 } from '@/shared/models/order';
-import { parseCreemProductIdsMappingConfig } from '@/shared/services/settings/validators/payment';
+import { parseCreemProductIdsMappingConfig } from '@/domains/settings/validators/payment';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
 
 import { resolveCheckoutPricingContext } from './pricing';

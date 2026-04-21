@@ -22,7 +22,7 @@ const PROCESS_ENV_ALLOWLIST = new Set([
   'src/config/load-dotenv.ts',
   'src/config/public-env.ts',
   'src/config/server-auth-base-url.ts',
-  'src/shared/lib/runtime/env.server.ts',
+  'src/infra/runtime/env.server.ts',
 ]);
 
 async function collectFiles(dir: string): Promise<string[]> {

@@ -1,4 +1,4 @@
-import { isRuntimeEnvEnabled } from '@/shared/lib/runtime/env.server';
+import { isRuntimeEnvEnabled } from '@/infra/runtime/env.server';
 
 export const AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS = Object.freeze({
   google_auth_enabled: 'true',

@@ -181,7 +181,7 @@ export function createChatStreamPostAction(
         findChatById: deps.chatStreamDeps.findChatById,
         createChatMessage: deps.chatStreamDeps.createChatMessage,
         getChatMessageWindow: deps.chatStreamDeps.getChatMessageWindow,
-        getAllConfigs: deps.chatStreamDeps.getAllConfigs,
+        readRuntimeSettings: deps.chatStreamDeps.readRuntimeSettings,
         consumeCredits: deps.chatStreamDeps.consumeCredits,
         refundConsumedCreditById: deps.chatStreamDeps.refundConsumedCreditById,
       },

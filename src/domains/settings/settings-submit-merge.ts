@@ -1,4 +1,4 @@
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 
 import { isKnownSettingKey } from './registry';
 

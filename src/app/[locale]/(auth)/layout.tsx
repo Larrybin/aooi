@@ -7,8 +7,8 @@ import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 export default async function AuthLayout({
   children,

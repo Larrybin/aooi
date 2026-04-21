@@ -4,11 +4,11 @@ import test from 'node:test';
 import {
   ALL_SETTINGS,
   type KnownSettingKey,
-} from '@/shared/services/settings/registry';
+} from '@/domains/settings/registry';
 import {
   SETTING_TAB_NAMES,
   type SettingTabName,
-} from '@/shared/services/settings/tab-names';
+} from '@/domains/settings/tab-names';
 
 import {
   MODULE_GUIDE_SLUGS,

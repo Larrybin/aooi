@@ -5,11 +5,11 @@ import {
   normalizeStoragePublicBaseUrl,
 } from '@/shared/lib/storage-public-url';
 import { tryJsonParse } from '@/shared/lib/json';
-import { normalizeAssetSettingValue } from '@/shared/services/settings/validators/general';
+import { normalizeAssetSettingValue } from '@/domains/settings/validators/general';
 import {
   parseCreemProductIdsMappingConfig,
   parseStripePaymentMethodsConfig,
-} from '@/shared/services/settings/validators/payment';
+} from '@/domains/settings/validators/payment';
 
 import type { NormalizedSettingValueResult } from './types';
 

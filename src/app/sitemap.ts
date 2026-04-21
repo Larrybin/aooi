@@ -6,8 +6,8 @@ import {
   isLandingBlogEnabled,
   isLandingDocsEnabled,
 } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;

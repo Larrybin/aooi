@@ -2,7 +2,7 @@ import type {
   StorageUploadOptions,
   StorageUploadResult,
 } from '@/extensions/storage';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 import { uploadFileToCloudflareR2 } from '@/shared/platform/cloudflare/storage';
 import {
   buildStorageSpikeUploadMockResult,

@@ -12,8 +12,8 @@ import {
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getAllConfigsCached } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import { findOrderByOrderNo } from '@/shared/models/order';
 import {
   PaymentCallbackBodySchema,
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   const { log } = api;
   let redirectUrl = '';
 
-  const configs = await getAllConfigsCached();
+  const configs = await readRuntimeSettingsCached();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 
@@ -86,7 +86,7 @@ export const POST = withApi(async (req: Request) => {
   const { log } = api;
   const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
 
-  const configs = await getAllConfigsCached();
+  const configs = await readRuntimeSettingsCached();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const appUrl = (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 

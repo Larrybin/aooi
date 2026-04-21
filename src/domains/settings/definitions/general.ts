@@ -1,5 +1,5 @@
 import { DEFAULT_PUBLIC_ENV_CONFIGS } from '@/config/public-env';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import { getDefaultSupportEmailFromOrigin } from '@/shared/lib/support-email';
 
 import type { SettingDefinition } from '../types';

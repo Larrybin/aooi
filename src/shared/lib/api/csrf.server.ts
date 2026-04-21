@@ -14,7 +14,7 @@
 import 'server-only';
 
 import { getRequestLogger } from '@/shared/lib/request-logger.server';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 import { ForbiddenError } from './errors';
 

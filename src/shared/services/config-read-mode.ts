@@ -5,14 +5,14 @@ type ConfigMap = Record<string, string>;
 export async function readServiceConfigsByMode(
   mode: ConfigConsistencyMode = 'cached',
   {
-    getAllConfigsCachedImpl,
-    getAllConfigsFreshImpl,
+    readRuntimeSettingsCachedImpl,
+    readRuntimeSettingsFreshImpl,
   }: {
-    getAllConfigsCachedImpl: () => Promise<ConfigMap>;
-    getAllConfigsFreshImpl: () => Promise<ConfigMap>;
+    readRuntimeSettingsCachedImpl: () => Promise<ConfigMap>;
+    readRuntimeSettingsFreshImpl: () => Promise<ConfigMap>;
   }
 ): Promise<ConfigMap> {
   return mode === 'fresh'
-    ? await getAllConfigsFreshImpl()
-    : await getAllConfigsCachedImpl();
+    ? await readRuntimeSettingsFreshImpl()
+    : await readRuntimeSettingsCachedImpl();
 }

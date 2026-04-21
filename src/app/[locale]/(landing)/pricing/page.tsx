@@ -10,7 +10,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getMetadata } from '@/shared/lib/seo';
 import type {
   FAQ as FAQType,

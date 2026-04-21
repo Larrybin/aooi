@@ -8,7 +8,7 @@ import {
   getDefaultSupportEmailFromOrigin,
   getDomainFromOrigin,
 } from '@/shared/lib/support-email';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 // Custom link component with nofollow for external links
 const CustomLink = ({

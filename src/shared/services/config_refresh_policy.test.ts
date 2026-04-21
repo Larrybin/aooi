@@ -7,11 +7,11 @@ test('readServiceConfigsByMode 默认读取 cached 配置', async () => {
   const calls: string[] = [];
 
   const configs = await readServiceConfigsByMode(undefined, {
-    getAllConfigsCachedImpl: async () => {
+    readRuntimeSettingsCachedImpl: async () => {
       calls.push('cached');
       return { app_name: 'cached' };
     },
-    getAllConfigsFreshImpl: async () => {
+    readRuntimeSettingsFreshImpl: async () => {
       calls.push('fresh');
       return { app_name: 'fresh' };
     },
@@ -25,11 +25,11 @@ test('readServiceConfigsByMode 在 fresh 模式下读取 fresh 配置', async ()
   const calls: string[] = [];
 
   const configs = await readServiceConfigsByMode('fresh', {
-    getAllConfigsCachedImpl: async () => {
+    readRuntimeSettingsCachedImpl: async () => {
       calls.push('cached');
       return { app_name: 'cached' };
     },
-    getAllConfigsFreshImpl: async () => {
+    readRuntimeSettingsFreshImpl: async () => {
       calls.push('fresh');
       return { app_name: 'fresh' };
     },

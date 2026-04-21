@@ -11,7 +11,7 @@ import { docsSource } from '@/core/docs/source';
 import { resolveDocsLocale } from '@/core/docs/route-params';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { isLandingDocsEnabled } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
 import { baseOptions } from './layout.config';
 

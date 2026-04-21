@@ -153,7 +153,7 @@ test('streamChatUseCase 缺 provider key 时不扣 credits 并返回 service una
             throw new Error('should not persist');
           },
           getChatMessageWindow: async () => [],
-          getAllConfigs: async () => ({}),
+          readRuntimeSettings: async () => ({}),
           consumeCredits: async () => {
             consumed += 1;
             return { id: 'credit_1' };
@@ -207,7 +207,7 @@ test('streamChatUseCase 在 provider failure 时退款', async () => {
         return message as never;
       },
       getChatMessageWindow: async () => [],
-      getAllConfigs: async () => ({ openrouter_api_key: 'key_1' }),
+      readRuntimeSettings: async () => ({ openrouter_api_key: 'key_1' }),
       consumeCredits: async () => ({ id: 'credit_1' }),
       refundConsumedCreditById: async (creditId) => {
         refunds.push(creditId);
@@ -271,7 +271,7 @@ test('streamChatUseCase 在 assistant message 持久化失败时退款', async (
         return message as never;
       },
       getChatMessageWindow: async () => [],
-      getAllConfigs: async () => ({ openrouter_api_key: 'key_1' }),
+      readRuntimeSettings: async () => ({ openrouter_api_key: 'key_1' }),
       consumeCredits: async () => ({ id: 'credit_1' }),
       refundConsumedCreditById: async (creditId) => {
         refunds.push(creditId);

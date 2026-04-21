@@ -21,20 +21,20 @@ import { withAction } from '@/shared/lib/action/with-action';
 import {
   CONFIGS_CACHE_TAG,
   PUBLIC_CONFIGS_CACHE_TAG,
-  getConfigsSafe,
-  saveConfigs,
-} from '@/shared/models/config';
+  readSettingsSafe,
+  saveSettings,
+} from '@/domains/settings/application/settings-store';
 import {
   getSettingGroups,
   getSettings,
   getSettingTabs,
-} from '@/shared/services/settings';
-import { mapSettingsToForms } from '@/shared/services/settings/settings-form-mapper';
-import { mergeRegisteredSettingValues } from '@/shared/services/settings/settings-submit-merge';
-import { isSettingTabName } from '@/shared/services/settings/tab-names';
+} from '@/domains/settings';
+import { mapSettingsToForms } from '@/domains/settings/settings-form-mapper';
+import { mergeRegisteredSettingValues } from '@/domains/settings/settings-submit-merge';
+import { isSettingTabName } from '@/domains/settings/tab-names';
 import type { Crumb } from '@/shared/types/blocks/common';
 import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
-import { normalizeSettingOverrides } from '@/shared/services/settings/settings-normalizers';
+import { normalizeSettingOverrides } from '@/domains/settings/settings-normalizers';
 
 const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
 
@@ -59,7 +59,7 @@ export default async function SettingsPage({
     locale,
   });
 
-  const { configs, error: configsError } = await getConfigsSafe();
+  const { configs, error: configsError } = await readSettingsSafe();
 
   const settingGroups = await getSettingGroups();
   const settings = await getSettings();
@@ -103,7 +103,7 @@ export default async function SettingsPage({
         normalizedOverrides: normalizedOverrides.value,
       });
 
-      await saveConfigs(nextConfigs);
+      await saveSettings(nextConfigs);
       revalidateTag(CONFIGS_CACHE_TAG, 'max');
       revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max');
 

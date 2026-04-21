@@ -3,7 +3,7 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 import type {
   AICapability,
   AICapabilitySelection,
@@ -149,15 +149,15 @@ export function resolveConfiguredAICapability(
 }
 
 export async function listPublicAICapabilities() {
-  const { getAllConfigsCached } = await import('@/shared/models/config');
-  const configs = await getAllConfigsCached();
+  const { readRuntimeSettingsCached } = await import('@/domains/settings/application/settings-store');
+  const configs = await readRuntimeSettingsCached();
 
   return listConfiguredAICapabilities(configs);
 }
 
 export async function resolvePublicAICapability(selection: AICapabilitySelection) {
-  const { getAllConfigsCached } = await import('@/shared/models/config');
-  const configs = await getAllConfigsCached();
+  const { readRuntimeSettingsCached } = await import('@/domains/settings/application/settings-store');
+  const configs = await readRuntimeSettingsCached();
 
   return resolveConfiguredAICapability(configs, selection);
 }

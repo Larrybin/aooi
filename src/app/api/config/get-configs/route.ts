@@ -3,7 +3,7 @@ import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   getPublicConfigsCached,
   getPublicConfigsFresh,
-} from '@/shared/models/config';
+} from '@/domains/settings/application/public-config.view';
 import { buildGetConfigsLogic } from './route-logic';
 
 const defaultGetConfigsLogic = buildGetConfigsLogic({

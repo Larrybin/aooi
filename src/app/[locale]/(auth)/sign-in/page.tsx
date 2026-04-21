@@ -5,8 +5,8 @@ import { SignIn } from '@/features/web/auth/components/sign-in';
 import { getTranslations } from 'next-intl/server';
 
 import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getConfigs } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readSettingsCached } from '@/domains/settings/application/settings-store';
 
 export async function generateMetadata({
   params,
@@ -36,7 +36,7 @@ export default async function SignInPage({
 }) {
   const { callbackUrl } = await searchParams;
 
-  const configs = await getConfigs();
+  const configs = await readSettingsCached();
 
   return <SignIn configs={configs} callbackUrl={callbackUrl || '/'} />;
 }

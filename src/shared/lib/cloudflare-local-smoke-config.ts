@@ -1,4 +1,4 @@
-import { isRuntimeEnvEnabled } from '@/shared/lib/runtime/env.server';
+import { isRuntimeEnvEnabled } from '@/infra/runtime/env.server';
 
 export const CLOUDFLARE_LOCAL_SMOKE_CONFIG_SEED_CONFIGS = Object.freeze({
   general_docs_enabled: 'true',

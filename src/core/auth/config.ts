@@ -11,14 +11,14 @@ import { getUuid } from '@/shared/lib/hash';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { isProductionEnv } from '@/shared/lib/env';
 import { logger } from '@/shared/lib/logger.server';
-import { getAllConfigsCached, type Configs } from '@/shared/models/config';
+import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-store';
 import {
   getRuntimeEnvString,
   getServerPublicEnvConfigs,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
   isRuntimeEnvEnabled,
-} from '@/shared/lib/runtime/env.server';
+} from '@/infra/runtime/env.server';
 import {
   consumeResetPasswordQuota,
   releaseResetPasswordQuota,
@@ -166,7 +166,7 @@ export async function getAuthOptions(
   installAuthSpikeOAuthFetchMock();
   assertAuthEnv();
   const baseAuthOptions = buildAuthOptionsBase();
-  const configs = await getAllConfigsCached();
+  const configs = await readRuntimeSettingsCached();
   const { publicEnvConfigs, isProduction, isAuthSpikeOAuthUpstreamMock } =
     getAuthRuntimeContext(request);
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';

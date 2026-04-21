@@ -77,7 +77,11 @@ module.exports = {
         pathNot:
           '^src/shared/models/|^src/shared/lib/(auth-session\\.server|config-consistency|runtime/env\\.server)\\.ts$',
       },
-      to: { path: '^src/(domains|surfaces|infra)/' },
+      to: {
+        path: '^src/(domains|surfaces|infra)/',
+        pathNot:
+          '^src/domains/settings/application/(settings-store|public-config\\.view)\\.ts$|^src/infra/runtime/env\\.server\\.ts$',
+      },
     },
   ],
   options: {

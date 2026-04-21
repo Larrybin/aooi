@@ -5,8 +5,8 @@ import { ResetPassword } from '@/features/web/auth/components/reset-password';
 import { getTranslations } from 'next-intl/server';
 
 import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getConfigs } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readSettingsCached } from '@/domains/settings/application/settings-store';
 
 export async function generateMetadata({
   params,
@@ -34,7 +34,7 @@ export default async function ResetPasswordPage({
   searchParams: Promise<{ token?: string; error?: string }>;
 }) {
   const { token, error } = await searchParams;
-  const configs = await getConfigs();
+  const configs = await readSettingsCached();
 
   return <ResetPassword token={token} error={error} configs={configs} />;
 }

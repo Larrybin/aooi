@@ -8,7 +8,7 @@ import {
 } from '@/core/auth/auth-spike-redirect';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
-import { getRuntimeEnvString } from '@/shared/lib/runtime/env.server';
+import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 
 export const dynamic = 'force-dynamic';
 

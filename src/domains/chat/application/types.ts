@@ -126,7 +126,7 @@ export type ChatApplicationDeps = {
     status: ChatMessageStatus;
     limit: number;
   }) => Promise<ChatMessageRecord[]>;
-  getAllConfigs: () => Promise<ChatConfigs>;
+  readRuntimeSettings: () => Promise<ChatConfigs>;
   consumeCredits: (params: {
     userId: string;
     credits: number;

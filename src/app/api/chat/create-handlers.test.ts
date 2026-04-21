@@ -68,7 +68,7 @@ test('chat/messages route 返回统一 json envelope 和 no-store header', async
         throw new Error('not used');
       },
       getChatMessageWindow: async () => [],
-      getAllConfigs: async () => ({}),
+      readRuntimeSettings: async () => ({}),
       consumeCredits: async () => ({ id: 'credit_1' }),
       refundConsumedCreditById: async () => ({ refunded: true }),
     },

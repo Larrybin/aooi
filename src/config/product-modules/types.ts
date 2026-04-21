@@ -1,4 +1,4 @@
-import type { SettingTabName } from '@/shared/services/settings/tab-names';
+import type { SettingTabName } from '@/domains/settings/tab-names';
 
 export const PRODUCT_MODULE_IDS = [
   'core_shell',

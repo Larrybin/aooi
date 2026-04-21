@@ -1,5 +1,5 @@
 import { isCloudflareLocalWorkersDevRuntime } from '@/infra/runtime/runtime-mode';
-import { isRuntimeEnvEnabled } from '@/shared/lib/runtime/env.server';
+import { isRuntimeEnvEnabled } from '@/infra/runtime/env.server';
 
 function normalizeAuthOrigin(value: string, label: string): string {
   try {

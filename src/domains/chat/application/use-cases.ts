@@ -39,7 +39,7 @@ type StreamChatDeps = Pick<
   | 'findChatById'
   | 'createChatMessage'
   | 'getChatMessageWindow'
-  | 'getAllConfigs'
+  | 'readRuntimeSettings'
   | 'consumeCredits'
   | 'refundConsumedCreditById'
 >;
@@ -246,7 +246,7 @@ export async function streamChatUseCase(
 
   await requireOwnedChat(deps, input.chatId, input.user.id);
 
-  const configs = await deps.getAllConfigs();
+  const configs = await deps.readRuntimeSettings();
   const openrouterApiKey = configs.openrouter_api_key;
   if (!openrouterApiKey) {
     input.log.error('chat: openrouter_api_key is missing');

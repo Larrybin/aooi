@@ -7,7 +7,7 @@ import postgres from 'postgres';
 import * as localeModule from '../src/config/locale/index.ts';
 import * as storagePublicUrlModule from '../src/shared/lib/storage-public-url.ts';
 import * as configConsistencyModule from '../src/shared/lib/config-consistency.ts';
-import * as settingsNormalizersModule from '../src/shared/services/settings/settings-normalizers.ts';
+import * as settingsNormalizersModule from '../src/domains/settings/settings-normalizers.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,

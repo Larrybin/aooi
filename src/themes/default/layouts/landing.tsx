@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type {
   Footer as FooterType,
   Header as HeaderType,

@@ -1,5 +1,5 @@
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import { PUBLIC_SETTING_NAMES } from '@/shared/services/settings/registry';
+import { PUBLIC_SETTING_NAMES } from '@/domains/settings/registry';
 
 type ConfigMap = Record<string, string>;
 
@@ -19,20 +19,20 @@ export function buildPublicConfigs(allConfigs: ConfigMap): ConfigMap {
 export async function readPublicConfigsByMode(
   mode: ConfigConsistencyMode,
   {
-    getAllConfigsSafeImpl,
-    getAllConfigsFreshImpl,
+    readRuntimeSettingsSafeImpl,
+    readRuntimeSettingsFreshImpl,
   }: {
-    getAllConfigsSafeImpl: () => Promise<{
+    readRuntimeSettingsSafeImpl: () => Promise<{
       configs: ConfigMap;
       error?: Error;
     }>;
-    getAllConfigsFreshImpl: () => Promise<ConfigMap>;
+    readRuntimeSettingsFreshImpl: () => Promise<ConfigMap>;
   }
 ): Promise<ConfigMap> {
   if (mode === 'fresh') {
-    return buildPublicConfigs(await getAllConfigsFreshImpl());
+    return buildPublicConfigs(await readRuntimeSettingsFreshImpl());
   }
 
-  const { configs } = await getAllConfigsSafeImpl();
+  const { configs } = await readRuntimeSettingsSafeImpl();
   return buildPublicConfigs(configs);
 }

@@ -5,7 +5,7 @@ import {
   getDefaultSupportEmailFromDomain,
   getDomainFromOrigin,
 } from '@/shared/lib/support-email';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 export type BrandPlaceholderValues = {
   appName: string;

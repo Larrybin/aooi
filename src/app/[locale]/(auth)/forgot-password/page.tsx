@@ -5,8 +5,8 @@ import { ForgotPassword } from '@/features/web/auth/components/forgot-password';
 import { getTranslations } from 'next-intl/server';
 
 import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getConfigs } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readSettingsCached } from '@/domains/settings/application/settings-store';
 
 export async function generateMetadata({
   params,
@@ -29,6 +29,6 @@ export async function generateMetadata({
 }
 
 export default async function ForgotPasswordPage() {
-  const configs = await getConfigs();
+  const configs = await readSettingsCached();
   return <ForgotPassword configs={configs} />;
 }

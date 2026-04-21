@@ -7,7 +7,7 @@ import { getTranslations } from 'next-intl/server';
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import {
   findSubscriptionBySubscriptionNo,
   updateSubscriptionBySubscriptionNo,

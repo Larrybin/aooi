@@ -3,7 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import { getAllConfigsSafe, type Configs } from '@/shared/models/config';
+import { readRuntimeSettingsSafe, type Configs } from '@/domains/settings/application/settings-store';
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 import { resolveAdsRuntime, type ResolvedAdsRuntime } from './ads-runtime';
@@ -31,7 +31,7 @@ export async function getAdsRuntime(options: {
 
 export const getAdsRuntimeForRequest = cache(
   async (): Promise<ResolvedAdsRuntime> => {
-    const { configs } = await getAllConfigsSafe();
+    const { configs } = await readRuntimeSettingsSafe();
     return getAdsRuntimeWithConfigs(configs);
   }
 );

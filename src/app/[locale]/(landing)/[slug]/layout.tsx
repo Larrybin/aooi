@@ -12,7 +12,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type {
   Footer as FooterType,
   Header as HeaderType,

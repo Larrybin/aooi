@@ -12,8 +12,8 @@ import type {
   NewAITask,
   updateAITaskById,
 } from '@/shared/models/ai_task';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import type { getAllConfigsCached } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import type { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
@@ -51,7 +51,7 @@ export type AiGenerateRouteDeps = {
     parseJson: AiGenerateApiContext['parseJson'];
     requireUser: AiGenerateApiContext['requireUser'];
   };
-  getAllConfigs: typeof getAllConfigsCached;
+  readRuntimeSettings: typeof readRuntimeSettingsCached;
   getAIServiceWithConfigs: typeof getAIServiceWithConfigs;
   resolveConfiguredAICapability: typeof resolveConfiguredAICapability;
   createAITask: typeof createAITask;
@@ -68,7 +68,7 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
     const { provider, mediaType, model, prompt, options, scene } =
       await api.parseJson(AiGenerateBodySchema);
 
-    const configs = await deps.getAllConfigs();
+    const configs = await deps.readRuntimeSettings();
     const capability = deps.resolveConfiguredAICapability(configs, {
       mediaType,
       scene: scene || '',

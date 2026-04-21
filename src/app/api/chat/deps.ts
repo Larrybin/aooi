@@ -12,7 +12,7 @@ import {
   getChatMessages,
   getChatMessagesCount,
 } from '@/shared/models/chat_message';
-import { getAllConfigsCached } from '@/shared/models/config';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
 import {
   consumeCredits,
   refundConsumedCreditById,
@@ -208,7 +208,7 @@ export const chatStreamDeps = {
         limit,
       })
     ).map(mapChatMessageRecord),
-  getAllConfigs: getAllConfigsCached,
+  readRuntimeSettings: readRuntimeSettingsCached,
   consumeCredits,
   refundConsumedCreditById,
 };

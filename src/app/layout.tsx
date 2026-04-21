@@ -1,11 +1,11 @@
-// data: cached configs (env + db via getAllConfigs) + injected ads/analytics tags
+// data: cached settings (env + db runtime projection) + injected ads/analytics tags
 // cache: static shell; db configs cached via unstable_cache (tag=db-configs, revalidate=60s)
 // reason: keep the root html shell statically analyzable; locale-specific state lives under app/[locale]
 import '@/config/style/global.css';
 
 import { defaultLocale, isRtlLocale } from '@/config/locale';
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
-import { getAllConfigsSafe } from '@/shared/models/config';
+import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-store';
 import { getAdsRuntimeForRequest } from '@/shared/services/ads';
 import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
 import { getAnalyticsManagerWithConfigs } from '@/shared/services/analytics';
@@ -40,7 +40,7 @@ export default async function RootLayout({
   let customerServiceBodyScripts = null;
 
   if (isProduction || isDebug) {
-    const { configs } = await getAllConfigsSafe();
+    const { configs } = await readRuntimeSettingsSafe();
 
     const adsRuntime = await getAdsRuntimeForRequest();
     if (adsRuntime.enabled) {

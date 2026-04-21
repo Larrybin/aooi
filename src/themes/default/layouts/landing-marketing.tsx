@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { PublicAppProvider } from '@/shared/contexts/app';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type {
   Footer as FooterType,
   Header as HeaderType,

@@ -20,7 +20,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { isAiEnabled } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 export default async function ChatLayout({

@@ -8,7 +8,7 @@ import {
   PlausibleAnalyticsProvider,
 } from '@/extensions/analytics';
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 
 import { buildServiceFromLatestConfigs } from './config_refresh_policy';
 

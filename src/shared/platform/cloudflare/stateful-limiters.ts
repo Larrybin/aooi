@@ -3,7 +3,7 @@ import type {
   DeniedLimitResult,
   LimitResult,
 } from '@/shared/lib/api/limiters';
-import { getCloudflareBindings } from '@/shared/lib/runtime/env.server';
+import { getCloudflareBindings } from '@/infra/runtime/env.server';
 
 type CooldownConfig = {
   bucket: string;

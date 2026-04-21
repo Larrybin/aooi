@@ -11,9 +11,9 @@ import {
   trimmedProviderNameKey,
 } from '@/shared/lib/providers/provider-registry';
 import { isProductionEnv } from '@/shared/lib/env';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 import { buildServiceFromLatestConfigs } from '@/shared/services/config_refresh_policy';
-import { parseStripePaymentMethodsConfig } from '@/shared/services/settings/validators/payment';
+import { parseStripePaymentMethodsConfig } from '@/domains/settings/validators/payment';
 import type {
   CheckoutSession,
   PaymentEvent,

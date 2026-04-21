@@ -6,7 +6,7 @@ import { ChevronDown, Menu } from 'lucide-react';
 import { defaultLocale } from '@/config/locale';
 import { AppImage } from '@/shared/blocks/common/app-image';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
 

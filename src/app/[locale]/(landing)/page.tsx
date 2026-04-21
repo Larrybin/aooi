@@ -9,7 +9,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
 import { filterLandingButtons } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
   type Footer as FooterType,
   type Header as HeaderType,

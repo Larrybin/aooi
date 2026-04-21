@@ -1,4 +1,7 @@
-import { getRuntimePlatform, type RuntimePlatform } from './env.server';
+import {
+  getRuntimePlatform,
+  type RuntimePlatform,
+} from '@/infra/runtime/env.server';
 import { readRequestFormData } from './request-body';
 
 export function isFileUploadValue(value: FormDataEntryValue): value is File {

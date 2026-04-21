@@ -4,8 +4,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { defaultLocale, locales } from '@/config/locale';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getAllConfigsSafe } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-store';
 
 type MetadataFields = {
   title: string;
@@ -97,7 +97,7 @@ export function getMetadata(
     const { locale } = await params;
     setRequestLocale(locale);
 
-    const { configs } = await getAllConfigsSafe();
+    const { configs } = await readRuntimeSettingsSafe();
     const brand = buildBrandPlaceholderValues(configs);
 
     // passed metadata

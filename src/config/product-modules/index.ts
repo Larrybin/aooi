@@ -1,8 +1,8 @@
-import type { SettingTabName } from '@/shared/services/settings/tab-names';
+import type { SettingTabName } from '@/domains/settings/tab-names';
 import {
   ALL_SETTINGS,
   type KnownSettingKey,
-} from '@/shared/services/settings/registry';
+} from '@/domains/settings/registry';
 
 import type {
   ModuleGuideSlug,

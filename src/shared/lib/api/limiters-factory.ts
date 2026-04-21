@@ -15,7 +15,7 @@ import {
   createMemoryRateLimitStore,
   type RateLimitStore,
 } from '@/shared/lib/api/rate-limit-store';
-import { isCloudflareWorkersRuntime } from '@/shared/lib/runtime/env.server';
+import { isCloudflareWorkersRuntime } from '@/infra/runtime/env.server';
 import {
   CloudflareAttemptLimiter,
   CloudflareCooldownLimiter,

@@ -12,9 +12,8 @@ import {
   getServerPublicEnvConfigs,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
-} from '@/shared/lib/runtime/env.server';
-import { readPublicConfigsByMode } from '@/shared/models/public-configs';
-import { type KnownSettingKey } from '@/shared/services/settings/registry';
+} from '@/infra/runtime/env.server';
+import { type KnownSettingKey } from '@/domains/settings/registry';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
@@ -46,9 +45,8 @@ export function getBool(configs: Configs, key: KnownConfigKey): boolean {
 export const CONFIGS_CACHE_TAG = 'db-configs';
 export const PUBLIC_CONFIGS_CACHE_TAG = 'public-configs';
 const CONFIGS_CACHE_REVALIDATE_SECONDS = 60;
-const PUBLIC_CONFIGS_CACHE_REVALIDATE_SECONDS = 60 * 60;
 
-export async function saveConfigs(configs: Record<string, string>) {
+export async function saveSettings(configs: Record<string, string>) {
   const entries = Object.entries(configs);
   if (entries.length === 0) return [];
 
@@ -91,7 +89,7 @@ async function getConfigsFromDb(): Promise<Configs> {
   );
 }
 
-export async function getConfigsFresh(): Promise<Configs> {
+export async function readSettingsFresh(): Promise<Configs> {
   const configs = await getConfigsFromDb();
   return { ...configs };
 }
@@ -105,28 +103,30 @@ const getConfigsCached = unstable_cache(
   }
 );
 
-export async function getConfigs(): Promise<Configs> {
+export async function readSettingsCached(): Promise<Configs> {
   const configs = await getConfigsCached();
   return { ...configs };
 }
 
-export async function getConfigsSafe(): Promise<{
+export async function readSettingsSafe(): Promise<{
   configs: Configs;
   error?: Error;
 }> {
   try {
-    const configs = await getConfigs();
+    const configs = await readSettingsCached();
     return { configs };
   } catch (e: unknown) {
     const error =
-      e instanceof Error ? e : new Error(`getConfigs failed: ${String(e)}`);
-    logger.error('[config] getConfigs failed', { error });
+      e instanceof Error
+        ? e
+        : new Error(`readSettingsCached failed: ${String(e)}`);
+    logger.error('[settings-store] readSettingsCached failed', { error });
     return { configs: {}, error };
   }
 }
 
-export async function getAllConfigsCached(): Promise<Configs> {
-  const dbConfigs = await getConfigs();
+export async function readRuntimeSettingsCached(): Promise<Configs> {
+  const dbConfigs = await readSettingsCached();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   // DB is allowed to override env for compatibility (app_url/app_name/locale...)
@@ -138,8 +138,8 @@ export async function getAllConfigsCached(): Promise<Configs> {
   return configs;
 }
 
-export async function getAllConfigsFresh(): Promise<Configs> {
-  const dbConfigs = await getConfigsFresh();
+export async function readRuntimeSettingsFresh(): Promise<Configs> {
+  const dbConfigs = await readSettingsFresh();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   return {
@@ -148,11 +148,11 @@ export async function getAllConfigsFresh(): Promise<Configs> {
   };
 }
 
-export async function getAllConfigsSafe(): Promise<{
+export async function readRuntimeSettingsSafe(): Promise<{
   configs: Configs;
   error?: Error;
 }> {
-  const { configs: dbConfigs, error } = await getConfigsSafe();
+  const { configs: dbConfigs, error } = await readSettingsSafe();
   const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   return {
@@ -162,30 +162,4 @@ export async function getAllConfigsSafe(): Promise<{
     },
     error,
   };
-}
-
-const readPublicConfigsCached = unstable_cache(
-  async (): Promise<Configs> =>
-    await readPublicConfigsByMode('cached', {
-      getAllConfigsSafeImpl: getAllConfigsSafe,
-      getAllConfigsFreshImpl: getAllConfigsFresh,
-    }),
-  [PUBLIC_CONFIGS_CACHE_TAG],
-  {
-    tags: [PUBLIC_CONFIGS_CACHE_TAG],
-    revalidate: PUBLIC_CONFIGS_CACHE_REVALIDATE_SECONDS,
-  }
-);
-
-export async function getPublicConfigsCached(): Promise<Configs> {
-  const configs = await readPublicConfigsCached();
-  return { ...configs };
-}
-
-export async function getPublicConfigsFresh(): Promise<Configs> {
-  const configs = await readPublicConfigsByMode('fresh', {
-    getAllConfigsSafeImpl: getAllConfigsSafe,
-    getAllConfigsFreshImpl: getAllConfigsFresh,
-  });
-  return { ...configs };
 }

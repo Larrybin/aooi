@@ -6,7 +6,7 @@ import {
   type AdsZoneName,
 } from '@/extensions/ads/types';
 import { ADS_ZONE_NAMES } from '@/extensions/ads/zones';
-import type { Configs } from '@/shared/models/config';
+import type { Configs } from '@/domains/settings/application/settings-store';
 
 export type ResolvedAdsRuntime =
   | { enabled: false }

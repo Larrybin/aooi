@@ -8,7 +8,7 @@ import { verification } from '@/config/db/schema';
 import { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 import { normalizeEmail } from '@/shared/lib/email';
 import { getUuid } from '@/shared/lib/hash';
-import { getServerRuntimeEnv } from '@/shared/lib/runtime/env.server';
+import { getServerRuntimeEnv } from '@/infra/runtime/env.server';
 
 export { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 

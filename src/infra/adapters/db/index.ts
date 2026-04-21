@@ -11,7 +11,7 @@ import {
   getCloudflareBindings,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
-} from '@/shared/lib/runtime/env.server';
+} from '@/infra/runtime/env.server';
 
 import { assertRoleDeletedAtColumnExists } from './schema-check';
 

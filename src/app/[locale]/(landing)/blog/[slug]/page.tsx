@@ -12,7 +12,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { locales } from '@/config/locale';
 import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
   buildCanonicalUrlWithAppUrl,
   buildLanguageAlternatesWithAppUrl,
