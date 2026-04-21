@@ -21,6 +21,13 @@ const requiredTargetDirectories = [
   'src/infra/runtime',
 ];
 
+const legacyArchitectureDirectories = [
+  'src/core',
+  'src/features',
+  'src/shared/models',
+  'src/shared/services',
+];
+
 type DirtyImportRule = {
   label: string;
   pattern: RegExp;
@@ -85,22 +92,22 @@ const dirtyImportRules: DirtyImportRule[] = [
   {
     label: '@/shared/models',
     pattern: importPatterns.sharedModels,
-    baseline: 145,
+    baseline: 0,
   },
   {
     label: '@/shared/services',
     pattern: importPatterns.sharedServices,
-    baseline: 49,
+    baseline: 0,
   },
   {
     label: '@/core',
     pattern: importPatterns.core,
-    baseline: 185,
+    baseline: 0,
   },
   {
     label: '@/features',
     pattern: importPatterns.features,
-    baseline: 68,
+    baseline: 0,
   },
 ];
 
@@ -148,7 +155,17 @@ test('architecture: 目标收敛目录必须存在', async () => {
   }
 });
 
-test('architecture: 旧脏入口引用数量只减不增', async () => {
+test('architecture: 旧架构目录已删除', async () => {
+  for (const legacyDir of legacyArchitectureDirectories) {
+    await assert.rejects(
+      () => stat(path.resolve(repoRoot, legacyDir)),
+      { code: 'ENOENT' },
+      `${legacyDir} 不应继续存在，避免新代码落回旧业务层`
+    );
+  }
+});
+
+test('architecture: 旧脏入口引用保持归零', async () => {
   const files = (await readSourceFiles()).filter(
     ({ repoPath }) => repoPath !== 'src/architecture-boundaries.test.ts'
   );
@@ -162,7 +179,7 @@ test('architecture: 旧脏入口引用数量只减不增', async () => {
     assert.equal(
       count <= rule.baseline,
       true,
-      `${rule.label} 引用数 ${count} 超过 Phase 0 baseline ${rule.baseline}`
+      `${rule.label} 引用数必须保持 ${rule.baseline}，当前为 ${count}`
     );
   }
 });

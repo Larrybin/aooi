@@ -37,8 +37,8 @@ test('theme: 仓库源码不再引用已删除的主题抽象入口', async () =
     }
     const content = await readFile(filePath, 'utf8');
     if (
-      content.includes("from '@/core/theme'") ||
-      content.includes('from "@/core/theme"') ||
+      content.includes("from '@/infra/platform/theme'") ||
+      content.includes('from "@/infra/platform/theme"') ||
       content.includes("from '@/config/theme'") ||
       content.includes('from "@/config/theme"')
     ) {

@@ -6,7 +6,7 @@ This guide covers the database setup using Drizzle ORM with PostgreSQL.
 
 ```
 src/
-├── core/db/
+├── infra/adapters/db/
 │   ├── index.ts       # Database connection factory
 │   └── config.ts      # Drizzle Kit configuration
 └── config/db/
@@ -19,7 +19,7 @@ src/
 The `db()` function provides a Drizzle ORM instance with automatic environment detection:
 
 ```typescript
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 
 // Use in any server-side code
 const users = await db().select().from(user);
@@ -45,10 +45,10 @@ Notes:
 
 - In Cloudflare Workers runtime, `db()` ignores `DATABASE_URL` and uses `HYPERDRIVE.connectionString` from bindings (`[[hyperdrive]] binding = "HYPERDRIVE"`). Missing bindings fail with a `ServiceUnavailableError` and a generic public message.
 - In Cloudflare Workers runtime, `db()` does **not** reuse a postgres/Hyperdrive client across requests. It creates a fresh client per request and keeps schema-check state request-scoped to avoid Worker hangs caused by cross-request I/O reuse.
-- Cloudflare bindings are now read only through `src/shared/lib/runtime/env.server.ts`. Business code should not touch Workers detection or bindings directly.
+- Cloudflare bindings are read only through `src/infra/runtime/env.server.ts`. Business code should not touch Workers detection or bindings directly.
 - This also enables DB-backed settings/configs (the `config` table, `getAllConfigs()`/`getConfigs()`) at runtime in Workers even when `DATABASE_URL` is empty.
 - `DB_SINGLETON_ENABLED` only applies to non-Workers Node runtimes. Workers always use the Hyperdrive request-scoped path above.
-- Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/core/db/config.ts`).
+- Drizzle Kit CLI workflows (`pnpm db:generate|db:migrate|db:push|db:studio`) run on Node.js and require `DATABASE_URL` (see `src/infra/adapters/db/config.ts`).
 - Cloudflare is now treated as a full-app runtime target. The Worker serves public, auth, and protected routes from one origin, and cross-origin cookie auth topologies are not supported.
 - CI Cloudflare local smoke and app smoke now create a temporary Wrangler config that rewrites `[[hyperdrive]].localConnectionString`, so database-backed runtime checks run against the service-container Postgres without mutating the tracked production config.
 
@@ -150,15 +150,15 @@ Opens at http://local.drizzle.studio
 
 ## Data Access Layer
 
-Data access functions live in `src/shared/models/`:
+Data access functions live with their owning domain under `src/domains/*/infra/` or in a narrow adapter under `src/infra/adapters/*`.
 
 ```typescript
-// src/shared/models/user.ts
+// src/domains/account/infra/user.ts
 import 'server-only';
 
 import { eq } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { user } from '@/config/db/schema';
 
 export async function getUserById(id: string) {
@@ -194,7 +194,7 @@ type UpdateUser = Partial<Omit<NewUser, 'id' | 'createdAt'>>;
 ```typescript
 import { and, desc, eq, like } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { db } from '@/infra/adapters/db';
 import { user } from '@/config/db/schema';
 
 // Get by ID
@@ -316,7 +316,7 @@ Set `DB_SINGLETON_ENABLED=true` for connection pooling.
 ## Best Practices
 
 1. **Always use Drizzle ORM** - Avoid raw SQL unless absolutely necessary
-2. **Use `server-only`** - Add to model files to prevent client imports
+2. **Use `server-only`** - Add to domain infra / adapter files to prevent client imports
 3. **Type your functions** - Use inferred types from schema
 4. **Apply migrations in CI/CD** - Run `pnpm db:migrate` before deployment. In this repo, Cloudflare production auto-deploy calls `.github/workflows/cloudflare-production-migrate.yaml` first whenever accepted release metadata reports schema changes.
 5. **Use transactions** - For multi-table operations
@@ -375,7 +375,7 @@ Configure `HYPERDRIVE` binding in `wrangler.cloudflare.toml`.
 
 ## Related Files
 
-- `src/core/db/index.ts` - Database connection
+- `src/infra/adapters/db/index.ts` - Database connection
 - `src/config/db/schema.ts` - Schema definitions
 - `src/config/db/migrations/` - Migration files
-- `src/shared/models/` - Data access layer
+- `src/domains/*/infra/` - Domain-owned data access

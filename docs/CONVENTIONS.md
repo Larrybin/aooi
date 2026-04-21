@@ -36,7 +36,7 @@
 | 主题                                   | 单一事实来源                                | 说明                                                                                         |
 | -------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Server/Client 边界、依赖方向           | `eslint.config.mjs`                         | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。                             |
-| `src/shared` / `src/features` 分层约定 | `docs/architecture/shared-layering.md`      | 规定 `features/*`、`shared/models`、`shared/content`、`shared/services`、UI 层边界与禁依赖。 |
+| `src/shared` 分层约定                  | `docs/architecture/shared-layering.md`      | 规定 shared 只保留纯 UI、工具、HTTP schema、types、constants，禁止业务能力回流。             |
 | Code Review 基线                       | `docs/CODE_REVIEW.md`                       | PR 审查顺序与常见坑，含大量场景化示例。                                                      |
 | 架构审计与关键约束说明                 | `docs/ARCHITECTURE_REVIEW.md`               | 解释为什么这么分层/这么约束（便于理解“为什么”）。                                            |
 | Logging 约定                           | `content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                                      |
@@ -99,12 +99,12 @@
 - Server Actions：`src/shared/lib/action/errors.ts`、`src/shared/lib/action/with-action.ts`（`ActionError` / `withAction()`）
 - API 约定文档：`docs/api/reference.md`
 
-### 支付集成（core/payment）
+### 支付集成（domains/billing + infra/adapters/payment）
 
-- Canonical 类型入口：`src/core/payment/domain/index.ts`
-- Provider 实现与 runtime：`src/core/payment/providers/creem.ts`、`src/core/payment/providers/paypal.ts`、`src/core/payment/providers/stripe.ts`、`src/core/payment/providers/service.ts`
-- Checkout / credit / pricing / subscription 流程：`src/core/payment/flows/**`
-- Webhook notify / replay pipeline：`src/core/payment/webhooks/**`
+- Canonical 类型入口：`src/domains/billing/domain/payment.ts`
+- Pricing / credits 语义：`src/domains/billing/domain/pricing.ts`、`src/domains/billing/domain/credit.ts`
+- Checkout / notify / replay / subscription 流程：`src/domains/billing/application/**`
+- Provider transport / façade：`src/infra/adapters/payment/**`
 
 ### Email / Storage 集成（extensions）
 
@@ -116,16 +116,18 @@
 - Schema：`src/config/db/schema.ts`
 - 迁移：`src/config/db/migrations/**`
 
-### `src/shared` 分层（边界与示例入口）
+### 当前架构分层（边界与示例入口）
 
 以 `docs/architecture/shared-layering.md` 为准；当不确定放哪层时，优先对照该文件的“允许/禁止依赖”。
 
 - 纯工具/一致性逻辑：`src/shared/lib/**`（示例：`src/shared/lib/seo.ts`）
 - 叶子常量层：`src/shared/constants/**`（示例：`src/shared/constants/rbac-permissions.ts`）
-- DAL/Repo/Facade：`src/shared/models/**`
-- Docs/blog content pipeline（server-only）：`src/features/docs/server/content/**`
+- 业务语义和用例：`src/domains/**`
+- 后台聚合面：`src/surfaces/admin/**`
+- 外部实现适配：`src/infra/adapters/**`
+- 平台能力：`src/infra/platform/**`
+- Docs/blog content query/view：`src/domains/content/application/**`
 - Cross-surface content assets（server-only）：`src/shared/content/**`
-- 服务装配（server-only）：`src/shared/services/**`
 - UI 共享层：`src/shared/blocks/**`、`src/shared/components/**`、`src/shared/contexts/**`、`src/shared/hooks/**`
 
 ## 更新触发条件（保持索引不过期）
