@@ -372,6 +372,54 @@ test('architecture: settings 不拥有业务域实现', async () => {
   }
 });
 
+test('architecture: settings-store 拥有 settings cache invalidation', async () => {
+  const files = await readSourceFiles();
+  const settingsStore = files.find(
+    ({ repoPath }) =>
+      repoPath === 'src/domains/settings/application/settings-store.ts'
+  );
+  const adminSettingsPage = files.find(
+    ({ repoPath }) =>
+      repoPath ===
+      'src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx'
+  );
+
+  assert.ok(settingsStore, 'settings-store.ts 应存在');
+  assert.ok(adminSettingsPage, 'admin settings page 应存在');
+
+  assert.equal(
+    readImportSpecifiers(settingsStore.content).includes('next/cache'),
+    true,
+    'settings-store.ts 应直接拥有 next/cache revalidation'
+  );
+  assert.equal(
+    /revalidateTag\s*\(\s*CONFIGS_CACHE_TAG\s*,\s*['"]max['"]\s*\)/.test(
+      settingsStore.content
+    ),
+    true,
+    'settings-store.ts 应 invalidates CONFIGS_CACHE_TAG'
+  );
+  assert.equal(
+    /revalidateTag\s*\(\s*PUBLIC_CONFIGS_CACHE_TAG\s*,\s*['"]max['"]\s*\)/.test(
+      settingsStore.content
+    ),
+    true,
+    'settings-store.ts 应 invalidates PUBLIC_CONFIGS_CACHE_TAG'
+  );
+  assert.equal(
+    readImportSpecifiers(adminSettingsPage.content).includes('next/cache'),
+    false,
+    'admin settings page 不应直接依赖 next/cache'
+  );
+  assert.equal(
+    /CONFIGS_CACHE_TAG|PUBLIC_CONFIGS_CACHE_TAG|revalidateTag\s*\(/.test(
+      adminSettingsPage.content
+    ),
+    false,
+    'admin settings page 不应拥有 settings cache invalidation'
+  );
+});
+
 test('architecture: 跨域 application 依赖只能指向只读入口', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
     /^src\/domains\/[^/]+\/application\//.test(repoPath)
@@ -475,13 +523,11 @@ test('architecture: query/view 只做同域读取或投影', async () => {
           source.domain,
           `${file.repoPath} query/view 不应导入外域 application: ${specifier}`
         );
-        if (targetDomain !== source.domain) {
-          assert.equal(
-            queryViewAllowedSameDomainApplicationPathPattern.test(targetPath),
-            true,
-            `${file.repoPath} query/view 只能导入外域 query/view application: ${specifier}`
-          );
-        }
+        assert.equal(
+          queryViewAllowedSameDomainApplicationPathPattern.test(targetPath),
+          true,
+          `${file.repoPath} query/view 只能导入 query/view application: ${specifier}`
+        );
       }
 
       assert.equal(

@@ -129,13 +129,6 @@ export const ARCHITECTURE_RULES = {
     'payment',
     'rbac',
   ],
-  settingsForbiddenBusinessPolicyTokens: [
-    'stripe_enabled',
-    'provider enablement',
-    'pricing policy',
-    'credits policy',
-    'permission policy',
-  ],
 } as const;
 
 export type ArchitectureRules = typeof ARCHITECTURE_RULES;

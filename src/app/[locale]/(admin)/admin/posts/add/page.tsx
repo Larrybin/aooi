@@ -9,9 +9,11 @@ import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getTaxonomies,
+} from '@/domains/content/application/taxonomy.query';
+import {
   TaxonomyStatus,
   TaxonomyType,
-} from '@/domains/content/application/taxonomy-management';
+} from '@/domains/content/domain/taxonomy-types';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { createPostAction } from '../actions';

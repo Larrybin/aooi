@@ -11,9 +11,9 @@ import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getTaxonomies,
   getTaxonomiesCount,
-  TaxonomyType,
   type Taxonomy,
-} from '@/domains/content/application/taxonomy-management';
+} from '@/domains/content/application/taxonomy.query';
+import { TaxonomyType } from '@/domains/content/domain/taxonomy-types';
 
 export default createAdminTablePage<Taxonomy, AdminCategoriesListQuery>({
   namespace: 'admin.categories',

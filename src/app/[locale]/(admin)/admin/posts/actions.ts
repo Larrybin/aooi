@@ -8,14 +8,13 @@ import { ActionError } from '@/shared/lib/action/errors';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getUuid } from '@/shared/lib/hash';
+import { findPost } from '@/domains/content/application/post.query';
 import {
   addPost,
-  findPost,
-  PostStatus,
-  PostType,
   updatePost,
   type NewPost,
 } from '@/domains/content/application/post-management';
+import { PostStatus, PostType } from '@/domains/content/domain/post-types';
 
 /**
  * Create a new post

@@ -11,10 +11,10 @@ import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getPosts,
   getPostsCount,
-  PostType,
   type Post,
-} from '@/domains/content/application/post-management';
-import { getTaxonomies } from '@/domains/content/application/taxonomy-management';
+} from '@/domains/content/application/post.query';
+import { getTaxonomies } from '@/domains/content/application/taxonomy.query';
+import { PostType } from '@/domains/content/domain/post-types';
 
 export default createAdminTablePage<Post, AdminPostsListQuery>({
   namespace: 'admin.posts',

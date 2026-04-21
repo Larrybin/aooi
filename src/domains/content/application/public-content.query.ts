@@ -3,21 +3,25 @@ import 'server-only';
 import { postsI18n } from '@/domains/content/infra/source';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
-  PostType as DbPostType,
   getPosts,
   getPostsCount,
   getPost as getRemotePost,
-  PostStatus,
   type Post as RemotePost,
-} from '@/domains/content/application/post-management';
+} from '@/domains/content/application/post.query';
 import {
   findTaxonomy,
   getTaxonomies,
   getTaxonomiesCount,
+  type Taxonomy,
+} from '@/domains/content/application/taxonomy.query';
+import {
+  PostStatus,
+  PostType as DbPostType,
+} from '@/domains/content/domain/post-types';
+import {
   TaxonomyStatus,
   TaxonomyType,
-  type Taxonomy,
-} from '@/domains/content/application/taxonomy-management';
+} from '@/domains/content/domain/taxonomy-types';
 import type {
   Category as BlogCategoryType,
   Post as BlogPostType,

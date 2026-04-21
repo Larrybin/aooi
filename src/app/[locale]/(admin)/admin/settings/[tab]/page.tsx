@@ -1,9 +1,8 @@
-// data: RBAC-gated user + settings schema + configs (unstable_cache tags) + Server Action writes + revalidateTag()
+// data: RBAC-gated user + settings schema + configs (unstable_cache tags) + Server Action writes
 // cache: no-store (request-bound auth); configs cached via unstable_cache (tag=db-configs, 60s) / (tag=public-configs, 3600s)
-// reason: admin settings are user-specific; revalidateTag ensures updates propagate
+// reason: admin settings are user-specific; settings-store owns cache invalidation
 import { notFound } from 'next/navigation';
 import { getSettingsModuleContractRows } from '@/surfaces/admin/settings/module-contract';
-import { revalidateTag } from 'next/cache';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
 
@@ -19,8 +18,6 @@ import { parseFormData } from '@/shared/lib/action/form';
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import {
-  CONFIGS_CACHE_TAG,
-  PUBLIC_CONFIGS_CACHE_TAG,
   readSettingsSafe,
   saveSettings,
 } from '@/domains/settings/application/settings-store';
@@ -104,8 +101,6 @@ export default async function SettingsPage({
       });
 
       await saveSettings(nextConfigs);
-      revalidateTag(CONFIGS_CACHE_TAG, 'max');
-      revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max');
 
       return actionOk('Settings updated');
     });

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { sql } from 'drizzle-orm';
+import { revalidateTag } from 'next/cache';
 
 import { db } from '@/infra/adapters/db';
 import { config } from '@/config/db/schema';
@@ -64,13 +65,22 @@ export async function saveSettings(configs: Record<string, string>) {
     })
     .returning();
 
+  invalidateSettingsCache();
+
   return result;
 }
 
 export async function addConfig(newConfig: NewConfig) {
   const [result] = await db().insert(config).values(newConfig).returning();
 
+  invalidateSettingsCache();
+
   return result;
+}
+
+export function invalidateSettingsCache() {
+  revalidateTag(CONFIGS_CACHE_TAG, 'max');
+  revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max');
 }
 
 async function getConfigsFromDb(): Promise<Configs> {
