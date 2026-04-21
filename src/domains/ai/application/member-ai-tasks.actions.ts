@@ -21,6 +21,7 @@ export async function refreshMemberAiTaskUseCase(
 ): Promise<
   | { status: 'hidden' }
   | { status: 'invalid_provider' }
+  | { status: 'query_failed' }
   | { status: 'ok' }
 > {
   const resolvedDeps = deps ?? (await getRefreshMemberAiTaskDeps());
@@ -46,21 +47,51 @@ export async function refreshMemberAiTaskUseCase(
     return { status: 'invalid_provider' };
   }
 
-  const result = await aiProvider.query?.({
+  if (!aiProvider.query) {
+    return { status: 'query_failed' };
+  }
+
+  const result = await aiProvider.query({
     taskId: task.taskId,
   });
 
-  if (result && result.taskStatus && result.taskInfo) {
-    const update: UpdateAITask = {
-      status: result.taskStatus,
-      taskInfo: result.taskInfo ? JSON.stringify(result.taskInfo) : null,
-      taskResult: result.taskResult ? JSON.stringify(result.taskResult) : null,
-      creditId: task.creditId ?? undefined,
-    };
+  if (!result?.taskStatus) {
+    return { status: 'query_failed' };
+  }
+
+  const update = buildTaskUpdate(task, result);
+  if (shouldUpdateTask(task, update)) {
     await resolvedDeps.updateAITaskById(task.id, update);
   }
 
   return { status: 'ok' };
+}
+
+function buildTaskUpdate(
+  task: Pick<AITask, 'creditId'>,
+  result: {
+    taskStatus: string;
+    taskInfo?: unknown;
+    taskResult?: unknown;
+  }
+): UpdateAITask {
+  return {
+    status: result.taskStatus,
+    taskInfo: result.taskInfo ? JSON.stringify(result.taskInfo) : null,
+    taskResult: result.taskResult ? JSON.stringify(result.taskResult) : null,
+    creditId: task.creditId ?? undefined,
+  };
+}
+
+function shouldUpdateTask(
+  task: Pick<AITask, 'status' | 'taskInfo' | 'taskResult'>,
+  update: UpdateAITask
+) {
+  return (
+    update.status !== task.status ||
+    update.taskInfo !== (task.taskInfo ?? null) ||
+    update.taskResult !== (task.taskResult ?? null)
+  );
 }
 
 function hasRefreshableTaskTarget(task: AITask | undefined): task is AITask & {

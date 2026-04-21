@@ -72,6 +72,39 @@ test('refreshMemberAiTaskUseCase 对 provider 缺失返回 invalid_provider', as
   );
 });
 
+test('refreshMemberAiTaskUseCase 对不支持 query 的 provider 返回 query_failed', async () => {
+  assert.deepEqual(
+    await refreshMemberAiTaskUseCase(
+      {
+        taskId: 'task_1',
+        actorUserId: 'user_1',
+      },
+      {
+        findAITaskById: async () =>
+          ({
+            id: 'task_1',
+            userId: 'user_1',
+            taskId: 'provider_task_1',
+            provider: 'kie',
+            status: 'pending',
+          }) as never,
+        updateAITaskById: async () => {
+          throw new Error('should not update');
+        },
+        getProvider: async () =>
+          ({
+            name: 'kie',
+            configs: {},
+            generate: async () => {
+              throw new Error('should not generate');
+            },
+          }) as never,
+      }
+    ),
+    { status: 'query_failed' }
+  );
+});
+
 test('refreshMemberAiTaskUseCase 对 pending/processing 查询 provider 并更新任务', async () => {
   const updates: Array<{ id: string; update: Record<string, unknown> }> = [];
 
@@ -110,6 +143,84 @@ test('refreshMemberAiTaskUseCase 对 pending/processing 查询 provider 并更�
 
   assert.equal(updates.length, 1);
   assert.equal(updates[0]?.id, 'task_1');
+});
+
+test('refreshMemberAiTaskUseCase 在 provider 只返回 taskStatus 时仍更新状态并清空 taskInfo/taskResult', async () => {
+  const updates: Array<{ id: string; update: Record<string, unknown> }> = [];
+
+  assert.deepEqual(
+    await refreshMemberAiTaskUseCase(
+      {
+        taskId: 'task_1',
+        actorUserId: 'user_1',
+      },
+      {
+        findAITaskById: async () =>
+          ({
+            id: 'task_1',
+            userId: 'user_1',
+            taskId: 'provider_task_1',
+            provider: 'kie',
+            status: 'processing',
+            taskInfo: '{"step":"queued"}',
+            taskResult: '{"old":true}',
+            creditId: 'credit_1',
+          }) as never,
+        updateAITaskById: async (id, update) => {
+          updates.push({ id, update: update as Record<string, unknown> });
+          return { id, ...update } as never;
+        },
+        getProvider: async () =>
+          ({
+            query: async () => ({
+              taskStatus: 'success',
+            }),
+          }) as never,
+      }
+    ),
+    { status: 'ok' }
+  );
+
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0]?.id, 'task_1');
+  assert.deepEqual(updates[0]?.update, {
+    status: 'success',
+    taskInfo: null,
+    taskResult: null,
+    creditId: 'credit_1',
+  });
+});
+
+test('refreshMemberAiTaskUseCase 在 provider 返回无效 payload 时返回 query_failed', async () => {
+  assert.deepEqual(
+    await refreshMemberAiTaskUseCase(
+      {
+        taskId: 'task_1',
+        actorUserId: 'user_1',
+      },
+      {
+        findAITaskById: async () =>
+          ({
+            id: 'task_1',
+            userId: 'user_1',
+            taskId: 'provider_task_1',
+            provider: 'kie',
+            status: 'processing',
+            creditId: 'credit_1',
+          }) as never,
+        updateAITaskById: async () => {
+          throw new Error('should not update');
+        },
+        getProvider: async () =>
+          ({
+            query: async () => ({
+              taskInfo: { step: 'still-processing' },
+            }),
+          }) as never,
+      }
+    ),
+    { status: 'query_failed' }
+  );
 });
 
 test('refreshMemberAiTaskUseCase 对非待处理状态不查询 provider', async () => {

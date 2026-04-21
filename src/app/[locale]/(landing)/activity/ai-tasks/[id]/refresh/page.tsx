@@ -34,7 +34,10 @@ export default async function RefreshAITaskPage({
   if (result.status === 'hidden') {
     return <Empty message={t('errors.task_not_found')} />;
   }
-  if (result.status === 'invalid_provider') {
+  if (
+    result.status === 'invalid_provider' ||
+    result.status === 'query_failed'
+  ) {
     return <Empty message={t('errors.invalid_ai_provider')} />;
   }
 
