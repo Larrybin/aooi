@@ -35,6 +35,7 @@
 
 | 主题                                   | 单一事实来源                                | 说明                                                                                         |
 | -------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 架构结构守卫 manifest                  | `src/testing/architecture-rules.ts`         | 机器可读的结构规则源；文档、测试、review checklist 必须与它对齐。                           |
 | Server/Client 边界、依赖方向           | `eslint.config.mjs`                         | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。                             |
 | `src/shared` 分层约定                  | `docs/architecture/shared-layering.md`      | 规定 shared 只保留纯 UI、工具、HTTP schema、types、constants，禁止业务能力回流。             |
 | Code Review 基线                       | `docs/CODE_REVIEW.md`                       | PR 审查顺序与常见坑，含大量场景化示例。                                                      |
@@ -50,7 +51,7 @@
 
 ### SEO / Metadata（Next.js App Router）
 
-- 元数据 helper：`src/shared/lib/seo.ts`
+- 元数据 helper：`src/surfaces/public/seo/metadata.ts`
 - 使用 helper 的页面示例：`src/app/[locale]/(landing)/blog/page.tsx`、`src/app/[locale]/(landing)/pricing/page.tsx`
 - 手写 `generateMetadata` 的页面示例：`src/app/[locale]/(auth)/sign-in/page.tsx`、`src/app/[locale]/(auth)/sign-up/page.tsx`
 
@@ -87,7 +88,7 @@
 
 ### Route Handlers（`src/app/**/route.ts`）
 
-约定：入口只做编排（鉴权/校验/调用 services/返回响应），避免引入 UI 依赖图；具体护栏见 `eslint.config.mjs` 与 `docs/architecture/shared-layering.md`。
+约定：入口只做入站适配（鉴权/校验/调用 domain application/返回响应），避免引入 UI 依赖图或业务规则；具体护栏见 `eslint.config.mjs`、`src/testing/architecture-rules.ts` 与 `docs/architecture/shared-layering.md`。
 
 - 支付 checkout：`src/app/api/payment/checkout/route.ts`
 - 支付回调/通知：`src/app/api/payment/notify/[provider]/route.ts`
@@ -118,17 +119,32 @@
 
 ### 当前架构分层（边界与示例入口）
 
-以 `docs/architecture/shared-layering.md` 为准；当不确定放哪层时，优先对照该文件的“允许/禁止依赖”。
+以 `src/testing/architecture-rules.ts` 和 `docs/architecture/shared-layering.md` 为准；当不确定放哪层时，先对照机器可读 manifest，再看文档解释。
 
-- 纯工具/一致性逻辑：`src/shared/lib/**`（示例：`src/shared/lib/seo.ts`）
+- 纯工具/一致性逻辑：`src/shared/lib/**`（示例：`src/shared/lib/api/parse.ts`、`src/shared/lib/date/format.ts`）
 - 叶子常量层：`src/shared/constants/**`（示例：`src/shared/constants/rbac-permissions.ts`）
 - 业务语义和用例：`src/domains/**`
 - 后台聚合面：`src/surfaces/admin/**`
+- Public composition helper：`src/surfaces/public/**`
 - 外部实现适配：`src/infra/adapters/**`
 - 平台能力：`src/infra/platform/**`
 - Docs/blog content query/view：`src/domains/content/application/**`
 - Cross-surface content assets（server-only）：`src/shared/content/**`
 - UI 共享层：`src/shared/blocks/**`、`src/shared/components/**`、`src/shared/contexts/**`、`src/shared/hooks/**`
+
+### 架构反退化规则速查
+
+- 新 domain 必须有独立不变量、独立数据边界或生命周期；不能只是 UI、聚合层或 transport 入口。
+- `shared/lib` 只允许无业务语义副作用的纯工具和 transport helper；业务能力不能放回 shared。
+- `settings` 只拥有字段和值。业务规则、不变量、可复用策略必须进入本域 `domain/` 函数，且 domain 函数不接收原始 settings object。
+- `application` 负责流程、fallback、degrade 和外部依赖缺失处理；不能变成“合法 shared/services 2.0”。
+- 普通 `application` 文件默认最多依赖两个外域 application 只读入口，跨域 import 只能指向 `*.query.ts` / `*.view.ts`。
+- 高 fan-out 读聚合进入 `application/aggregation/*.aggregation.ts`，必须写 `architecture-exception: cross-domain-aggregation` 和 `reason: ...`。
+- 高 fan-out 写编排进入 `application/orchestration/*.orchestration.ts`，必须写 `architecture-exception: cross-domain-orchestration`、`reason: ...`、`owner: ...`、`failure-compensation: ...`。
+- `query/view` 只能 fetch/map/project，不做业务决策，不导入外域 application、settings-store 或 infra adapters。
+- `domains/*/application/**` 默认只能使用 `infra/platform/logging/**` 和 `infra/platform/request-context/**`；manifest 中的例外必须保持有限且有理由。
+- Server log 标准 meta 字段：`requestId`、`domain`、`useCase`、`operation`、`route`、`method`、`actorUserId`。
+- 自动测试负责结构边界；code review 负责判断 fan-out 依赖、settings 解释、orchestration 例外是否语义合理。
 
 ## 更新触发条件（保持索引不过期）
 

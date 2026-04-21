@@ -12,25 +12,34 @@ Contract exceptions exist (e.g. `/api/auth/[...all]` for Better Auth) where we i
 
 ```typescript
 // src/app/api/example/route.ts
-import { requireUser } from '@/shared/lib/api/guard';
-import { parseJson } from '@/shared/lib/api/parse';
+import { createApiContext } from '@/app/api/_lib/context';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 
 export const POST = withApi(async (req: Request) => {
-  // 1. Authentication
-  const user = await requireUser(req);
+  // 1. Create request context and authenticate
+  const api = createApiContext(req);
+  const user = await api.requireUser();
 
   // 2. Parse & validate input
-  const body = await parseJson(req, MyRequestSchema);
+  const body = await api.parseJson(MyRequestSchema);
 
-  // 3. Business logic
-  const result = await doSomething(body);
+  // 3. Convert transport model to use-case input
+  const result = await runUseCase({
+    actorUserId: user.id,
+    ...mapHttpToUseCaseInput(body),
+  });
 
   // 4. Return response
   return jsonOk({ data: result });
 });
 ```
+
+Route handlers are inbound adapters. They may parse HTTP bodies, enforce auth,
+convert transport models to use-case inputs, and wrap responses. Business
+rules, provider selection, repositories, pricing, credits, permission policy,
+and settings interpretation belong in the owning domain application/domain
+layers.
 
 ### Request Parsing
 
@@ -114,7 +123,7 @@ For shared service code used by both Route Handlers and Server Actions, you can 
 ## Authentication Guards
 
 ```typescript
-import { requireUser } from '@/shared/lib/api/guard';
+import { requireUser } from '@/app/access-control/api-guard';
 
 // Throws UnauthorizedError if not authenticated
 // Also enforces CSRF check for cookie-based write requests.
@@ -218,7 +227,9 @@ Notes:
 
 Notes:
 
-- `/api/chat` validates `model` against a server-side allowlist (see `src/shared/constants/chat-model-policy.ts`).
+- `/api/chat` is an inbound adapter over `src/domains/chat/application/**`.
+- Chat HTTP request/response schemas live under `src/shared/schemas/api/chat/**`; use-case inputs live in `src/domains/chat/application/**`.
+- Model capability and provider enablement policy lives in `src/domains/ai/domain/**`, not in API routes or `shared/lib`.
 - `/api/chat` consumes user credits per request; returns 403 when credits are insufficient; credits are refunded when the completion fails.
 - `/api/ai/notify/[provider]` is covered by Cloudflare app smoke through `POST /api/ai/notify/test-provider`, which must return `{ code: 0, message: "ok", data: { ok: true } }`.
 
@@ -299,6 +310,21 @@ export const POST = withApi(async (req: Request) => {
 });
 ```
 
+Server logging is owned by `src/infra/platform/logging/**`. Standard log meta:
+
+- `requestId`
+- `domain`
+- `useCase`
+- `operation`
+- `route`
+- `method`
+- `actorUserId`
+
+Use `getRequestLogger(req)` or `getRequestUseCaseLogger(req, ...)` at route
+entrypoints. Use `createUseCaseLogger()` in server-side application,
+platform, or adapter code. Client-safe request-id formatting lives in
+`src/shared/lib/api/request-id.ts`.
+
 ## Middleware
 
 The middleware (`src/middleware.ts`) handles:
@@ -317,12 +343,16 @@ For settings surfaces, see `docs/guides/settings.md`.
 3. **Use typed errors** - Throw specific error classes
 4. **Log appropriately** - Use request logger for traceability
 5. **Guard at entry** - Check auth/permissions at route entry
+6. **Keep routes as adapters** - Convert HTTP input to domain application input; do not implement business policy in routes
 
 ## Related Files
 
 - `src/shared/lib/api/route.ts` - `withApi()` wrapper
-- `src/shared/lib/api/guard.ts` - Auth guards
+- `src/app/api/_lib/context.ts` - API request context
+- `src/app/access-control/api-guard.ts` - API auth and permission adapters
 - `src/shared/lib/api/parse.ts` - Request parsing
 - `src/shared/lib/api/response.ts` - Response helpers
 - `src/shared/lib/api/errors.ts` - Error classes
+- `src/shared/lib/api/request-id.ts` - Client-safe request-id formatting
+- `src/infra/platform/logging/request-logger.server.ts` - Server request logger
 - `src/middleware.ts` - Request middleware

@@ -1,6 +1,9 @@
 # Architecture Overview
 
 This document is the current repository architecture baseline.
+Executable architecture rules live in `src/testing/architecture-rules.ts`.
+Documentation, dependency tests, and review checklists must describe that
+manifest instead of inventing parallel allowlists.
 
 ## Layer Diagram
 
@@ -45,6 +48,10 @@ src/config
 
 - Owns business semantics and invariants.
 - Typical shape: `domain/`, `application/`, `infra/`, and optional `ui/` when UI is domain-specific.
+- New domain admission requires an independent invariant, data boundary, or lifecycle. A UI-only feature, transport adapter, or admin aggregation is not enough to create a new domain.
+- `domain/` owns business rules and reusable policies.
+- `application/` owns use-case flow, technical fallback, degraded behavior, and external dependency absence handling. It is not a replacement for `shared/services`.
+- `application/*.query.ts` and `application/*.view.ts` are read-only entrypoints for fetch/map/project work. They must not become business decision engines.
 - Examples:
   - `account`: profile, API keys, member credits queries, auth UI ownership.
   - `billing`: pricing, checkout, payment notify/replay, subscriptions, credit semantics.
@@ -55,7 +62,7 @@ src/config
 
 ### `src/infra`
 
-- `infra/platform`: platform entry capabilities such as Better Auth, i18n routing/request loading, request context, theme import contracts.
+- `infra/platform`: platform entry capabilities such as Better Auth, i18n routing/request loading, request context, server logging, theme import contracts.
 - `infra/adapters`: external implementation adapters such as DB, payment transports, email, storage, ads, analytics, affiliate, customer service.
 - `infra/runtime`: env contract readers, runtime detection, Cloudflare/OpenNext runtime boundaries.
 
@@ -63,6 +70,7 @@ src/config
 
 - Pure cross-cutting utilities, UI primitives, HTTP schemas, constants, and types.
 - `shared/schemas/api/**` is for HTTP wire contracts only.
+- `shared/lib/**` is allowlisted by `src/testing/architecture-rules.ts` and may only contain pure tools or transport helpers without business capability ownership.
 - `shared` must not become a business capability layer.
 
 ### `src/config`
@@ -78,12 +86,72 @@ app/api, app/(admin) -> domains/*/application, surfaces/*, infra/platform|runtim
 public app composition -> shared/*, infra/platform, domains/*/application/*.query|*.view
 surfaces/admin -> domains/*/application, shared/ui|schemas|types
 domains/*/application -> own domain/infra, other domains only via *.query|*.view by default
-domains/*/domain -> no app, no surfaces, no infra/adapters, no HTTP schema, no Next.js API
+domains/*/domain -> no app, no surfaces, no infra/platform, no infra/adapters, no HTTP schema, no Next.js API
 infra/* -> no app/surfaces/domain application except settings *.query read projection
 shared/* -> no business capability modules
 ```
 
 Old architecture roots are removed: `src/core`, `src/features`, `src/shared/models`, and `src/shared/services`.
+
+## Anti-Regression Rules
+
+`src/testing/architecture-rules.ts` is the machine-readable source of truth for:
+
+- legacy forbidden imports and deleted architecture directories
+- `shared/lib` allowed path patterns and forbidden semantic entry names
+- platform imports allowed from domain application files
+- public composition paths and query/view import boundaries
+- application fan-out limit
+- aggregation/orchestration budgets and required exception marker formats
+- domain forbidden imports
+
+The dependency tests import that manifest from `src/architecture-boundaries.test.ts`.
+When a boundary changes, update the manifest first, then update documentation to
+match the manifest. Do not maintain a second hidden allowlist in docs or review
+notes.
+
+### Application Fan-Out
+
+Normal domain application files may depend on at most two external domain
+application read entrypoints, and cross-domain imports must target `*.query.ts`
+or `*.view.ts`. This is a structural budget, not proof that the semantics are
+correct; code review still checks whether the dependency is a real read
+relationship or hidden orchestration.
+
+High fan-out read aggregation must be explicit:
+
+```text
+src/domains/<domain>/application/aggregation/<name>.aggregation.ts
+```
+
+Aggregation files are read-only, require
+`architecture-exception: cross-domain-aggregation` plus `reason: ...`, cannot
+import orchestration, cannot be called by another domain application, and are
+budgeted by the manifest.
+
+High fan-out write orchestration must be explicit:
+
+```text
+src/domains/<domain>/application/orchestration/<name>.orchestration.ts
+```
+
+Orchestration is only for unavoidable cross-domain transaction or compensation
+flows. Files require `architecture-exception: cross-domain-orchestration`,
+`reason: ...`, `owner: ...`, and `failure-compensation: ...`; they cannot import
+another orchestration file or external domain infra/repository/provider modules.
+
+## Policy Placement
+
+Use this split when moving settings/config-driven behavior:
+
+- `settings` stores fields and values.
+- `application` controls process flow, technical fallback, degraded behavior, and missing dependency handling.
+- `domain` owns business invariants, business rule decisions, and reusable business policy.
+
+Settings values may be read by an application, but pricing, credits,
+permission, plan, subscription, and provider enablement decisions must be
+expressed through the owning domain functions. Domain functions should receive
+explicit policy inputs, not a raw settings object.
 
 ## Config / Settings Boundary
 
@@ -92,7 +160,27 @@ Settings is not a business semantics owner.
 - `domains/settings/application/settings-store.ts`: DB settings read/write, merge, patch, cache-tag invalidation.
 - `domains/settings/application/settings-runtime.query.ts`: read-only runtime settings projection.
 - `domains/settings/application/public-config.view.ts`: public read projection for UI/SEO/theme.
-- Business domains interpret setting values. For example, billing owns provider enablement semantics.
+- Business domains interpret setting values. For example, billing owns provider enablement semantics through billing domain functions.
+
+## Server Logging Boundary
+
+Server logging lives in `src/infra/platform/logging/**`.
+
+Standard structured log metadata:
+
+- `requestId`
+- `domain`
+- `useCase`
+- `operation`
+- `route`
+- `method`
+- `actorUserId`
+
+Use `getRequestLogger(req)` or `getRequestUseCaseLogger(req, ...)` at app/API
+entrypoints. Use `createUseCaseLogger({ domain, useCase, operation, requestId })`
+inside server-side use cases and platform/adapter code. Client/UI code may
+display request IDs and format errors, but must not fabricate domain/use-case
+logging tags.
 
 ## Request Flow
 
@@ -116,6 +204,7 @@ app/api route -> domain application flow -> infra adapter transport/provider -> 
 
 ## Enforced By
 
+- `src/testing/architecture-rules.ts`
 - `dependency-cruiser.cjs`
 - `eslint.config.mjs`
 - `src/architecture-boundaries.test.ts`
