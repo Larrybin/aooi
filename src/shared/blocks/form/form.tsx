@@ -19,7 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/shared/components/ui/form';
-import { formatMessageWithRequestId } from '@/shared/lib/request-id';
+import { formatMessageWithRequestId } from '@/shared/lib/api/request-id';
 import type {
   FormField as FormFieldType,
   FormSubmit,

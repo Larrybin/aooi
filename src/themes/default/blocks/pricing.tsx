@@ -35,7 +35,7 @@ import {
   formatMessageWithRequestId,
   getRequestIdFromError,
   RequestIdError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 import { cn } from '@/shared/lib/utils';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 import type {

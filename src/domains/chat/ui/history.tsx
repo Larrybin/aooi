@@ -19,7 +19,7 @@ import { formatRelativeTime } from '@/shared/lib/date/format';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 
 type ChatListItem = {
   id: string;

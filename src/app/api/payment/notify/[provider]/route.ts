@@ -1,11 +1,10 @@
 import { createApiContext } from '@/app/api/_lib/context';
-import { withApi } from '@/shared/lib/api/route';
-import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import { logger } from '@/shared/lib/logger.server';
 import {
   readRuntimeSettingsCached,
   readRuntimeSettingsFresh,
 } from '@/domains/settings/application/settings-runtime.query';
+import { withApi } from '@/shared/lib/api/route';
+import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   createPaymentWebhookInboxReceipt,
   markPaymentWebhookInboxAttempt,
@@ -98,7 +97,8 @@ function buildPaymentNotifyPostLogic(
           req: inputReq,
         }),
       onProcessFailure: ({ provider: failedProvider, inboxId, error }) => {
-        logger.error('payment: webhook inbox process failed', {
+        log.error('payment: webhook inbox process failed', {
+          operation: 'process-webhook-inbox',
           provider: failedProvider,
           inboxId,
           error,

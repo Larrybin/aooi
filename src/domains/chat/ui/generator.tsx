@@ -17,7 +17,7 @@ import { fetchJson } from '@/shared/lib/api/fetch-json';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 import type { Chat } from '@/shared/types/chat';
 
 import { ChatInput } from './input';

@@ -5,13 +5,18 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '@/infra/adapters/db';
 import { aiTask } from '@/config/db/schema';
 import { AITaskStatus } from '@/extensions/ai';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { appendUserToResult, type User } from '@/domains/account/infra/user';
 
 import {
   consumeCredits,
   refundConsumedCreditById,
 } from '@/domains/account/infra/credit';
+
+const log = createUseCaseLogger({
+  domain: 'ai',
+  useCase: 'ai-task',
+});
 
 export type AITask = typeof aiTask.$inferSelect & {
   user?: User;
@@ -65,7 +70,8 @@ export async function updateAITaskById(id: string, updateAITask: UpdateAITask) {
     if (updateAITask.status === AITaskStatus.FAILED && updateAITask.creditId) {
       const refund = await refundConsumedCreditById(updateAITask.creditId, tx);
       if (!refund.refunded && refund.reason === 'invalid_consumed_detail') {
-        logger.error('credit: invalid consumedDetail payload, skip refund', {
+        log.error('credit: invalid consumedDetail payload, skip refund', {
+          operation: 'refund-failed-task-credit',
           aiTaskId: id,
           creditId: updateAITask.creditId,
         });

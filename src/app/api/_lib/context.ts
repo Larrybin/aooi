@@ -7,7 +7,7 @@ import {
   requireUser,
 } from '@/app/access-control/api-guard';
 import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 import { parseJson, parseParams, parseQuery } from '@/shared/lib/api/parse';
 
 export type ApiContext = {

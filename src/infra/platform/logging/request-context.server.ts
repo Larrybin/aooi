@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { getOrCreateRequestId } from '@/shared/lib/request-id';
+import { getOrCreateRequestId } from '@/infra/platform/logging/request-id.server';
 
 export type RequestContext = {
   route: string;

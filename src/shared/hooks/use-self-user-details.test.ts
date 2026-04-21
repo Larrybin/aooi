@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { RequestIdError } from '@/shared/lib/request-id';
+import { RequestIdError } from '@/shared/lib/api/request-id';
 
 import {
   loadSelfUserDetails,

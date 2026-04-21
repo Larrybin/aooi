@@ -10,7 +10,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/shared/lib/brand-placeholders.server';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getMetadata } from '@/shared/lib/seo';
 import type {
@@ -19,6 +19,11 @@ import type {
   Post as PostType,
 } from '@/shared/types/blocks/blog';
 import BlogPageView from '@/themes/default/pages/blog';
+
+const log = createUseCaseLogger({
+  domain: 'content',
+  useCase: 'landing-blog-page',
+});
 
 export const generateMetadata = getMetadata({
   metadataKey: 'blog.metadata',
@@ -62,7 +67,12 @@ export default async function BlogPage({
 
     categories.unshift(currentCategory);
   } catch (error) {
-    logger.warn('landing: get posts failed', { route: '/blog', locale, error });
+    log.warn('landing: get posts failed', {
+      operation: 'render-blog-page',
+      route: '/blog',
+      locale,
+      error,
+    });
   }
 
   // build blog data

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { postsI18n } from '@/domains/content/infra/source';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   PostType as DbPostType,
   getPosts,
@@ -36,6 +36,11 @@ import {
   getLocalPage,
   getLocalPost,
 } from './local-content';
+
+const log = createUseCaseLogger({
+  domain: 'content',
+  useCase: 'public-content-query',
+});
 
 export async function getDocsPage({
   slug,
@@ -119,7 +124,11 @@ export async function getBlogCategory({
       status: TaxonomyStatus.PUBLISHED,
     });
   } catch (error) {
-    logger.warn('blog: get category failed', { slug, error });
+    log.warn('blog: get category failed', {
+      operation: 'get-blog-category',
+      slug,
+      error,
+    });
     return null;
   }
 
@@ -247,7 +256,8 @@ async function getPublishedRemoteBlogPosts({
       limit: postsCount,
     });
   } catch (error) {
-    logger.warn('blog: get remote posts failed', {
+    log.warn('blog: get remote posts failed', {
+      operation: 'get-remote-blog-posts',
       categoryId,
       error,
     });
@@ -279,7 +289,10 @@ async function getPublishedBlogCategories({
 
     return categories.map((category) => toBlogCategory(category, categoryPrefix));
   } catch (error) {
-    logger.warn('blog: get categories failed', { error });
+    log.warn('blog: get categories failed', {
+      operation: 'get-blog-categories',
+      error,
+    });
     return [] satisfies BlogCategoryType[];
   }
 }

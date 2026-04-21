@@ -6,7 +6,7 @@ import { db } from '@/infra/adapters/db';
 import { config } from '@/config/db/schema';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/shared/lib/auth-spike-oauth-config';
 import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
 import {
   getServerRuntimeEnv,
@@ -44,6 +44,10 @@ export function getBool(configs: Configs, key: KnownConfigKey): boolean {
 export const CONFIGS_CACHE_TAG = 'db-configs';
 export const PUBLIC_CONFIGS_CACHE_TAG = 'public-configs';
 const CONFIGS_CACHE_REVALIDATE_SECONDS = 60;
+const log = createUseCaseLogger({
+  domain: 'settings',
+  useCase: 'settings-store',
+});
 
 export async function saveSettings(configs: Record<string, string>) {
   const entries = Object.entries(configs);
@@ -119,7 +123,10 @@ export async function readSettingsSafe(): Promise<{
       e instanceof Error
         ? e
         : new Error(`readSettingsCached failed: ${String(e)}`);
-    logger.error('[settings-store] readSettingsCached failed', { error });
+    log.error('[settings-store] readSettingsCached failed', {
+      operation: 'read-settings-safe',
+      error,
+    });
     return { configs: {}, error };
   }
 }

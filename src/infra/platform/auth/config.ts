@@ -10,7 +10,7 @@ import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-pas
 import { getUuid } from '@/shared/lib/hash';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { isProductionEnv } from '@/shared/lib/env';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-runtime.query';
 import {
   getRuntimeEnvString,
@@ -30,6 +30,11 @@ import {
   isExplicitLocalAuthRuntimeEnabled,
   resolveRuntimeAuthBaseUrl,
 } from './runtime-origin';
+
+const log = createUseCaseLogger({
+  domain: 'auth',
+  useCase: 'auth-config',
+});
 
 function assertAuthEnv() {
   const isProduction = isProductionEnv();
@@ -178,7 +183,8 @@ export async function getAuthOptions(
   const appName = (configs.app_name || publicEnvConfigs.app_name || '').trim();
   const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
   if (isRuntimeEnvEnabled('CF_LOCAL_AUTH_DEBUG')) {
-    logger.warn('[auth-debug] request origin resolution', {
+    log.warn('[auth-debug] request origin resolution', {
+      operation: 'resolve-request-origin',
       runtimeBaseUrl,
       runtimeTrustedOrigins,
       requestUrl: request?.url || null,
@@ -190,7 +196,8 @@ export async function getAuthOptions(
     });
   }
   if (isAuthSpikeOAuthUpstreamMock) {
-    logger.info('[auth-spike-oauth] runtime auth origin', {
+    log.info('[auth-spike-oauth] runtime auth origin', {
+      operation: 'resolve-request-origin',
       runtimeBaseUrl,
       runtimeTrustedOrigins,
       requestOrigin: request?.headers.get('origin') || null,
@@ -220,7 +227,8 @@ export async function getAuthOptions(
             try {
               quota = await consumeResetPasswordQuota(email);
             } catch (error: unknown) {
-              logger.error('[auth] sendResetPassword throttle check failed', {
+              log.error('[auth] sendResetPassword throttle check failed', {
+                operation: 'send-reset-password',
                 userId: user.id,
                 error,
               });
@@ -228,7 +236,8 @@ export async function getAuthOptions(
             }
 
             if (!quota.allowed) {
-              logger.warn('[auth] sendResetPassword throttled', {
+              log.warn('[auth] sendResetPassword throttled', {
+                operation: 'send-reset-password',
                 userId: user.id,
                 reason: quota.reason,
               });
@@ -244,7 +253,8 @@ export async function getAuthOptions(
               });
 
               if (!result.success) {
-                logger.error('[auth] sendResetPassword failed', {
+                log.error('[auth] sendResetPassword failed', {
+                  operation: 'send-reset-password',
                   userId: user.id,
                   provider: result.provider,
                   error: result.error,
@@ -253,23 +263,26 @@ export async function getAuthOptions(
               }
 
               if (!isProduction) {
-                logger.debug('[auth] sendResetPassword ok', {
+                log.debug('[auth] sendResetPassword ok', {
+                  operation: 'send-reset-password',
                   userId: user.id,
                   provider: result.provider,
                   messageId: result.messageId,
                 });
               }
             } catch (error: unknown) {
-              logger.error('[auth] sendResetPassword threw', {
+              log.error('[auth] sendResetPassword threw', {
+                operation: 'send-reset-password',
                 userId: user.id,
                 error,
               });
             } finally {
               await releaseResetPasswordQuota(quota.scopeKey).catch(
                 (error: unknown) => {
-                  logger.error(
+                  log.error(
                     '[auth] sendResetPassword throttle release failed',
                     {
+                      operation: 'send-reset-password',
                       userId: user.id,
                       error,
                     }

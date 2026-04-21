@@ -9,6 +9,7 @@ const args = process.argv.slice(2);
 const coverageEnabled = args.includes('--coverage');
 
 const TEST_FILE_PATTERN = /\.(test|spec)\.(t|j)sx?$/;
+const SERVER_TEST_FILE_PATTERN = /\.server\.(test|spec)\.(t|j)sx?$/;
 const IGNORED_DIRS = new Set(['.git', '.next', 'dist', 'node_modules', 'out']);
 
 async function isDirectory(path) {
@@ -59,17 +60,54 @@ async function main() {
     process.exit(1);
   }
 
-  const nodeArgs = ['--test', '--import', 'tsx', ...testFiles];
-  if (coverageEnabled) nodeArgs.unshift('--experimental-test-coverage');
+  const defaultTestFiles = testFiles.filter(
+    (filePath) => !SERVER_TEST_FILE_PATTERN.test(filePath)
+  );
+  const reactServerTestFiles = testFiles.filter((filePath) =>
+    SERVER_TEST_FILE_PATTERN.test(filePath)
+  );
 
-  const child = spawn(process.execPath, nodeArgs, { stdio: 'inherit' });
-  child.on('exit', (code, signal) => {
-    if (typeof code === 'number') process.exit(code);
-    if (signal) {
-      process.stderr.write(`Tests terminated by signal: ${signal}\n`);
+  for (const command of [
+    {
+      label: 'default',
+      useReactServer: false,
+      files: defaultTestFiles,
+    },
+    {
+      label: 'react-server',
+      useReactServer: true,
+      files: reactServerTestFiles,
+    },
+  ]) {
+    if (command.files.length === 0) continue;
+
+    const nodeArgs = ['--test', '--import', 'tsx', ...command.files];
+    if (command.useReactServer) {
+      nodeArgs.unshift('react-server');
+      nodeArgs.unshift('--conditions');
     }
-    process.exit(1);
-  });
+    if (coverageEnabled) nodeArgs.unshift('--experimental-test-coverage');
+
+    const exitCode = await new Promise((resolveExitCode) => {
+      const child = spawn(process.execPath, nodeArgs, { stdio: 'inherit' });
+      child.on('exit', (code, signal) => {
+        if (typeof code === 'number') {
+          resolveExitCode(code);
+          return;
+        }
+        if (signal) {
+          process.stderr.write(
+            `Tests (${command.label}) terminated by signal: ${signal}\n`
+          );
+        }
+        resolveExitCode(1);
+      });
+    });
+
+    if (exitCode !== 0) {
+      process.exit(exitCode);
+    }
+  }
 }
 
 await main();

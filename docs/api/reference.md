@@ -287,7 +287,7 @@ Notes:
 All requests include `x-request-id` header for tracing:
 
 ```typescript
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 
 export const POST = withApi(async (req: Request) => {
   const { log, requestId } = getRequestLogger(req);

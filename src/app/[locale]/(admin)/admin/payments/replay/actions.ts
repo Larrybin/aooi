@@ -26,7 +26,7 @@ import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema, parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   handleCheckoutSuccess,
   handleSubscriptionCanceled,
@@ -62,19 +62,44 @@ const replayDeps: PaymentNotifyDeps = {
   handleSubscriptionUpdated,
 };
 
+const baseReplayLog = createUseCaseLogger({
+  domain: 'billing',
+  useCase: 'payment-webhook-replay',
+});
+
 function createReplayLog(userId: string, operationKind: string) {
   return {
     debug(message: string, meta?: Record<string, unknown>) {
-      logger.debug(message, { ...meta, operatorUserId: userId, operationKind });
+      baseReplayLog.debug(message, {
+        operation: 'replay-webhook-events',
+        ...meta,
+        operatorUserId: userId,
+        operationKind,
+      });
     },
     info(message: string, meta?: Record<string, unknown>) {
-      logger.info(message, { ...meta, operatorUserId: userId, operationKind });
+      baseReplayLog.info(message, {
+        operation: 'replay-webhook-events',
+        ...meta,
+        operatorUserId: userId,
+        operationKind,
+      });
     },
     warn(message: string, meta?: Record<string, unknown>) {
-      logger.warn(message, { ...meta, operatorUserId: userId, operationKind });
+      baseReplayLog.warn(message, {
+        operation: 'replay-webhook-events',
+        ...meta,
+        operatorUserId: userId,
+        operationKind,
+      });
     },
     error(message: string, meta?: Record<string, unknown>) {
-      logger.error(message, { ...meta, operatorUserId: userId, operationKind });
+      baseReplayLog.error(message, {
+        operation: 'replay-webhook-events',
+        ...meta,
+        operatorUserId: userId,
+        operationKind,
+      });
     },
   };
 }

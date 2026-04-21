@@ -11,9 +11,14 @@ import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-profile';
 import type { Form as FormType } from '@/shared/types/blocks/form';
+
+const log = createUseCaseLogger({
+  domain: 'account',
+  useCase: 'profile-settings-page',
+});
 
 export default async function ProfilePage() {
   const t = await getTranslations('settings.profile');
@@ -62,7 +67,8 @@ export default async function ProfilePage() {
           );
 
           const imageValue = data.get('image');
-          logger.debug('settings: profile update image field received', {
+          log.debug('settings: profile update image field received', {
+            operation: 'update-profile-image',
             route: '/settings/profile',
             imageType: typeof imageValue,
             isNull: imageValue === null,

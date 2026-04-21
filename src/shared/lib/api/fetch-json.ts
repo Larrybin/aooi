@@ -6,7 +6,7 @@ import { fetchApiData } from '@/shared/lib/api/client';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 
 export type FetchJsonInit = Omit<RequestInit, 'body' | 'headers'> & {
   headers?: HeadersInit;

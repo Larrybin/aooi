@@ -3,13 +3,18 @@ import 'server-only';
 import { headers } from 'next/headers';
 
 import { BusinessError, ExternalError, PublicError } from '@/shared/lib/errors';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   generateRequestId,
   getOrCreateRequestId,
-} from '@/shared/lib/request-id';
+} from '@/infra/platform/logging/request-id.server';
 
 import { actionErr, type ActionResult } from './result';
+
+const log = createUseCaseLogger({
+  domain: 'platform',
+  useCase: 'server-action',
+});
 
 async function getActionRequestId(): Promise<string> {
   try {
@@ -33,16 +38,28 @@ export async function withAction<T>(
     }
 
     if (error instanceof ExternalError) {
-      logger.error('[action] external error', { error, requestId });
+      log.error('[action] external error', {
+        operation: 'handle-action-error',
+        error,
+        requestId,
+      });
       return actionErr(error.publicMessage, requestId);
     }
 
     if (error instanceof PublicError) {
-      logger.error('[action] public error', { error, requestId });
+      log.error('[action] public error', {
+        operation: 'handle-action-error',
+        error,
+        requestId,
+      });
       return actionErr(error.publicMessage, requestId);
     }
 
-    logger.error('[action] unhandled error', { error, requestId });
+    log.error('[action] unhandled error', {
+      operation: 'handle-action-error',
+      error,
+      requestId,
+    });
     return actionErr('action failed', requestId);
   }
 }

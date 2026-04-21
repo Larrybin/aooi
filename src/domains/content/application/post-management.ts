@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { post } from '@/config/db/schema';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import {
@@ -13,6 +13,11 @@ import {
 } from '@/domains/content/infra/post-repo';
 import { generateTOC } from '@/domains/content/domain/toc';
 import { formatPostDate } from '@/domains/content/domain/post-date';
+
+const log = createUseCaseLogger({
+  domain: 'content',
+  useCase: 'post-management',
+});
 
 export type Post = typeof post.$inferSelect;
 export type NewPost = typeof post.$inferInsert;
@@ -124,7 +129,11 @@ export async function getPost({
       };
     }
   } catch (e) {
-    logger.warn('post: get post from database failed', { slug, error: e });
+    log.warn('post: get post from database failed', {
+      operation: 'get-post',
+      slug,
+      error: e,
+    });
   }
 
   return null;

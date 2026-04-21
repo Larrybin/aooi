@@ -1,8 +1,22 @@
+/* eslint-disable no-console */
 import 'server-only';
 
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type BoundLogger = {
+  debug: (message: string, meta?: unknown) => void;
+  info: (message: string, meta?: unknown) => void;
+  warn: (message: string, meta?: unknown) => void;
+  error: (message: string, meta?: unknown) => void;
+};
+
+type UseCaseLoggerContext = {
+  requestId?: string;
+  domain: string;
+  useCase: string;
+  operation?: string;
+};
 
 const isProduction = isProductionEnv();
 const isDebugEnabled = isDebugEnv();
@@ -237,3 +251,15 @@ export const logger = {
     };
   },
 };
+
+export function createUseCaseLogger(
+  context: UseCaseLoggerContext
+): BoundLogger {
+  const { requestId, domain, useCase, operation } = context;
+  return logger.with({
+    ...(requestId ? { requestId } : {}),
+    domain,
+    useCase,
+    ...(operation ? { operation } : {}),
+  });
+}

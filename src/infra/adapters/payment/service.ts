@@ -4,7 +4,7 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   ProviderRegistry,
   trimmedProviderNameKey,
@@ -18,6 +18,11 @@ import type {
   PaymentProvider,
   PaymentSession,
 } from '@/domains/billing/domain/payment';
+
+const log = createUseCaseLogger({
+  domain: 'billing',
+  useCase: 'payment-adapter-service',
+});
 
 export type PaymentRuntimeSettings = Record<string, string | undefined>;
 
@@ -49,9 +54,10 @@ async function addStripeProvider(
   if (typeof stripePaymentMethodsConfig === 'string') {
     const result = parseStripePaymentMethodsConfig(stripePaymentMethodsConfig);
     if (!result.ok) {
-      logger.warn(
+      log.warn(
         'payment: invalid stripe payment methods config, fallback to card',
         {
+          operation: 'parse-stripe-payment-methods',
           error: result.error,
         }
       );
@@ -65,9 +71,10 @@ async function addStripeProvider(
       JSON.stringify(stripePaymentMethodsConfig)
     );
     if (!result.ok) {
-      logger.warn(
+      log.warn(
         'payment: invalid stripe payment methods config, fallback to card',
         {
+          operation: 'parse-stripe-payment-methods',
           error: result.error,
         }
       );

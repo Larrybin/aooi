@@ -6,7 +6,7 @@ import postgres from 'postgres';
 
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { isProductionEnv } from '@/shared/lib/env';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   getCloudflareBindings,
   getServerRuntimeEnv,
@@ -16,6 +16,10 @@ import {
 import { assertRoleDeletedAtColumnExists } from './schema-check';
 
 const SCHEMA_CHECK_RETRY_COOLDOWN_MS = 1000;
+const log = createUseCaseLogger({
+  domain: 'database',
+  useCase: 'db-adapter',
+});
 
 type SchemaCheckState = {
   promise: Promise<void> | null;
@@ -67,7 +71,7 @@ function getOrCreateSchemaCheckPromise(
   const promise = assertRoleDeletedAtColumnExists({
     sql,
     isProduction: isProductionEnv(),
-    logger,
+    logger: log,
   })
     .then(() => {
       state.lastError = null;
@@ -191,7 +195,7 @@ function createSchemaCheckedClient(
 
 function logEnvironmentOnce(message: string) {
   if (hasLoggedEnvironment) return;
-  logger.info(message);
+  log.info(message, { operation: 'select-runtime-connection' });
   hasLoggedEnvironment = true;
 }
 
@@ -244,7 +248,8 @@ export function db() {
 
   if (runningInCloudflareWorkers) {
     if (!hasCloudflareWorkersEnv) {
-      logger.error('db: detected Cloudflare Workers but bindings env missing', {
+      log.error('db: detected Cloudflare Workers but bindings env missing', {
+        operation: 'resolve-cloudflare-bindings',
         hint: 'enable nodejs_compat and ensure cloudflare:workers module is available',
       });
       throw new ServiceUnavailableError(
@@ -258,7 +263,8 @@ export function db() {
       cloudflareEnv?.HYPERDRIVE?.connectionString;
 
     if (!hyperdriveConnectionString) {
-      logger.error('db: missing Hyperdrive binding "HYPERDRIVE"', {
+      log.error('db: missing Hyperdrive binding "HYPERDRIVE"', {
+        operation: 'resolve-hyperdrive-binding',
         hint: 'configure [[hyperdrive]] binding = "HYPERDRIVE" in wrangler.cloudflare.toml',
       });
       throw new ServiceUnavailableError(

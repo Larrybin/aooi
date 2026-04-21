@@ -1,4 +1,4 @@
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   getAdsTxtBody,

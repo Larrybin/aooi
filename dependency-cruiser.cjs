@@ -71,7 +71,7 @@ module.exports = {
       to: {
         path: '^src/(domains|surfaces|infra)/',
         pathNot:
-          '^src/domains/settings/application/(settings-store|public-config\\.view)\\.ts$|^src/infra/runtime/env\\.server\\.ts$',
+          '^src/domains/settings/application/(settings-store|public-config\\.view)\\.ts$|^src/infra/runtime/env\\.server\\.ts$|^src/infra/platform/logging/',
       },
     },
     {

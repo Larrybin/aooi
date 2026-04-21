@@ -24,7 +24,7 @@ import {
   formatMessageWithRequestId,
   getRequestIdFromError,
   RequestIdError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 import { resolveAICapabilitySelection } from '@/shared/lib/ai-capability-selection';
 import type { AICapability } from '@/shared/types/ai-capability';
 import type { SelfUserDetails } from '@/shared/types/auth-session';

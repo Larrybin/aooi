@@ -13,7 +13,7 @@
 
 import 'server-only';
 
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 import { ForbiddenError } from './errors';

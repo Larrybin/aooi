@@ -11,9 +11,17 @@ import { permission, role, rolePermission, userRole } from '@/config/db/schema';
 import { BusinessError } from '@/shared/lib/errors';
 import { isProductionEnv } from '@/shared/lib/env';
 import { getUuid } from '@/shared/lib/hash';
-import { logger } from '@/shared/lib/logger.server';
+import {
+  createUseCaseLogger,
+  logger,
+} from '@/infra/platform/logging/logger.server';
 
 import { getPermissionMatchCandidates } from '@/domains/access-control/domain/policy';
+
+const log = createUseCaseLogger({
+  domain: 'access-control',
+  useCase: 'access-control-repository',
+});
 
 export type AccessControlAuditContext = {
   actorUserId?: string;
@@ -29,9 +37,14 @@ type DbTransactionClient = Parameters<
 type DbReadWriteClient = DbClient | DbTransactionClient;
 
 export function getAccessControlAuditLogger(audit?: AccessControlAuditContext) {
-  if (!audit) return logger;
+  if (!audit) return log;
   const { actorUserId, ...ctx } = audit;
-  return logger.with({ ...ctx, actorUserId });
+  return logger.with({
+    domain: 'access-control',
+    useCase: 'access-control-repository',
+    ...ctx,
+    actorUserId,
+  });
 }
 
 export type RoleRecord = typeof role.$inferSelect;
@@ -75,7 +88,8 @@ export function normalizeAccessControlSchemaError(error: unknown): never {
   const isProduction = isProductionEnv();
   const hint = buildRoleDeletedAtMissingHint();
 
-  logger.error('[access-control] schema mismatch detected', {
+  log.error('[access-control] schema mismatch detected', {
+    operation: 'normalize-schema-error',
     pgCode: '42703',
     missingColumn: 'public.role.deleted_at',
     hint,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchJson } from '@/shared/lib/api/fetch-json';
-import { RequestIdError } from '@/shared/lib/request-id';
+import { RequestIdError } from '@/shared/lib/api/request-id';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 
 type UseSelfUserDetailsOptions = {
