@@ -51,9 +51,21 @@ export async function refreshMemberAiTaskUseCase(
     return { status: 'query_failed' };
   }
 
-  const result = await aiProvider.query({
-    taskId: task.taskId,
-  });
+  let result:
+    | {
+        taskStatus: string;
+        taskInfo?: unknown;
+        taskResult?: unknown;
+      }
+    | undefined;
+
+  try {
+    result = await aiProvider.query({
+      taskId: task.taskId,
+    });
+  } catch {
+    return { status: 'query_failed' };
+  }
 
   if (!result?.taskStatus) {
     return { status: 'query_failed' };

@@ -325,15 +325,32 @@ export async function readCancelableSubscriptionPageUseCase(
     return { status: 'missing_subscription_target' };
   }
 
-  const paymentService = await deps.getPaymentServiceWithConfigs(
-    await deps.readRuntimeSettingsCached()
+  const paymentProvider = await resolveCancelableSubscriptionProvider(
+    subscription.paymentProvider,
+    deps
   );
-  const paymentProvider = paymentService.getProvider(subscription.paymentProvider);
   if (!paymentProvider?.cancelSubscription) {
     return { status: 'provider_not_found' };
   }
 
   return { status: 'ok', subscription };
+}
+
+async function resolveCancelableSubscriptionProvider(
+  providerName: string,
+  deps: Pick<
+    Parameters<typeof readCancelableSubscriptionPageUseCase>[1],
+    'getPaymentServiceWithConfigs' | 'readRuntimeSettingsCached'
+  >
+) {
+  try {
+    const paymentService = await deps.getPaymentServiceWithConfigs(
+      await deps.readRuntimeSettingsCached()
+    );
+    return paymentService.getProvider(providerName);
+  } catch {
+    return undefined;
+  }
 }
 
 export async function readMemberCancelableSubscription(input: {

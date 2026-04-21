@@ -223,6 +223,38 @@ test('refreshMemberAiTaskUseCase 在 provider 返回无效 payload 时返回 que
   );
 });
 
+test('refreshMemberAiTaskUseCase 在 provider query 抛错时返回 query_failed', async () => {
+  assert.deepEqual(
+    await refreshMemberAiTaskUseCase(
+      {
+        taskId: 'task_1',
+        actorUserId: 'user_1',
+      },
+      {
+        findAITaskById: async () =>
+          ({
+            id: 'task_1',
+            userId: 'user_1',
+            taskId: 'provider_task_1',
+            provider: 'kie',
+            status: 'processing',
+            creditId: 'credit_1',
+          }) as never,
+        updateAITaskById: async () => {
+          throw new Error('should not update');
+        },
+        getProvider: async () =>
+          ({
+            query: async () => {
+              throw new Error('upstream timeout');
+            },
+          }) as never,
+      }
+    ),
+    { status: 'query_failed' }
+  );
+});
+
 test('refreshMemberAiTaskUseCase 对非待处理状态不查询 provider', async () => {
   let providerCalls = 0;
 
