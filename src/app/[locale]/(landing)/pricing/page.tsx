@@ -3,7 +3,7 @@
 // reason: marketing pricing page should stay statically prerenderable
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getLocaleStaticParams } from '@/core/i18n/static-params';
+import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import { locales } from '@/config/locale';
 import {
   buildBrandPlaceholderValues,

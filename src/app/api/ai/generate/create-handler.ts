@@ -11,15 +11,15 @@ import type {
   createAITask,
   NewAITask,
   updateAITaskById,
-} from '@/shared/models/ai_task';
+} from '@/domains/ai/infra/ai-task';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-import type { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
+import type { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
 } from '@/shared/schemas/api/ai/generate';
-import type { getAIServiceWithConfigs } from '@/shared/services/ai';
-import type { resolveConfiguredAICapability } from '@/shared/services/ai-capabilities';
+import type { getAIServiceWithConfigs } from '@/domains/ai/application/service';
+import type { resolveConfiguredAICapability } from '@/domains/ai/application/capabilities';
 
 type AiGenerateApiContext = {
   log: {

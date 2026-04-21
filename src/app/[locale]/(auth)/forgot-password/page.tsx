@@ -1,7 +1,7 @@
 // data: request locale (next-intl) + auth configs (unstable_cache tag=db-configs, revalidate=60s)
 // cache: dynamic (locale-aware); configs cached via unstable_cache
 // reason: password recovery flow needs locale + brand settings; avoid per-request db reads
-import { ForgotPassword } from '@/features/web/auth/components/forgot-password';
+import { ForgotPassword } from '@/domains/account/ui/auth/forgot-password';
 import { getTranslations } from 'next-intl/server';
 
 import { defaultLocale } from '@/config/locale';

@@ -31,9 +31,10 @@ Optional modules today:
 ```
 src/
 ├── app/           # Route-only: Next.js routes, layouts, route handlers
-├── features/      # Product surfaces: admin / web / docs
-├── core/          # Foundation: auth, database, i18n, payment, docs source, theme
-├── shared/        # Cross-surface primitives, services, utilities, types
+├── domains/       # Business semantics and application use cases
+├── surfaces/      # Product/admin composition surfaces
+├── infra/         # Platform/runtime/adapters
+├── shared/        # Pure UI, utilities, schemas, and cross-cutting types
 ├── extensions/    # Third-party integrations (AI, storage, etc.)
 ├── config/        # Configuration, DB schema, locale messages
 ├── testing/       # Shared smoke/test contracts and test-only helpers
@@ -47,12 +48,11 @@ scripts/           # Maintenance and automation scripts
 ### 当前分层原则
 
 - `src/app/**`：只保留路由入口、layout、route handler，不承载业务实现。
-- `src/features/admin/**`：管理后台面，固定为 `server/` + `schemas/`。
-- `src/features/web/**`：终端用户面，当前承载 `auth/`、`chat/`，各自再分 `components/` 与 `server/`。
-- `src/features/docs/**`：docs/blog 本地内容流水线与 docs 面逻辑，内容入口在 `server/content/**`。
-- `src/core/payment/**`：支付唯一实现根，固定分为 `domain / providers / flows / webhooks`；app 层只做 HTTP 入口与依赖装配。
-- `src/shared/**`：只保留跨面的 UI primitives、hooks/utils/constants/types、以及确认跨面复用的 shell。
-- `src/shared/services/settings/**`：继续作为跨面域服务保留在 shared。
+- `src/domains/**`：承载业务语义、领域不变量和应用用例，例如 account、billing、chat、content、settings、access-control。
+- `src/surfaces/admin/**`：后台管理面聚合层，只组合各 domain 的应用入口。
+- `src/infra/platform/**`：平台上下文和入口能力，例如 auth、i18n、request context。
+- `src/infra/adapters/**`：外部实现适配，例如 DB、payment provider、email、storage、AI/marketing service 装配。
+- `src/shared/**`：只保留纯 UI primitives、hooks/utils/constants/types、HTTP schemas 和跨面 shell。
 - `src/shared/content/**`：仅保留跨面的 server-only 内容资产（如邮件模板），不再承载 docs/blog 本地内容流水线。
 
 ## Quick Start
@@ -166,7 +166,7 @@ Read `content/docs` to start your AI SaaS project.
 - Locale routing uses next-intl under `src/app/[locale]/**` + `src/request-proxy.ts`.
 - Supported locales are defined in `src/config/locale/index.ts`.
 - Message bundles live in `src/config/locale/messages/<locale>/**`; `en` is the complete base and other locales override partially (missing namespaces fall back to `en`).
-- Server-side message loading is now route-scoped in `src/core/i18n/request.ts`: we infer the current pathname from middleware-injected request headers and only load the namespace set needed by that route.
+- Server-side message loading is now route-scoped in `src/infra/platform/i18n/request.ts`: we infer the current pathname from middleware-injected request headers and only load the namespace set needed by that route.
 - Client-side message loading is no longer injected from the `[locale]` root layout. Client trees that call `useTranslations()` are wrapped by local `ScopedIntlProvider` boundaries with explicit namespace lists.
 - Docs site UI/content translation scope excludes the `demo/*` and `admin/*` namespaces (we only maintain them for `en/zh/zh-TW`).
 - Fumadocs content now uses per-surface language scopes instead of the full app locale list:

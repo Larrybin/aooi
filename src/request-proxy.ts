@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getSessionCookie } from 'better-auth/cookies';
 import createIntlMiddleware from 'next-intl/middleware';
 
-import { routing } from '@/core/i18n/config';
+import { routing } from '@/infra/platform/i18n/config';
 import { defaultLocale, locales, type Locale } from '@/config/locale';
 import { ADMIN_PATH } from '@/shared/constants/admin-entry';
 import { upsertMiddlewareRequestHeader } from '@/shared/lib/middleware-request-headers';

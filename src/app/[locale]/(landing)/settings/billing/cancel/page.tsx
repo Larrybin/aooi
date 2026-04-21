@@ -13,7 +13,7 @@ import { parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   findSubscriptionBySubscriptionNo,
   SubscriptionStatus,

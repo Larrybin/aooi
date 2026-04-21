@@ -18,7 +18,7 @@ import {
   findUserById,
   updateUser,
   type UpdateUser,
-} from '@/shared/models/user';
+} from '@/domains/account/infra/user';
 
 /**
  * Update user profile (name, image)

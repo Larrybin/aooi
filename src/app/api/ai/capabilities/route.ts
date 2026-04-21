@@ -1,6 +1,6 @@
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { listPublicAICapabilities } from '@/shared/services/ai-capabilities';
+import { listPublicAICapabilities } from '@/domains/ai/application/capabilities';
 import type { AICapability } from '@/shared/types/ai-capability';
 
 type AiCapabilitiesRouteDeps = {

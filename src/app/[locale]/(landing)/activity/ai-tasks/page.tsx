@@ -16,7 +16,7 @@ import {
   getAITasks,
   getAITasksCount,
   type AITask,
-} from '@/shared/models/ai_task';
+} from '@/domains/ai/infra/ai-task';
 import type { Button, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

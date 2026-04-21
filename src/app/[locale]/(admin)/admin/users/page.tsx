@@ -10,8 +10,8 @@ import {
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getRemainingCredits } from '@/shared/models/credit';
-import { getUsers, getUsersCount, type User } from '@/shared/models/user';
+import { getRemainingCredits } from '@/domains/account/infra/credit';
+import { getUsers, getUsersCount, type User } from '@/domains/account/infra/user';
 
 export default createAdminTablePage<User, AdminUsersListQuery>({
   namespace: 'admin.users',

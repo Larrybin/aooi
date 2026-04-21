@@ -9,11 +9,11 @@ import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
 import { safeJsonParse } from '@/shared/lib/json';
-import { findChatByIdForViewer } from '@/shared/models/chat';
+import { findChatByIdForViewer } from '@/domains/chat/infra/chat';
 import {
   ChatMessageStatus,
   getChatMessages,
-} from '@/shared/models/chat_message';
+} from '@/domains/chat/infra/chat-message';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({

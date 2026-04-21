@@ -8,7 +8,7 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { findUserById } from '@/shared/models/user';
+import { findUserById } from '@/domains/account/infra/user';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserAction } from '../../actions';

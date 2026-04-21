@@ -8,7 +8,7 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
+import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

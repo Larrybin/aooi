@@ -12,7 +12,7 @@ import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import type { getEmailService as getEmailServiceFn } from '@/shared/services/email';
+import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 const MAX_EMAIL_RECIPIENTS = 10;
 
@@ -49,7 +49,7 @@ function getDefaultEmailTestRouteDeps(): EmailTestRouteDeps {
       return mod.createApiContext(req) as EmailTestApiContext;
     },
     getEmailService: async () => {
-      const mod = await import('@/shared/services/email');
+      const mod = await import('@/infra/adapters/email/service');
       return await mod.getEmailService();
     },
     buildVerificationCodeEmailPayload: async (input) => {

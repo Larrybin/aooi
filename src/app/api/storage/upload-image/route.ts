@@ -7,7 +7,7 @@ import {
   resolveConfigConsistencyMode,
   type ConfigConsistencyMode,
 } from '@/shared/lib/config-consistency';
-import type { getStorageService } from '@/shared/services/storage';
+import type { getStorageService } from '@/infra/adapters/storage/service';
 import type { uploadImageFiles } from './upload-image-files';
 
 type MaybePromise<T> = T | Promise<T>;
@@ -48,7 +48,7 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
       return await mod.uploadImageFiles(input);
     },
     getStorageService: async (options) => {
-      const mod = await import('@/shared/services/storage');
+      const mod = await import('@/infra/adapters/storage/service');
       return await mod.getStorageService(options);
     },
     concurrencyLimiter:

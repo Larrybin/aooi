@@ -3,7 +3,7 @@
 // reason: chat layout is user-specific; avoid caching across users
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { SignModal } from '@/features/web/auth/components/sign-modal';
+import { SignModal } from '@/domains/account/ui/auth/sign-modal';
 import { ChatLibrary } from '@/domains/chat/ui/library';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 

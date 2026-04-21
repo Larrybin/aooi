@@ -14,7 +14,7 @@ import {
   getCredits,
   getCreditsCount,
   type Credit,
-} from '@/shared/models/credit';
+} from '@/domains/account/infra/credit';
 
 export default createAdminTablePage<Credit, AdminCreditsListQuery>({
   namespace: 'admin.credits',

@@ -4,19 +4,19 @@ import {
   findChatById,
   getChats,
   getChatsCount,
-} from '@/shared/models/chat';
+} from '@/domains/chat/infra/chat';
 import {
   createChatMessage,
   ChatMessageStatus,
   getChatMessageWindow,
   getChatMessages,
   getChatMessagesCount,
-} from '@/shared/models/chat_message';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
+} from '@/domains/chat/infra/chat-message';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   consumeCredits,
   refundConsumedCreditById,
-} from '@/shared/models/credit';
+} from '@/domains/account/infra/credit';
 import type {
   ChatMessageRecord,
   ChatRecord,

@@ -1,9 +1,11 @@
 import { unstable_cache } from '@/shared/lib/next-cache';
 import {
   PUBLIC_CONFIGS_CACHE_TAG,
+} from './settings-store';
+import {
   readRuntimeSettingsFresh,
   readRuntimeSettingsSafe,
-} from './settings-store';
+} from './settings-runtime.query';
 import {
   readPublicConfigsByMode,
   type ConfigMap,

@@ -41,7 +41,7 @@ function getDefaultVerifyCodeRouteDeps(): VerifyCodeRouteDeps {
       return mod.createApiContext(req) as VerifyCodeApiContext;
     },
     consumeSettingsEmailVerificationCode: async (input) => {
-      const mod = await import('@/shared/models/email_verification_code');
+      const mod = await import('@/domains/account/infra/email-verification-code');
       return await mod.consumeSettingsEmailVerificationCode(input);
     },
     attemptLimiter: createLimiterFactory().createVerifyCodeAttemptLimiter(),

@@ -9,7 +9,6 @@ import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudfl
 import { logger } from '@/shared/lib/logger.server';
 import { unstable_cache } from '@/shared/lib/next-cache';
 import {
-  getServerPublicEnvConfigs,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
 } from '@/infra/runtime/env.server';
@@ -123,43 +122,4 @@ export async function readSettingsSafe(): Promise<{
     logger.error('[settings-store] readSettingsCached failed', { error });
     return { configs: {}, error };
   }
-}
-
-export async function readRuntimeSettingsCached(): Promise<Configs> {
-  const dbConfigs = await readSettingsCached();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-
-  // DB is allowed to override env for compatibility (app_url/app_name/locale...)
-  const configs = {
-    ...serverPublicEnvConfigs,
-    ...dbConfigs,
-  };
-
-  return configs;
-}
-
-export async function readRuntimeSettingsFresh(): Promise<Configs> {
-  const dbConfigs = await readSettingsFresh();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-
-  return {
-    ...serverPublicEnvConfigs,
-    ...dbConfigs,
-  };
-}
-
-export async function readRuntimeSettingsSafe(): Promise<{
-  configs: Configs;
-  error?: Error;
-}> {
-  const { configs: dbConfigs, error } = await readSettingsSafe();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-
-  return {
-    configs: {
-      ...serverPublicEnvConfigs,
-      ...dbConfigs,
-    },
-    error,
-  };
 }

@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   findOrderByOrderNo,
   updateOrderByOrderNo,

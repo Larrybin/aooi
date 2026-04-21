@@ -4,7 +4,7 @@ import { createApiContext } from '@/app/api/_lib/context';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-store';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import type { Pricing } from '@/shared/types/blocks/pricing';
 import { createPaymentCheckoutSession } from '@/domains/billing/application/checkout';

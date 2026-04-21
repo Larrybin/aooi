@@ -1,12 +1,11 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { SignUser } from '@/features/web/auth/components/sign-user';
+import { SignUser } from '@/domains/account/ui/auth/sign-user';
 import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
 import { AppImage } from '@/shared/blocks/common/app-image';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
-import type { Configs } from '@/domains/settings/application/settings-store';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
 
@@ -94,7 +93,7 @@ export function MarketingHeader({
 }: {
   header: HeaderType;
   locale: string;
-  publicConfigs?: Configs;
+  publicConfigs?: Record<string, string>;
 }) {
   const navItems = filterLandingNavItems(header.nav?.items, publicConfigs);
 

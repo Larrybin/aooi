@@ -3,9 +3,9 @@ import 'server-only';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { defaultLocale, locales } from '@/config/locale';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
 import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-store';
 
 type MetadataFields = {
   title: string;
@@ -97,8 +97,7 @@ export function getMetadata(
     const { locale } = await params;
     setRequestLocale(locale);
 
-    const { configs } = await readRuntimeSettingsSafe();
-    const brand = buildBrandPlaceholderValues(configs);
+    const brand = buildBrandPlaceholderValues(await getPublicConfigsCached());
 
     // passed metadata
     const passedMetadata = {

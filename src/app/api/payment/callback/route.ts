@@ -15,7 +15,7 @@ import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import {
   readRuntimeSettingsCached,
   readRuntimeSettingsFresh,
-} from '@/domains/settings/application/settings-store';
+} from '@/domains/settings/application/settings-runtime.query';
 import { findOrderByOrderNo } from '@/domains/billing/infra/order';
 import {
   PaymentCallbackBodySchema,

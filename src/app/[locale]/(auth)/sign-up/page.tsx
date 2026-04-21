@@ -1,7 +1,7 @@
 // data: request locale (next-intl) + auth configs (unstable_cache tag=db-configs, revalidate=60s) + callbackUrl (query)
 // cache: dynamic (request-based searchParams); configs cached via unstable_cache
 // reason: public auth entry; support callback redirects without cross-request caching
-import { SignUp } from '@/features/web/auth/components/sign-up';
+import { SignUp } from '@/domains/account/ui/auth/sign-up';
 import { getTranslations } from 'next-intl/server';
 
 import { defaultLocale } from '@/config/locale';

@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { SignUser } from '@/features/web/auth/components/sign-user';
+import { SignUser } from '@/domains/account/ui/auth/sign-user';
 import { Menu, X } from 'lucide-react';
 
-import { Link, usePathname } from '@/core/i18n/navigation';
+import { Link, usePathname } from '@/infra/platform/i18n/navigation';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
@@ -26,7 +26,6 @@ import { listenEvent } from '@/shared/lib/dom/event-listener';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
 import { cn } from '@/shared/lib/utils';
-import type { Configs } from '@/domains/settings/application/settings-store';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
 
@@ -49,7 +48,7 @@ export function Header({
   publicConfigs,
 }: {
   header: HeaderType;
-  publicConfigs?: Configs;
+  publicConfigs?: Record<string, string>;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);

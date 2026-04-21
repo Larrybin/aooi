@@ -5,7 +5,7 @@ import { logger } from '@/shared/lib/logger.server';
 import {
   readRuntimeSettingsCached,
   readRuntimeSettingsFresh,
-} from '@/domains/settings/application/settings-store';
+} from '@/domains/settings/application/settings-runtime.query';
 import {
   createPaymentWebhookInboxReceipt,
   markPaymentWebhookInboxAttempt,

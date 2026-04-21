@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table';
-import type { User as UserType } from '@/shared/models/user';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { TableColumn } from '@/shared/types/blocks/table';
 
@@ -19,7 +18,7 @@ import { Image } from './image';
 import { JsonPreview } from './json-preview';
 import { Label } from './label';
 import { Time } from './time';
-import { User } from './user';
+import { User, type TableUserValue } from './user';
 
 export function Table<T extends object>({
   columns,
@@ -142,7 +141,7 @@ export function Table<T extends object>({
                     cellContent = (
                       <User
                         placeholder={column.placeholder}
-                        value={value as UserType}
+                      value={value as TableUserValue}
                         metadata={column.metadata as Record<string, unknown>}
                         className={column.className}
                       />

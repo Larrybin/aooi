@@ -15,7 +15,7 @@ import {
   getAITasks,
   getAITasksCount,
   type AITask,
-} from '@/shared/models/ai_task';
+} from '@/domains/ai/infra/ai-task';
 
 export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
   namespace: 'admin.ai-tasks',

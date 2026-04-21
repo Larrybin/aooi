@@ -1,11 +1,11 @@
 import { toNextJsHandler } from 'better-auth/next-js';
 
-import { getAuth } from '@/core/auth';
+import { getAuth } from '@/infra/platform/auth';
 import {
   normalizeAuthSpikeRedirectLocationValue,
   resolveAuthSpikeRedirectRequestUrl,
   toRelativeSameOriginAuthSpikeRedirectLocationValue,
-} from '@/core/auth/auth-spike-redirect';
+} from '@/infra/platform/auth/auth-spike-redirect';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/shared/lib/auth-spike-oauth-config';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 import { getRuntimeEnvString } from '@/infra/runtime/env.server';

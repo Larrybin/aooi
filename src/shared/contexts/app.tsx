@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import { getAuthClient } from '@/core/auth/client';
+import { getAuthClient } from '@/infra/platform/auth/client';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 

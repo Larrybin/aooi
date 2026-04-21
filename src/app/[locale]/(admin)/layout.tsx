@@ -2,7 +2,7 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin area is user-specific; avoid caching across users/roles
 import type { ReactNode } from 'react';
-import { SignModal } from '@/features/web/auth/components/sign-modal';
+import { SignModal } from '@/domains/account/ui/auth/sign-modal';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';

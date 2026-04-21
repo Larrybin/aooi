@@ -10,7 +10,7 @@ import {
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
-import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
+import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,

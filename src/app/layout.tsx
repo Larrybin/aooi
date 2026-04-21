@@ -4,12 +4,12 @@
 import '@/config/style/global.css';
 
 import { defaultLocale, isRtlLocale } from '@/config/locale';
+import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-runtime.query';
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
-import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-store';
-import { getAdsRuntimeForRequest } from '@/shared/services/ads';
-import { getAffiliateManagerWithConfigs } from '@/shared/services/affiliate';
-import { getAnalyticsManagerWithConfigs } from '@/shared/services/analytics';
-import { getCustomerServiceWithConfigs } from '@/shared/services/customer_service';
+import { getAdsRuntimeForRequest } from '@/infra/adapters/ads/service';
+import { getAffiliateManagerWithConfigs } from '@/infra/adapters/affiliate/service';
+import { getAnalyticsManagerWithConfigs } from '@/infra/adapters/analytics/service';
+import { getCustomerServiceWithConfigs } from '@/infra/adapters/customer-service/service';
 
 export default async function RootLayout({
   children,

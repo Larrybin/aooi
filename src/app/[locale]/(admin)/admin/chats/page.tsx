@@ -10,7 +10,7 @@ import {
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
-import { getChats, getChatsCount, type Chat } from '@/shared/models/chat';
+import { getChats, getChatsCount, type Chat } from '@/domains/chat/infra/chat';
 
 export default createAdminTablePage<Chat, AdminChatsListQuery>({
   namespace: 'admin.chats',

@@ -67,7 +67,10 @@ module.exports = {
       name: 'no-infra-to-app-surfaces-or-domain-application',
       severity: 'error',
       from: { path: '^src/infra/' },
-      to: { path: '^src/(app|surfaces|domains/[^/]+/application)/' },
+      to: {
+        path: '^src/(app|surfaces|domains/[^/]+/application)/',
+        pathNot: '^src/domains/settings/application/[^/]+\\.query\\.ts$',
+      },
     },
     {
       name: 'no-shared-to-domains-surfaces-or-infra',
@@ -75,13 +78,19 @@ module.exports = {
       from: {
         path: '^src/shared/',
         pathNot:
-          '^src/shared/models/|^src/shared/lib/(auth-session\\.server|config-consistency|runtime/env\\.server)\\.ts$',
+          '^src/shared/lib/(auth-session\\.server|config-consistency|runtime/env\\.server|i18n/scoped-intl-provider)\\.tsx?$|^src/shared/(blocks|components|contexts|hooks)/',
       },
       to: {
         path: '^src/(domains|surfaces|infra)/',
         pathNot:
           '^src/domains/settings/application/(settings-store|public-config\\.view)\\.ts$|^src/infra/runtime/env\\.server\\.ts$',
       },
+    },
+    {
+      name: 'no-shared-ui-to-business-domains-or-adapters',
+      severity: 'error',
+      from: { path: '^src/shared/(blocks|components|contexts|hooks)/' },
+      to: { path: '^src/(domains|infra/adapters|surfaces)/' },
     },
   ],
   options: {

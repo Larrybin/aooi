@@ -5,7 +5,7 @@ import { getBlogPostsAndCategories } from '@/domains/content/application/public-
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
-import { getLocaleStaticParams } from '@/core/i18n/static-params';
+import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,

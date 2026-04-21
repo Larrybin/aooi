@@ -12,7 +12,7 @@ import {
   getApikeys,
   getApikeysCount,
   type Apikey,
-} from '@/shared/models/apikey';
+} from '@/domains/account/infra/apikey';
 
 export default createAdminTablePage<Apikey, AdminApikeysListQuery>({
   namespace: 'admin.apikeys',

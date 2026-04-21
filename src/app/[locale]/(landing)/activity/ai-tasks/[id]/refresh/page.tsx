@@ -4,12 +4,12 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { redirect } from '@/core/i18n/navigation';
+import { redirect } from '@/infra/platform/i18n/navigation';
 import { AITaskStatus } from '@/extensions/ai';
 import { Empty } from '@/shared/blocks/common/empty';
 import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
-import { findAITaskById, updateAITaskById } from '@/shared/models/ai_task';
-import { getAIService } from '@/shared/services/ai';
+import { findAITaskById, updateAITaskById } from '@/domains/ai/infra/ai-task';
+import { getAIService } from '@/domains/ai/application/service';
 
 export default async function RefreshAITaskPage({
   params,

@@ -16,7 +16,7 @@ import {
   getApikeys,
   getApikeysCount,
   updateApikey,
-} from '@/shared/models/apikey';
+} from '@/domains/account/infra/apikey';
 import {
   CreditStatus,
   CreditTransactionType,
@@ -24,9 +24,9 @@ import {
   getCreditsCount,
   getRemainingCredits,
   getRemainingCreditsSummary,
-} from '@/shared/models/credit';
+} from '@/domains/account/infra/credit';
 import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
-import { updateUser } from '@/shared/models/user';
+import { updateUser } from '@/domains/account/infra/user';
 
 function toCreditStatus(status: AccountCreditStatus): CreditStatus {
   switch (status) {
