@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AIMediaType } from '@/extensions/ai';
-import { resolveAICapabilitySelection } from '@/domains/ai/application/capability-selection';
+import { resolveAICapabilitySelection } from '@/domains/ai/domain/capability-selection';
 
 import {
   listConfiguredAICapabilities,

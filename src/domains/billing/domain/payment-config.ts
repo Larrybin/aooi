@@ -99,3 +99,38 @@ export function parseCreemProductIdsMappingConfig(value: string):
 
   return { ok: true, mapping, normalized: normalizeJson(mapping) };
 }
+
+export function resolveCreemPaymentProductId({
+  configValue,
+  productId,
+  checkoutCurrency,
+}: {
+  configValue: string | undefined;
+  productId: string;
+  checkoutCurrency: string;
+}):
+  | {
+      ok: true;
+      paymentProductId?: string;
+    }
+  | { ok: false; error: string; configLength: number } {
+  if (!configValue) {
+    return { ok: true };
+  }
+
+  const parsed = parseCreemProductIdsMappingConfig(configValue);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      error: parsed.error,
+      configLength: configValue.length,
+    };
+  }
+
+  return {
+    ok: true,
+    paymentProductId:
+      parsed.mapping[`${productId}_${checkoutCurrency}`] ||
+      parsed.mapping[productId],
+  };
+}

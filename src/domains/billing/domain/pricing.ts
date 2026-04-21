@@ -4,6 +4,8 @@ import type {
   PricingItem,
 } from '@/shared/types/blocks/pricing';
 
+import { PaymentInterval, PaymentType } from './payment';
+
 export function findPricingItemByProductId(
   pricing: Pricing,
   productId: string
@@ -74,4 +76,42 @@ export function resolveCheckoutPricingContext({
     allowedProviders,
     paymentProductId,
   };
+}
+
+export function assertPaymentProviderAllowedForCheckout({
+  provider,
+  pricingContext,
+}: {
+  provider: string;
+  pricingContext: Pick<CheckoutPricingContext, 'allowedProviders'>;
+}): boolean {
+  const allowedProviders = pricingContext.allowedProviders;
+  if (!allowedProviders || allowedProviders.length === 0) {
+    return true;
+  }
+
+  return allowedProviders.includes(provider);
+}
+
+export function resolvePricingPaymentInterval(
+  interval: PricingItem['interval']
+): PaymentInterval {
+  return (interval || PaymentInterval.ONE_TIME) as PaymentInterval;
+}
+
+export function resolvePaymentTypeFromInterval(
+  interval: PaymentInterval
+): PaymentType {
+  return interval === PaymentInterval.ONE_TIME
+    ? PaymentType.ONE_TIME
+    : PaymentType.SUBSCRIPTION;
+}
+
+export function resolveSubscriptionPlanName(pricingItem: PricingItem): string {
+  return (
+    pricingItem.plan_name ||
+    pricingItem.product_name ||
+    pricingItem.title ||
+    'subscription'
+  );
 }

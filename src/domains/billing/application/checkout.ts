@@ -2,9 +2,9 @@ import 'server-only';
 
 import { defaultLocale, locales, type Locale } from '@/config/locale';
 import {
-  PaymentInterval,
   PaymentType,
   type CheckoutInfo,
+  type PaymentInterval,
   type PaymentOrder,
   type PaymentPrice,
 } from '@/domains/billing/domain/payment';
@@ -23,13 +23,18 @@ import {
   updateOrderByOrderNo,
   type NewOrder,
 } from '@/domains/billing/infra/order';
-import { parseCreemProductIdsMappingConfig } from '@/domains/billing/domain/payment-config';
+import { resolveCreemPaymentProductId } from '@/domains/billing/domain/payment-config';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
 
-import { resolveCheckoutPricingContext } from '@/domains/billing/domain/pricing';
+import {
+  assertPaymentProviderAllowedForCheckout,
+  resolveCheckoutPricingContext,
+  resolvePaymentTypeFromInterval,
+  resolvePricingPaymentInterval,
+  resolveSubscriptionPlanName,
+} from '@/domains/billing/domain/pricing';
 
 type PaymentRuntimeSettings = Record<string, string | undefined>;
-type PricingPaymentInterval = PricingItem['interval'];
 
 type LogLike = {
   debug(message: string, meta?: unknown): void;
@@ -109,24 +114,22 @@ async function getPaymentProductIdFromProviderConfig({
   }
 
   try {
-    const creemProductIds = configs.creem_product_ids;
-    if (!creemProductIds) {
-      return;
-    }
-
-    const parsed = parseCreemProductIdsMappingConfig(creemProductIds);
-    if (!parsed.ok) {
+    const resolved = resolveCreemPaymentProductId({
+      configValue: configs.creem_product_ids,
+      productId,
+      checkoutCurrency,
+    });
+    if (!resolved.ok) {
       log.warn('payment: invalid creem_product_ids config', {
-        error: parsed.error,
-        length: creemProductIds.length,
+        error: resolved.error,
+        length: resolved.configLength,
       });
       throw new UnprocessableEntityError(
         'invalid payment configuration: creem_product_ids must be a JSON object'
       );
     }
 
-    const mapping = parsed.mapping;
-    return mapping[`${productId}_${checkoutCurrency}`] || mapping[productId];
+    return resolved.paymentProductId;
   } catch (e: unknown) {
     if (e instanceof UnprocessableEntityError) {
       throw e;
@@ -226,14 +229,9 @@ function buildCheckoutOrder({
   checkoutOrder.price = checkoutPrice;
 
   if (paymentType === PaymentType.SUBSCRIPTION) {
-    const planName =
-      pricingItem.plan_name ||
-      pricingItem.product_name ||
-      pricingItem.title ||
-      'subscription';
     checkoutOrder.plan = {
       interval: paymentInterval,
-      name: planName,
+      name: resolveSubscriptionPlanName(pricingItem),
     };
   }
 
@@ -325,22 +323,19 @@ export async function createPaymentCheckoutSession({
     currency,
   });
 
-  const allowedProviders = pricingContext.allowedProviders;
-  if (allowedProviders && allowedProviders.length > 0) {
-    if (!allowedProviders.includes(paymentProviderName)) {
-      throw new BadRequestError(
-        `payment provider ${paymentProviderName} is not supported for this currency`
-      );
-    }
+  if (
+    !assertPaymentProviderAllowedForCheckout({
+      provider: paymentProviderName,
+      pricingContext,
+    })
+  ) {
+    throw new BadRequestError(
+      `payment provider ${paymentProviderName} is not supported for this currency`
+    );
   }
 
-  const paymentInterval = (pricingItem.interval ||
-    PaymentInterval.ONE_TIME) as PricingPaymentInterval & PaymentInterval;
-
-  const paymentType =
-    paymentInterval === PaymentInterval.ONE_TIME
-      ? PaymentType.ONE_TIME
-      : PaymentType.SUBSCRIPTION;
+  const paymentInterval = resolvePricingPaymentInterval(pricingItem.interval);
+  const paymentType = resolvePaymentTypeFromInterval(paymentInterval);
 
   const orderNo = getSnowId();
 
