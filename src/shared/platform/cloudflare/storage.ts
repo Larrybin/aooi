@@ -1,7 +1,7 @@
 import { toUint8Array, type StorageUploadOptions } from '@/extensions/storage';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { buildStorageObjectPublicUrl } from '@/shared/lib/storage-public-url';
-import { getCloudflareBindings } from '@/shared/lib/runtime/env.server';
+import { getCloudflareBindings } from '@/infra/runtime/env.server';
 
 export function getCloudflareStorageBucket(): R2Bucket | null {
   const bindings = getCloudflareBindings();

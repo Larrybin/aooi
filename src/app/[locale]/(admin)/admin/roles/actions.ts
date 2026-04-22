@@ -1,23 +1,19 @@
 'use server';
 
-import { AdminRoleUpdateFormSchema } from '@/features/admin/schemas/role';
+import { AdminRoleUpdateFormSchema } from '@/surfaces/admin/schemas/role';
 import {
   validateAndParseForm,
   validatePermission,
-} from '@/features/admin/server/action-utils';
-import { and, eq, isNull } from 'drizzle-orm';
+} from '@/surfaces/admin/server/action-utils';
 import { z } from 'zod';
 
-import { db } from '@/core/db';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import {
-  findRoleById,
-  replaceRolePermissions,
-  restoreRoleRecord,
-  softDeleteRole,
-  updateRoleRecord,
-  type UpdateRoleRecord,
-} from '@/core/rbac';
-import { role } from '@/config/db/schema';
+  deleteRoleUseCase,
+  replaceRolePermissionsUseCase,
+  restoreRoleUseCase,
+  updateRoleMetadataUseCase,
+} from '@/domains/access-control/application/checker';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
@@ -36,20 +32,13 @@ export async function updateRoleAction(id: string, formData: FormData) {
       errorMessage: 'title and description are required',
     });
 
-    const roleRow = await findRoleById(id);
-    if (!roleRow) {
-      throw new ActionError('Role not found');
-    }
-
-    const newRole: UpdateRoleRecord = {
+    const result = await updateRoleMetadataUseCase({
+      roleId: id,
       title: data.title,
       description: data.description,
-    };
-
-    const result = await updateRoleRecord(id, newRole, {
       actorUserId: user.id,
       source: 'admin.roles.updateRoleAction',
-    });
+    }, accessControlRuntimeDeps);
     if (!result) {
       throw new ActionError('update role failed');
     }
@@ -67,27 +56,25 @@ export async function updateRolePermissionsAction(
 ) {
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
-
-    const roleRow = await findRoleById(id);
-    if (!roleRow) {
-      throw new ActionError('Role not found');
-    }
-
-    const schema = z.object({ permissions: jsonStringArraySchema });
-    const raw = Object.fromEntries(formData.entries());
-    const parsed = schema.safeParse(raw);
+    const parsed = z
+      .object({ permissions: jsonStringArraySchema })
+      .safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) {
-      throw new ActionError('invalid permissions');
+      throw new ActionError('permissions are required');
     }
 
-    await replaceRolePermissions(
-      roleRow.id as string,
-      parsed.data.permissions,
+    const result = await replaceRolePermissionsUseCase(
       {
+        roleId: id,
+        permissionIds: parsed.data.permissions,
         actorUserId: user.id,
         source: 'admin.roles.updateRolePermissionsAction',
-      }
+      },
+      accessControlRuntimeDeps
     );
+    if (!result) {
+      throw new ActionError('Role not found');
+    }
 
     return actionOk('permissions updated', '/admin/roles');
   });
@@ -100,19 +87,14 @@ export async function deleteRoleAction(id: string) {
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_DELETE);
 
-    const [roleRow] = await db()
-      .select()
-      .from(role)
-      .where(and(eq(role.id, id), isNull(role.deletedAt)));
-
+    const roleRow = await deleteRoleUseCase({
+      roleId: id,
+      actorUserId: user.id,
+      source: 'admin.roles.deleteRoleAction',
+    }, accessControlRuntimeDeps);
     if (!roleRow) {
       throw new ActionError('Role not found');
     }
-
-    await softDeleteRole(id, {
-      actorUserId: user.id,
-      source: 'admin.roles.deleteRoleAction',
-    });
 
     return actionOk('role deleted', '/admin/roles');
   });
@@ -125,20 +107,18 @@ export async function restoreRoleAction(id: string) {
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
 
-    const [roleRow] = await db().select().from(role).where(eq(role.id, id));
-    if (!roleRow) {
+    const result = await restoreRoleUseCase({
+      roleId: id,
+      actorUserId: user.id,
+      source: 'admin.roles.restoreRoleAction',
+    }, accessControlRuntimeDeps);
+    if (result.status === 'not_found') {
       throw new ActionError('Role not found');
     }
-    if (!roleRow.deletedAt) {
+    if (result.status === 'not_deleted') {
       throw new ActionError('Role is not deleted');
     }
-
-    try {
-      await restoreRoleRecord(id, {
-        actorUserId: user.id,
-        source: 'admin.roles.restoreRoleAction',
-      });
-    } catch {
+    if (result.status === 'name_conflict') {
       throw new ActionError(
         'restore role failed: another active role with the same name may already exist'
       );

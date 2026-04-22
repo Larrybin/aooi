@@ -11,25 +11,24 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/page';
 
-import { docsSource } from '@/core/docs/source';
 import {
-  normalizeDocsSlug,
-  resolveDocsLocale,
-} from '@/core/docs/route-params';
-import { replaceBrandPlaceholdersInReactNode } from '@/shared/lib/brand-placeholders-react.server';
+  docsSource,
+  listDocsStaticParams,
+  readDocsPage,
+} from '@/domains/content/application/docs-content.query';
+import { replaceBrandPlaceholdersInReactNode } from '@/infra/platform/brand/placeholders-react.server';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
 export default async function DocsContentPage(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;
 }) {
   const params = await props.params;
-  const docsLocale = resolveDocsLocale(params.locale);
-  const page = docsSource.getPage(normalizeDocsSlug(params.slug), docsLocale);
+  const page = readDocsPage(params);
 
   if (!page) notFound();
 
@@ -72,15 +71,14 @@ export default async function DocsContentPage(props: {
 }
 
 export async function generateStaticParams() {
-  return docsSource.generateParams('slug', 'locale');
+  return listDocsStaticParams();
 }
 
 export async function generateMetadata(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;
 }) {
   const params = await props.params;
-  const docsLocale = resolveDocsLocale(params.locale);
-  const page = docsSource.getPage(normalizeDocsSlug(params.slug), docsLocale);
+  const page = readDocsPage(params);
   if (!page) notFound();
 
   const publicConfigs = await getPublicConfigsCached();

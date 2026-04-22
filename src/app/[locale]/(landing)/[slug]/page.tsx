@@ -2,12 +2,12 @@
 // cache: default (static per slug/locale; no request-bound auth)
 // reason: public markdown pages; no user-specific data
 import { notFound } from 'next/navigation';
-import { getDocsPage } from '@/features/docs/server/content';
+import { getDocsPage } from '@/domains/content/application/public-content.query';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import PageDetailPageView from '@/themes/default/pages/page-detail';
 
 export async function generateMetadata({

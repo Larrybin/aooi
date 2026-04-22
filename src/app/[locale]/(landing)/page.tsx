@@ -3,13 +3,13 @@
 // reason: public marketing page; allow toggles without per-request db reads
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { filterLandingButtons } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
+} from '@/infra/platform/brand/placeholders.server';
+import { filterLandingButtons } from '@/surfaces/public/navigation/landing-visibility';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
   type Footer as FooterType,
   type Header as HeaderType,

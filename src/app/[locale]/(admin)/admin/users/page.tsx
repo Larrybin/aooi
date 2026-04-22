@@ -1,19 +1,20 @@
 // data: admin session (RBAC) + users list (db) + roles/credits (db) + pagination/search
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin data is user/role-specific; avoid caching across users
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminUsersListQuerySchema,
   type AdminUsersListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
-import { listUserRoles } from '@/core/rbac';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { listAdminUsersQuery } from '@/domains/account/application/admin-users.query';
+import type { AccountAdminUserRecord } from '@/domains/account/application/use-cases';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getRemainingCredits } from '@/shared/models/credit';
-import { getUsers, getUsersCount, type User } from '@/shared/models/user';
 
-export default createAdminTablePage<User, AdminUsersListQuery>({
+export default createAdminTablePage<AccountAdminUserRecord, AdminUsersListQuery>({
   namespace: 'admin.users',
   permission: PERMISSIONS.USERS_READ,
   crumbs: [
@@ -28,18 +29,19 @@ export default createAdminTablePage<User, AdminUsersListQuery>({
   query: {
     schema: AdminUsersListQuerySchema,
     load: async ({ page, pageSize, email }) => {
-      const [rows, total] = await Promise.all([
-        getUsers({
+      return listAdminUsersQuery(
+        {
           email,
           page,
           limit: pageSize,
-        }),
-        getUsersCount({
-          email,
-        }),
-      ]);
-
-      return { rows, total };
+        },
+        {
+          getUsers: accountRuntimeDeps.getUsers,
+          getUsersCount: accountRuntimeDeps.getUsersCount,
+          getRemainingCredits: accountRuntimeDeps.getRemainingCredits,
+          listUserRolesDetailed: accessControlRuntimeDeps.listUserRolesDetailed,
+        }
+      );
     },
   },
   columns: ({ t }) => [
@@ -55,9 +57,8 @@ export default createAdminTablePage<User, AdminUsersListQuery>({
     {
       name: 'roles',
       title: t('fields.roles'),
-      callback: async (item) => {
-        const roles = await listUserRoles(item.id);
-
+      callback: (item) => {
+        const roles = item.roles ?? [];
         return (
           <div className="flex flex-col gap-2">
             {roles.map((role) => (
@@ -78,11 +79,9 @@ export default createAdminTablePage<User, AdminUsersListQuery>({
     {
       name: 'remainingCredits',
       title: t('fields.remaining_credits'),
-      callback: async (item) => {
-        const credits = await getRemainingCredits(item.id);
-
-        return <div className="text-green-500">{credits}</div>;
-      },
+      callback: (item) => (
+        <div className="text-green-500">{item.remainingCredits ?? 0}</div>
+      ),
     },
     { name: 'createdAt', title: t('fields.created_at'), type: 'time' },
     {

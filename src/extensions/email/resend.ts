@@ -2,7 +2,7 @@ import 'server-only';
 
 import { Resend, type CreateEmailOptions } from 'resend';
 
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 
 import type {
   EmailConfigs,
@@ -10,6 +10,11 @@ import type {
   EmailProvider,
   EmailSendResult,
 } from '.';
+
+const log = createUseCaseLogger({
+  domain: 'email',
+  useCase: 'send-email',
+});
 
 /**
  * Resend email provider configs
@@ -39,7 +44,8 @@ export class ResendProvider implements EmailProvider {
     try {
       const from = email.from || this.configs.defaultFrom || '';
       if (!from.trim()) {
-        logger.error('resend sendEmail failed', {
+        log.error('resend sendEmail failed', {
+          operation: 'validate-sender',
           provider: this.name,
           error: 'sender address not configured',
         });
@@ -91,7 +97,11 @@ export class ResendProvider implements EmailProvider {
       }
 
       if (email.react) {
-        logger.debug('resend email react payload', { hasReact: true });
+        log.debug('resend email react payload', {
+          operation: 'build-email-payload',
+          provider: this.name,
+          hasReact: true,
+        });
         resendEmail.react = email.react;
       }
 
@@ -99,7 +109,8 @@ export class ResendProvider implements EmailProvider {
         resendEmail as CreateEmailOptions
       );
 
-      logger.debug('resend email result', {
+      log.debug('resend email result', {
+        operation: 'send-provider-email',
         provider: this.name,
         success: !result.error,
         messageId: result.data?.id,
@@ -107,7 +118,8 @@ export class ResendProvider implements EmailProvider {
       });
 
       if (result.error) {
-        logger.error('resend sendEmail failed', {
+        log.error('resend sendEmail failed', {
+          operation: 'send-provider-email',
           provider: this.name,
           error: result.error.message,
         });
@@ -126,7 +138,8 @@ export class ResendProvider implements EmailProvider {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.error('resend sendEmail threw', {
+      log.error('resend sendEmail threw', {
+        operation: 'send-provider-email',
         provider: this.name,
         error: errorMessage,
       });

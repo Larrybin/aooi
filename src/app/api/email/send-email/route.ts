@@ -3,7 +3,7 @@ import { randomInt } from 'crypto';
 import type { EmailSendResult } from '@/extensions/email';
 import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   TooManyRequestsError,
@@ -14,7 +14,7 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import type { getEmailService as getEmailServiceFn } from '@/shared/services/email';
+import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 const MAX_EMAIL_RECIPIENTS = 10;
 
@@ -58,23 +58,23 @@ type SendEmailRouteDeps = {
 function getDefaultSendEmailRouteDeps(): SendEmailRouteDeps {
   return {
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as SendEmailApiContext;
     },
     getEmailService: async () => {
-      const mod = await import('@/shared/services/email');
+      const mod = await import('@/infra/adapters/email/service');
       return await mod.getEmailService();
     },
     persistSettingsEmailVerificationCode: async (input) => {
-      const mod = await import('@/shared/models/email_verification_code');
+      const mod = await import('@/domains/account/infra/email-verification-code');
       return await mod.persistSettingsEmailVerificationCode(input);
     },
     deleteEmailVerificationCodeById: async (id) => {
-      const mod = await import('@/shared/models/email_verification_code');
+      const mod = await import('@/domains/account/infra/email-verification-code');
       await mod.deleteEmailVerificationCodeById(id);
     },
     deleteEmailVerificationCodesByIdentifierExceptId: async (input) => {
-      const mod = await import('@/shared/models/email_verification_code');
+      const mod = await import('@/domains/account/infra/email-verification-code');
       await mod.deleteEmailVerificationCodesByIdentifierExceptId(input);
     },
     buildVerificationCodeEmailPayload: async (input) => {

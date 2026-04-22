@@ -1,20 +1,22 @@
 // data: admin session (RBAC) + subscriptions list (db) + pagination/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing data is sensitive; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminSubscriptionsListQuerySchema,
   type AdminSubscriptionsListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
-  getSubscriptions,
-  getSubscriptionsCount,
-  type Subscription,
-} from '@/shared/models/subscription';
+  listAdminSubscriptionsQuery,
+  type AdminSubscriptionRow,
+} from '@/domains/billing/application/member-billing.query';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<Subscription, AdminSubscriptionsListQuery>({
+export default createAdminTablePage<
+  AdminSubscriptionRow,
+  AdminSubscriptionsListQuery
+>({
   namespace: 'admin.subscriptions',
   permission: PERMISSIONS.SUBSCRIPTIONS_READ,
   crumbs: [
@@ -36,21 +38,12 @@ export default createAdminTablePage<Subscription, AdminSubscriptionsListQuery>({
   ],
   query: {
     schema: AdminSubscriptionsListQuerySchema,
-    load: async ({ page, pageSize, interval }) => {
-      const [rows, total] = await Promise.all([
-        getSubscriptions({
-          interval,
-          getUser: true,
-          page,
-          limit: pageSize,
-        }),
-        getSubscriptionsCount({
-          interval,
-        }),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize, interval }) =>
+      listAdminSubscriptionsQuery({
+        page,
+        limit: pageSize,
+        interval,
+      }),
   },
   columns: ({ t }) => [
     {

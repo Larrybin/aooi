@@ -7,12 +7,12 @@ import { getTranslations } from 'next-intl/server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { PublicAppProvider } from '@/shared/contexts/app';
-import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
+} from '@/infra/platform/brand/placeholders.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type {
   Footer as FooterType,
   Header as HeaderType,

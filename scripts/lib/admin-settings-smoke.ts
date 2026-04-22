@@ -13,7 +13,7 @@ import {
   type ProductModuleTier,
   type ProductModuleVerification,
 } from '../../src/config/product-modules/index.ts';
-import type { SettingTabName } from '../../src/shared/services/settings/tab-names.ts';
+import type { SettingTabName } from '../../src/domains/settings/tab-names.ts';
 
 export const ADMIN_SETTINGS_SMOKE_TABS = [
   'general',

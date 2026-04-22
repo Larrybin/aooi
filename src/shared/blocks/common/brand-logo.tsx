@@ -1,4 +1,4 @@
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
 import { AppImage } from './app-image';

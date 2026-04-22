@@ -6,13 +6,9 @@ import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import {
-  findSubscriptionBySubscriptionNo,
-  updateSubscriptionBySubscriptionNo,
-} from '@/shared/models/subscription';
-import { getPaymentService } from '@/core/payment/providers/service';
+import { retrieveMemberBillingPortalUrl } from '@/domains/billing/application/member-billing.actions';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 export default async function RetrieveBillingPage({
   params,
@@ -34,55 +30,37 @@ export default async function RetrieveBillingPage({
     return <Empty message={t('errors.no_auth')} />;
   }
 
-  const subscription = await findSubscriptionBySubscriptionNo(subscription_no);
-  if (!subscription) {
-    return <Empty message={t('errors.subscription_not_found')} />;
+  let result:
+    | Awaited<ReturnType<typeof retrieveMemberBillingPortalUrl>>
+    | undefined;
+  let errorMessage: string | undefined;
+  try {
+    const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+    result = await retrieveMemberBillingPortalUrl({
+      subscriptionNo: subscription_no,
+      actorUserId: user.id,
+      returnUrl: `${serverPublicEnvConfigs.app_url}/settings/billing`,
+    });
+  } catch (error: unknown) {
+    errorMessage = toErrorMessage(error) || t('errors.get_billing_failed');
   }
 
-  if (!subscription.paymentProvider || !subscription.paymentUserId) {
+  if (errorMessage) {
+    return <Empty message={errorMessage} />;
+  }
+  if (!result || result.status === 'missing_billing_url') {
+    return <Empty message={t('errors.billing_url_not_found')} />;
+  }
+  if (result.status === 'not_found') {
+    return <Empty message={t('errors.subscription_not_found')} />;
+  }
+  if (result.status === 'forbidden') {
+    return <Empty message={t('errors.no_permission')} />;
+  }
+  if (result.status === 'missing_customer') {
     return <Empty message={t('errors.missing_payment_user_id')} />;
   }
 
-  if (subscription.userId !== user.id) {
-    return <Empty message={t('errors.no_permission')} />;
-  }
-
-  const paymentService = await getPaymentService();
-  const paymentProvider = paymentService.getProvider(
-    subscription.paymentProvider
-  );
-  if (!paymentProvider) {
-    return <Empty message={t('errors.payment_provider_not_found')} />;
-  }
-
-  let billingUrl = '';
-
-  try {
-    const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-    const billing = await paymentProvider.getPaymentBilling?.({
-      customerId: subscription.paymentUserId,
-      returnUrl: `${serverPublicEnvConfigs.app_url}/settings/billing`,
-    });
-    if (!billing?.billingUrl) {
-      return <Empty message={t('errors.billing_url_not_found')} />;
-    }
-
-    billingUrl = billing.billingUrl;
-
-    await updateSubscriptionBySubscriptionNo(subscription.subscriptionNo, {
-      billingUrl: billing.billingUrl,
-    });
-  } catch (error: unknown) {
-    return (
-      <Empty
-        message={toErrorMessage(error) || t('errors.get_billing_failed')}
-      />
-    );
-  }
-
-  if (!billingUrl) {
-    return <Empty message={t('errors.billing_url_not_found')} />;
-  }
-
-  redirect(billingUrl);
+  redirect(result.billingUrl);
+  return <Empty message={t('errors.billing_url_not_found')} />;
 }

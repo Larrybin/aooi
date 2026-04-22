@@ -1,16 +1,16 @@
-import { getRequestLogger } from '@/shared/lib/request-logger.server';
-import { getAllConfigsCached } from '@/shared/models/config';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   getAdsTxtBody,
   resolveAdsRuntime,
-} from '@/shared/services/ads-runtime';
+} from '@/infra/adapters/ads/runtime';
 
 import { buildAdsTxtResponse } from './response';
 
 export async function GET(req: Request) {
   const { log } = getRequestLogger(req);
   try {
-    const configs = await getAllConfigsCached();
+    const configs = await readRuntimeSettingsCached();
     const runtime = resolveAdsRuntime(configs);
     return buildAdsTxtResponse(getAdsTxtBody(runtime));
   } catch (error) {

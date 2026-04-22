@@ -5,7 +5,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
-import { PaymentModal } from '@/shared/blocks/payment/payment-modal';
+import { PaymentModal } from '@/domains/billing/ui/payment-modal';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -35,7 +35,7 @@ import {
   formatMessageWithRequestId,
   getRequestIdFromError,
   RequestIdError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 import { cn } from '@/shared/lib/utils';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 import type {

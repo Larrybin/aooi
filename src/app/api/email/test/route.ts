@@ -2,7 +2,7 @@ import { randomInt } from 'crypto';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   TooManyRequestsError,
@@ -12,7 +12,7 @@ import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import type { getEmailService as getEmailServiceFn } from '@/shared/services/email';
+import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 const MAX_EMAIL_RECIPIENTS = 10;
 
@@ -45,11 +45,11 @@ type EmailTestRouteDeps = {
 function getDefaultEmailTestRouteDeps(): EmailTestRouteDeps {
   return {
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as EmailTestApiContext;
     },
     getEmailService: async () => {
-      const mod = await import('@/shared/services/email');
+      const mod = await import('@/infra/adapters/email/service');
       return await mod.getEmailService();
     },
     buildVerificationCodeEmailPayload: async (input) => {

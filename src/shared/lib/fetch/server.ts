@@ -4,7 +4,12 @@ import { checkOutboundUrl } from '@/shared/lib/fetch/outbound-url';
 import { sanitizeUrlForLog } from '@/shared/lib/fetch/sanitize-url';
 import { fetchWithTimeout } from '@/shared/lib/fetch/timeout';
 import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
-import { logger } from '@/shared/lib/logger.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+
+const log = createUseCaseLogger({
+  domain: 'platform',
+  useCase: 'server-fetch',
+});
 
 type FetchServerOptions = {
   timeoutMs: number;
@@ -23,7 +28,8 @@ async function safeReadText(response: Response): Promise<string> {
     return await response.text();
   } catch (error: unknown) {
     const safeUrl = sanitizeUrlForLog(response.url);
-    logger.error('fetch: failed to read response body', {
+    log.error('fetch: failed to read response body', {
+      operation: 'read-response-body',
       url: safeUrl,
       status: response.status,
       statusText: response.statusText,
@@ -303,7 +309,8 @@ export async function safeFetchJsonWithSchema<TSchema extends z.ZodTypeAny>(
 
       const message =
         options?.invalidDataMessage || options?.errorMessage || 'invalid json';
-      logger.error('fetch: empty json response body', {
+      log.error('fetch: empty json response body', {
+        operation: 'parse-json-response',
         url: safeUrl,
         status: response.status,
         statusText: response.statusText,
@@ -316,7 +323,8 @@ export async function safeFetchJsonWithSchema<TSchema extends z.ZodTypeAny>(
       options?.invalidDataMessage || options?.errorMessage
     );
     (invalid as Error & { cause?: unknown }).cause = parseError;
-    logger.error('fetch: invalid json response', {
+    log.error('fetch: invalid json response', {
+      operation: 'parse-json-response',
       url: safeUrl,
       status: response.status,
       statusText: response.statusText,

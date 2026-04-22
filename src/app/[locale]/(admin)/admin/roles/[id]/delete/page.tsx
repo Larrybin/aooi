@@ -1,12 +1,11 @@
 // data: admin session (RBAC) + role record (db) + Server Action write (soft-delete)
 // cache: no-store (request-bound auth/RBAC)
 // reason: destructive admin action; must not cache across admins
-import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
-import { and, eq, isNull } from 'drizzle-orm';
+import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { db } from '@/core/db';
-import { role } from '@/config/db/schema';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { readAdminRoleQuery } from '@/domains/access-control/application/admin-roles.query';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
@@ -29,12 +28,11 @@ export default async function RoleDeletePage({
 
   const t = await getTranslations('admin.roles');
 
-  const [roleRow] = await db()
-    .select()
-    .from(role)
-    .where(and(eq(role.id, id), isNull(role.deletedAt)));
-
+  const roleRow = await readAdminRoleQuery(id, accessControlRuntimeDeps);
   if (!roleRow) {
+    return <Empty message={t('errors.not_found')} />;
+  }
+  if (roleRow.deletedAt) {
     return <Empty message={t('errors.not_found')} />;
   }
 

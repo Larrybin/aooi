@@ -1,11 +1,16 @@
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from '@/shared/components/ui/avatar';
 import { cn } from '@/shared/lib/utils';
-import type { User as UserType } from '@/shared/models/user';
+
+export type TableUserValue = {
+  email: string | null;
+  image: string | null;
+  name: string | null;
+};
 
 export function User({
   value,
@@ -13,7 +18,7 @@ export function User({
   metadata: _metadata,
   className,
 }: {
-  value: UserType;
+  value: TableUserValue;
   placeholder?: string;
   metadata?: Record<string, unknown>;
   className?: string;
@@ -34,7 +39,7 @@ export function User({
       className={cn('flex items-center gap-2', className)}
     >
       <Avatar className={className}>
-        <AvatarImage src={value.image || ''} alt={value.name} />
+        <AvatarImage src={value.image || ''} alt={value.name ?? undefined} />
         <AvatarFallback>{value.name?.charAt(0) || 'U'}</AvatarFallback>
       </Avatar>
       <div className="flex flex-col">{value.name}</div>

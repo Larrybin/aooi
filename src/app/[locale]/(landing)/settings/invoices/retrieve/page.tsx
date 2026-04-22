@@ -5,12 +5,8 @@ import { redirect } from 'next/navigation';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import {
-  findOrderByOrderNo,
-  updateOrderByOrderNo,
-} from '@/shared/models/order';
-import { getPaymentService } from '@/core/payment/providers/service';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { retrieveMemberInvoiceUrl } from '@/domains/billing/application/member-billing.actions';
 
 export default async function RetrieveInvoicePage({
   params,
@@ -31,47 +27,35 @@ export default async function RetrieveInvoicePage({
     return <Empty message="no auth, please sign in" />;
   }
 
-  const order = await findOrderByOrderNo(order_no);
-  if (!order) {
-    return <Empty message="order not found" />;
+  let result:
+    | Awaited<ReturnType<typeof retrieveMemberInvoiceUrl>>
+    | undefined;
+  let errorMessage: string | undefined;
+  try {
+    result = await retrieveMemberInvoiceUrl({
+      orderNo: order_no,
+      actorUserId: user.id,
+    });
+  } catch (error: unknown) {
+    errorMessage = toErrorMessage(error) || 'get invoice failed';
   }
 
-  if (!order.paymentProvider || !order.invoiceId) {
+  if (errorMessage) {
+    return <Empty message={errorMessage} />;
+  }
+  if (!result || result.status === 'missing_invoice_url') {
+    return <Empty message="invoice url not found" />;
+  }
+  if (result.status === 'not_found') {
+    return <Empty message="order not found" />;
+  }
+  if (result.status === 'forbidden') {
+    return <Empty message="no permission" />;
+  }
+  if (result.status === 'missing_invoice') {
     return <Empty message="order with no invoice" />;
   }
 
-  if (order.userId !== user.id) {
-    return <Empty message="no permission" />;
-  }
-
-  const paymentService = await getPaymentService();
-  const paymentProvider = paymentService.getProvider(order.paymentProvider);
-  if (!paymentProvider) {
-    return <Empty message="payment provider not found" />;
-  }
-
-  let invoiceUrl = '';
-
-  try {
-    const invoice = await paymentProvider.getPaymentInvoice?.({
-      invoiceId: order.invoiceId,
-    });
-    if (!invoice?.invoiceUrl) {
-      return <Empty message="invoice url not found" />;
-    }
-
-    invoiceUrl = invoice.invoiceUrl;
-
-    await updateOrderByOrderNo(order.orderNo, {
-      invoiceUrl: invoiceUrl,
-    });
-  } catch (error: unknown) {
-    return <Empty message={toErrorMessage(error) || 'get invoice failed'} />;
-  }
-
-  if (!invoiceUrl) {
-    return <Empty message="invoice url not found" />;
-  }
-
-  redirect(invoiceUrl);
+  redirect(result.invoiceUrl);
+  return <Empty message="invoice url not found" />;
 }

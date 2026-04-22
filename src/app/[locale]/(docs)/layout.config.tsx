@@ -1,8 +1,8 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
-import { docsI18n } from '@/core/docs/source';
+import { docsI18n } from '@/domains/content/application/docs-content.query';
 import { AppImage } from '@/shared/blocks/common/app-image';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 export function baseOptions(
   _locale: string,

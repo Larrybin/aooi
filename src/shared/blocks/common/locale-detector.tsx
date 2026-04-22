@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { usePathname, useRouter } from '@/core/i18n/navigation';
+import { usePathname, useRouter } from '@/infra/platform/i18n/navigation';
 import { localeNames, locales, type Locale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { cacheGet, cacheSet } from '@/shared/lib/cache';

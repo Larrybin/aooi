@@ -4,55 +4,41 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { redirect } from '@/core/i18n/navigation';
-import { AITaskStatus } from '@/extensions/ai';
+import { redirect } from '@/infra/platform/i18n/navigation';
 import { Empty } from '@/shared/blocks/common/empty';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
-import { findAITaskById, updateAITaskById } from '@/shared/models/ai_task';
-import { getAIService } from '@/shared/services/ai';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { refreshMemberAiTaskUseCase } from '@/domains/ai/application/member-ai-tasks.actions';
 
 export default async function RefreshAITaskPage({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
-  if (!(await isAiEnabledCached())) {
+  if (!isAiEnabled(await getPublicConfigsCached())) {
     notFound();
   }
 
   const { locale, id } = await params;
   const t = await getTranslations('activity.ai-tasks');
-
-  const task = await findAITaskById(id);
-  if (!task || !task.taskId || !task.provider || !task.status) {
+  const user = await getSignedInUserIdentity();
+  if (!user) {
     return <Empty message={t('errors.task_not_found')} />;
   }
 
-  // query task
+  const result = await refreshMemberAiTaskUseCase({
+    taskId: id,
+    actorUserId: user.id,
+  });
+  if (result.status === 'hidden') {
+    return <Empty message={t('errors.task_not_found')} />;
+  }
   if (
-    [AITaskStatus.PENDING, AITaskStatus.PROCESSING].includes(
-      task.status as AITaskStatus
-    )
+    result.status === 'invalid_provider' ||
+    result.status === 'query_failed'
   ) {
-    const aiService = await getAIService();
-    const aiProvider = aiService.getProvider(task.provider);
-    if (!aiProvider) {
-      return <Empty message={t('errors.invalid_ai_provider')} />;
-    }
-
-    const result = await aiProvider?.query?.({
-      taskId: task.taskId,
-    });
-
-    if (result && result.taskStatus && result.taskInfo) {
-      await updateAITaskById(task.id, {
-        status: result.taskStatus,
-        taskInfo: result.taskInfo ? JSON.stringify(result.taskInfo) : null,
-        taskResult: result.taskResult
-          ? JSON.stringify(result.taskResult)
-          : null,
-      });
-    }
+    return <Empty message={t('errors.invalid_ai_provider')} />;
   }
 
   redirect({ href: `/activity/ai-tasks`, locale });

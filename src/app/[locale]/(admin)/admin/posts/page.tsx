@@ -1,20 +1,20 @@
 // data: admin session (RBAC) + posts list (db) + categories lookup (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin content management; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminPostsListQuerySchema,
   type AdminPostsListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getPosts,
   getPostsCount,
-  PostType,
   type Post,
-} from '@/shared/models/post';
-import { getTaxonomies } from '@/shared/models/taxonomy';
+} from '@/domains/content/application/post.query';
+import { getTaxonomies } from '@/domains/content/application/taxonomy.query';
+import { PostType } from '@/domains/content/domain/post-types';
 
 export default createAdminTablePage<Post, AdminPostsListQuery>({
   namespace: 'admin.posts',

@@ -1,5 +1,5 @@
 import { AITaskStatus } from '@/extensions/ai';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   ForbiddenError,
@@ -15,9 +15,9 @@ import {
   type ConfigConsistencyMode,
 } from '@/shared/lib/config-consistency';
 import { safeJsonParse } from '@/shared/lib/json';
-import type { UpdateAITask } from '@/shared/models/ai_task';
+import type { UpdateAITask } from '@/domains/ai/infra/ai-task';
 import { AiQueryBodySchema } from '@/shared/schemas/api/ai/query';
-import type { getAIService as getAIServiceFn } from '@/shared/services/ai';
+import type { getAIService as getAIServiceFn } from '@/domains/ai/application/service';
 
 type MaybePromise<T> = T | Promise<T>;
 type AiQueryApiContext = Pick<
@@ -59,23 +59,23 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
   return {
     resolveConfigConsistencyMode,
     requireAiEnabled: async () => {
-      const mod = await import('@/shared/lib/api/ai-guard');
+      const mod = await import('@/app/api/ai/_lib/guard');
       await mod.requireAiEnabled();
     },
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as AiQueryApiContext;
     },
     findAITaskById: async (id) => {
-      const mod = await import('@/shared/models/ai_task');
+      const mod = await import('@/domains/ai/infra/ai-task');
       return await mod.findAITaskById(id);
     },
     updateAITaskById: async (id, updateAITask) => {
-      const mod = await import('@/shared/models/ai_task');
+      const mod = await import('@/domains/ai/infra/ai-task');
       return await mod.updateAITaskById(id, updateAITask);
     },
     getAIService: async (options) => {
-      const mod = await import('@/shared/services/ai');
+      const mod = await import('@/domains/ai/application/service');
       return await mod.getAIService(options);
     },
     rateLimiter: createLimiterFactory().createAiQueryCooldownLimiter(),

@@ -1,7 +1,7 @@
 // data: locale param (for i18n-aware redirect)
 // cache: default
 // reason: canonicalize `/settings` entry to a concrete leaf page
-import { redirect } from '@/core/i18n/navigation';
+import { redirect } from '@/infra/platform/i18n/navigation';
 
 export default async function SettingsPage({
   params,

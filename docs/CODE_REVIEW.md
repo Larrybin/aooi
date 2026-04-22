@@ -16,7 +16,9 @@
   - 机器负责“底线”，人重点看设计、边界条件和长期可维护性。
 - 以护栏为准：
   - 依赖方向与 Server/Client 边界以 `eslint.config.mjs` 为单一事实来源（不要靠口头约定）。
+  - 架构结构守卫以 `src/testing/architecture-rules.ts` 为机器可读 source of truth；`src/architecture-boundaries.test.ts` 只是它的执行投影。
   - `src/shared` 分层约定见 `docs/architecture/shared-layering.md`（变更触及边界时，优先用 ESLint 规则固化）。
+  - `src/app/account/runtime-deps.ts` 与 `src/app/access-control/runtime-deps.ts` 是仅有的 app-only façade；review 时必须确认它们没有向 surfaces/domains/shared 扩散。
 - 新旧代码策略：
   - 本次是**第一次全量审查**，允许识别并记录历史技术债，但评论时明确“建议后续拆卡处理”。
   - 后续日常开发优先保证“新代码符合当前标准”，旧代码按需渐进式治理。
@@ -36,7 +38,9 @@
   - Client 组件不做安全关键逻辑判断（鉴权、权限、计费等），仅负责展示和用户交互。
 - 组件角色清晰：
   - `src/app` 下的 `page.tsx` / `layout.tsx` / `template.tsx` 保持瘦：路由结构 + 数据注入，不堆叠业务细节。
-  - 复杂 UI 抽到 `src/shared/blocks` / `src/shared/components`；业务编排下沉到 `src/shared/services`；核心能力下沉到 `src/core`；三方集成适配下沉到 `src/extensions`。
+  - 复杂 UI 抽到 `src/shared/blocks` / `src/shared/components` 或对应 `src/domains/<domain>/ui`；业务编排下沉到 `src/domains/<domain>/application`；业务规则进入 `src/domains/<domain>/domain`；三方实现适配进入 `src/infra/adapters`。
+  - Public composition helper 放在 `src/surfaces/public/**`，不要回流到 `shared/lib`。
+  - `page` / `layout` / Server Action 不得直连 `domains/*/infra` 或 `infra/adapters/*`；account/access-control 只允许通过 app-only façade，其余能力域一律通过 application 入口。
 
 ### 1.2 TypeScript 边界约束
 
@@ -44,7 +48,7 @@
   - `tsconfig.json` 应开启 `strict: true`，包括 `noImplicitAny`、`strictNullChecks` 等（官方推荐）。
   - 审查要点：公共 API（组件 props、Server Action 参数、Route Handler 入参/出参）不得使用裸 `any` / 混乱的 `unknown` 逃逸。
 - 类型来源：
-  - 前后端共享的 DTO / Domain 类型放在 `src/shared`，避免魔法字符串和重复结构。
+  - HTTP wire contract 放在 `src/shared/schemas/api/**`；use-case 输入输出类型放在所属 `domains/*/application`；domain entity/policy 类型留在所属 `domains/*/domain`。
   - 对复杂推断（联合数组等），优先按照官方建议**显式声明上层目标类型**，避免阅读困难。
 - Schema 与 zod：
   - 对表单、接口 payload、query params 等，优先定义 zod schema，并通过 `z.infer` 推导 TypeScript 类型，做到“类型与校验同源”。
@@ -86,7 +90,7 @@
   - 优先使用 better-auth 提供的统一 API 获取当前用户与租户信息，避免自建零散的鉴权工具函数。
   - better-auth 配置与类型应通过 `@better-auth/cli` 生成，而不是手写；若 PR 修改了认证逻辑，应检查生成脚本是否需要更新。
 - CSRF（Cookie 会话 + 有副作用操作）：
-  - 对“需要登录 + 写请求”的 Route Handler 统一使用 `requireUser(req)`（`src/shared/lib/api/guard.ts`），由 guard 执行 `Origin/Referer` 与 `Host/X-Forwarded-Host` 的同源校验。
+  - 对“需要登录 + 写请求”的 Route Handler 统一通过 `createApiContext(req).requireUser()`（`src/app/api/_lib/context.ts`，底层为 `src/app/access-control/api-guard.ts`），由 guard 执行 `Origin/Referer` 与 `Host/X-Forwarded-Host` 的同源校验。
   - 禁止绕过 guard 直接读取 session/用户信息后执行写操作（避免引入未受保护的入口）。
 - 错误处理：
   - 明确区分业务错误（4xx）与系统错误（5xx），保证响应结构统一（如 `code` + `message` + 可选 `details`）。
@@ -104,7 +108,7 @@
     - 是否仅使用 `push` 改 schema 而无对应迁移脚本。
     - 是否有手写 SQL 改结构但未记录在迁移中。
 - 本仓库约束（Postgres-only）：
-  - drizzle-kit 配置为 `src/core/db/config.ts`，迁移输出目录为 `src/config/db/migrations`。
+  - drizzle-kit 配置为 `src/infra/adapters/db/config.ts`，迁移输出目录为 `src/config/db/migrations`。
   - `DATABASE_PROVIDER` 在运行时/CLI 中被限制为 `postgresql`（错误配置需 fail-fast）。
 - 迁移交付策略（必须明确）：
   - 迁移 SQL 属于交付物：当前 `.gitignore` 全局忽略 `*.sql`，但对 `src/config/db/migrations/**/*.sql` 显式放行；因此迁移文件应纳入版本控制，避免 schema 漂移。
@@ -124,12 +128,12 @@
   - 审查时确认：即便同一通知重复到达，也不会导致重复扣款或重复状态迁移。
 - 金额与币种：
   - 后端以 creem 通知/结算记录为准，前端金额仅用于展示，不参与最终决策。
-  - 金额与币种逻辑应集中在服务端编排层（例如 `src/core/payment/flows/**` + `src/core/payment/providers/**`），避免散落在各个 Route / 组件中。
+  - 金额、pricing、subscription、provider enablement 语义集中在 `src/domains/billing/domain/**`；checkout、notify、callback、replay 等流程集中在 `src/domains/billing/application/**`；provider transport 在 `src/infra/adapters/payment/**`。
 
 ### 2.5 邮件（resend）
 
 - 模板与文案：
-  - 邮件 provider 与发送能力集中在 `src/extensions/email/**` 与 `src/shared/services/email.ts`，避免在各个 handler 内部直接拼接 HTML 字符串/直接调用 SDK。
+  - 邮件 provider 与发送能力集中在 `src/extensions/email/**`，通用邮件工具可放在 `src/shared/lib/email.ts`；业务邮件流程必须由所属 domain application 或 app 入站适配层编排，避免在各个 handler 内部直接拼接 HTML 字符串/直接调用 SDK。
   - 模板文案应复用国际化资源或集中常量，避免在多处硬编码内容导致维护困难。
 - 发送可靠性：
   - 关键邮件（注册激活、密码重置、账单通知等）发送失败必须至少记录结构化日志，必要时提供重试/补发机制。
@@ -240,8 +244,40 @@
 ### 5.3 结构一致性
 
 - 文件粒度：
-  - page/layout 负责路由结构与数据装配，核心业务逻辑下沉到 `src/core`，UI 基础件放在 `src/shared`。
+  - page/layout 负责路由结构与数据装配，核心业务逻辑下沉到 `src/domains`，UI 基础件放在 `src/shared` 或 domain-owned `ui`。
   - 审查时对“超大文件”优先建议拆分为多个更易理解的模块。
+
+### 5.4 架构反退化审查
+
+- 机器先行：
+  - `pnpm lint:deps` 和 `pnpm test` 会执行结构护栏，但它们只证明“没有越过硬边界”。
+  - 人工 review 必须继续判断依赖语义：fan-out 数量过关不代表跨域关系合理。
+- 新 domain 准入：
+  - 必须有独立不变量、独立数据边界或独立生命周期。
+  - 不能因为“页面很多”“后台要管理”“多个地方要用”就创建新 domain；这类通常是现有 domain 子模块、surface 聚合或 shared UI。
+- `shared/lib`：
+  - 只允许无业务语义副作用的纯工具、transport helper、API/action envelope、URL/date/json/cache 等通用函数。
+  - 禁止 payment、credits、RBAC、checkout、webhook、SEO decision、provider enablement、auth session policy、landing visibility 等业务入口回流。
+- Settings 与业务 policy：
+  - `settings` 只负责字段和值。
+  - application 可以读取 settings，并负责技术 fallback、degrade、缺 provider key 等流程处理。
+  - pricing、credits、permission、plan、subscription、provider enablement 等业务规则必须进入所属 domain function。
+  - domain function 应接收显式 policy 输入，不接收完整 settings object。
+- Application fan-out：
+  - 普通 application 文件默认最多依赖两个外域 application 只读入口，且只能 import `*.query.ts` / `*.view.ts`。
+  - 高 fan-out 读聚合必须进入 `application/aggregation/*.aggregation.ts`，带 `architecture-exception: cross-domain-aggregation` 和具体 `reason: ...`。
+  - 高 fan-out 写编排必须进入 `application/orchestration/*.orchestration.ts`，且必须有跨域写入或事务/补偿流程、明确 owner、失败补偿或一致性说明、不可拆的业务理由。
+  - `aggregation` 和 `orchestration` 不能被其他 domain application 调用，不能作为“文件太大所以拆出来”的垃圾桶。
+- Query/View：
+  - 只能 fetch/map/project，允许正常查询分支、分页、排序、fallback。
+  - 不导入外域 application、settings-store 或 infra adapters，不读取 settings 后解释业务规则。
+- Platform：
+  - `domains/*/domain/**` 禁止依赖 `infra/platform/**`。
+  - `domains/*/application/**` 默认只允许 `infra/platform/logging/**` 和 request context；manifest 中少数例外必须可审计、不可扩张到 auth/i18n/theme/navigation/client platform。
+- Logging:
+  - Server-side 日志使用 `src/infra/platform/logging/**`。
+  - 标准 meta 字段为 `requestId`、`domain`、`useCase`、`operation`、`route`、`method`、`actorUserId`。
+  - Client/UI 可以展示 request id 和格式化错误，不应伪造 domain/useCase/operation 日志标签。
 
 ---
 

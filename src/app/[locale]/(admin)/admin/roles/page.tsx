@@ -1,19 +1,20 @@
 // data: admin session (RBAC) + roles list (db) + includeDeleted flag (query)
 // cache: no-store (request-bound auth/RBAC)
 // reason: role management is permission-gated; avoid caching across admins
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminRolesListQuerySchema,
   type AdminRolesListQuery,
-} from '@/features/admin/schemas/list';
-import { desc } from 'drizzle-orm';
+} from '@/surfaces/admin/schemas/list';
 
-import { db } from '@/core/db';
-import { listRoles, type RoleRecord } from '@/core/rbac';
-import { role } from '@/config/db/schema';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import {
+  listAdminRolesQuery,
+  type AdminRoleRow,
+} from '@/domains/access-control/application/admin-roles.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<RoleRecord, AdminRolesListQuery>({
+export default createAdminTablePage<AdminRoleRow, AdminRolesListQuery>({
   namespace: 'admin.roles',
   permission: PERMISSIONS.ROLES_READ,
   crumbs: [
@@ -35,11 +36,8 @@ export default createAdminTablePage<RoleRecord, AdminRolesListQuery>({
   ],
   query: {
     schema: AdminRolesListQuerySchema,
-    load: async ({ includeDeleted }) => ({
-      rows: includeDeleted
-        ? await db().select().from(role).orderBy(desc(role.createdAt))
-        : await listRoles(),
-    }),
+    load: async ({ includeDeleted }) =>
+      listAdminRolesQuery({ includeDeleted }, accessControlRuntimeDeps),
   },
   columns: ({ t, query }) => [
     { name: 'name', title: t('fields.name') },

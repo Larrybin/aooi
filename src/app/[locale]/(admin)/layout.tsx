@@ -2,7 +2,7 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin area is user-specific; avoid caching across users/roles
 import type { ReactNode } from 'react';
-import { SignModal } from '@/features/web/auth/components/sign-modal';
+import { SignModal } from '@/domains/account/ui/auth/sign-modal';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
@@ -10,15 +10,15 @@ import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
-import { toAuthSessionUserSnapshot } from '@/shared/lib/auth-user-snapshot';
-import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
+import { toAuthSessionUserSnapshot } from '@/infra/platform/auth/user-snapshot';
+import { applyBrandToSidebar } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { requireAdminAccess } from '@/shared/services/rbac_guard';
+} from '@/infra/platform/brand/placeholders.server';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { requireAdminPageAccess } from './_guards/page-access';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 /**
@@ -35,7 +35,7 @@ export default async function AdminLayout({
   setRequestLocale(locale);
 
   // Check if user has admin access permission
-  const signedInUser = await requireAdminAccess({
+  const signedInUser = await requireAdminPageAccess({
     redirectUrl: `/admin/no-permission`,
     locale: locale || '',
   });

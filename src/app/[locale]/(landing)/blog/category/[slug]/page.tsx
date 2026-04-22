@@ -6,20 +6,20 @@ import {
   getBlogCategory,
   getBlogCategoryPostsAndCategories,
   getPublicBlogCategoryStaticSlugs,
-} from '@/features/docs/server/content';
+} from '@/domains/content/application/public-content.query';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
-import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
+import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
+} from '@/infra/platform/brand/placeholders.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
   buildCanonicalUrlWithAppUrl,
   buildLanguageAlternatesWithAppUrl,
-} from '@/shared/lib/seo';
+} from '@/surfaces/public/seo/metadata';
 import type {
   Blog as BlogType,
   Category as CategoryType,

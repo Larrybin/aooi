@@ -5,7 +5,7 @@ This guide covers the authentication system built on [Better Auth](https://bette
 ## Architecture Overview
 
 ```
-src/core/auth/
+src/infra/platform/auth/
 ├── index.ts      # Dynamic auth entry point (runtime)
 ├── config.ts     # Auth configuration (static + dynamic)
 └── client.ts     # Client-side auth utilities
@@ -31,7 +31,7 @@ function buildAuthOptionsBase() {
 
 // Dynamic - used at runtime, fetches DB configs
 export async function getAuthOptions(request?: Request) {
-  const configs = await getAllConfigsCached();
+  const configs = await readRuntimeSettingsCached();
   return {
     ...buildAuthOptionsBase(),
     database: drizzleAdapter(db(), { provider: 'pg', schema }),
@@ -58,7 +58,7 @@ Notes:
 // src/app/api/auth/[...all]/route.ts
 import { toNextJsHandler } from 'better-auth/next-js';
 
-import { getAuth } from '@/core/auth';
+import { getAuth } from '@/infra/platform/auth';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 
 export const dynamic = 'force-dynamic';
@@ -91,7 +91,7 @@ Prefer `getAuth(request)` when a Request is available (enables per-request cachi
 Otherwise `getAuth()` works too:
 
 ```typescript
-import { getAuth } from '@/core/auth';
+import { getAuth } from '@/infra/platform/auth';
 
 // In a Route Handler
 const auth = await getAuth(request);
@@ -103,7 +103,7 @@ const session = await auth.api.getSession({ headers: request.headers });
 ### Basic Auth Client
 
 ```typescript
-import { signIn, signOut, signUp, useSession } from '@/core/auth/client';
+import { signIn, signOut, signUp, useSession } from '@/infra/platform/auth/client';
 
 // Sign in with email/password
 await signIn.email({ email, password });
@@ -123,7 +123,7 @@ const { data: session, isPending } = useSession();
 For features like Google One Tap, use `getAuthClient()`:
 
 ```typescript
-import { getAuthClient } from '@/core/auth/client';
+import { getAuthClient } from '@/infra/platform/auth/client';
 
 // configs loaded from database
 const authClient = getAuthClient(configs);
@@ -251,7 +251,7 @@ The reset page accepts query params:
 Prefer `getSignedInUserIdentity()` / `getSignedInUserSnapshot()` in Server Components and server-only helpers:
 
 ```typescript
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 
 const user = await getSignedInUserIdentity();
 ```
@@ -318,11 +318,11 @@ OAuth callback error: redirect_uri_mismatch
 
 ## Related Files
 
-- `src/core/auth/index.ts` - Auth entry point
-- `src/core/auth/config.ts` - Configuration
-- `src/core/auth/client.ts` - Client utilities
+- `src/infra/platform/auth/index.ts` - Auth entry point
+- `src/infra/platform/auth/config.ts` - Configuration
+- `src/infra/platform/auth/client.ts` - Client utilities
 - `src/app/api/auth/[...all]/route.ts` - API route
 - `src/shared/lib/api/guard.ts` - Auth guards for API routes
 - `src/shared/lib/auth-session.server.ts` - Session helpers (`getSignedInUserIdentity` / `getSignedInUserSnapshot`)
-- `src/shared/lib/runtime/env.server.ts` - Server runtime env access (`authBaseUrl` / `authSecret`)
+- `src/infra/runtime/env.server.ts` - Server runtime env access (`authBaseUrl` / `authSecret`)
 - `src/config/server-auth-base-url.ts` - Same-origin auth base URL normalization

@@ -1,12 +1,11 @@
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { Copyright } from '@/shared/blocks/common/copyright';
 import { GeneralSocialLinks } from '@/shared/blocks/common/general-social-links';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { isConfigTrue } from '@/shared/lib/general-ui.client';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
-import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
 
@@ -15,7 +14,7 @@ export function Footer({
   publicConfigs,
 }: {
   footer: FooterType;
-  publicConfigs?: Configs;
+  publicConfigs?: Record<string, string>;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
   const isLocaleSwitcherEnabled = isConfigTrue(

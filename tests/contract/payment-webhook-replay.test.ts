@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PaymentEventType, type PaymentEvent } from '@/core/payment/domain';
+import {
+  PaymentEventType,
+  type PaymentEvent,
+} from '@/domains/billing/domain/payment';
 import {
   runPaymentWebhookReplay,
   type PaymentWebhookReplayRow,
-} from '@/core/payment/webhooks/replay';
-import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/shared/models/payment_webhook_inbox.shared';
+} from '@/domains/billing/application/replay';
+import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/domains/billing/infra/payment-webhook-inbox.shared';
 
 function createInboxRow(overrides: Partial<PaymentWebhookReplayRow> = {}): PaymentWebhookReplayRow {
   return {

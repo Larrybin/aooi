@@ -33,7 +33,7 @@ User settings writes are implemented via Server Actions (not `/api/settings/*` R
 
 - Page: `src/app/[locale]/(landing)/settings/profile/page.tsx`
 - Schema: `src/shared/schemas/actions/settings-profile.ts`
-- Write: `updateUser(user.id, { name, image })`
+- Write: `updateProfileUseCase()` from `src/domains/account/application/use-cases.ts`
 
 **API Keys**
 
@@ -66,11 +66,14 @@ Admin pages are guarded in two layers:
 
 ### Config Storage & Validation
 
-- Settings values are stored in the `config` table and loaded via `getConfigsSafe()` / saved via `saveConfigs()`.
-- After saving, the page triggers `revalidateTag(CONFIGS_CACHE_TAG, 'max')` and `revalidateTag(PUBLIC_CONFIGS_CACHE_TAG, 'max')`.
+- Settings values are stored in the `config` table via `src/domains/settings/application/settings-store.ts`.
+- `settings-store.ts` owns writes and invalidates `CONFIGS_CACHE_TAG` / `PUBLIC_CONFIGS_CACHE_TAG`.
+- Runtime reads use `src/domains/settings/application/settings-runtime.query.ts`.
+- Public UI/SEO/theme reads use `src/domains/settings/application/public-config.view.ts`.
 - Some fields are validated/normalized on submit (e.g. JSON for social links / payment methods / product mapping), and those rules now live directly on each setting definition.
-- The single source of truth for setting-level contract is `src/shared/services/settings/definitions/*.ts`, aggregated by `src/shared/services/settings/registry.ts`.
+- The single source of truth for setting-level contract is `src/domains/settings/definitions/*.ts`, aggregated by `src/domains/settings/registry.ts`.
 - Public/private exposure, group metadata, module ownership, and submit-time normalize/validate behavior are all derived from that registry. `tabs.ts` remains a separate route contract on purpose.
+- `settings` stores fields and values only. Business domains interpret value meaning, such as billing provider enablement or credit behavior.
 
 ### Product Module Contract
 
@@ -87,8 +90,10 @@ Admin pages are guarded in two layers:
 - `src/app/[locale]/(landing)/settings/layout.tsx` - User settings shell (sidebar + layout)
 - `src/app/[locale]/(landing)/settings/page.tsx` - `/settings` canonical redirect
 - `src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx` - Admin settings page + Server Action submit
-- `src/shared/services/settings/registry.ts` - Settings registry aggregation + derived public/group indexes
-- `src/shared/models/config.ts` - Config persistence and caching tags
+- `src/domains/settings/registry.ts` - Settings registry aggregation + derived public/group indexes
+- `src/domains/settings/application/settings-store.ts` - DB settings persistence and cache invalidation
+- `src/domains/settings/application/settings-runtime.query.ts` - Runtime settings read projection
+- `src/domains/settings/application/public-config.view.ts` - Public config projection
 
 ## How to Verify
 

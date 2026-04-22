@@ -3,15 +3,14 @@
 // reason: user-specific settings page
 import { getTranslations } from 'next-intl/server';
 
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import {
+  listOwnApikeysUseCase,
+  type AccountApikeyRecord,
+} from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import {
-  ApikeyStatus,
-  getApikeys,
-  getApikeysCount,
-  type Apikey,
-} from '@/shared/models/apikey';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -30,20 +29,16 @@ export default async function ApiKeysPage({
   }
 
   const t = await getTranslations('settings.apikeys');
+  const result = await listOwnApikeysUseCase(
+    {
+      userId: user.id,
+      page,
+      limit,
+    },
+    accountRuntimeDeps
+  );
 
-  const total = await getApikeysCount({
-    userId: user.id,
-    status: ApikeyStatus.ACTIVE,
-  });
-
-  const apikeys = await getApikeys({
-    userId: user.id,
-    status: ApikeyStatus.ACTIVE,
-    page,
-    limit,
-  });
-
-  const table: Table<Apikey> = {
+  const table: Table<AccountApikeyRecord> = {
     title: t('list.title'),
     columns: [
       {
@@ -60,7 +55,7 @@ export default async function ApiKeysPage({
         name: 'action',
         title: t('fields.action'),
         type: 'dropdown',
-        callback: (item: Apikey) => {
+        callback: (item: AccountApikeyRecord) => {
           return [
             {
               title: t('list.buttons.edit'),
@@ -76,12 +71,12 @@ export default async function ApiKeysPage({
         },
       },
     ],
-    data: apikeys,
+    data: result.data,
     emptyMessage: t('list.empty_message'),
     pagination: {
-      total,
-      page,
-      limit,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     },
   };
 

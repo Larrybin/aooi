@@ -5,18 +5,18 @@ import { notFound } from 'next/navigation';
 import {
   getBlogPost,
   getPublicBlogPostStaticSlugs,
-} from '@/features/docs/server/content';
-import { MarkdownContent } from '@/features/docs/server/markdown-content';
+} from '@/domains/content/application/public-content.query';
+import { MarkdownContent } from '@/domains/content/ui/markdown-content';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
-import { getLocaleSlugStaticParams } from '@/core/i18n/static-params';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
+import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
   buildCanonicalUrlWithAppUrl,
   buildLanguageAlternatesWithAppUrl,
-} from '@/shared/lib/seo';
+} from '@/surfaces/public/seo/metadata';
 import BlogDetailPageView from '@/themes/default/pages/blog-detail';
 
 export async function generateMetadata({

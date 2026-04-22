@@ -3,8 +3,8 @@
 // reason: chat layout is user-specific; avoid caching across users
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { SignModal } from '@/features/web/auth/components/sign-modal';
-import { ChatLibrary } from '@/features/web/chat/components/library';
+import { SignModal } from '@/domains/account/ui/auth/sign-modal';
+import { ChatLibrary } from '@/domains/chat/ui/library';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
@@ -13,14 +13,14 @@ import { WorkspaceLayout } from '@/shared/blocks/workspace';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
 import { ChatContextProvider } from '@/shared/contexts/chat';
-import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
-import { applyBrandToSidebar } from '@/shared/lib/brand-identity';
+import { getSignedInUserSnapshot } from '@/infra/platform/auth/session.server';
+import { applyBrandToSidebar } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { isAiEnabled } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
+} from '@/infra/platform/brand/placeholders.server';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 export default async function ChatLayout({

@@ -172,7 +172,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 部署流程：
 
-- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-local-smoke` 现在会通过单个本地 `wrangler dev` 多配置 session 启动完整的 router + split-worker topology。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传品牌资源，并在同一个本地 runtime session 内验证公开配置投影和缺失 `storage_public_base_url` 的显式失败路径。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
+- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-local-smoke` 现在会通过单个本地 `wrangler dev` 多配置 session 启动完整的 router + split-worker topology。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传品牌资源，并在同一个本地 runtime session 内验证公开配置投影和缺失 `storage_public_base_url` 的显式失败路径。这两个命令只用于本地/手动诊断，不再作为必过 CI gate，因为 Wrangler 本地多 session 模拟在 Durable Object 等状态型资源上可能与真实 Cloudflare 行为不一致。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
 
 ## 功能配置
 

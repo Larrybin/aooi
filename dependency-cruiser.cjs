@@ -8,22 +8,10 @@ module.exports = {
       to: { circular: true },
     },
     {
-      name: 'no-shared-to-feature-or-app',
+      name: 'no-import-legacy-architecture-paths',
       severity: 'error',
-      from: { path: '^src/shared/' },
-      to: { path: '^src/(features|app)/' },
-    },
-    {
-      name: 'no-core-to-feature-or-app',
-      severity: 'error',
-      from: { path: '^src/core/' },
-      to: { path: '^src/(features|app)/' },
-    },
-    {
-      name: 'no-features-to-app',
-      severity: 'error',
-      from: { path: '^src/features/' },
-      to: { path: '^src/app/' },
+      from: {},
+      to: { path: '^src/(core|features|shared/(models|services))/' },
     },
     {
       name: 'no-runtime-to-scripts-or-tests',
@@ -45,7 +33,7 @@ module.exports = {
       severity: 'error',
       from: {
         path: '^(src/|cloudflare/)',
-        pathNot: '^src/testing/',
+        pathNot: '^src/testing/|^src/architecture-boundaries\\.test\\.ts$',
       },
       to: { path: '^src/testing/' },
     },
@@ -67,13 +55,30 @@ module.exports = {
       name: 'no-infra-to-app-surfaces-or-domain-application',
       severity: 'error',
       from: { path: '^src/infra/' },
-      to: { path: '^src/(app|surfaces|domains/[^/]+/application)/' },
+      to: {
+        path: '^src/(app|surfaces|domains/[^/]+/application)/',
+        pathNot: '^src/domains/settings/application/[^/]+\\.query\\.ts$',
+      },
     },
     {
       name: 'no-shared-to-domains-surfaces-or-infra',
       severity: 'error',
-      from: { path: '^src/shared/' },
-      to: { path: '^src/(domains|surfaces|infra)/' },
+      from: {
+        path: '^src/shared/',
+        pathNot:
+          '^src/shared/lib/(auth-session\\.server|config-consistency|runtime/env\\.server|i18n/scoped-intl-provider)\\.tsx?$|^src/shared/(blocks|components|contexts|hooks)/',
+      },
+      to: {
+        path: '^src/(domains|surfaces|infra)/',
+        pathNot:
+          '^src/domains/settings/application/(settings-store|public-config\\.view)\\.ts$|^src/infra/runtime/env\\.server\\.ts$|^src/infra/platform/logging/',
+      },
+    },
+    {
+      name: 'no-shared-ui-to-business-domains-or-adapters',
+      severity: 'error',
+      from: { path: '^src/shared/(blocks|components|contexts|hooks)/' },
+      to: { path: '^src/(domains|infra/adapters|surfaces)/' },
     },
   ],
   options: {

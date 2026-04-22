@@ -2,7 +2,7 @@
 
 import { ChevronRight } from 'lucide-react';
 
-import { Link, usePathname } from '@/core/i18n/navigation';
+import { Link, usePathname } from '@/infra/platform/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Collapsible,

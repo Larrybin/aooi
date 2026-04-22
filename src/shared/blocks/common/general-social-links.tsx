@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import { usePublicAppContext } from '@/shared/contexts/app';
 import {
   isConfigTrue,

@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { handlePaymentNotifyRequest } from '@/core/payment/webhooks/payment-notify-flow';
+import { handlePaymentNotifyRequest } from '@/domains/billing/application/payment-notify-flow';
 import {
   PaymentEventType,
   WebhookPayloadError,
   WebhookVerificationError,
   type PaymentEvent,
-} from '@/core/payment/domain';
-import { PayPalProvider } from '@/core/payment/providers/paypal';
-import { StripeProvider } from '@/core/payment/providers/stripe';
+} from '@/domains/billing/domain/payment';
+import { PayPalProvider } from '@/infra/adapters/payment/paypal';
+import { StripeProvider } from '@/infra/adapters/payment/stripe';
 import { PayloadTooLargeError, UpstreamError } from '@/shared/lib/api/errors';
 
 function createInboxRecord(overrides: Record<string, unknown> = {}) {

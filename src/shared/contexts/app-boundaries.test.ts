@@ -65,8 +65,8 @@ test('仓库源码不再引用旧的 get-user-info 路径', async () => {
   const filesToCheck = [
     'src/shared/contexts/app.tsx',
     'src/themes/default/blocks/pricing.tsx',
-    'src/shared/blocks/generator/image.tsx',
-    'src/shared/blocks/generator/music.tsx',
+    'src/domains/ai/ui/image-generator.tsx',
+    'src/domains/ai/ui/music-generator.tsx',
   ];
 
   for (const file of filesToCheck) {
@@ -78,8 +78,8 @@ test('仓库源码不再引用旧的 get-user-info 路径', async () => {
 test('公共消费方不再在首屏隐式读取 useSession', async () => {
   const filesToCheck = [
     'src/themes/default/blocks/pricing.tsx',
-    'src/shared/blocks/generator/image.tsx',
-    'src/shared/blocks/generator/music.tsx',
+    'src/domains/ai/ui/image-generator.tsx',
+    'src/domains/ai/ui/music-generator.tsx',
   ];
 
   for (const file of filesToCheck) {
@@ -117,11 +117,11 @@ test('shared/common 不再持有 markdown-it 解析器实现', async () => {
 
 test('非 payment surface 不允许直接 import payment provider 实现', async () => {
   const srcRoot = path.resolve(repoRoot, 'src');
-  const allowedPrefixes = [path.resolve(srcRoot, 'core/payment')];
+  const allowedPrefixes = [path.resolve(srcRoot, 'infra/adapters/payment')];
   const providerImportPatterns = [
-    '@/core/payment/providers/stripe',
-    '@/core/payment/providers/paypal',
-    '@/core/payment/providers/creem',
+    '@/infra/adapters/payment/stripe',
+    '@/infra/adapters/payment/paypal',
+    '@/infra/adapters/payment/creem',
   ];
 
   for (const file of await collectSourceFiles(srcRoot)) {

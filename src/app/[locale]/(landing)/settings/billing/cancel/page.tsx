@@ -5,20 +5,18 @@ import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
+import { requireActionUser } from '@/app/access-control/action-guard';
+import {
+  cancelMemberSubscription,
+  readMemberCancelableSubscription,
+} from '@/domains/billing/application/member-billing.actions';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionUser } from '@/shared/lib/action/guard';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import {
-  findSubscriptionBySubscriptionNo,
-  SubscriptionStatus,
-  updateSubscriptionBySubscriptionNo,
-} from '@/shared/models/subscription';
-import { getPaymentService } from '@/core/payment/providers/service';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form } from '@/shared/types/blocks/form';
 
@@ -43,26 +41,26 @@ export default async function CancelBillingPage({
     return <Empty message={tb('errors.no_auth')} />;
   }
 
-  const subscription = await findSubscriptionBySubscriptionNo(subscription_no);
-  if (!subscription) {
+  const subscriptionResult = await readMemberCancelableSubscription({
+    subscriptionNo: subscription_no,
+    actorUserId: user.id,
+  });
+  if (subscriptionResult.status === 'not_found') {
     return <Empty message={tb('errors.subscription_not_found')} />;
   }
-
-  if (!subscription.paymentProvider || !subscription.subscriptionId) {
+  if (subscriptionResult.status === 'missing_subscription_target') {
     return <Empty message={tb('errors.missing_payment_subscription_id')} />;
   }
-
-  if (subscription.userId !== user.id) {
+  if (subscriptionResult.status === 'forbidden') {
     return <Empty message={tb('errors.no_permission')} />;
   }
-
-  const paymentService = await getPaymentService();
-  const paymentProvider = paymentService.getProvider(
-    subscription.paymentProvider
-  );
-  if (!paymentProvider) {
+  if (subscriptionResult.status === 'provider_not_found') {
     return <Empty message={tb('errors.payment_provider_not_found')} />;
   }
+  if (subscriptionResult.status !== 'ok') {
+    return <Empty message={tb('errors.subscription_not_found')} />;
+  }
+  const subscription = subscriptionResult.subscription;
 
   const crumb: Crumb[] = [
     {
@@ -89,38 +87,28 @@ export default async function CancelBillingPage({
         throw new ActionError('invalid subscription no');
       }
 
-      const subscription =
-        await findSubscriptionBySubscriptionNo(subscription_no);
-      if (!subscription || !subscription.subscriptionId) {
-        throw new ActionError('invalid subscription');
-      }
-
-      if (subscription.userId !== user.id) {
-        throw new ActionError('no permission');
-      }
-
-      if (
-        subscription.status !== SubscriptionStatus.ACTIVE &&
-        subscription.status !== SubscriptionStatus.TRIALING
-      ) {
-        throw new ActionError('subscription is not active or trialing');
-      }
-
-      const paymentService = await getPaymentService();
-      const paymentProvider = paymentService.getProvider(
-        subscription.paymentProvider
+      const result = await cancelMemberSubscription(
+        {
+          subscriptionNo: subscription_no,
+          actorUserId: user.id,
+        }
       );
 
-      const result = await paymentProvider?.cancelSubscription?.({
-        subscriptionId: subscription.subscriptionId,
-      });
-      if (!result) {
+      if (result.status === 'not_found') {
+        throw new ActionError('invalid subscription');
+      }
+      if (result.status === 'forbidden') {
+        throw new ActionError('no permission');
+      }
+      if (result.status === 'invalid_status') {
+        throw new ActionError('subscription is not active or trialing');
+      }
+      if (result.status === 'missing_provider') {
+        throw new ActionError('payment provider not found');
+      }
+      if (result.status === 'cancel_failed') {
         throw new ActionError('cancel subscription failed');
       }
-
-      await updateSubscriptionBySubscriptionNo(subscription.subscriptionNo, {
-        status: SubscriptionStatus.CANCELED,
-      });
 
       return actionOk('Subscription canceled', '/settings/billing');
     });

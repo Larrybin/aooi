@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import type { NavItem } from '@/shared/types/blocks/common';
 

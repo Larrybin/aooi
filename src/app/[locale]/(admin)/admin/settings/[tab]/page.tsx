@@ -1,25 +1,39 @@
-// data: RBAC-gated user + settings schema + configs (unstable_cache tags) + Server Action writes + revalidateTag()
+// data: RBAC-gated user + settings schema + configs (unstable_cache tags) + Server Action writes
 // cache: no-store (request-bound auth); configs cached via unstable_cache (tag=db-configs, 60s) / (tag=public-configs, 3600s)
-// reason: admin settings are user-specific; revalidateTag ensures updates propagate
+// reason: admin settings are user-specific; settings-store owns cache invalidation
 import { notFound } from 'next/navigation';
-import { getSettingsModuleContractRows } from '@/features/admin/settings/module-contract';
+import { getSettingsModuleContractRows } from '@/surfaces/admin/settings/module-contract';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { z } from 'zod';
 
+import {
+  requireActionPermissions,
+  requireActionUser,
+} from '@/app/access-control/action-guard';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { getConfigsSafe } from '@/shared/models/config';
-import { requireAllPermissions } from '@/shared/services/rbac_guard';
+import { parseFormData } from '@/shared/lib/action/form';
+import { actionErr, actionOk } from '@/shared/lib/action/result';
+import { withAction } from '@/shared/lib/action/with-action';
+import {
+  readSettingsSafe,
+  saveSettings,
+} from '@/domains/settings/application/settings-store';
 import {
   getSettingGroups,
   getSettings,
   getSettingTabs,
-} from '@/shared/services/settings';
-import { createSettingsSubmitAction } from '@/shared/services/settings/settings-actions';
-import { mapSettingsToForms } from '@/shared/services/settings/settings-form-mapper';
-import { isSettingTabName } from '@/shared/services/settings/tab-names';
+} from '@/domains/settings';
+import { mapSettingsToForms } from '@/domains/settings/settings-form-mapper';
+import { mergeRegisteredSettingValues } from '@/domains/settings/settings-submit-merge';
+import { isSettingTabName } from '@/domains/settings/tab-names';
 import type { Crumb } from '@/shared/types/blocks/common';
+import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
+import { normalizeSettingOverrides } from '@/domains/settings/settings-normalizers';
+
+const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
 
 export default async function SettingsPage({
   params,
@@ -36,13 +50,13 @@ export default async function SettingsPage({
   const settingsTab = tab;
 
   // Check if user has permission to read settings
-  await requireAllPermissions({
+  await requireAllPagePermissions({
     codes: [PERMISSIONS.SETTINGS_READ, PERMISSIONS.SETTINGS_WRITE],
     redirectUrl: '/admin/no-permission',
     locale,
   });
 
-  const { configs, error: configsError } = await getConfigsSafe();
+  const { configs, error: configsError } = await readSettingsSafe();
 
   const settingGroups = await getSettingGroups();
   const settings = await getSettings();
@@ -57,15 +71,40 @@ export default async function SettingsPage({
   const tabs = await getSettingTabs(settingsTab);
   const hasConfigsError = Boolean(configsError);
   const moduleContractRows = getSettingsModuleContractRows(settingsTab);
+  const handleSubmit = async (data: FormData) => {
+    'use server';
 
-  const handleSubmit = createSettingsSubmitAction({
-    initialConfigs: configs,
-    hasConfigsError,
-    requiredPermissions: [
-      PERMISSIONS.SETTINGS_READ,
-      PERMISSIONS.SETTINGS_WRITE,
-    ],
-  });
+    return withAction(async () => {
+      const user = await requireActionUser();
+      await requireActionPermissions(
+        user.id,
+        PERMISSIONS.SETTINGS_READ,
+        PERMISSIONS.SETTINGS_WRITE
+      );
+
+      if (hasConfigsError) {
+        return actionErr(
+          'Settings could not be saved because configuration values failed to load. Please try again later.'
+        );
+      }
+
+      const values = parseFormData(data, SETTINGS_FORM_VALUES_SCHEMA);
+      const normalizedOverrides = normalizeSettingOverrides(values);
+      if (!normalizedOverrides.ok) {
+        return actionErr(normalizedOverrides.error);
+      }
+
+      const nextConfigs = mergeRegisteredSettingValues({
+        initialConfigs: configs,
+        values,
+        normalizedOverrides: normalizedOverrides.value,
+      });
+
+      await saveSettings(nextConfigs);
+
+      return actionOk('Settings updated');
+    });
+  };
 
   const forms = mapSettingsToForms({
     tab: settingsTab,

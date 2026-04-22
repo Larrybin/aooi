@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { cn } from '@/shared/lib/utils';
-import { getAdsRuntimeForRequest } from '@/shared/services/ads';
+import { getAdsRuntimeForRequest } from '@/infra/adapters/ads/service';
 
 import type { AdsZoneName } from './types';
 import { ADS_ZONES, getAdsZoneContext } from './zones';

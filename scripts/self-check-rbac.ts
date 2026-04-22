@@ -19,7 +19,8 @@ import '@/config/load-dotenv';
 
 import { and, eq } from 'drizzle-orm';
 
-import { db } from '@/core/db';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { db } from '@/infra/adapters/db';
 import {
   permission,
   role,
@@ -29,7 +30,6 @@ import {
 } from '@/config/db/schema';
 import { serverEnv } from '@/config/server';
 import { getUuid } from '@/shared/lib/hash';
-import { checkUserPermission, RbacRoleStatus } from '@/shared/services/rbac';
 
 const LOG_PREFIX = '[rbac-selfcheck]';
 
@@ -111,7 +111,7 @@ async function main() {
       name: `rbac_selfcheck_${suffix}`,
       title: 'RBAC Self Check',
       description: 'Created by scripts/self-check-rbac.ts',
-      status: RbacRoleStatus.ACTIVE,
+      status: accessControlRuntimeDeps.AccessControlRoleStatus.ACTIVE,
       createdAt: now,
       updatedAt: now,
       sort: 0,
@@ -170,8 +170,11 @@ async function main() {
   });
 
   console.log(`${LOG_PREFIX} verifying permissions (should be TRUE)…`);
-  const exactBefore = await checkUserPermission(testUserId, exactPermissionCode);
-  const wildcardBefore = await checkUserPermission(
+  const exactBefore = await accessControlRuntimeDeps.checkUserPermission(
+    testUserId,
+    exactPermissionCode
+  );
+  const wildcardBefore = await accessControlRuntimeDeps.checkUserPermission(
     testUserId,
     wildcardTargetCode
   );
@@ -195,8 +198,11 @@ async function main() {
     .set({ expiresAt: new Date(0), updatedAt: new Date() })
     .where(andEqUserRole(testUserId, testRoleId));
 
-  const exactAfter = await checkUserPermission(testUserId, exactPermissionCode);
-  const wildcardAfter = await checkUserPermission(
+  const exactAfter = await accessControlRuntimeDeps.checkUserPermission(
+    testUserId,
+    exactPermissionCode
+  );
+  const wildcardAfter = await accessControlRuntimeDeps.checkUserPermission(
     testUserId,
     wildcardTargetCode
   );

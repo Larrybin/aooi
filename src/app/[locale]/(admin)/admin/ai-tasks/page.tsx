@@ -2,26 +2,26 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: task logs are sensitive; avoid caching across users/roles
 import { notFound } from 'next/navigation';
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminAiTasksListQuerySchema,
   type AdminAiTasksListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
+import {
+  listAdminAiTasksQuery,
+  type AdminAiTaskRow,
+} from '@/domains/ai/application/admin-ai-tasks.query';
 import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabledCached } from '@/shared/lib/ai-enabled.server';
-import {
-  getAITasks,
-  getAITasksCount,
-  type AITask,
-} from '@/shared/models/ai_task';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
-export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
+export default createAdminTablePage<AdminAiTaskRow, AdminAiTasksListQuery>({
   namespace: 'admin.ai-tasks',
   permission: PERMISSIONS.AITASKS_READ,
   beforeLoad: async () => {
-    if (!(await isAiEnabledCached())) {
+    if (!isAiEnabled(await getPublicConfigsCached())) {
       notFound();
     }
   },
@@ -59,21 +59,12 @@ export default createAdminTablePage<AITask, AdminAiTasksListQuery>({
   ],
   query: {
     schema: AdminAiTasksListQuerySchema,
-    load: async ({ page, pageSize, type }) => {
-      const [rows, total] = await Promise.all([
-        getAITasks({
-          getUser: true,
-          page,
-          limit: pageSize,
-          mediaType: type,
-        }),
-        getAITasksCount({
-          mediaType: type,
-        }),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize, type }) =>
+      listAdminAiTasksQuery({
+        page,
+        limit: pageSize,
+        mediaType: type,
+      }),
   },
   columns: ({ t }) => [
     { name: 'id', title: t('fields.task_id'), type: 'copy' },

@@ -3,20 +3,38 @@
 // reason: user-specific credits and history
 import { getTranslations } from 'next-intl/server';
 
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import {
+  ACCOUNT_CREDIT_TRANSACTION_TYPE,
+  type AccountCreditTransactionType,
+  listOwnCreditsUseCase,
+  readAccountRemainingCreditsUseCase,
+  type AccountCreditRecord,
+} from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import {
-  CreditStatus,
-  getCredits,
-  getCreditsCount,
-  getRemainingCredits,
-  type Credit,
-  type CreditTransactionType,
-} from '@/shared/models/credit';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
+
+function toCreditTransactionType(
+  value?: string
+): AccountCreditTransactionType | undefined {
+  if (!value || value === 'all') {
+    return undefined;
+  }
+
+  if (value === ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT) {
+    return ACCOUNT_CREDIT_TRANSACTION_TYPE.GRANT;
+  }
+
+  if (value === ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME) {
+    return ACCOUNT_CREDIT_TRANSACTION_TYPE.CONSUME;
+  }
+
+  return undefined;
+}
 
 export default async function CreditsPage({
   searchParams,
@@ -26,6 +44,7 @@ export default async function CreditsPage({
   const { page: pageNum, pageSize, type } = await searchParams;
   const page = pageNum || 1;
   const limit = pageSize || 20;
+  const transactionType = toCreditTransactionType(type);
 
   const user = await getSignedInUserIdentity();
   if (!user) {
@@ -33,22 +52,17 @@ export default async function CreditsPage({
   }
 
   const t = await getTranslations('settings.credits');
+  const result = await listOwnCreditsUseCase(
+    {
+      userId: user.id,
+      transactionType,
+      page,
+      limit,
+    },
+    accountRuntimeDeps
+  );
 
-  const total = await getCreditsCount({
-    transactionType: type as CreditTransactionType,
-    userId: user.id,
-    status: CreditStatus.ACTIVE,
-  });
-
-  const credits = await getCredits({
-    userId: user.id,
-    status: CreditStatus.ACTIVE,
-    transactionType: type as CreditTransactionType,
-    page,
-    limit,
-  });
-
-  const table: Table<Credit> = {
+  const table: Table<AccountCreditRecord> = {
     title: t('list.title'),
     columns: [
       {
@@ -89,15 +103,18 @@ export default async function CreditsPage({
         type: 'time',
       },
     ],
-    data: credits,
+    data: result.data,
     pagination: {
-      total,
-      page,
-      limit,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     },
   };
 
-  const remainingCredits = await getRemainingCredits(user.id);
+  const remainingCredits = await readAccountRemainingCreditsUseCase(
+    user.id,
+    accountRuntimeDeps
+  );
 
   const tabs: Tab[] = [
     {

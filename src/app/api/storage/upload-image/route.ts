@@ -1,5 +1,5 @@
 import { BadRequestError, TooManyRequestsError } from '@/shared/lib/api/errors';
-import type { createApiContext } from '@/shared/lib/api/context';
+import type { createApiContext } from '@/app/api/_lib/context';
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
@@ -7,7 +7,7 @@ import {
   resolveConfigConsistencyMode,
   type ConfigConsistencyMode,
 } from '@/shared/lib/config-consistency';
-import type { getStorageService } from '@/shared/services/storage';
+import type { getStorageService } from '@/infra/adapters/storage/service';
 import type { uploadImageFiles } from './upload-image-files';
 
 type MaybePromise<T> = T | Promise<T>;
@@ -36,7 +36,7 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
   return {
     resolveConfigConsistencyMode,
     getApiContext: async (req) => {
-      const mod = await import('@/shared/lib/api/context');
+      const mod = await import('@/app/api/_lib/context');
       return mod.createApiContext(req) as ApiContextLike;
     },
     readUploadRequestInput: async (req) => {
@@ -48,7 +48,7 @@ function getDefaultStorageUploadRouteDeps(): StorageUploadRouteDeps {
       return await mod.uploadImageFiles(input);
     },
     getStorageService: async (options) => {
-      const mod = await import('@/shared/services/storage');
+      const mod = await import('@/infra/adapters/storage/service');
       return await mod.getStorageService(options);
     },
     concurrencyLimiter:

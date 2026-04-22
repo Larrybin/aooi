@@ -69,7 +69,7 @@ async function toRequestLogger(
 
   const request = maybeReq as Request;
   try {
-    const mod = await import('@/shared/lib/request-logger.server');
+    const mod = await import('@/infra/platform/logging/request-logger.server');
     return mod.getRequestLogger(request);
   } catch {
     return createFallbackRequestLogger(request);

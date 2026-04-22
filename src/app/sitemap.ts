@@ -1,13 +1,13 @@
 import type { MetadataRoute } from 'next';
 
 import { defaultLocale, locales } from '@/config/locale';
-import { buildBrandPlaceholderValues } from '@/shared/lib/brand-placeholders.server';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import {
   isLandingBlogEnabled,
   isLandingDocsEnabled,
-} from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
+} from '@/surfaces/public/navigation/landing-visibility';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;

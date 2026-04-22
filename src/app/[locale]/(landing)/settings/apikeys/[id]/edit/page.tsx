@@ -3,19 +3,18 @@
 // reason: user-specific write flow
 import { getTranslations } from 'next-intl/server';
 
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { requireActionUser } from '@/app/access-control/action-guard';
+import {
+  renameOwnApikeyUseCase,
+  requireOwnedApikeyUseCase,
+} from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
-import { requireActionUser } from '@/shared/lib/action/guard';
-import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/shared/lib/auth-session.server';
-import {
-  findApikeyById,
-  updateApikey,
-  type UpdateApikey,
-} from '@/shared/models/apikey';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form as FormType } from '@/shared/types/blocks/form';
@@ -26,17 +25,19 @@ export default async function EditApiKeyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const apikey = await findApikeyById(id);
-  if (!apikey) {
-    return <Empty message="API key not found" />;
-  }
-
   const user = await getSignedInUserIdentity();
   if (!user) {
     return <Empty message="no auth" />;
   }
 
-  if (apikey.userId !== user.id) {
+  const apikey = await requireOwnedApikeyUseCase(
+    {
+      apikeyId: id,
+      userId: user.id,
+    },
+    accountRuntimeDeps
+  );
+  if (!apikey) {
     return <Empty message="no permission" />;
   }
 
@@ -64,12 +65,14 @@ export default async function EditApiKeyPage({
 
         return withAction(async () => {
           const user = await requireActionUser();
-          const apikey = await findApikeyById(id);
+          const apikey = await requireOwnedApikeyUseCase(
+            {
+              apikeyId: id,
+              userId: user.id,
+            },
+            accountRuntimeDeps
+          );
           if (!apikey) {
-            throw new ActionError('apikey not found');
-          }
-
-          if (apikey.userId !== user.id) {
             throw new ActionError('no permission');
           }
 
@@ -80,11 +83,20 @@ export default async function EditApiKeyPage({
               message: 'title is required',
             }
           );
-
-          const updatedApikey: UpdateApikey = { title };
-          await updateApikey(apikey.id, updatedApikey);
-
-          return actionOk('API Key updated', '/settings/apikeys');
+          const result = await renameOwnApikeyUseCase(
+            {
+              apikeyId: apikey.id,
+              userId: user.id,
+              title,
+            },
+            accountRuntimeDeps,
+            'API Key updated',
+            '/settings/apikeys'
+          );
+          if (!result) {
+            throw new ActionError('no permission');
+          }
+          return result;
         });
       },
       button: {

@@ -1,14 +1,14 @@
 import { getTranslations } from 'next-intl/server';
 
-import { createApiContext } from '@/shared/lib/api/context';
+import { createApiContext } from '@/app/api/_lib/context';
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
-import { getAllConfigsCached } from '@/shared/models/config';
+import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout';
 import type { Pricing } from '@/shared/types/blocks/pricing';
-import { createPaymentCheckoutSession } from '@/core/payment/flows/checkout';
-import { findPricingItemByProductId } from '@/core/payment/flows/pricing';
+import { createPaymentCheckoutSession } from '@/domains/billing/application/checkout';
+import { findPricingItemByProductId } from '@/domains/billing/domain/pricing';
 
 export const POST = withApi(async (req: Request) => {
   const api = createApiContext(req);
@@ -33,7 +33,7 @@ export const POST = withApi(async (req: Request) => {
 
   const user = await api.requireUser();
 
-  const configs = await getAllConfigsCached();
+  const configs = await readRuntimeSettingsCached();
 
   const checkoutInfo = await createPaymentCheckoutSession({
     pricingItem,

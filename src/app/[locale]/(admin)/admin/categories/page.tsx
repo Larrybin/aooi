@@ -1,19 +1,19 @@
 // data: admin session (RBAC) + categories list (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin-managed taxonomy; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminCategoriesListQuerySchema,
   type AdminCategoriesListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
   getTaxonomies,
   getTaxonomiesCount,
-  TaxonomyType,
   type Taxonomy,
-} from '@/shared/models/taxonomy';
+} from '@/domains/content/application/taxonomy.query';
+import { TaxonomyType } from '@/domains/content/domain/taxonomy-types';
 
 export default createAdminTablePage<Taxonomy, AdminCategoriesListQuery>({
   namespace: 'admin.categories',

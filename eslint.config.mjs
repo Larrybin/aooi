@@ -29,16 +29,11 @@ const noDirectProcessEnvAccess = {
     '非白名单运行时代码禁止直接访问或传播 `process.env`；请改走 env-contract / env helper。',
 };
 
-const noSharedToFeatureImportPattern = {
-  group: ['@/features/**'],
-  message: 'shared/** 禁止依赖 features/**；请由 src/app/** 负责编排。',
-};
-
 const noRuntimeDbConfigImportPattern = {
   regex:
-    '(^@/core/db/config(\\.[cm]?[jt]s)?$)|(^\\.{1,2}/.*?/core/db/config(\\.[cm]?[jt]s)?$)',
+    '(^@/infra/adapters/db/config(\\.[cm]?[jt]s)?$)|(^\\.{1,2}/.*?/infra/adapters/db/config(\\.[cm]?[jt]s)?$)',
   message:
-    "禁止在运行时代码中导入 '@/core/db/config'（仅用于 drizzle-kit CLI 配置）。",
+    "禁止在运行时代码中导入 '@/infra/adapters/db/config'（仅用于 drizzle-kit CLI 配置）。",
 };
 
 const noRuntimeLoadDotenvImportPattern = {
@@ -51,15 +46,9 @@ const noRuntimeLoadDotenvImportPattern = {
 const baseNoRestrictedImports = {
   paths: [
     {
-      name: '@/shared/services/rbac_guard',
-      importNames: ['PERMISSIONS'],
+      name: '@/infra/adapters/db/config',
       message:
-        "请从 '@/shared/constants/rbac-permissions' 导入 PERMISSIONS，以避免仅取常量却引入 server-only guard 依赖。",
-    },
-    {
-      name: '@/core/db/config',
-      message:
-        "禁止在运行时代码中导入 '@/core/db/config'（仅用于 drizzle-kit CLI 配置）。",
+        "禁止在运行时代码中导入 '@/infra/adapters/db/config'（仅用于 drizzle-kit CLI 配置）。",
     },
     {
       name: '@/config/load-dotenv',
@@ -87,16 +76,10 @@ const clientSurfaceNoRestrictedImports = {
   patterns: [
     ...(baseNoRestrictedImports.patterns || []),
     {
-      group: ['@/core/db', '@/core/db/**'],
+      group: ['@/infra/adapters/**'],
       allowTypeImports: true,
       message:
-        "Client 模块禁止导入 '@/core/db/**'（DB 访问必须保持 server-only）。",
-    },
-    {
-      group: ['@/shared/services/**'],
-      allowTypeImports: true,
-      message:
-        "Client 模块禁止导入 '@/shared/services/**'（请在 Server Component / Route Handler 中编排，再通过 props 传入数据）。",
+        "Client 模块禁止导入 '@/infra/adapters/**'（外部实现适配必须保持 server-only）。",
     },
     {
       group: ['@/shared/content/**'],
@@ -186,11 +169,11 @@ const eslintConfig = [
   {
     files: [
       'src/app/api/**/*.{ts,tsx}',
-      'src/core/**/*.{ts,tsx}',
+      'src/domains/**/application/**/*.{ts,tsx}',
+      'src/domains/**/infra/**/*.{ts,tsx}',
+      'src/infra/**/*.{ts,tsx}',
       'src/extensions/**/*.{ts,tsx}',
       'src/shared/lib/api/**/*.{ts,tsx}',
-      'src/shared/models/**/*.{ts,tsx}',
-      'src/shared/services/**/*.{ts,tsx}',
     ],
     rules: {
       'no-console': 'error',
@@ -236,7 +219,7 @@ const eslintConfig = [
       'src/config/load-dotenv.ts',
       'src/config/public-env.ts',
       'src/config/server-auth-base-url.ts',
-      'src/shared/lib/runtime/env.server.ts',
+      'src/infra/runtime/env.server.ts',
       'cloudflare/workers/create-server-worker.ts',
     ],
     rules: {
@@ -277,55 +260,11 @@ const eslintConfig = [
     },
   },
   {
-    files: ['src/shared/services/**/*.{ts,tsx}'],
-    ignores: [
-      'src/**/*.test.ts',
-      'src/**/*.test.tsx',
-      'src/**/*.spec.ts',
-      'src/**/*.spec.tsx',
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.json'],
-        tsconfigRootDir: process.cwd(),
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-    },
-  },
-  {
     files: [
       'src/shared/lib/api/**/*.{ts,tsx}',
       'src/shared/lib/fetch/**/*.{ts,tsx}',
       'src/app/api/**/route.ts',
     ],
-    ignores: [
-      'src/**/*.test.ts',
-      'src/**/*.test.tsx',
-      'src/**/*.spec.ts',
-      'src/**/*.spec.tsx',
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.json'],
-        tsconfigRootDir: process.cwd(),
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-      '@typescript-eslint/no-unsafe-argument': 'error',
-    },
-  },
-  {
-    files: ['src/shared/models/**/*.{ts,tsx}', 'src/core/db/**/*.{ts,tsx}'],
     ignores: [
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
@@ -386,47 +325,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ['src/core/**/*.{ts,tsx}'],
-    ignores: ['src/core/theme/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          patterns: [
-            ...(baseNoRestrictedImports.patterns || []),
-            {
-              group: ['@/themes/**'],
-              message:
-                "请避免在 core 中依赖 '@/themes/**'（UI/主题层仅允许由 core/theme 负责编排）。",
-            },
-            {
-              group: [
-                '@/shared/blocks/**',
-                '@/shared/components/**',
-                '@/shared/contexts/**',
-                '@/shared/hooks/**',
-              ],
-              message:
-                '请避免在 core 中依赖 shared UI 层（blocks/components/contexts/hooks）；请返回 DTO/数据并由 app/themes 渲染。',
-            },
-            {
-              group: ['@/app/**'],
-              message:
-                "请避免在 core 中依赖 '@/app/**'（入口层不应被 core 反向依赖）。",
-            },
-            {
-              regex: '^\\.{1,2}/.*(/|^)app/',
-              message:
-                '请避免在 core 中通过相对路径依赖 src/app/**（入口层不应被 core 反向依赖）。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/core/theme/**/*.{ts,tsx}'],
+    files: ['src/infra/platform/theme/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -436,26 +335,6 @@ const eslintConfig = [
             '禁止使用模板字符串动态 import()；请改为显式映射/静态路径，避免隐式 context bundle 与无关 chunk 进入构建产物。',
         },
         noDoubleUnknownTypeAssertion,
-      ],
-    },
-  },
-  {
-    files: ['src/core/i18n/navigation.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...clientSurfaceNoRestrictedImports,
-          patterns: [
-            ...(clientSurfaceNoRestrictedImports.patterns || []),
-            {
-              regex: '^@/core/(?!i18n/).*',
-              allowTypeImports: true,
-              message:
-                "navigation 作为 client surface 仅允许依赖 '@/core/i18n/**' 配置，禁止引入 server-only core 依赖。",
-            },
-          ],
-        },
       ],
     },
   },
@@ -488,294 +367,11 @@ const eslintConfig = [
     },
   },
   {
-    files: ['src/shared/types/**/*.{ts,tsx,d.ts}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          patterns: [
-            noSharedToFeatureImportPattern,
-            {
-              group: ['@/core/**'],
-              message:
-                '请避免在 shared/types 中依赖 core（类型层反向依赖会放大耦合）。建议将类型下沉到 shared/types 或改为直接依赖三方 type。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
     files: ['src/shared/types/blocks/**/*.d.ts'],
     rules: {
       '@typescript-eslint/no-empty-object-type': [
         'error',
         { allowInterfaces: 'with-single-extends' },
-      ],
-    },
-  },
-  {
-    files: ['src/shared/models/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          paths: [
-            ...baseNoRestrictedImports.paths,
-            {
-              name: 'react',
-              message:
-                "请避免在 shared/models 中依赖 'react'（models 仅承载数据访问与形态转换）。",
-            },
-            {
-              name: 'react-dom',
-              message:
-                "请避免在 shared/models 中依赖 'react-dom'（models 仅承载数据访问与形态转换）。",
-            },
-          ],
-          patterns: [
-            {
-              group: ['next/**'],
-              message:
-                '请避免在 shared/models 中依赖 next/**（建议将请求/headers/navigation 等边界下沉到 shared/lib 的 *.server 模块或由 services 编排）。',
-            },
-            noSharedToFeatureImportPattern,
-            {
-              group: ['@/shared/blocks/**', '@/shared/components/**'],
-              message:
-                '请避免在 shared/models 中依赖 UI 层（blocks/components），以保持 DAL/模型层低耦合与可复用性。',
-            },
-            {
-              regex: '^@/core/(?!db($|/)).*',
-              message:
-                "shared/models 仅允许依赖 '@/core/db'；其它 core 依赖会放大耦合面。",
-            },
-            {
-              group: ['@/core/docs/**', '@/mdx-components'],
-              message:
-                '请避免在 shared/models 中引入 docs/mdx 体系（建议拆分为 repo 与 content pipeline 层）。',
-            },
-            {
-              group: ['@/core/auth', '@/core/auth/**'],
-              message:
-                '请避免在 shared/models 中依赖 core/auth。建议将会话获取下沉到 shared/lib 的 server-only 边界，再由 models 调用该边界或由 services 负责编排。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/shared/lib/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          patterns: [
-            ...(baseNoRestrictedImports.patterns || []),
-            noSharedToFeatureImportPattern,
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/features/admin/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@/features/web/**', '@/features/docs/**'],
-              message:
-                'features/admin/** 禁止依赖其它 feature；请改为下沉到 shared/** 或上移到 src/app/** 编排。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/features/web/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@/features/admin/**', '@/features/docs/**'],
-              message:
-                'features/web/** 禁止依赖其它 feature；请改为下沉到 shared/** 或上移到 src/app/** 编排。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/features/docs/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@/features/admin/**', '@/features/web/**'],
-              message:
-                'features/docs/** 禁止依赖其它 feature；请改为下沉到 shared/** 或上移到 src/app/** 编排。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/features/**/server/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...serverEntryNoRestrictedClientOnlyImports,
-          patterns: [
-            ...(serverEntryNoRestrictedClientOnlyImports.patterns || []),
-            {
-              group: [
-                '@/shared/blocks/**',
-                '@/shared/components/**',
-                '@/shared/contexts/**',
-                '@/shared/hooks/**',
-                '@/themes/**',
-              ],
-              allowTypeImports: true,
-              message:
-                'features/**/server/** 禁止依赖 UI/client 层；请返回结构化数据并交给 app 或组件层渲染。',
-            },
-            {
-              group: ['@/features/**/components/**'],
-              allowTypeImports: true,
-              message:
-                'features/**/server/** 禁止依赖 feature components；请保持 server/components 边界清晰。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/shared/services/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          patterns: [
-            noSharedToFeatureImportPattern,
-            {
-              group: [
-                '@/shared/blocks/**',
-                '@/shared/components/**',
-                '@/shared/contexts/**',
-                '@/shared/hooks/**',
-                '@/themes/**',
-              ],
-              message:
-                '请避免在 shared/services 中依赖 UI 层（blocks/components/contexts/hooks/themes）；services 应只返回结构化数据（DTO）。',
-            },
-            {
-              regex: '^\\.{1,2}/.*(/|^)app/',
-              message:
-                '请避免在 shared/services 中通过相对路径依赖 src/app/**（入口层不应被服务层反向依赖）。',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/shared/constants/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          patterns: [
-            {
-              ...noSharedToFeatureImportPattern,
-            },
-            {
-              group: ['@/shared/services/**'],
-              allowTypeImports: true,
-              message:
-                "shared/constants 禁止依赖 '@/shared/services/**'（常量层必须保持叶子层）。",
-            },
-            {
-              group: ['@/shared/models/**'],
-              allowTypeImports: true,
-              message:
-                "shared/constants 禁止依赖 '@/shared/models/**'（常量层必须保持叶子层）。",
-            },
-            {
-              group: ['@/core/**'],
-              allowTypeImports: true,
-              message:
-                "shared/constants 禁止依赖 '@/core/**'（常量层必须保持叶子层）。",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ['src/shared/content/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          ...baseNoRestrictedImports,
-          paths: [
-            ...baseNoRestrictedImports.paths,
-            {
-              name: 'client-only',
-              message:
-                "shared/content 禁止导入 'client-only'（content pipeline 必须保持 server-only）。",
-            },
-            {
-              name: '@/shared/lib/api/client',
-              message:
-                "shared/content 禁止导入 '@/shared/lib/api/client'（该模块为 client-only）。",
-            },
-          ],
-          patterns: [
-            noSharedToFeatureImportPattern,
-            {
-              group: [
-                '@/shared/blocks/**',
-                '@/shared/components/**',
-                '@/shared/contexts/**',
-                '@/shared/hooks/**',
-                '@/themes/**',
-              ],
-              message:
-                'shared/content 禁止依赖 UI/client 层（blocks/components/contexts/hooks/themes）。',
-            },
-            {
-              regex: '\\.client(\\.|$)',
-              allowTypeImports: true,
-              message:
-                "shared/content 禁止导入 '*.client'（client-only 模块）。",
-            },
-            {
-              group: ['@/**/client/**'],
-              allowTypeImports: true,
-              message:
-                "shared/content 禁止导入 '**/client/**'（client-only 模块）。",
-            },
-          ],
-        },
       ],
     },
   },
@@ -793,11 +389,10 @@ const eslintConfig = [
           ...clientSurfaceNoRestrictedImports,
           patterns: [
             {
-              regex: '^@/core/(?!i18n/navigation$|auth/client$).*',
+              regex: '^@/infra/(?!platform/(i18n/navigation|auth/client)$).*',
               message:
-                "shared UI 层仅允许依赖 '@/core/i18n/navigation' 与 '@/core/auth/client'；其它 core 依赖会扩大耦合面。",
+                "shared UI 层仅允许依赖 '@/infra/platform/i18n/navigation' 与 '@/infra/platform/auth/client'；其它 infra 依赖会扩大耦合面。",
             },
-            noSharedToFeatureImportPattern,
             ...(clientSurfaceNoRestrictedImports.patterns || []),
           ],
         },
@@ -813,9 +408,9 @@ const eslintConfig = [
           ...clientSurfaceNoRestrictedImports,
           patterns: [
             {
-              regex: '^@/core/(?!i18n/navigation$|auth/client$).*',
+              regex: '^@/infra/(?!platform/(i18n/navigation|auth/client)$).*',
               message:
-                "themes UI 层仅允许依赖 '@/core/i18n/navigation' 与 '@/core/auth/client'；其它 core 依赖会扩大耦合面。",
+                "themes UI 层仅允许依赖 '@/infra/platform/i18n/navigation' 与 '@/infra/platform/auth/client'；其它 infra 依赖会扩大耦合面。",
             },
             ...(clientSurfaceNoRestrictedImports.patterns || []),
           ],
@@ -832,7 +427,7 @@ const eslintConfig = [
       'src/app/**/error.tsx',
       'src/app/**/global-error.tsx',
       'src/shared/lib/api/client.ts',
-      'src/core/theme/provider.tsx',
+      'src/infra/platform/theme/provider.tsx',
     ],
     rules: {
       'no-restricted-imports': ['error', clientSurfaceNoRestrictedImports],

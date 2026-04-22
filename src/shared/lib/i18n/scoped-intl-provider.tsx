@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 
 import type { Locale } from '@/config/locale';
-import { getScopedMessages, normalizeLocale } from '@/core/i18n/messages';
+import { getScopedMessages, normalizeLocale } from '@/infra/platform/i18n/messages';
 
 export async function ScopedIntlProvider({
   children,

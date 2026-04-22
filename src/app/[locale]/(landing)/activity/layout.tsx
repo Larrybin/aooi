@@ -10,14 +10,14 @@ import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
 import { ConsoleLayout } from '@/shared/blocks/console/layout';
 import { PublicAppProvider } from '@/shared/contexts/app';
 import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
-import { getSignedInUserSnapshot } from '@/shared/lib/auth-session.server';
-import { applyBrandToLandingHeaderFooter } from '@/shared/lib/brand-identity';
+import { getSignedInUserSnapshot } from '@/infra/platform/auth/session.server';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { isAiEnabled } from '@/shared/lib/landing-visibility';
-import { getPublicConfigsCached } from '@/shared/models/config';
+} from '@/infra/platform/brand/placeholders.server';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type {
   Footer as FooterType,
   Header as HeaderType,

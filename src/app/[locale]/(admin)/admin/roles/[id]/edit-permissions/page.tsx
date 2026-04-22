@@ -1,14 +1,11 @@
 // data: admin session (RBAC) + role/permissions (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: permission assignment is sensitive; avoid caching across admins
-import { buildAdminCrumbs, setupAdminPage } from '@/features/admin/server';
+import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import {
-  findRoleById,
-  listPermissions,
-  listRolePermissions,
-} from '@/core/rbac';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { readAdminRolePermissionsQuery } from '@/domains/access-control/application/admin-roles.query';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
@@ -31,10 +28,11 @@ export default async function RoleEditPermissionsPage({
 
   const t = await getTranslations('admin.roles');
 
-  const role = await findRoleById(id);
-  if (!role) {
+  const detail = await readAdminRolePermissionsQuery(id, accessControlRuntimeDeps);
+  if (!detail) {
     return <Empty message={t('errors.not_found')} />;
   }
+  const { role, permissions, rolePermissions } = detail;
 
   const crumbs = buildAdminCrumbs(t, [
     { key: 'edit_permissions.crumbs.admin', url: '/admin' },
@@ -42,14 +40,12 @@ export default async function RoleEditPermissionsPage({
     { key: 'edit_permissions.crumbs.edit_permissions' },
   ]);
 
-  const permissions = await listPermissions();
   const permissionsOptions = permissions.map((permission) => ({
-    title: permission.title,
+    title: permission.title ?? permission.code,
     description: permission.code,
     value: permission.id,
   }));
 
-  const rolePermissions = await listRolePermissions(role.id as string);
   const rolePermissionIds = rolePermissions.map((permission) => permission.id);
 
   const form: Form<

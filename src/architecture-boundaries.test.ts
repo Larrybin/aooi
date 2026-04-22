@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+
+import { ARCHITECTURE_RULES } from '@/testing/architecture-rules';
 
 const repoRoot = process.cwd();
 const srcRoot = path.resolve(repoRoot, 'src');
@@ -69,36 +71,79 @@ const importPatterns = {
     /(?:from\s+['"]@\/features(?:\/[^'"]*)?['"]|import\s*\(\s*['"]@\/features(?:\/[^'"]*)?['"]\s*\))/g,
 };
 
-const dirtyImportRules: DirtyImportRule[] = [
-  {
-    label: '@/shared/models',
-    pattern: importPatterns.sharedModels,
-    baseline: 145,
-  },
-  {
-    label: '@/shared/services',
-    pattern: importPatterns.sharedServices,
-    baseline: 49,
-  },
-  {
-    label: '@/core',
-    pattern: importPatterns.core,
-    baseline: 185,
-  },
-  {
-    label: '@/features',
-    pattern: importPatterns.features,
-    baseline: 68,
-  },
-];
+const dirtyImportRules: DirtyImportRule[] = ARCHITECTURE_RULES.dirtyImports.map(
+  (label) => {
+    switch (label) {
+      case '@/shared/models':
+        return { label, pattern: importPatterns.sharedModels, baseline: 0 };
+      case '@/shared/services':
+        return { label, pattern: importPatterns.sharedServices, baseline: 0 };
+      case '@/core':
+        return { label, pattern: importPatterns.core, baseline: 0 };
+      case '@/features':
+        return { label, pattern: importPatterns.features, baseline: 0 };
+      default:
+        throw new Error(`Unsupported dirty import rule: ${label}`);
+    }
+  }
+);
 
-const publicCompositionPathPatterns = [
-  /^src\/app\/\[locale\]\/\(landing\)\/(?:page|layout)\.tsx$/,
-  /^src\/app\/\[locale\]\/\(landing\)\/pricing\//,
-  /^src\/app\/\[locale\]\/\(landing\)\/blog\//,
-  /^src\/app\/\[locale\]\/\(landing\)\/\[slug\]\//,
-  /^src\/app\/\[locale\]\/\(docs\)\//,
-];
+const publicCompositionPathPatterns =
+  ARCHITECTURE_RULES.publicCompositionPathPatterns.map(
+    (pattern) => new RegExp(pattern)
+  );
+const domainForbiddenImportPatterns =
+  ARCHITECTURE_RULES.domainForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const applicationAllowedPlatformImportPatterns =
+  ARCHITECTURE_RULES.applicationAllowedPlatformImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const appOnlyFacadeImportPatterns = ARCHITECTURE_RULES.appOnlyFacadeImportPatterns.map(
+  (pattern) => new RegExp(pattern)
+);
+const appAdminForbiddenImportPatterns = ARCHITECTURE_RULES.appAdminForbiddenImports.map(
+  (pattern) => new RegExp(pattern)
+);
+const memberSettingsForbiddenImportPatterns =
+  ARCHITECTURE_RULES.memberSettingsForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const memberActivityForbiddenImportPatterns =
+  ARCHITECTURE_RULES.memberActivityForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const memberChatForbiddenImportPatterns =
+  ARCHITECTURE_RULES.memberChatForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const paymentCallbackRouteForbiddenImportPatterns =
+  ARCHITECTURE_RULES.paymentCallbackRouteForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const surfacesAdminForbiddenImportPatterns =
+  ARCHITECTURE_RULES.surfacesAdminForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
+const applicationPlatformImportExceptions =
+  ARCHITECTURE_RULES.applicationPlatformImportExceptions.map((exception) => ({
+    file: exception.file,
+    imports: exception.imports.map((pattern) => new RegExp(pattern)),
+  }));
+const queryViewAllowedSameDomainApplicationPathPattern = new RegExp(
+  ARCHITECTURE_RULES.queryViewAllowedSameDomainApplicationPathPattern
+);
+const sharedLibAllowedPathPatterns =
+  ARCHITECTURE_RULES.sharedLibAllowedPathPatterns.map(
+    (pattern) => new RegExp(pattern)
+  );
+const aggregationPathPattern = new RegExp(
+  ARCHITECTURE_RULES.aggregation.pathPattern
+);
+const orchestrationPathPattern = new RegExp(
+  ARCHITECTURE_RULES.orchestration.pathPattern
+);
 
 function isPublicCompositionFile(repoPath: string) {
   return publicCompositionPathPatterns.some((pattern) => pattern.test(repoPath));
@@ -125,7 +170,89 @@ function readImportSpecifiers(source: string) {
   return [...specifiers];
 }
 
-test('architecture: 旧脏入口引用数量只减不增', async () => {
+function parseDomainApplicationPath(repoPath: string) {
+  const match = repoPath.match(/^src\/domains\/([^/]+)\/application\/(.+)$/);
+  if (!match) return;
+
+  return {
+    domain: match[1],
+    applicationPath: match[2],
+  };
+}
+
+function isAggregationFile(repoPath: string) {
+  return aggregationPathPattern.test(repoPath);
+}
+
+function isOrchestrationFile(repoPath: string) {
+  return orchestrationPathPattern.test(repoPath);
+}
+
+function assertHasMarker(
+  content: string,
+  marker: string,
+  repoPath: string
+) {
+  assert.equal(
+    content.includes(marker),
+    true,
+    `${repoPath} 必须包含 ${marker}`
+  );
+}
+
+function assertHasPattern(
+  content: string,
+  pattern: string,
+  repoPath: string,
+  message: string
+) {
+  assert.equal(new RegExp(pattern).test(content), true, `${repoPath} ${message}`);
+}
+
+function countByDomain(files: Array<{ repoPath: string }>) {
+  const counts = new Map<string, number>();
+  for (const file of files) {
+    const domain = file.repoPath.match(/^src\/domains\/([^/]+)\//)?.[1];
+    assert.ok(domain, `${file.repoPath} 应属于明确 domain`);
+    counts.set(domain, (counts.get(domain) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function isAllowedApplicationPlatformException(
+  repoPath: string,
+  specifier: string
+) {
+  const exception = applicationPlatformImportExceptions.find(
+    (item) => item.file === repoPath
+  );
+  if (!exception) return false;
+
+  return exception.imports.some((pattern) => pattern.test(specifier));
+}
+
+test('architecture: 目标收敛目录必须存在', async () => {
+  for (const requiredDir of ARCHITECTURE_RULES.requiredTargetDirectories) {
+    const dirStat = await stat(path.resolve(repoRoot, requiredDir));
+    assert.equal(
+      dirStat.isDirectory(),
+      true,
+      `${requiredDir} 必须存在，避免后续能力继续落回 shared/core/features`
+    );
+  }
+});
+
+test('architecture: 旧架构目录已删除', async () => {
+  for (const legacyDir of ARCHITECTURE_RULES.legacyArchitectureDirectories) {
+    await assert.rejects(
+      () => stat(path.resolve(repoRoot, legacyDir)),
+      { code: 'ENOENT' },
+      `${legacyDir} 不应继续存在，避免新代码落回旧业务层`
+    );
+  }
+});
+
+test('architecture: 旧脏入口引用保持归零', async () => {
   const files = (await readSourceFiles()).filter(
     ({ repoPath }) => repoPath !== 'src/architecture-boundaries.test.ts'
   );
@@ -139,7 +266,7 @@ test('architecture: 旧脏入口引用数量只减不增', async () => {
     assert.equal(
       count <= rule.baseline,
       true,
-      `${rule.label} 引用数 ${count} 超过 Phase 0 baseline ${rule.baseline}`
+      `${rule.label} 引用数必须保持 ${rule.baseline}，当前为 ${count}`
     );
   }
 });
@@ -150,17 +277,30 @@ test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP sc
   );
 
   for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        domainForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应依赖 ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: 新目标目录不回引旧架构入口', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/(?:domains|surfaces|infra)\//.test(repoPath) && !isTestFile(repoPath)
+  );
+  const forbiddenLegacyImportPattern =
+    /@\/(?:core|features|shared\/models|shared\/services)(?:\/|['"])/;
+
+  for (const file of files) {
     assert.equal(
-      /@\/(?:app|surfaces|infra\/adapters|shared\/schemas\/api)(?:\/|['"])/.test(
-        file.content
-      ),
+      forbiddenLegacyImportPattern.test(file.content),
       false,
-      `${file.repoPath} 不应依赖 app/surfaces/infra/adapters/shared/schemas/api`
-    );
-    assert.equal(
-      /from\s+['"]next\//.test(file.content),
-      false,
-      `${file.repoPath} 不应依赖 Next.js API`
+      `${file.repoPath} 不应回引 core/features/shared models/services`
     );
   }
 });
@@ -175,6 +315,22 @@ test('architecture: access-control domain/application 不包含 Web 拒绝行为
       /next\/navigation|redirect\s*\(|notFound\s*\(/.test(file.content),
       false,
       `${file.repoPath} 不应包含 redirect/notFound/next/navigation`
+    );
+  }
+});
+
+test('architecture: content domain 不拥有 composition/platform/runtime 职责', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/domains\/content\//.test(repoPath)
+  );
+  const forbiddenContentImportPattern =
+    /@\/(?:app|infra\/platform\/i18n|infra\/runtime|themes)(?:\/|['"])|next\/navigation|generateMetadata|Metadata\s+from\s+['"]next/;
+
+  for (const file of files) {
+    assert.equal(
+      forbiddenContentImportPattern.test(file.content),
+      false,
+      `${file.repoPath} 不应拥有 SEO/i18n runtime/route segmentation/theme rendering 职责`
     );
   }
 });
@@ -224,18 +380,206 @@ test('architecture: Public Composition Layer 只导入只读 domain 入口', asy
 
 test('architecture: settings 不拥有业务域实现', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/(?:domains\/settings|shared\/services\/settings)\//.test(repoPath)
+    /^src\/domains\/settings\//.test(repoPath)
+  );
+  const forbiddenImportPattern = new RegExp(
+    `^@/(?:domains|core)/(?:${ARCHITECTURE_RULES.settingsForbiddenBusinessImports.join('|')})(?:/|$)`
   );
 
   for (const file of files) {
     if (isTestFile(file.repoPath)) continue;
-    assert.equal(
-      /@\/(?:domains|core)\/(?:billing|chat|account|payment|rbac)(?:\/|['"])/.test(
-        file.content
-      ),
-      false,
-      `${file.repoPath} 不应依赖 billing/chat/account/payment/rbac 业务实现`
-    );
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        forbiddenImportPattern.test(specifier),
+        false,
+        `${file.repoPath} 不应依赖 ${specifier} 业务实现`
+      );
+    }
+  }
+});
+
+test('architecture: settings-store 拥有 settings cache invalidation', async () => {
+  const files = await readSourceFiles();
+  const settingsStore = files.find(
+    ({ repoPath }) =>
+      repoPath === 'src/domains/settings/application/settings-store.ts'
+  );
+  const adminSettingsPage = files.find(
+    ({ repoPath }) =>
+      repoPath ===
+      'src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx'
+  );
+
+  assert.ok(settingsStore, 'settings-store.ts 应存在');
+  assert.ok(adminSettingsPage, 'admin settings page 应存在');
+
+  assert.equal(
+    readImportSpecifiers(settingsStore.content).includes('next/cache'),
+    true,
+    'settings-store.ts 应直接拥有 next/cache revalidation'
+  );
+  assert.equal(
+    /revalidateTag\s*\(\s*CONFIGS_CACHE_TAG\s*,\s*['"]max['"]\s*\)/.test(
+      settingsStore.content
+    ),
+    true,
+    'settings-store.ts 应 invalidates CONFIGS_CACHE_TAG'
+  );
+  assert.equal(
+    /revalidateTag\s*\(\s*PUBLIC_CONFIGS_CACHE_TAG\s*,\s*['"]max['"]\s*\)/.test(
+      settingsStore.content
+    ),
+    true,
+    'settings-store.ts 应 invalidates PUBLIC_CONFIGS_CACHE_TAG'
+  );
+  assert.equal(
+    readImportSpecifiers(adminSettingsPage.content).includes('next/cache'),
+    false,
+    'admin settings page 不应直接依赖 next/cache'
+  );
+  assert.equal(
+    /CONFIGS_CACHE_TAG|PUBLIC_CONFIGS_CACHE_TAG|revalidateTag\s*\(/.test(
+      adminSettingsPage.content
+    ),
+    false,
+    'admin settings page 不应拥有 settings cache invalidation'
+  );
+});
+
+test('architecture: app-only facade 只有两个 runtime-deps 且仅限 app 导入', async () => {
+  const files = await readSourceFiles();
+  const runtimeFacadeFiles = files.filter(({ repoPath }) =>
+    /^src\/app\/.+\/runtime-deps\.ts$/.test(repoPath)
+  );
+
+  assert.deepEqual(
+    runtimeFacadeFiles.map((file) => file.repoPath).sort(),
+    [...ARCHITECTURE_RULES.appOnlyFacades].sort(),
+    'runtime-deps 长期边界只能是 account/access-control 两个 app-only facade'
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      if (
+        !appOnlyFacadeImportPatterns.some((pattern) => pattern.test(specifier))
+      ) {
+        continue;
+      }
+
+      assert.equal(
+        /^src\/app\//.test(file.repoPath),
+        true,
+        `${file.repoPath} 不应导入 app-only facade ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: admin app 入口必须 application-first', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/app\/\[locale\]\/\(admin\)\/admin\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        appAdminForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应直连 ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: member settings billing 入口不得直连 billing infra/adapters', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/app\/\[locale\]\/\(landing\)\/settings\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        memberSettingsForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应直连 ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: member activity 入口不得直连 chat/ai infra', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/app\/\[locale\]\/\(landing\)\/activity\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        memberActivityForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应直连 ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: member chat 入口不得直连 chat infra', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/app\/\[locale\]\/\(chat\)\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        memberChatForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应直连 ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: payment callback route 不得直连 billing infra/adapters', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) => repoPath === 'src/app/api/payment/callback/route.ts'
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        paymentCallbackRouteForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应直连 ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: surfaces/admin 不得导入 app facade 或 infra 实现', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/surfaces\/admin\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        surfacesAdminForbiddenImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        false,
+        `${file.repoPath} 不应导入 ${specifier}`
+      );
+    }
   }
 });
 
@@ -245,9 +589,8 @@ test('architecture: 跨域 application 依赖只能指向只读入口', async ()
   );
 
   for (const file of files) {
-    const [, sourceDomain] =
-      file.repoPath.match(/^src\/domains\/([^/]+)\/application\//) ?? [];
-    assert.ok(sourceDomain, `${file.repoPath} 应属于明确的 domain application`);
+    const source = parseDomainApplicationPath(file.repoPath);
+    assert.ok(source, `${file.repoPath} 应属于明确的 domain application`);
 
     for (const specifier of readImportSpecifiers(file.content)) {
       const match = specifier.match(
@@ -256,12 +599,275 @@ test('architecture: 跨域 application 依赖只能指向只读入口', async ()
       if (!match) continue;
 
       const [, targetDomain, targetPath] = match;
-      if (targetDomain === sourceDomain) continue;
+      if (targetDomain === source.domain) continue;
 
       assert.equal(
         /\.(?:query|view)(?:\.[^/.]+)?$/.test(targetPath),
         true,
         `${file.repoPath} 跨域依赖 ${specifier} 必须指向 *.query 或 *.view 只读入口`
+      );
+    }
+  }
+});
+
+test('architecture: application 只能使用受控 platform 入口', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/domains\/[^/]+\/application\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      if (!specifier.startsWith('@/infra/platform/')) continue;
+      if (isAllowedApplicationPlatformException(file.repoPath, specifier)) {
+        continue;
+      }
+
+      assert.equal(
+        applicationAllowedPlatformImportPatterns.some((pattern) =>
+          pattern.test(specifier)
+        ),
+        true,
+        `${file.repoPath} 只能导入 logging/request context platform 入口: ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: application 默认外域 fan-out 不超过预算', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) =>
+      /^src\/domains\/[^/]+\/application\//.test(repoPath) &&
+      !isTestFile(repoPath) &&
+      !isAggregationFile(repoPath) &&
+      !isOrchestrationFile(repoPath)
+  );
+
+  for (const file of files) {
+    const source = parseDomainApplicationPath(file.repoPath);
+    assert.ok(source, `${file.repoPath} 应属于明确的 domain application`);
+
+    const targetDomains = new Set<string>();
+    for (const specifier of readImportSpecifiers(file.content)) {
+      const match = specifier.match(/^@\/domains\/([^/]+)\/application\/(.+)$/);
+      if (!match) continue;
+
+      const [, targetDomain, targetPath] = match;
+      if (targetDomain === source.domain) continue;
+      if (!/\.(?:query|view)(?:\.[^/.]+)?$/.test(targetPath)) continue;
+
+      targetDomains.add(targetDomain);
+    }
+
+    assert.equal(
+      targetDomains.size <= ARCHITECTURE_RULES.applicationFanOutLimit,
+      true,
+      `${file.repoPath} 外域 application fan-out ${targetDomains.size} 超过预算 ${ARCHITECTURE_RULES.applicationFanOutLimit}`
+    );
+  }
+});
+
+test('architecture: query/view 只做同域读取或投影', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/domains\/[^/]+\/application\/.*\.(?:query|view)\.ts$/.test(repoPath)
+  );
+
+  for (const file of files) {
+    const source = parseDomainApplicationPath(file.repoPath);
+    assert.ok(source, `${file.repoPath} 应属于明确的 domain application`);
+
+    for (const specifier of readImportSpecifiers(file.content)) {
+      const domainAppImport = specifier.match(
+        /^@\/domains\/([^/]+)\/application\/(.+)$/
+      );
+      if (domainAppImport) {
+        const [, targetDomain, targetPath] = domainAppImport;
+        assert.equal(
+          targetDomain,
+          source.domain,
+          `${file.repoPath} query/view 不应导入外域 application: ${specifier}`
+        );
+        assert.equal(
+          queryViewAllowedSameDomainApplicationPathPattern.test(targetPath),
+          true,
+          `${file.repoPath} query/view 只能导入 query/view application: ${specifier}`
+        );
+      }
+
+      assert.equal(
+        /^@\/domains\/settings\/application\/settings-store$/.test(specifier),
+        false,
+        `${file.repoPath} query/view 不应导入 settings-store`
+      );
+      assert.equal(
+        /^@\/infra\/adapters(?:\/|$)/.test(specifier),
+        false,
+        `${file.repoPath} query/view 不应导入 infra/adapters`
+      );
+    }
+  }
+});
+
+test('architecture: aggregation 例外必须显式标注并保持只读', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    isAggregationFile(repoPath)
+  );
+
+  assert.equal(
+    files.length <= ARCHITECTURE_RULES.aggregation.totalBudget,
+    true,
+    `aggregation 文件总数 ${files.length} 超过预算 ${ARCHITECTURE_RULES.aggregation.totalBudget}`
+  );
+
+  for (const [domain, count] of countByDomain(files)) {
+    assert.equal(
+      count <= ARCHITECTURE_RULES.aggregation.perDomainBudget,
+      true,
+      `${domain} aggregation 文件数 ${count} 超过预算 ${ARCHITECTURE_RULES.aggregation.perDomainBudget}`
+    );
+  }
+
+  for (const file of files) {
+    const source = parseDomainApplicationPath(file.repoPath);
+    assert.ok(source, `${file.repoPath} 应属于明确的 domain application`);
+    assertHasMarker(
+      file.content,
+      ARCHITECTURE_RULES.aggregation.marker,
+      file.repoPath
+    );
+    assertHasPattern(
+      file.content,
+      ARCHITECTURE_RULES.aggregation.reasonPattern,
+      file.repoPath,
+      '必须写明 reason'
+    );
+
+    for (const specifier of readImportSpecifiers(file.content)) {
+      const domainAppImport = specifier.match(
+        /^@\/domains\/([^/]+)\/application\/(.+)$/
+      );
+      if (domainAppImport) {
+        const [, targetDomain, targetPath] = domainAppImport;
+        if (targetDomain === source.domain) continue;
+        assert.equal(
+          /\.(?:query|view)(?:\.[^/.]+)?$/.test(targetPath),
+          true,
+          `${file.repoPath} aggregation 只能依赖外域 query/view: ${specifier}`
+        );
+      }
+      assert.equal(
+        /\/application\/orchestration\//.test(specifier),
+        false,
+        `${file.repoPath} aggregation 不应导入 orchestration`
+      );
+    }
+  }
+});
+
+test('architecture: orchestration 例外必须显式标注并禁止嵌套', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    isOrchestrationFile(repoPath)
+  );
+
+  assert.equal(
+    files.length <= ARCHITECTURE_RULES.orchestration.totalBudget,
+    true,
+    `orchestration 文件总数 ${files.length} 超过预算 ${ARCHITECTURE_RULES.orchestration.totalBudget}`
+  );
+
+  for (const [domain, count] of countByDomain(files)) {
+    assert.equal(
+      count <= ARCHITECTURE_RULES.orchestration.perDomainBudget,
+      true,
+      `${domain} orchestration 文件数 ${count} 超过预算 ${ARCHITECTURE_RULES.orchestration.perDomainBudget}`
+    );
+  }
+
+  for (const file of files) {
+    assertHasMarker(
+      file.content,
+      ARCHITECTURE_RULES.orchestration.marker,
+      file.repoPath
+    );
+    assertHasPattern(
+      file.content,
+      ARCHITECTURE_RULES.orchestration.reasonPattern,
+      file.repoPath,
+      '必须写明 reason'
+    );
+    assertHasPattern(
+      file.content,
+      ARCHITECTURE_RULES.orchestration.ownerPattern,
+      file.repoPath,
+      '必须写明 owner'
+    );
+    assertHasPattern(
+      file.content,
+      ARCHITECTURE_RULES.orchestration.failureCompensationPattern,
+      file.repoPath,
+      '必须写明 failure-compensation'
+    );
+
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        /\/application\/orchestration\//.test(specifier),
+        false,
+        `${file.repoPath} orchestration 不应嵌套导入 orchestration`
+      );
+      assert.equal(
+        /^@\/domains\/[^/]+\/(?:infra|repository|provider)(?:\/|$)/.test(
+          specifier
+        ),
+        false,
+        `${file.repoPath} orchestration 不应导入外域 infra/repository/provider: ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: aggregation/orchestration 不能被外域 application 调用', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/domains\/[^/]+\/application\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    const source = parseDomainApplicationPath(file.repoPath);
+    assert.ok(source, `${file.repoPath} 应属于明确的 domain application`);
+
+    for (const specifier of readImportSpecifiers(file.content)) {
+      const match = specifier.match(/^@\/domains\/([^/]+)\/application\/(.+)$/);
+      if (!match) continue;
+      const [, targetDomain, targetPath] = match;
+      if (targetDomain === source.domain) continue;
+
+      assert.equal(
+        /^(?:aggregation|orchestration)\//.test(targetPath),
+        false,
+        `${file.repoPath} 不应调用外域 aggregation/orchestration: ${specifier}`
+      );
+    }
+  }
+});
+
+test('architecture: shared/lib 只保留 allowlist 纯工具', async () => {
+  const files = (await readSourceFiles()).filter(({ repoPath }) =>
+    /^src\/shared\/lib\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    const sharedLibPath = file.repoPath.replace(/^src\/shared\/lib\//, '');
+    assert.equal(
+      sharedLibAllowedPathPatterns.some((pattern) =>
+        pattern.test(sharedLibPath)
+      ),
+      true,
+      `${file.repoPath} 不在 shared/lib allowlist 中`
+    );
+
+    for (const token of ARCHITECTURE_RULES.sharedLibForbiddenSemanticNames) {
+      assert.equal(
+        new RegExp(`(?:^|/)${token}(?:[./-]|$)`).test(sharedLibPath),
+        false,
+        `${file.repoPath} 命中业务语义入口名 ${token}`
       );
     }
   }

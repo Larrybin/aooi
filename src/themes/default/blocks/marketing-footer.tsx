@@ -2,9 +2,8 @@ import Link from 'next/link';
 
 import { defaultLocale } from '@/config/locale';
 import { AppImage } from '@/shared/blocks/common/app-image';
-import { filterLandingNavItems } from '@/shared/lib/landing-visibility';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
-import type { Configs } from '@/shared/models/config';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
 
@@ -23,7 +22,7 @@ export function MarketingFooter({
 }: {
   footer: FooterType;
   locale: string;
-  publicConfigs?: Configs;
+  publicConfigs?: Record<string, string>;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
   let navGridCols = 'sm:grid-cols-1';

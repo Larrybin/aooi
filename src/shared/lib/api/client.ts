@@ -4,7 +4,7 @@ import { safeJsonParse } from '@/shared/lib/json';
 import {
   getRequestIdFromResponse,
   RequestIdError,
-} from '@/shared/lib/request-id';
+} from '@/shared/lib/api/request-id';
 
 type ApiEnvelope<T> = {
   code: number;

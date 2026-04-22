@@ -31,9 +31,10 @@ Optional modules today:
 ```
 src/
 ├── app/           # Route-only: Next.js routes, layouts, route handlers
-├── features/      # Product surfaces: admin / web / docs
-├── core/          # Foundation: auth, database, i18n, payment, docs source, theme
-├── shared/        # Cross-surface primitives, services, utilities, types
+├── domains/       # Business semantics and application use cases
+├── surfaces/      # Product/admin composition surfaces
+├── infra/         # Platform/runtime/adapters
+├── shared/        # Pure UI, utilities, schemas, and cross-cutting types
 ├── extensions/    # Third-party integrations (AI, storage, etc.)
 ├── config/        # Configuration, DB schema, locale messages
 ├── testing/       # Shared smoke/test contracts and test-only helpers
@@ -47,12 +48,11 @@ scripts/           # Maintenance and automation scripts
 ### 当前分层原则
 
 - `src/app/**`：只保留路由入口、layout、route handler，不承载业务实现。
-- `src/features/admin/**`：管理后台面，固定为 `server/` + `schemas/`。
-- `src/features/web/**`：终端用户面，当前承载 `auth/`、`chat/`，各自再分 `components/` 与 `server/`。
-- `src/features/docs/**`：docs/blog 本地内容流水线与 docs 面逻辑，内容入口在 `server/content/**`。
-- `src/core/payment/**`：支付唯一实现根，固定分为 `domain / providers / flows / webhooks`；app 层只做 HTTP 入口与依赖装配。
-- `src/shared/**`：只保留跨面的 UI primitives、hooks/utils/constants/types、以及确认跨面复用的 shell。
-- `src/shared/services/settings/**`：继续作为跨面域服务保留在 shared。
+- `src/domains/**`：承载业务语义、领域不变量和应用用例，例如 account、billing、chat、content、settings、access-control。
+- `src/surfaces/admin/**`：后台管理面聚合层，只组合各 domain 的应用入口。
+- `src/infra/platform/**`：平台上下文和入口能力，例如 auth、i18n、request context。
+- `src/infra/adapters/**`：外部实现适配，例如 DB、payment provider、email、storage、AI/marketing service 装配。
+- `src/shared/**`：只保留纯 UI primitives、hooks/utils/constants/types、HTTP schemas 和跨面 shell。
 - `src/shared/content/**`：仅保留跨面的 server-only 内容资产（如邮件模板），不再承载 docs/blog 本地内容流水线。
 
 ## Quick Start
@@ -166,7 +166,7 @@ Read `content/docs` to start your AI SaaS project.
 - Locale routing uses next-intl under `src/app/[locale]/**` + `src/request-proxy.ts`.
 - Supported locales are defined in `src/config/locale/index.ts`.
 - Message bundles live in `src/config/locale/messages/<locale>/**`; `en` is the complete base and other locales override partially (missing namespaces fall back to `en`).
-- Server-side message loading is now route-scoped in `src/core/i18n/request.ts`: we infer the current pathname from middleware-injected request headers and only load the namespace set needed by that route.
+- Server-side message loading is now route-scoped in `src/infra/platform/i18n/request.ts`: we infer the current pathname from middleware-injected request headers and only load the namespace set needed by that route.
 - Client-side message loading is no longer injected from the `[locale]` root layout. Client trees that call `useTranslations()` are wrapped by local `ScopedIntlProvider` boundaries with explicit namespace lists.
 - Docs site UI/content translation scope excludes the `demo/*` and `admin/*` namespaces (we only maintain them for `en/zh/zh-TW`).
 - Fumadocs content now uses per-surface language scopes instead of the full app locale list:
@@ -191,6 +191,7 @@ Read `content/docs` to start your AI SaaS project.
 - Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
 - `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
+- `pnpm test:cf-local-smoke` and `pnpm test:cf-admin-settings-smoke` are local/manual diagnostics, not required CI gates. They rely on Wrangler local multi-worker emulation, which can diverge from real Cloudflare behavior around Durable Objects and other stateful bindings.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical state/app topology under the authoritative dry-run upload gate. The state worker uses `wrangler deploy --dry-run`; router and server workers use `wrangler versions upload --dry-run`.
 - Cloudflare helper commands:
 - `pnpm cf:check`
@@ -225,7 +226,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session for manual diagnosis only, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 

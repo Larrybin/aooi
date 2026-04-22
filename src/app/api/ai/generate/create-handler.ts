@@ -11,15 +11,15 @@ import type {
   createAITask,
   NewAITask,
   updateAITaskById,
-} from '@/shared/models/ai_task';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import type { getAllConfigsCached } from '@/shared/models/config';
+} from '@/domains/ai/infra/ai-task';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import type { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
 } from '@/shared/schemas/api/ai/generate';
-import type { getAIServiceWithConfigs } from '@/shared/services/ai';
-import type { resolveConfiguredAICapability } from '@/shared/services/ai-capabilities';
+import type { getAIServiceWithConfigs } from '@/domains/ai/application/service';
+import type { resolveConfiguredAICapability } from '@/domains/ai/application/capabilities';
 
 type AiGenerateApiContext = {
   log: {
@@ -51,7 +51,7 @@ export type AiGenerateRouteDeps = {
     parseJson: AiGenerateApiContext['parseJson'];
     requireUser: AiGenerateApiContext['requireUser'];
   };
-  getAllConfigs: typeof getAllConfigsCached;
+  readRuntimeSettings: typeof readRuntimeSettingsCached;
   getAIServiceWithConfigs: typeof getAIServiceWithConfigs;
   resolveConfiguredAICapability: typeof resolveConfiguredAICapability;
   createAITask: typeof createAITask;
@@ -68,7 +68,7 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
     const { provider, mediaType, model, prompt, options, scene } =
       await api.parseJson(AiGenerateBodySchema);
 
-    const configs = await deps.getAllConfigs();
+    const configs = await deps.readRuntimeSettings();
     const capability = deps.resolveConfiguredAICapability(configs, {
       mediaType,
       scene: scene || '',

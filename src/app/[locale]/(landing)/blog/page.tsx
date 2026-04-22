@@ -1,24 +1,29 @@
 // data: blog translations + posts/categories (content + db)
 // cache: static (generateStaticParams) + default RSC
 // reason: public blog listing should be statically prerenderable
-import { getBlogPostsAndCategories } from '@/features/docs/server/content';
+import { getBlogPostsAndCategories } from '@/domains/content/application/public-content.query';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
-import { getLocaleStaticParams } from '@/core/i18n/static-params';
+import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
-import { logger } from '@/shared/lib/logger.server';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { getMetadata } from '@/shared/lib/seo';
+} from '@/infra/platform/brand/placeholders.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getMetadata } from '@/surfaces/public/seo/metadata';
 import type {
   Blog as BlogType,
   Category as CategoryType,
   Post as PostType,
 } from '@/shared/types/blocks/blog';
 import BlogPageView from '@/themes/default/pages/blog';
+
+const log = createUseCaseLogger({
+  domain: 'content',
+  useCase: 'landing-blog-page',
+});
 
 export const generateMetadata = getMetadata({
   metadataKey: 'blog.metadata',
@@ -62,7 +67,12 @@ export default async function BlogPage({
 
     categories.unshift(currentCategory);
   } catch (error) {
-    logger.warn('landing: get posts failed', { route: '/blog', locale, error });
+    log.warn('landing: get posts failed', {
+      operation: 'render-blog-page',
+      route: '/blog',
+      locale,
+      error,
+    });
   }
 
   // build blog data

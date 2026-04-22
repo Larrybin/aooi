@@ -3,15 +3,15 @@
 // reason: marketing pricing page should stay statically prerenderable
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { getLocaleStaticParams } from '@/core/i18n/static-params';
+import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import { locales } from '@/config/locale';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
-} from '@/shared/lib/brand-placeholders.server';
+} from '@/infra/platform/brand/placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getPublicConfigsCached } from '@/shared/models/config';
-import { getMetadata } from '@/shared/lib/seo';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getMetadata } from '@/surfaces/public/seo/metadata';
 import type {
   FAQ as FAQType,
   Testimonials as TestimonialsType,

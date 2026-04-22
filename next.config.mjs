@@ -17,7 +17,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const withNextIntl = createNextIntlPlugin({
-  requestConfig: './src/core/i18n/request.ts',
+  requestConfig: './src/infra/platform/i18n/request.ts',
 });
 
 /** @type {import('next').NextConfig} */

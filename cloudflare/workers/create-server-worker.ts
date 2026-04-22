@@ -1,4 +1,4 @@
-import { isRuntimeEnvEnabled } from '../../src/shared/lib/runtime/env.server';
+import { isRuntimeEnvEnabled } from '../../src/infra/runtime/env.server';
 
 type CloudflareFetchHandler<Env> = (
   request: Request,

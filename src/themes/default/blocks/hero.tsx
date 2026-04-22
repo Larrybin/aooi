@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 
-import { Link } from '@/core/i18n/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import { AppImage } from '@/shared/blocks/common/app-image';
 import { Button } from '@/shared/components/ui/button';
 import type { Hero as HeroType } from '@/shared/types/blocks/landing';

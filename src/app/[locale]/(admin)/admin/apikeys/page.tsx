@@ -1,20 +1,19 @@
 // data: admin session (RBAC) + api keys list (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: api keys are sensitive; avoid caching across users/roles
-import { createAdminTablePage } from '@/features/admin/create-admin-table-page';
+import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminApikeysListQuerySchema,
   type AdminApikeysListQuery,
-} from '@/features/admin/schemas/list';
+} from '@/surfaces/admin/schemas/list';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import {
-  getApikeys,
-  getApikeysCount,
-  type Apikey,
-} from '@/shared/models/apikey';
+  listAdminApikeysQuery,
+  type AdminApikeyRow,
+} from '@/domains/account/application/admin-apikeys.query';
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<Apikey, AdminApikeysListQuery>({
+export default createAdminTablePage<AdminApikeyRow, AdminApikeysListQuery>({
   namespace: 'admin.apikeys',
   permission: PERMISSIONS.APIKEYS_READ,
   crumbs: [
@@ -23,18 +22,11 @@ export default createAdminTablePage<Apikey, AdminApikeysListQuery>({
   ],
   query: {
     schema: AdminApikeysListQuerySchema,
-    load: async ({ page, pageSize }) => {
-      const [rows, total] = await Promise.all([
-        getApikeys({
-          getUser: true,
-          page,
-          limit: pageSize,
-        }),
-        getApikeysCount({}),
-      ]);
-
-      return { rows, total };
-    },
+    load: async ({ page, pageSize }) =>
+      listAdminApikeysQuery({
+        page,
+        limit: pageSize,
+      }),
   },
   columns: ({ t }) => [
     { name: 'title', title: t('fields.title') },

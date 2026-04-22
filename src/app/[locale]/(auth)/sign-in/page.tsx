@@ -1,12 +1,12 @@
 // data: request locale (next-intl) + auth configs (unstable_cache tag=db-configs, revalidate=60s) + callbackUrl (query)
 // cache: dynamic (request-based searchParams); configs cached via unstable_cache
 // reason: public auth entry; support callback redirects without cross-request caching
-import { SignIn } from '@/features/web/auth/components/sign-in';
+import { SignIn } from '@/domains/account/ui/auth/sign-in';
 import { getTranslations } from 'next-intl/server';
 
 import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/shared/lib/runtime/env.server';
-import { getConfigs } from '@/shared/models/config';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readSettingsCached } from '@/domains/settings/application/settings-store';
 
 export async function generateMetadata({
   params,
@@ -36,7 +36,7 @@ export default async function SignInPage({
 }) {
   const { callbackUrl } = await searchParams;
 
-  const configs = await getConfigs();
+  const configs = await readSettingsCached();
 
   return <SignIn configs={configs} callbackUrl={callbackUrl || '/'} />;
 }
