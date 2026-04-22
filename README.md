@@ -191,6 +191,7 @@ Read `content/docs` to start your AI SaaS project.
 - Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
 - `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
+- `pnpm test:cf-local-smoke` and `pnpm test:cf-admin-settings-smoke` are local/manual diagnostics, not required CI gates. They rely on Wrangler local multi-worker emulation, which can diverge from real Cloudflare behavior around Durable Objects and other stateful bindings.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical state/app topology under the authoritative dry-run upload gate. The state worker uses `wrangler deploy --dry-run`; router and server workers use `wrangler versions upload --dry-run`.
 - Cloudflare helper commands:
 - `pnpm cf:check`
@@ -225,7 +226,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session for manual diagnosis only, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
