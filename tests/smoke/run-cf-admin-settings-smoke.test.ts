@@ -3,10 +3,9 @@ import test from 'node:test';
 
 import { runPhaseSequence } from '../../scripts/lib/harness/scenario.mjs';
 import {
-  assertPublicBrandConfigProjection,
+  assertPublicSettingsProjection,
   buildExpectedPublicAssetUrls,
   buildSignedInSessionCookieHeader,
-  normalizeSeedSettings,
   resolveSmokeLocales,
   waitForAdminSettingsSmokeReady,
 } from '../../scripts/run-cf-admin-settings-smoke.mjs';
@@ -101,22 +100,7 @@ test('resolveSmokeLocales 默认返回全部 locale，并支持显式过滤', ()
   );
 });
 
-test('normalizeSeedSettings 复用设置系统 normalizer', () => {
-  assert.deepEqual(
-    normalizeSeedSettings({
-      app_url: 'https://example.com/path?ignored=1',
-      general_support_email: ' Support@Example.COM ',
-      storage_public_base_url: 'https://cdn.example.com/assets',
-    }),
-    {
-      app_url: 'https://example.com',
-      general_support_email: 'support@example.com',
-      storage_public_base_url: 'https://cdn.example.com/assets/',
-    }
-  );
-});
-
-test('buildExpectedPublicAssetUrls 由 storage_public_base_url 和 objectKey 派生公开 URL', () => {
+test('buildExpectedPublicAssetUrls 由 STORAGE_PUBLIC_BASE_URL 和 objectKey 派生公开 URL', () => {
   assert.deepEqual(
     buildExpectedPublicAssetUrls({
       storagePublicBaseUrl: 'https://cdn.example.com/assets',
@@ -141,27 +125,13 @@ test('buildSignedInSessionCookieHeader 为 API smoke 构造 better-auth session 
   );
 });
 
-test('assertPublicBrandConfigProjection 仅校验 public config projection 与公开 URL 派生契约', () => {
+test('assertPublicSettingsProjection 仅校验 public config projection', () => {
   assert.doesNotThrow(() =>
-    assertPublicBrandConfigProjection({
+    assertPublicSettingsProjection({
       publicConfigs: {
-        app_name: 'CF Admin Settings 20260419',
-        storage_public_base_url: 'https://cdn.example.com/assets/',
-        app_logo: 'uploads/logo.png',
-        app_favicon: 'uploads/favicon.ico',
-        app_og_image: 'uploads/preview.png',
-      },
-      expectedAppName: 'CF Admin Settings 20260419',
-      expectedStoragePublicBaseUrl: 'https://cdn.example.com/assets/',
-      expectedObjectKeys: {
-        appLogo: 'uploads/logo.png',
-        appFavicon: 'uploads/favicon.ico',
-        appOgImage: 'uploads/preview.png',
-      },
-      expectedAssetUrls: {
-        appLogo: 'https://cdn.example.com/assets/uploads/logo.png',
-        appFavicon: 'https://cdn.example.com/assets/uploads/favicon.ico',
-        appOgImage: 'https://cdn.example.com/assets/uploads/preview.png',
+        general_ai_enabled: 'true',
+        general_docs_enabled: 'true',
+        general_blog_enabled: 'true',
       },
     })
   );

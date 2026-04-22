@@ -16,6 +16,7 @@ const stateConfigPath = path.resolve(
   rootDir,
   CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath
 );
+const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
 
 function log(message) {
   console.log(`[cf:deploy:state] ${message}`);
@@ -92,6 +93,7 @@ async function createStateDeployArtifacts() {
   const template = await readFile(stateConfigPath, 'utf8');
   const content = buildCloudflareWranglerConfig({
     template,
+    storagePublicBaseUrl,
     templatePath: stateConfigPath,
     outputPath: tempConfigPath,
     validateTemplateContract: true,

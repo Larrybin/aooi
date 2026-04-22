@@ -42,7 +42,7 @@ export function getCloudflarePreviewSmokeChecks() {
       name: 'config-api',
       path: '/api/config/get-configs',
       requiredContentType: 'application/json',
-      requiredTexts: ['"code":0', '"message":"ok"', '"app_name"'],
+      requiredTexts: ['"code":0', '"message":"ok"', '"general_ai_enabled"'],
     },
     {
       name: 'sign-up-page',

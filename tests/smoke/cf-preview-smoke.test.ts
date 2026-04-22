@@ -192,7 +192,7 @@ test('validateSmokeResponse 校验 JSON 接口响应', () => {
     JSON.stringify({
       code: 0,
       message: 'ok',
-      data: { app_name: 'Roller Rabbit' },
+      data: { general_ai_enabled: 'true' },
     }),
     {
       status: 200,
@@ -203,7 +203,7 @@ test('validateSmokeResponse 校验 JSON 接口响应', () => {
   validateSmokeResponse(
     configApiCheck,
     response,
-    '{"code":0,"message":"ok","data":{"app_name":"Roller Rabbit"}}'
+    '{"code":0,"message":"ok","data":{"general_ai_enabled":"true"}}'
   );
 });
 
@@ -281,7 +281,7 @@ test('waitForPreviewReady 需要有效 config-api 响应连续成功后才通过
     }
 
     return new Response(
-      '{"code":0,"message":"ok","data":{"app_name":"Roller Rabbit"}}',
+      '{"code":0,"message":"ok","data":{"general_ai_enabled":"true"}}',
       {
         status: 200,
         headers: { 'content-type': 'application/json; charset=utf-8' },

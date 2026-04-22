@@ -21,6 +21,7 @@ const {
 
 const rootDir = process.cwd();
 const fallbackBuildSecret = 'cf-build-dry-run-secret-0123456789abcdef';
+const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
 const uploadTargets = [
   {
     label: 'state',
@@ -234,6 +235,7 @@ async function main() {
       const template = await readFile(target.configPath, 'utf8');
       const generatedConfig = buildCloudflareWranglerConfig({
         template,
+        storagePublicBaseUrl,
         templatePath: target.configPath,
         outputPath: tempConfigPath,
         validateTemplateContract: true,

@@ -8,9 +8,10 @@
 
 ## Canonical Origin Rules
 
-- `NEXT_PUBLIC_APP_URL` is the canonical app origin.
-- `AUTH_URL` and `BETTER_AUTH_URL` may exist only as same-origin mirrors of `NEXT_PUBLIC_APP_URL`.
-- In production, any request-derived auth origin that differs from `NEXT_PUBLIC_APP_URL` is a hard failure.
+- `site.brand.appUrl` is the canonical app origin.
+- `AUTH_URL` and `BETTER_AUTH_URL` may exist only as same-origin mirrors of `site.brand.appUrl`.
+- `NEXT_PUBLIC_APP_URL` is a generated deploy artifact derived from `site.brand.appUrl`.
+- In production, any request-derived auth origin that differs from `site.brand.appUrl` is a hard failure.
 - In preview/local, request-derived auth origin may override the canonical origin only when it is `localhost` or `127.0.0.1`.
 
 ## Cloudflare Rules
@@ -40,7 +41,7 @@
 - `pnpm cf:check` validates the multi-worker config contract.
 - `pnpm cf:build` validates OpenNext multi-bundle generation and hard-fails if any required bundle is missing or if state/app dry-run upload checks report a deployable gzip bundle `>= 3 MiB`.
 - `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: the router and all server Workers start under one `wrangler dev` multi-config session, required `.open-next` artifacts are checked before boot, and the read-only smoke runs against the router origin.
-- `pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for admin/settings storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `storage_public_base_url` missing-error path inside the same local Cloudflare runtime session.
+- `pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `STORAGE_PUBLIC_BASE_URL` missing-error path inside the same local Cloudflare runtime session.
 - `pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
 - Before production deploy, the operator must verify `pnpm exec wrangler whoami`, then run `pnpm cf:check`, `pnpm cf:build`, `pnpm cf:typegen:check`, and the relevant smoke gates locally.
 - If schema changes are present, the operator must run production DB migration before `pnpm cf:deploy:state` or `pnpm cf:deploy`.
