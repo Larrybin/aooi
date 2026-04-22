@@ -108,7 +108,12 @@ test('cf:check 缺少 storage public runtime binding 时失败', async () => {
   const fixture = await withFixture();
 
   try {
-    const result = await runCheckCloudflareConfig({ cwd: fixture.fixtureDir });
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: '',
+      },
+    });
 
     assert.equal(result.ok, false);
     assert.match(result.stderr, /R2 public asset base URL/);

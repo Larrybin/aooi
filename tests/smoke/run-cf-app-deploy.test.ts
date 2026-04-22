@@ -3,6 +3,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
+import { getCurrentSiteAppUrl } from '../../scripts/lib/current-site.mjs';
 import {
   buildRouterAppVersionIds,
   buildRouterDirectDeployArgs,
@@ -16,6 +17,8 @@ import {
 
 const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
   cloudflareWorkerSplits;
+const expectedStoragePublicBaseUrl =
+  process.env.STORAGE_PUBLIC_BASE_URL?.trim() ?? '';
 
 test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 改写为部署态配置', () => {
   const template = `
@@ -26,6 +29,7 @@ main = "cloudflare/workers/router.ts"
 directory = ".open-next/assets"
 
 [vars]
+STORAGE_PUBLIC_BASE_URL = ""
 PUBLIC_WEB_WORKER_VERSION_ID = ""
 AUTH_WORKER_VERSION_ID = ""
 PAYMENT_WORKER_VERSION_ID = ""
@@ -55,6 +59,12 @@ ADMIN_WORKER_VERSION_ID = ""
       `directory = "${escapeRegExp(path.relative(path.resolve(process.cwd(), '.tmp'), path.resolve(process.cwd(), '.open-next/assets')))}"`
     )
   );
+  assert.match(
+    config,
+    new RegExp(
+      `STORAGE_PUBLIC_BASE_URL = "${escapeRegExp(expectedStoragePublicBaseUrl)}"`
+    )
+  );
 
   for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
     const versionVar = CLOUDFLARE_VERSION_ID_VARS[target];
@@ -71,7 +81,7 @@ test('resolvePostDeploySmokeUrl 在未显式传 env 时回退到当前 site app 
     processEnv: {},
   });
 
-  assert.equal(smokeUrl, 'http://localhost:3000');
+  assert.equal(smokeUrl, getCurrentSiteAppUrl());
 });
 
 test('determineDeployMode 在 router 或任一 server 缺 deployment 时标记为 missing-deployments', () => {

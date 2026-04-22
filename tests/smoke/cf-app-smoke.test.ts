@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { getCurrentSiteAppUrl } from '../../scripts/lib/current-site.mjs';
 import {
   getCloudflareAppSmokeChecks,
   resolveCloudflareAppSmokeUrl,
@@ -82,7 +83,7 @@ test('resolveCloudflareAppSmokeUrl 优先使用显式 smoke url，其次 NEXT_PU
   assert.equal(resolveCloudflareAppSmokeUrl(), 'https://smoke.example.com');
 
   delete process.env.CF_APP_SMOKE_URL;
-  assert.equal(resolveCloudflareAppSmokeUrl(), 'http://localhost:3000');
+  assert.equal(resolveCloudflareAppSmokeUrl(), getCurrentSiteAppUrl());
 
   if (originalSmokeUrl === undefined) {
     delete process.env.CF_APP_SMOKE_URL;

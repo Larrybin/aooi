@@ -95,7 +95,7 @@ Visit http://localhost:3000
 - `brand.appUrl`：用于 canonical / sitemap / callback 等 URL 生成
 - `brand.supportEmail`：用于法律页面与联系入口
 - `brand.logo` / `brand.favicon` / `brand.previewImage`：用于品牌 Logo、favicon、社交分享预览图
-- 生产语义命令必须显式传 `SITE=<site-key>`；测试与 lint 仅在内部使用 `dev-local`
+- 生产语义命令必须显式传 `SITE=<site-key>`；`lint` 内部仍可回退到 `dev-local`，测试默认跟随当前 `SITE`
 
 ### Initialize RBAC (Optional)
 
