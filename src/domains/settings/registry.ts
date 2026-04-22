@@ -10,7 +10,6 @@ import { customerServiceSettings } from './definitions/customer_service';
 import { emailSettings } from './definitions/email';
 import { generalSettings } from './definitions/general';
 import { paymentSettings } from './definitions/payment';
-import { storageSettings } from './definitions/storage';
 import type { SettingDefinition, SettingGroup } from './types';
 
 const SETTINGS_REGISTRY = [
@@ -20,7 +19,6 @@ const SETTINGS_REGISTRY = [
   ...emailSettings,
   ...paymentSettings,
   ...analyticsSettings,
-  ...storageSettings,
   ...aiSettings,
   ...affiliateSettings,
   ...customerServiceSettings,

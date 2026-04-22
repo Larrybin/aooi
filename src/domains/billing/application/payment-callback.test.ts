@@ -6,6 +6,7 @@ import {
   resolvePaymentCallbackPricingFallbackUrl,
   resolvePaymentCallbackRedirectQuery,
 } from './payment-callback';
+import { site } from '@/site';
 
 function createLog() {
   return {
@@ -35,14 +36,11 @@ test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pric
       log,
     },
     {
-      readRuntimeSettingsCached: async () =>
-        ({ app_url: 'https://app.example.com' }) as never,
-      getServerPublicEnvConfigs: () =>
-        ({ app_url: 'https://app.example.com' }) as never,
+      readRuntimeSettingsCached: async () => ({}) as never,
       findOrderByOrderNo: async () => undefined as never,
     }
   );
-  assert.equal(notFound, 'https://app.example.com/pricing');
+  assert.equal(notFound, `${site.brand.appUrl}/pricing`);
 
   const forbidden = await resolvePaymentCallbackRedirectQuery(
     {
@@ -51,10 +49,7 @@ test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pric
       log,
     },
     {
-      readRuntimeSettingsCached: async () =>
-        ({ app_url: 'https://app.example.com' }) as never,
-      getServerPublicEnvConfigs: () =>
-        ({ app_url: 'https://app.example.com' }) as never,
+      readRuntimeSettingsCached: async () => ({}) as never,
       findOrderByOrderNo: async () =>
         ({
           orderNo: 'order_1',
@@ -63,7 +58,7 @@ test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pric
         }) as never,
     }
   );
-  assert.equal(forbidden, 'https://app.example.com/pricing');
+  assert.equal(forbidden, `${site.brand.appUrl}/pricing`);
   assert.equal(log.errorCalls.length >= 2, true);
 });
 
@@ -75,10 +70,7 @@ test('resolvePaymentCallbackRedirectQuery 成功返回带 order_no 的 redirectU
       log: createLog(),
     },
     {
-      readRuntimeSettingsCached: async () =>
-        ({ app_url: 'https://app.example.com' }) as never,
-      getServerPublicEnvConfigs: () =>
-        ({ app_url: 'https://app.example.com' }) as never,
+      readRuntimeSettingsCached: async () => ({}) as never,
       findOrderByOrderNo: async () =>
         ({
           orderNo: 'order_1',
@@ -94,26 +86,19 @@ test('resolvePaymentCallbackRedirectQuery 成功返回带 order_no 的 redirectU
 
 test('resolvePaymentCallbackPricingFallbackUrl 返回绝对 pricing fallback url', async () => {
   const result = await resolvePaymentCallbackPricingFallbackUrl({
-    readRuntimeSettingsCached: async () =>
-      ({ app_url: 'https://app.example.com' }) as never,
-    getServerPublicEnvConfigs: () =>
-      ({ app_url: 'https://fallback.example.com' }) as never,
+    readRuntimeSettingsCached: async () => ({}) as never,
   });
 
-  assert.equal(result, 'https://app.example.com/pricing');
+  assert.equal(result, `${site.brand.appUrl}/pricing`);
 });
 
-test('resolvePaymentCallbackPricingFallbackUrl 在 appUrl 解析失败时返回相对 /pricing', async () => {
+test('resolvePaymentCallbackPricingFallbackUrl 不再读取 settings/env appUrl fallback', async () => {
   const result = await resolvePaymentCallbackPricingFallbackUrl({
-    readRuntimeSettingsCached: async () => {
-      throw new Error('app url unavailable');
-    },
-    getServerPublicEnvConfigs: () => {
-      throw new Error('env unavailable');
-    },
+    readRuntimeSettingsCached: async () =>
+      ({ ignoredSiteUrl: 'https://ignored.example.com' }) as never,
   });
 
-  assert.equal(result, '/pricing');
+  assert.equal(result, `${site.brand.appUrl}/pricing`);
 });
 
 test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付', async () => {
@@ -127,12 +112,8 @@ test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付',
           log: createLog(),
         },
         {
-          readRuntimeSettingsCached: async () =>
-            ({ app_url: 'https://app.example.com' }) as never,
-          readRuntimeSettingsFresh: async () =>
-            ({ app_url: 'https://app.example.com' }) as never,
-          getServerPublicEnvConfigs: () =>
-            ({ app_url: 'https://app.example.com' }) as never,
+          readRuntimeSettingsCached: async () => ({}) as never,
+          readRuntimeSettingsFresh: async () => ({}) as never,
           findOrderByOrderNo: async () =>
             ({
               orderNo: 'order_1',
@@ -160,12 +141,8 @@ test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付',
       log: createLog(),
     },
     {
-      readRuntimeSettingsCached: async () =>
-        ({ app_url: 'https://app.example.com' }) as never,
-      readRuntimeSettingsFresh: async () =>
-        ({ app_url: 'https://app.example.com' }) as never,
-      getServerPublicEnvConfigs: () =>
-        ({ app_url: 'https://app.example.com' }) as never,
+      readRuntimeSettingsCached: async () => ({}) as never,
+      readRuntimeSettingsFresh: async () => ({}) as never,
       findOrderByOrderNo: async () =>
         ({
           orderNo: 'order_1',

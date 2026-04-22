@@ -7,6 +7,7 @@ import {
   toRelativeSameOriginAuthSpikeRedirectLocationValue,
 } from '@/infra/platform/auth/auth-spike-redirect';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
+import { getAuthOriginDebug } from '@/infra/platform/auth/config';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
 import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 
@@ -29,11 +30,7 @@ function normalizeAuthSpikeRedirectLocation(
     return response;
   }
 
-  const runtimeBaseUrl =
-    getRuntimeEnvString('NEXT_PUBLIC_APP_URL') ||
-    getRuntimeEnvString('AUTH_URL') ||
-    getRuntimeEnvString('BETTER_AUTH_URL') ||
-    null;
+  const runtimeBaseUrl = getAuthOriginDebug(request).runtimeBaseUrl;
   const requestUrlForNormalization = resolveAuthSpikeRedirectRequestUrl(request, {
     runtimeBaseUrl,
   });

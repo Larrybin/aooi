@@ -29,14 +29,13 @@ export default async function PricingLayout({
   const { locale } = await params;
   const t = await getTranslations('landing');
   const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   const header: HeaderType = t.raw('header');
   const footer: FooterType = t.raw('footer');
   const branded = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(header, brand),
     footer: replaceBrandPlaceholdersDeep(footer, brand),
-    configs: publicConfigs,
   });
 
   return (

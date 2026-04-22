@@ -1,0 +1,19 @@
+{
+  "key": "mamamiya",
+  "domain": "mamamiya.pdfreprinting.net",
+  "brand": {
+    "appName": "Roller Rabbit",
+    "appUrl": "https://mamamiya.pdfreprinting.net",
+    "supportEmail": "support@mamamiya.pdfreprinting.net",
+    "logo": "/logo.png",
+    "favicon": "/favicon.ico",
+    "previewImage": "/logo.png"
+  },
+  "capabilities": {
+    "auth": true,
+    "payment": "none",
+    "docs": true,
+    "blog": true
+  },
+  "configVersion": 1
+}

@@ -12,6 +12,25 @@ import {
 } from './upload-mock';
 import { buildStorageServiceWithConfigs } from './service-builder';
 
+function withStoragePublicBaseUrl<T>(value: string | undefined, run: () => T): T {
+  const previous = process.env.STORAGE_PUBLIC_BASE_URL;
+  if (value === undefined) {
+    delete process.env.STORAGE_PUBLIC_BASE_URL;
+  } else {
+    process.env.STORAGE_PUBLIC_BASE_URL = value;
+  }
+
+  try {
+    return run();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.STORAGE_PUBLIC_BASE_URL;
+    } else {
+      process.env.STORAGE_PUBLIC_BASE_URL = previous;
+    }
+  }
+}
+
 test('isStorageSpikeUploadMockEnabled 仅在显式 true 时启用', () => {
   assert.equal(isStorageSpikeUploadMockEnabled({}), false);
   assert.equal(
@@ -50,7 +69,7 @@ test('buildStorageObjectPublicUrl 规范化 base URL 并拼接 objectKey', () =>
   );
 });
 
-test('resolveStoredAssetUrl 对 objectKey 依赖 storage_public_base_url', () => {
+test('resolveStoredAssetUrl 对 objectKey 依赖 STORAGE_PUBLIC_BASE_URL', () => {
   assert.equal(
     resolveStoredAssetUrl({
       value: 'uploads/demo.png',
@@ -73,11 +92,9 @@ test('resolveStoredAssetUrl 对 objectKey 依赖 storage_public_base_url', () =>
 });
 
 test('buildStorageServiceWithConfigs 在 mock 模式下返回 objectKey 对应 URL', async () => {
-  const service = buildStorageServiceWithConfigs(
-    {
-      storage_public_base_url: 'https://cdn.example.com/assets/',
-    },
-    { uploadMockEnabled: true }
+  const service = withStoragePublicBaseUrl(
+    'https://cdn.example.com/assets/',
+    () => buildStorageServiceWithConfigs({}, { uploadMockEnabled: true })
   );
 
   const result = await service.uploadFile({
@@ -95,12 +112,9 @@ test('buildStorageServiceWithConfigs 在 mock 模式下返回 objectKey 对应 U
   });
 });
 
-test('buildStorageServiceWithConfigs 缺少 storage_public_base_url 时返回明确错误', async () => {
-  const service = buildStorageServiceWithConfigs(
-    {
-      storage_public_base_url: '',
-    },
-    { uploadMockEnabled: false }
+test('buildStorageServiceWithConfigs 缺少 STORAGE_PUBLIC_BASE_URL 时返回明确错误', async () => {
+  const service = withStoragePublicBaseUrl(undefined, () =>
+    buildStorageServiceWithConfigs({}, { uploadMockEnabled: false })
   );
 
   await assert.rejects(
@@ -111,16 +125,14 @@ test('buildStorageServiceWithConfigs 缺少 storage_public_base_url 时返回明
     }),
     (error: unknown) =>
       error instanceof Error &&
-      error.message === 'storage_public_base_url is not configured'
+      error.message === 'STORAGE_PUBLIC_BASE_URL is not configured'
   );
 });
 
 test('buildStorageServiceWithConfigs 缺少 APP_STORAGE_R2_BUCKET binding 时返回明确错误', async () => {
-  const service = buildStorageServiceWithConfigs(
-    {
-      storage_public_base_url: 'https://cdn.example.com/assets/',
-    },
-    { uploadMockEnabled: false }
+  const service = withStoragePublicBaseUrl(
+    'https://cdn.example.com/assets/',
+    () => buildStorageServiceWithConfigs({}, { uploadMockEnabled: false })
   );
 
   await assert.rejects(

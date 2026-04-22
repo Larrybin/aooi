@@ -48,14 +48,14 @@ Key routes:
 - `/sign-in`
 - `/sign-up`
 
-Primary settings keys:
+Primary site identity fields:
 
-- `app_name`
-- `app_url`
-- `app_logo`
-- `app_favicon`
-- `app_og_image`
-- `general_support_email`
+- `site.brand.appName`
+- `site.brand.appUrl`
+- `site.brand.logo`
+- `site.brand.favicon`
+- `site.brand.previewImage`
+- `site.brand.supportEmail`
 
 ## Admin Settings
 

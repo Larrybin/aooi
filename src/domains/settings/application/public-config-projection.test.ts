@@ -7,8 +7,7 @@ test('readPublicConfigsByMode 在 cached 模式下对 DB 失败保持 fail-open'
   const configs = await readPublicConfigsByMode('cached', {
     readRuntimeSettingsSafeImpl: async () => ({
       configs: {
-        app_name: 'Fallback Name',
-        storage_public_base_url: 'https://cdn.example.com/assets/',
+        general_ai_enabled: 'true',
         private_secret: 'ignored',
       },
       error: new Error('db unavailable'),
@@ -16,8 +15,7 @@ test('readPublicConfigsByMode 在 cached 模式下对 DB 失败保持 fail-open'
   });
 
   assert.deepEqual(configs, {
-    app_name: 'Fallback Name',
-    storage_public_base_url: 'https://cdn.example.com/assets/',
+    general_ai_enabled: 'true',
   });
 });
 
@@ -35,14 +33,14 @@ test('readPublicConfigsByMode 在 fresh 模式下对 DB 失败保持 strict fail
 test('readPublicConfigsByMode 不会把非公开配置暴露到 public-config', async () => {
   const configs = await readPublicConfigsByMode('fresh', {
     readRuntimeSettingsFreshImpl: async () => ({
-      app_name: 'Visible Name',
+      hiddenSiteIdentity: 'Hidden Site Identity',
+      hiddenStoragePublicBaseUrl: 'https://cdn.example.com/assets/',
       general_ai_enabled: 'true',
       stripe_secret_key: 'hidden',
     }),
   });
 
   assert.deepEqual(configs, {
-    app_name: 'Visible Name',
     general_ai_enabled: 'true',
   });
 });

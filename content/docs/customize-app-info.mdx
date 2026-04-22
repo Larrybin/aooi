@@ -3,18 +3,18 @@ title: Customize App Info
 description: Customize brand identity, SEO metadata, legal pages, and site assets in the current repository.
 ---
 
-This repository already supports a ShipAny-like “app info / brand info” flow. In addition to env/content-based customization, brand assets can now be uploaded directly from the admin settings UI.
+This repository uses build-time site identity for app info and brand info. Configure identity in the explicit site directory, for example `sites/mamamiya/site.config.json` for production or `sites/dev-local/site.config.json` for local development. Runtime settings are reserved for site-internal toggles and integrations.
 
 ## What can be customized
 
 | Item                 | Current repo support | Main entry                                                                           |
 | -------------------- | -------------------- | ------------------------------------------------------------------------------------ |
-| App name             | Supported            | `NEXT_PUBLIC_APP_NAME` or `Admin -> Settings -> General -> Brand -> App Name`        |
-| App URL              | Supported            | `NEXT_PUBLIC_APP_URL` or `Admin -> Settings -> General -> Brand -> App URL (Origin)` |
-| Support email        | Supported            | `Admin -> Settings -> General -> Brand -> Support Email`                             |
-| Logo                 | Supported            | Upload `App Logo` in admin, or use `NEXT_PUBLIC_APP_LOGO` / `public/logo.png`        |
-| Favicon              | Supported            | Upload `Favicon` in admin, or use `NEXT_PUBLIC_APP_FAVICON` / `public/favicon.ico`   |
-| Social preview image | Supported            | Upload `Preview Image` in admin, or use `NEXT_PUBLIC_APP_PREVIEW_IMAGE`              |
+| App name             | Supported            | `sites/<site-key>/site.config.json -> brand.appName`                                 |
+| App URL              | Supported            | `sites/<site-key>/site.config.json -> brand.appUrl`                                  |
+| Support email        | Supported            | `sites/<site-key>/site.config.json -> brand.supportEmail`                            |
+| Logo                 | Supported            | `sites/<site-key>/site.config.json -> brand.logo` or `public/logo.png`               |
+| Favicon              | Supported            | `sites/<site-key>/site.config.json -> brand.favicon` or `public/favicon.ico`         |
+| Social preview image | Supported            | `sites/<site-key>/site.config.json -> brand.previewImage`                            |
 | Privacy policy       | Supported            | `content/pages/privacy-policy*.mdx`                                                  |
 | Terms of service     | Supported            | `content/pages/terms-of-service*.mdx`                                                |
 | Sitemap              | Supported            | `src/app/sitemap.ts`                                                                 |
@@ -24,45 +24,35 @@ This repository already supports a ShipAny-like “app info / brand info” flow
 
 ### 1. Configure app identity
 
-For local development:
+Set the build-time site identity:
 
-```bash
-cp ".env.example" ".env.development"
-```
-
-Then set:
-
-```bash
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="YourAppName"
-NEXT_PUBLIC_APP_LOGO="/logo.png"
-NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
-NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
+```json
+{
+  "brand": {
+    "appName": "YourAppName",
+    "appUrl": "https://example.com",
+    "supportEmail": "support@example.com",
+    "logo": "/logo.png",
+    "favicon": "/favicon.ico",
+    "previewImage": "/logo.png"
+  }
+}
 ```
 
 Rules:
 
-- `NEXT_PUBLIC_APP_URL` must be a pure origin, e.g. `https://example.com`
-- `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE` must be **public asset paths** starting with `/`
-- In production, `NEXT_PUBLIC_APP_URL` is still required because Next.js inlines it at build time
+- `brand.appUrl` must be a pure origin, e.g. `https://example.com`
+- `brand.logo` / `brand.favicon` / `brand.previewImage` must be public paths or absolute URLs allowed by the image policy
+- `SITE` selects the site explicitly. Production commands must set `SITE=mamamiya`; local lint/test commands use the internal `dev-local` test site when `SITE` is omitted.
+- `NEXT_PUBLIC_APP_URL` is generated from `brand.appUrl` for infra/deploy use; it is not an identity source or fallback.
 
-### 2. Override brand info in Admin settings
+### 2. Configure runtime settings
 
 After signing in to the admin panel, go to:
 
 `/admin/settings/general`
 
-Recommended fields:
-
-- `App Name`
-- `App URL (Origin)`
-- `Support Email`
-
-Current behavior:
-
-- DB settings override env values for `app_name` and `app_url`
-- `App Logo`, `Favicon`, and `Preview Image` can be uploaded in admin and saved into the config table
-- Uploads require Storage to be configured first (for example R2)
+Brand identity is not editable from admin settings. Third-party integration configs remain in the config table.
 
 ### 3. Replace site assets
 
@@ -73,8 +63,7 @@ Recommended defaults:
 
 If you want a different path without replacing the default files, you can either:
 
-- upload `App Logo` / `Favicon` / `Preview Image` in admin
-- or set `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE`
+- update `brand.logo` / `brand.favicon` / `brand.previewImage` in the selected `sites/<site-key>/site.config.json`
 
 These assets are reused by:
 
@@ -106,9 +95,9 @@ Main files:
 
 Current defaults:
 
-- favicon comes from `NEXT_PUBLIC_APP_FAVICON`
-- Open Graph / Twitter image defaults to `NEXT_PUBLIC_APP_PREVIEW_IMAGE`
-- canonical and sitemap use `app_url`
+- favicon comes from `site.brand.favicon`
+- Open Graph / Twitter image defaults to `site.brand.previewImage`
+- canonical and sitemap use `site.brand.appUrl`
 
 ## Where each capability is implemented
 

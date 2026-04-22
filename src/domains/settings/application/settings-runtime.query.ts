@@ -1,7 +1,5 @@
 import 'server-only';
 
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-
 import {
   readSettingsCached,
   readSettingsFresh,
@@ -12,38 +10,21 @@ import {
 export type { Configs };
 
 export async function readRuntimeSettingsCached(): Promise<Configs> {
-  const dbConfigs = await readSettingsCached();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-
-  // DB settings intentionally override deploy-time public env values.
-  return {
-    ...serverPublicEnvConfigs,
-    ...dbConfigs,
-  };
+  return await readSettingsCached();
 }
 
 export async function readRuntimeSettingsFresh(): Promise<Configs> {
-  const dbConfigs = await readSettingsFresh();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-
-  return {
-    ...serverPublicEnvConfigs,
-    ...dbConfigs,
-  };
+  return await readSettingsFresh();
 }
 
 export async function readRuntimeSettingsSafe(): Promise<{
   configs: Configs;
   error?: Error;
 }> {
-  const { configs: dbConfigs, error } = await readSettingsSafe();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const { configs, error } = await readSettingsSafe();
 
   return {
-    configs: {
-      ...serverPublicEnvConfigs,
-      ...dbConfigs,
-    },
+    configs,
     error,
   };
 }

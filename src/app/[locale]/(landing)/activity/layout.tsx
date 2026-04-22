@@ -40,7 +40,7 @@ export default async function ActivityLayout({
 
   const t = await getTranslations('activity.sidebar');
   const tl = await getTranslations('landing');
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   // settings title
   const title = t('title');
@@ -55,7 +55,6 @@ export default async function ActivityLayout({
   const { header, footer } = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(headerRaw, brand),
     footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
-    configs: publicConfigs,
   });
 
   return (

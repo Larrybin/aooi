@@ -25,7 +25,6 @@ import type {
   FormSubmit,
 } from '@/shared/types/blocks/form';
 
-import { BrandAssetsPreview } from './brand-assets-preview';
 import {
   buildFormDefaultValues,
   buildFormSchema,
@@ -66,11 +65,6 @@ export function Form<
     resolver: zodResolver(FormSchema),
     defaultValues,
   });
-  const watchedValues = form.watch() as Record<string, unknown>;
-  const showBrandPreview =
-    resolvedFields.some((field) => field.name === 'app_logo') &&
-    resolvedFields.some((field) => field.name === 'app_favicon') &&
-    resolvedFields.some((field) => field.name === 'app_og_image');
 
   async function onSubmit(submittedValues: z.infer<typeof FormSchema>) {
     const fieldsByName = new Map(
@@ -166,21 +160,6 @@ export function Form<
             );
           })}
         </div>
-        {showBrandPreview ? (
-          <BrandAssetsPreview
-            appName={String(watchedValues.app_name ?? '')}
-            appUrl={String(watchedValues.app_url ?? '')}
-            appLogo={String(watchedValues.app_logo ?? '')}
-            appFavicon={String(watchedValues.app_favicon ?? '')}
-            appPreviewImage={String(watchedValues.app_og_image ?? '')}
-            storagePublicBaseUrl={String(
-              watchedValues.storage_public_base_url ??
-                (data as Record<string, unknown> | undefined)
-                  ?.storage_public_base_url ??
-                ''
-            )}
-          />
-        ) : null}
         {submit?.button && (
           <Button
             type="submit"

@@ -52,11 +52,9 @@ cp ".env.example" ".env.development"
 
 必填项：
 
-- `NEXT_PUBLIC_APP_URL`：应用 Origin（例如 `http://localhost:3000`）
-- `NEXT_PUBLIC_APP_NAME`：应用名称（用于标题/SEO/邮件等）
-- `NEXT_PUBLIC_APP_LOGO`：品牌 Logo 资源路径（例如 `/logo.png`）
-- `NEXT_PUBLIC_APP_FAVICON`：站点 favicon 路径（例如 `/favicon.ico`）
-- `NEXT_PUBLIC_APP_PREVIEW_IMAGE`：社交分享预览图路径（例如 `/logo.png`）
+- `sites/dev-local/site.config.json`：本地开发与测试使用的构建期站点 identity。
+- `sites/mamamiya/site.config.json`：生产构建期站点 identity。生产命令必须显式设置 `SITE=mamamiya`。
+- `site.brand.appUrl`：canonical app/auth origin。`NEXT_PUBLIC_APP_URL` 由它生成给 Cloudflare infra 使用，不是 identity 来源。
 
 如果你需要登录/管理后台/支付：
 
@@ -66,13 +64,6 @@ cp ".env.example" ".env.development"
 示例（按需替换为你的值）：
 
 ```bash
-# app
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="YourAppName"
-NEXT_PUBLIC_APP_LOGO="/logo.png"
-NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
-NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
-
 # theme
 NEXT_PUBLIC_THEME="default"
 
@@ -168,11 +159,11 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 上线前务必完成：
 
-- 仅支持 Cloudflare Workers：配置受版本控制的 Wrangler 模板、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`、共享的 `NEXT_INC_CACHE_R2_BUCKET`、业务上传 `APP_STORAGE_R2_BUCKET`、router `IMAGES`，以及后台设置 `storage_public_base_url`；本地 runtime smoke 需要生成临时 Wrangler 配置并注入 `localConnectionString`，deploy 仍要求真实的 `hyperdrive.id`
+- 仅支持 Cloudflare Workers：配置受版本控制的 Wrangler 模板、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`、共享的 `NEXT_INC_CACHE_R2_BUCKET`、业务上传 `APP_STORAGE_R2_BUCKET`、router `IMAGES`，以及 runtime binding `STORAGE_PUBLIC_BASE_URL`；本地 runtime smoke 需要生成临时 Wrangler 配置并注入 `localConnectionString`，deploy 仍要求真实的 `hyperdrive.id`
 
 部署流程：
 
-- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-local-smoke` 现在会通过单个本地 `wrangler dev` 多配置 session 启动完整的 router + split-worker topology。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传品牌资源，并在同一个本地 runtime session 内验证公开配置投影和缺失 `storage_public_base_url` 的显式失败路径。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
+- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-local-smoke` 现在会通过单个本地 `wrangler dev` 多配置 session 启动完整的 router + split-worker topology。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传资源，并在同一个本地 runtime session 内验证公开配置投影和缺失 `STORAGE_PUBLIC_BASE_URL` 的显式失败路径。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
 
 ## 功能配置
 
@@ -182,7 +173,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 - 登录与三方 OAuth：`/admin/settings/auth`
 - 支付（Stripe/PayPal/Creem）：`/admin/settings/payment`
-- 文件存储（Cloudflare R2）：`/admin/settings/storage`，唯一正式配置项为 `storage_public_base_url`
+- 文件存储（Cloudflare R2）：配置 runtime binding `STORAGE_PUBLIC_BASE_URL`
 - 邮件（Resend）：`/admin/settings/email`
 
 更详细的工程文档见：`docs/guides/*.md`。

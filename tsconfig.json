@@ -22,11 +22,13 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/.source": ["./.source/index.ts"]
+      "@/.source": ["./.source/index.ts"],
+      "@/site": ["./.generated/site.ts"]
     }
   },
   "include": [
     "next-env.d.ts",
+    ".generated/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
