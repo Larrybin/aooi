@@ -1,10 +1,46 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
+import { promisify } from 'node:util';
 
-import { site } from '@/site';
+const execFileAsync = promisify(execFile);
+const generatedSiteModulePath = path.resolve(process.cwd(), '.generated/site.ts');
 
-test('@/site: exposes complete build-time site identity', () => {
+async function generateSiteModule(siteKey: string) {
+  await execFileAsync(process.execPath, ['scripts/generate-site-module.mjs'], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      SITE: siteKey,
+    },
+  });
+}
+
+async function importGeneratedSite(siteKey: string) {
+  await generateSiteModule(siteKey);
+  const source = await readFile(generatedSiteModulePath, 'utf8');
+  const siteLiteral = source.match(/export const site = ([\s\S]+?) as const;\s*$/);
+  assert.ok(siteLiteral?.[1], 'generated site module must export a site literal');
+
+  return Function(`return (${siteLiteral[1]});`)() as {
+    key: string;
+    domain: string;
+    brand: {
+      appName: string;
+      appUrl: string;
+      logo: string;
+      favicon: string;
+      previewImage: string;
+    };
+    configVersion: number;
+  };
+}
+
+test('@/site: exposes complete build-time site identity', async () => {
+  const site = await importGeneratedSite('dev-local');
+
   assert.equal(site.key, 'dev-local');
   assert.equal(site.domain, 'localhost');
   assert.equal(site.brand.appUrl, 'http://localhost:3000');
@@ -16,16 +52,16 @@ test('@/site: exposes complete build-time site identity', () => {
 });
 
 test('@/site: SITE=mamamiya resolves production identity when explicitly selected', async () => {
-  const source = await readFile('sites/mamamiya/site.config.json', 'utf8');
-  const mamamiya = JSON.parse(source);
+  const site = await importGeneratedSite('mamamiya');
 
-  assert.equal(mamamiya.key, 'mamamiya');
-  assert.equal(mamamiya.domain, 'mamamiya.pdfreprinting.net');
-  assert.equal(mamamiya.brand.appUrl, 'https://mamamiya.pdfreprinting.net');
+  assert.equal(site.key, 'mamamiya');
+  assert.equal(site.domain, 'mamamiya.pdfreprinting.net');
+  assert.equal(site.brand.appUrl, 'https://mamamiya.pdfreprinting.net');
 });
 
 test('@/site: generated module is a pure literal module', async () => {
-  const source = await readFile('.generated/site.ts', 'utf8');
+  await generateSiteModule('dev-local');
+  const source = await readFile(generatedSiteModulePath, 'utf8');
 
   assert.equal(source.includes('import '), false);
   assert.equal(source.includes('export {'), false);
