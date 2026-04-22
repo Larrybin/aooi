@@ -4,8 +4,7 @@
 import { SignIn } from '@/domains/account/ui/auth/sign-in';
 import { getTranslations } from 'next-intl/server';
 
-import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
 import { readSettingsCached } from '@/domains/settings/application/settings-store';
 
 export async function generateMetadata({
@@ -14,17 +13,13 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   const t = await getTranslations('common');
 
   return {
     title: `${t('sign.sign_in_title')} - ${t('metadata.title')}`,
     alternates: {
-      canonical:
-        locale !== defaultLocale
-          ? `${serverPublicEnvConfigs.app_url}/${locale}/sign-in`
-          : `${serverPublicEnvConfigs.app_url}/sign-in`,
+      canonical: buildCanonicalUrl('/sign-in', locale),
     },
   };
 }

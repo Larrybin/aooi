@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 import { requestPasswordReset } from '@/infra/platform/auth/client';
 import { Link } from '@/infra/platform/i18n/navigation';
-import { envConfigs } from '@/config';
+import { site } from '@/site';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -40,14 +40,11 @@ export function ForgotPassword({
     (!isGoogleAuthEnabled && !isGithubAuthEnabled);
 
   const redirectTo = useMemo(() => {
-    const baseUrl =
-      envConfigs.app_url ||
-      (typeof window !== 'undefined' ? window.location.origin : '');
     const resetPath =
       locale !== defaultLocale
         ? `/${locale}/reset-password`
         : '/reset-password';
-    return new URL(resetPath, baseUrl).toString();
+    return `${site.brand.appUrl}${resetPath}`;
   }, [locale]);
 
   const handleRequestReset = async () => {

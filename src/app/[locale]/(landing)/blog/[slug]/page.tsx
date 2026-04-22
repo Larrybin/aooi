@@ -11,12 +11,10 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
 import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
-import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
-  buildCanonicalUrlWithAppUrl,
-  buildLanguageAlternatesWithAppUrl,
-} from '@/surfaces/public/seo/metadata';
+  buildCanonicalUrl,
+  buildLanguageAlternates,
+} from '@/infra/url/canonical';
 import BlogDetailPageView from '@/themes/default/pages/blog-detail';
 
 export async function generateMetadata({
@@ -27,18 +25,9 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('blog.metadata');
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
   const canonicalPath = `/blog/${slug}`;
-  const canonicalUrl = buildCanonicalUrlWithAppUrl(
-    canonicalPath,
-    locale,
-    brand.appUrl
-  );
-  const languageAlternates = buildLanguageAlternatesWithAppUrl(
-    canonicalPath,
-    brand.appUrl
-  );
+  const canonicalUrl = buildCanonicalUrl(canonicalPath, locale);
+  const languageAlternates = buildLanguageAlternates(canonicalPath);
 
   const post = await getBlogPost({ slug, locale });
   if (!post) {

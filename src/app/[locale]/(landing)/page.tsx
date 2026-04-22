@@ -30,7 +30,7 @@ export default async function LandingPage({
   const t = await getTranslations('landing');
 
   const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   // build page params
   const hero = replaceBrandPlaceholdersDeep(t.raw('hero'), brand);
@@ -66,7 +66,6 @@ export default async function LandingPage({
   const { header, footer } = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(headerRaw, brand),
     footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
-    configs: publicConfigs,
   });
 
   return (

@@ -294,7 +294,7 @@ Cloudflare helper commands:
 
 Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, admin/settings storage smoke uses `cf-admin-settings`, and production read-only app smoke uses `cf-app`.
 
-`pnpm test:cf-admin-settings-smoke` is intentionally a smaller local acceptance chain: it seeds the required settings rows directly in Postgres, uploads brand assets through the real Cloudflare runtime API, and then validates public config projection plus the missing-`storage_public_base_url` failure path inside the same generated local Cloudflare runtime session.
+`pnpm test:cf-admin-settings-smoke` is intentionally a smaller local acceptance chain: it seeds the required settings rows directly in Postgres, uploads through the real Cloudflare runtime API, and then validates public config projection plus the missing-`STORAGE_PUBLIC_BASE_URL` failure path inside the same generated local Cloudflare runtime session.
 
 `pnpm cf:build` now validates the state worker through `wrangler deploy --dry-run` and app workers through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
 

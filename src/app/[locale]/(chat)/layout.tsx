@@ -37,14 +37,14 @@ export default async function ChatLayout({
   if (!isAiEnabled(publicConfigs)) {
     notFound();
   }
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   const t = await getTranslations('ai.chat');
   const sidebarRaw: SidebarType = replaceBrandPlaceholdersDeep(
     t.raw('sidebar'),
     brand
   );
-  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw, publicConfigs);
+  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw);
 
   sidebar.library = <ChatLibrary />;
   const initialUser = await getSignedInUserSnapshot();

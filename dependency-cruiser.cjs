@@ -29,6 +29,12 @@ module.exports = {
       to: { path: '^tests/' },
     },
     {
+      name: 'no-runtime-to-sites',
+      severity: 'error',
+      from: { path: '^(src/|cloudflare/)' },
+      to: { path: '^sites/' },
+    },
+    {
       name: 'no-prod-to-testing',
       severity: 'error',
       from: {

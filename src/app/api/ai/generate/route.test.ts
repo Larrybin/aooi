@@ -40,7 +40,7 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
       prompt: 'hello',
       options: { image_input: ['https://example.com/a.png'] },
     }),
-    readRuntimeSettings: async () => ({ app_url: 'https://app.example.com' }) as never,
+    readRuntimeSettings: async () => ({}) as never,
     resolveConfiguredAICapability: () => ({
       mediaType: AIMediaType.IMAGE,
       scene: 'image-to-image',

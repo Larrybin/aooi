@@ -35,14 +35,13 @@ export default async function BlogLayout({
   }
 
   const t = await getTranslations('landing');
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   const header: HeaderType = t.raw('header');
   const footer: FooterType = t.raw('footer');
   const branded = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(header, brand),
     footer: replaceBrandPlaceholdersDeep(footer, brand),
-    configs: publicConfigs,
   });
 
   return (

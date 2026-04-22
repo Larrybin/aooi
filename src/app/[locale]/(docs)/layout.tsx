@@ -50,7 +50,7 @@ export default async function DocsRootLayout({
 
   const { locale } = await params;
   const lang = resolveDocsLocale(locale);
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
   const options = baseOptions(lang, {
     appName: brand.appName,
     appLogo: brand.appLogo,

@@ -250,7 +250,7 @@ export function buildTrustedAuthOrigins(params: {
   const allowedOrigins = normalizeAllowedAuthOrigins(
     params.appUrl,
     params.additionalAllowedOrigins,
-    'NEXT_PUBLIC_APP_URL'
+    'site.brand.appUrl'
   );
   const allowLocalOrigin = isExplicitLocalAuthRuntimeEnabled({
     env: params.env,

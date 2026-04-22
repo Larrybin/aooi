@@ -15,7 +15,6 @@ import {
   replaceBrandPlaceholders,
 } from '@/infra/platform/brand/placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import { toSortTimestamp, type BlogPostEntry } from './blog-feed';
@@ -58,8 +57,7 @@ export async function getLocalPost({
     return null;
   }
 
-  const configs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(configs);
+  const brand = buildBrandPlaceholderValues();
 
   const MDXContent = localPost.data.body;
   const mdxComponents = getMDXComponents({
@@ -117,8 +115,7 @@ export async function getLocalPage({
     return null;
   }
 
-  const configs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(configs);
+  const brand = buildBrandPlaceholderValues();
 
   const MDXContent = localPage.data.body;
   const mdxComponents = getMDXComponents({
@@ -181,8 +178,7 @@ export async function getLocalBlogPostEntries({
     return [] satisfies BlogPostEntry[];
   }
 
-  const configs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(configs);
+  const brand = buildBrandPlaceholderValues();
 
   return localPosts.map((post) => {
     const frontmatter = post.data as LocalPostFrontmatter;

@@ -1,0 +1,19 @@
+{
+  "key": "dev-local",
+  "domain": "localhost",
+  "brand": {
+    "appName": "Roller Rabbit Local",
+    "appUrl": "http://localhost:3000",
+    "supportEmail": "support@example.com",
+    "logo": "/logo.png",
+    "favicon": "/favicon.ico",
+    "previewImage": "/logo.png"
+  },
+  "capabilities": {
+    "auth": true,
+    "payment": "none",
+    "docs": true,
+    "blog": true
+  },
+  "configVersion": 1
+}

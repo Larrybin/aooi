@@ -84,16 +84,18 @@ pnpm dev
 
 Visit http://localhost:3000
 
-### 品牌配置（推荐）
+### 站点配置
 
-登录管理员后台后，在 `Admin -> Settings -> General -> Brand` 配置：
+站点 identity 由 build-time `sites/<site>/site.config.json` 决定，并通过生成的 `@/site` 模块进入运行时代码：
 
-- `App Name`：用于站点标题、文档/SEO、邮件标题等
-- `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
-- `Support Email`：用于法律页面与联系入口
-- `NEXT_PUBLIC_APP_LOGO` / `NEXT_PUBLIC_APP_FAVICON` / `NEXT_PUBLIC_APP_PREVIEW_IMAGE`：用于品牌 Logo、favicon、社交分享预览图
-- 也可在 `Admin -> Settings -> General -> Brand` 直接上传 Logo / Favicon / Preview Image（需先配置 Storage）
-- 生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致
+- 当前显式站点包括：
+  - `mamamiya`：生产站点
+  - `dev-local`：本地开发/测试站点
+- `brand.appName`：用于站点标题、文档/SEO、邮件标题等
+- `brand.appUrl`：用于 canonical / sitemap / callback 等 URL 生成
+- `brand.supportEmail`：用于法律页面与联系入口
+- `brand.logo` / `brand.favicon` / `brand.previewImage`：用于品牌 Logo、favicon、社交分享预览图
+- 生产语义命令必须显式传 `SITE=<site-key>`；测试与 lint 仅在内部使用 `dev-local`
 
 ### Initialize RBAC (Optional)
 
@@ -185,11 +187,11 @@ Read `content/docs` to start your AI SaaS project.
 - TypeScript build scope is intentionally split: `tsconfig.json` covers app build inputs, while `tsconfig.test.json` covers tests and test-only type errors.
 - Generated directories such as `.open-next/`, `.next/`, `dist/`, `build/`, and `output/` are build artifacts, not source dependencies. Test-reachable source files must not top-level static `import` them; only explicit runtime boundaries may consume them, and runtime-only OpenNext helpers should be loaded lazily with `import()`.
 - `DEPLOY_TARGET=cloudflare` is the only supported production deploy contract.
-- Cross-origin cookie auth topology is intentionally unsupported. `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
+- Cross-origin cookie auth topology is intentionally unsupported. `site.brand.appUrl` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
 - Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The router lives in [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml); each server Worker has its own `cloudflare/wrangler.server-*.toml`.
 - OpenNext persistent cache is Cloudflare-only: router and all server Workers share `NEXT_INC_CACHE_R2_BUCKET`, tag cache + queue run on Durable Objects, and router image optimization is enabled through `IMAGES`.
-- Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `storage_public_base_url + objectKey`.
-- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds brand/storage settings directly in Postgres, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus the explicit missing-`storage_public_base_url` failure path.
+- Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `STORAGE_PUBLIC_BASE_URL + objectKey`.
+- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds public module settings directly in Postgres, injects storage public URL as a runtime binding, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus storage URL derivation.
 - Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
 - Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical state/app topology under the authoritative dry-run upload gate. The state worker uses `wrangler deploy --dry-run`; router and server workers use `wrangler versions upload --dry-run`.
 - Cloudflare helper commands:
@@ -213,10 +215,10 @@ Read `content/docs` to start your AI SaaS project.
 - Cloudflare-only deployment governance is documented in `docs/architecture/cloudflare-deployment-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
-- `pnpm test:cf-app-smoke` is now read-only. It no longer upserts `app_url`, `general_docs_enabled`, or `general_ai_enabled`, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing smoke target.
+- `pnpm test:cf-app-smoke` is now read-only. It no longer upserts site URL or module toggles, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing smoke target.
 - `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
-- Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and canonical `NEXT_PUBLIC_APP_URL`.
+- Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and generated `NEXT_PUBLIC_APP_URL`, which must derive from the current `site.brand.appUrl`.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 - The operator workstation must have a valid Wrangler OAuth login with Cloudflare Workers write access; verify with `pnpm exec wrangler whoami` before production deploy.
 - Any change to `src/config/db/schema.ts` must ship with committed files under `src/config/db/migrations/**`; acceptance must fail before deploy if they are missing.
@@ -274,8 +276,8 @@ enabled = true
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://app.example.com"
-NEXT_PUBLIC_APP_NAME = "Your App"
 NEXT_PUBLIC_THEME = "default"
+STORAGE_PUBLIC_BASE_URL = "https://assets.example.com/"
 DATABASE_PROVIDER = "postgresql"
 DB_SINGLETON_ENABLED = "true"
 ```
@@ -283,6 +285,7 @@ DB_SINGLETON_ENABLED = "true"
 Rules that matter:
 
 - `NEXT_PUBLIC_APP_URL` must be a pure origin and must match the route exactly
+- `STORAGE_PUBLIC_BASE_URL` must be the public base URL for business-uploaded R2 assets; it is a runtime binding, not an admin setting
 - `service` under `WORKER_SELF_REFERENCE` must match `name`
 - `cloudflare/wrangler.state.toml` is the only template allowed to keep `[[migrations]]`
 - each server worker needs its own `cloudflare/wrangler.server-*.toml` with no public `[[routes]]`
@@ -321,7 +324,7 @@ Storage-specific Cloudflare bindings/config:
 - `NEXT_INC_CACHE_R2_BUCKET`: shared OpenNext ISR/data cache bucket across router + all server Workers
 - `APP_STORAGE_R2_BUCKET`: business upload bucket for brand assets and `/api/storage/upload-image`
 - `IMAGES`: router-side Cloudflare Images binding for optimized `next/image`
-- `storage_public_base_url`: the only runtime setting used to derive public asset URLs
+- `STORAGE_PUBLIC_BASE_URL`: runtime binding used to derive public asset URLs
 
 #### 4. Run database migrations against production
 

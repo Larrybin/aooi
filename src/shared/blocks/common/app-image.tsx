@@ -2,7 +2,7 @@
 
 import Image, { type ImageProps } from 'next/image';
 
-import { envConfigs } from '@/config';
+import { site } from '@/site';
 import { resolveImageSourceStrategy } from '@/shared/config/image-policy.mjs';
 import { cn } from '@/shared/lib/utils';
 
@@ -39,7 +39,7 @@ export type AppImageProps = AppImageCommonProps &
 
 export function AppImage({ src, alt, className, ...props }: AppImageProps) {
   const strategy = resolveImageSourceStrategy(src, {
-    appOrigin: envConfigs.app_url,
+    appOrigin: site.brand.appUrl,
   });
 
   if (strategy.kind === 'empty') {

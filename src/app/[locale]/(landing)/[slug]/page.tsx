@@ -5,9 +5,7 @@ import { notFound } from 'next/navigation';
 import { getDocsPage } from '@/domains/content/application/public-content.query';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
 import PageDetailPageView from '@/themes/default/pages/page-detail';
 
 export async function generateMetadata({
@@ -18,16 +16,7 @@ export async function generateMetadata({
   const t = await getTranslations('common.metadata');
 
   const { locale, slug } = await params;
-
-  const publicConfigs = await getPublicConfigsCached();
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
-  const appUrl = brand.appUrl || serverPublicEnvConfigs.app_url;
-
-  const canonicalUrl =
-    locale !== serverPublicEnvConfigs.locale
-      ? `${appUrl}/${locale}/${slug}`
-      : `${appUrl}/${slug}`;
+  const canonicalUrl = buildCanonicalUrl(`/${slug}`, locale);
 
   const page = await getDocsPage({ slug, locale });
   if (!page) {

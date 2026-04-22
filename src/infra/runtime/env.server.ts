@@ -1,7 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import {
-  isBuildTimeEnv,
   resolvePublicEnvConfigs,
   type PublicEnvConfigs,
 } from '@/config/public-env';
@@ -77,7 +76,6 @@ export function getServerRuntimeEnv(
   options: RuntimeEnvOptions = {}
 ): ServerRuntimeEnv {
   const envLike = {
-    NEXT_PUBLIC_APP_URL: getRuntimeEnvString('NEXT_PUBLIC_APP_URL', options),
     BETTER_AUTH_URL: getRuntimeEnvString('BETTER_AUTH_URL', options),
     AUTH_URL: getRuntimeEnvString('AUTH_URL', options),
   };
@@ -101,35 +99,10 @@ export function getServerRuntimeEnv(
 export function getServerPublicEnvConfigs(
   options: RuntimeEnvOptions = {}
 ): PublicEnvConfigs {
-  const env = options.env ?? process.env;
   const bindings =
     options.bindings === undefined ? getCloudflareBindings() : options.bindings;
 
   return resolvePublicEnvConfigs({
-    nextPublicAppUrl: getRuntimeEnvString('NEXT_PUBLIC_APP_URL', {
-      ...options,
-      bindings,
-    }),
-    nextPublicAppName: getRuntimeEnvString('NEXT_PUBLIC_APP_NAME', {
-      ...options,
-      bindings,
-    }),
-    nextPublicAppLogo: getRuntimeEnvString('NEXT_PUBLIC_APP_LOGO', {
-      ...options,
-      bindings,
-    }),
-    nextPublicAppFavicon: getRuntimeEnvString(
-      'NEXT_PUBLIC_APP_FAVICON',
-      { ...options, bindings }
-    ),
-    nextPublicAppPreviewImage: getRuntimeEnvString(
-      'NEXT_PUBLIC_APP_PREVIEW_IMAGE',
-      { ...options, bindings }
-    ),
-    nextPublicAppOgImage: getRuntimeEnvString('NEXT_PUBLIC_APP_OG_IMAGE', {
-      ...options,
-      bindings,
-    }),
     nextPublicTheme: getRuntimeEnvString('NEXT_PUBLIC_THEME', {
       ...options,
       bindings,
@@ -138,14 +111,6 @@ export function getServerPublicEnvConfigs(
       'NEXT_PUBLIC_DEFAULT_LOCALE',
       { ...options, bindings }
     ),
-    nodeEnv: env.NODE_ENV,
-    buildTime:
-      bindings === null
-        ? isBuildTimeEnv({
-            npm_lifecycle_event: env.npm_lifecycle_event,
-            NEXT_PHASE: env.NEXT_PHASE,
-          })
-        : false,
   });
 }
 

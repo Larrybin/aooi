@@ -4,8 +4,7 @@
 import { ForgotPassword } from '@/domains/account/ui/auth/forgot-password';
 import { getTranslations } from 'next-intl/server';
 
-import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
 import { readSettingsCached } from '@/domains/settings/application/settings-store';
 
 export async function generateMetadata({
@@ -14,16 +13,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const t = await getTranslations('common');
 
   return {
     title: `${t('sign.forgot_password_title')} - ${t('metadata.title')}`,
     alternates: {
-      canonical:
-        locale !== defaultLocale
-          ? `${serverPublicEnvConfigs.app_url}/${locale}/forgot-password`
-          : `${serverPublicEnvConfigs.app_url}/forgot-password`,
+      canonical: buildCanonicalUrl('/forgot-password', locale),
     },
   };
 }
