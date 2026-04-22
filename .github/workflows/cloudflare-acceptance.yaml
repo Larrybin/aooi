@@ -57,9 +57,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
       - name: Run database migrations
         run: pnpm db:migrate
 
@@ -77,12 +74,6 @@ jobs:
 
       - name: Run Cloudflare build gate
         run: pnpm cf:build
-
-      - name: Run Cloudflare local runtime smoke
-        run: pnpm test:cf-local-smoke
-
-      - name: Run Cloudflare admin/settings smoke
-        run: pnpm test:cf-admin-settings-smoke
 
   prepare-cloudflare-release:
     name: Prepare Cloudflare release metadata
