@@ -3,6 +3,17 @@ import test from 'node:test';
 
 import { normalizeSettingOverrides } from './settings-normalizers';
 
+test('normalizeSettingOverrides: app_url 收敛为 origin', () => {
+  const result = normalizeSettingOverrides({
+    app_url: 'https://example.com/path?a=1',
+  });
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.value.app_url, 'https://example.com');
+  }
+});
+
 test('normalizeSettingOverrides: stripe_payment_methods 非法 JSON 回退 card', () => {
   const result = normalizeSettingOverrides({
     stripe_payment_methods: 'not-json',

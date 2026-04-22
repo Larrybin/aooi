@@ -52,9 +52,11 @@ cp ".env.example" ".env.development"
 
 Required:
 
-- `sites/dev-local/site.config.json`: local build-time site identity for development and tests.
-- `sites/mamamiya/site.config.json`: production build-time site identity. Production commands must set `SITE=mamamiya`.
-- `site.brand.appUrl`: canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated from it for Cloudflare infra and is not an identity source.
+- `NEXT_PUBLIC_APP_URL`: app origin (e.g. `http://localhost:3000`)
+- `NEXT_PUBLIC_APP_NAME`: app name (title/SEO/emails)
+- `NEXT_PUBLIC_APP_LOGO`: brand logo asset path (e.g. `/logo.png`)
+- `NEXT_PUBLIC_APP_FAVICON`: favicon asset path (e.g. `/favicon.ico`)
+- `NEXT_PUBLIC_APP_PREVIEW_IMAGE`: social preview image path (e.g. `/logo.png`)
 
 If you need auth/admin/payment:
 
@@ -64,6 +66,13 @@ If you need auth/admin/payment:
 Example (replace values as needed):
 
 ```bash
+# app
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="YourAppName"
+NEXT_PUBLIC_APP_LOGO="/logo.png"
+NEXT_PUBLIC_APP_FAVICON="/favicon.ico"
+NEXT_PUBLIC_APP_PREVIEW_IMAGE="/logo.png"
+
 # theme
 NEXT_PUBLIC_THEME="default"
 
@@ -159,11 +168,11 @@ Minimal "go-live" checklist:
 
 Before deploying:
 
-- Cloudflare Workers only: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, shared `NEXT_INC_CACHE_R2_BUCKET`, business `APP_STORAGE_R2_BUCKET`, router `IMAGES`, and `STORAGE_PUBLIC_BASE_URL`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
+- Cloudflare Workers only: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, shared `NEXT_INC_CACHE_R2_BUCKET`, business `APP_STORAGE_R2_BUCKET`, router `IMAGES`, and `storage_public_base_url`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
 
 Deployment flow:
 
-- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-local-smoke` now starts the full router + split-worker topology through one local `wrangler dev` multi-config session. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, and validates public config projection plus the explicit missing-`STORAGE_PUBLIC_BASE_URL` failure path in the same local runtime session. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
+- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-local-smoke` now starts the full router + split-worker topology through one local `wrangler dev` multi-config session. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for brand/storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, and validates public config projection plus the explicit missing-`storage_public_base_url` failure path in the same local runtime session. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
 
 ## Feature Configuration
 
@@ -173,7 +182,7 @@ Common tabs:
 
 - Auth providers: `/admin/settings/auth`
 - Payments (Stripe/PayPal/Creem): `/admin/settings/payment`
-- Storage (Cloudflare R2): configure runtime binding `STORAGE_PUBLIC_BASE_URL`
+- Storage (Cloudflare R2): `/admin/settings/storage` with the single required setting `storage_public_base_url`
 - Email (Resend): `/admin/settings/email`
 
 For deeper engineering docs, see `docs/guides/*.md`.

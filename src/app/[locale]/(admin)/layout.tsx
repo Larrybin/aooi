@@ -45,7 +45,7 @@ export default async function AdminLayout({
   const t = await getTranslations('admin.sidebar');
 
   const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
   const sidebarRaw: SidebarType = replaceBrandPlaceholdersDeep(
     {
       header: t.raw('header'),
@@ -57,7 +57,7 @@ export default async function AdminLayout({
     },
     brand
   );
-  const sidebar = applyBrandToSidebar(sidebarRaw);
+  const sidebar = applyBrandToSidebar(sidebarRaw, publicConfigs);
   const filteredSidebar: SidebarType = {
     ...sidebar,
     main_navs: sidebar.main_navs

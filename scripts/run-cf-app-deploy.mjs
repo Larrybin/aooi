@@ -6,7 +6,6 @@ import { pathToFileURL } from 'node:url';
 
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
-import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
 import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 
 const {
@@ -30,8 +29,6 @@ const serverConfigPaths = Object.fromEntries(
     path.resolve(rootDir, getServerWorkerMetadata(target).wranglerConfigRelativePath),
   ])
 );
-const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
-const siteAppUrl = getCurrentSiteAppUrl();
 
 function log(message) {
   console.log(`[cf:deploy:app] ${message}`);
@@ -205,6 +202,11 @@ function buildVersionSpec(versionId, percentage) {
   return `${versionId}@${percentage}%`;
 }
 
+function readQuotedTomlValue(content, key) {
+  const match = content.match(new RegExp(`^\\s*${key}\\s*=\\s*"([^"\\n]*)"`, 'm'));
+  return match?.[1]?.trim() || '';
+}
+
 export function buildVersionDeploySpecs(currentVersionId, nextVersionId) {
   return currentVersionId
     ? [buildVersionSpec(nextVersionId, 100), buildVersionSpec(currentVersionId, 0)]
@@ -237,7 +239,6 @@ export function buildRouterAppVersionIds(currentVersions, nextVersions) {
 export function buildRouterDeployConfigContent(content, versionIds) {
   return buildCloudflareWranglerConfig({
     template: content,
-    storagePublicBaseUrl,
     templatePath: routerConfigPath,
     outputPath: path.resolve(rootDir, '.tmp/wrangler.cloudflare.router.deploy.toml'),
     versionVars: Object.fromEntries(
@@ -272,8 +273,14 @@ export function buildRouterDirectDeployArgs({
 
 export function resolvePostDeploySmokeUrl({
   processEnv = process.env,
+  routerConfigContent,
 } = {}) {
-  return processEnv.CF_APP_SMOKE_URL?.trim() || siteAppUrl;
+  return (
+    processEnv.CF_APP_SMOKE_URL?.trim() ||
+    processEnv.NEXT_PUBLIC_APP_URL?.trim() ||
+    readQuotedTomlValue(routerConfigContent || '', 'NEXT_PUBLIC_APP_URL') ||
+    ''
+  );
 }
 
 export function determineDeployMode(currentVersions) {
@@ -297,7 +304,6 @@ async function createTempDeployArtifacts({
   const template = await readFile(templatePath, 'utf8');
   const content = buildCloudflareWranglerConfig({
     template,
-    storagePublicBaseUrl,
     templatePath,
     outputPath: tempConfigPath,
     versionVars: versionIds

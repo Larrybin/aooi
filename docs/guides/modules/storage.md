@@ -13,7 +13,7 @@ Storage adds managed asset upload and retrieval paths:
 - Cloudflare Wrangler binding `APP_STORAGE_R2_BUCKET`
 - Cloudflare Wrangler binding `NEXT_INC_CACHE_R2_BUCKET`
 - Router Cloudflare Images binding `IMAGES`
-- Runtime binding `STORAGE_PUBLIC_BASE_URL`
+- Admin setting `storage_public_base_url`
 
 ## External Services
 
@@ -25,7 +25,7 @@ Storage adds managed asset upload and retrieval paths:
 
 ## Common Failure Modes
 
-- Upload succeeds but `STORAGE_PUBLIC_BASE_URL` is missing or malformed, so the public URL cannot be derived.
+- Upload succeeds but `storage_public_base_url` is missing or malformed, so the public URL cannot be derived.
 - Brand asset upload is enabled before `APP_STORAGE_R2_BUCKET` is bound in the Cloudflare runtime.
 - Admin stores a brand asset `objectKey`, but the runtime cannot derive the final public URL.
 

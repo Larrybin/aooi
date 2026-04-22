@@ -8,6 +8,7 @@ import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 export default async function AuthLayout({
   children,
@@ -18,13 +19,14 @@ export default async function AuthLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
   const isLocaleSwitcherEnabled =
     publicConfigs.general_locale_switcher_enabled === 'true';
 
-  const appName = brand.appName;
+  const appName = brand.appName || serverPublicEnvConfigs.app_name;
   return (
     <ScopedIntlProvider
       locale={locale}
@@ -36,7 +38,7 @@ export default async function AuthLayout({
             brand={{
               title: appName,
               logo: {
-                src: brand.appLogo,
+                src: brand.appLogo || serverPublicEnvConfigs.app_logo,
                 alt: appName,
               },
               url: '/',

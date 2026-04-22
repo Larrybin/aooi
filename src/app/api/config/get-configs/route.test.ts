@@ -6,26 +6,24 @@ import { buildGetConfigsLogic } from './route-logic';
 test('config/get-configs 默认读取 cached public-config', async () => {
   const handler = buildGetConfigsLogic({
     resolveConfigConsistencyMode: () => 'cached',
-    getPublicConfigsCached: async () => ({ general_ai_enabled: 'true' }),
-    getPublicConfigsFresh: async () => ({ general_ai_enabled: 'false' }),
+    getPublicConfigsCached: async () => ({ app_name: 'cached-name' }),
+    getPublicConfigsFresh: async () => ({ app_name: 'fresh-name' }),
   });
 
   const response = await handler(
     new Request('http://localhost/api/config/get-configs')
   );
-  const body = (await response.json()) as {
-    data: { general_ai_enabled: string };
-  };
+  const body = (await response.json()) as { data: { app_name: string } };
 
   assert.equal(response.status, 200);
-  assert.equal(body.data.general_ai_enabled, 'true');
+  assert.equal(body.data.app_name, 'cached-name');
 });
 
 test('config/get-configs 在 fresh 模式下读取 fresh public-config', async () => {
   const handler = buildGetConfigsLogic({
     resolveConfigConsistencyMode: () => 'fresh',
-    getPublicConfigsCached: async () => ({ general_ai_enabled: 'true' }),
-    getPublicConfigsFresh: async () => ({ general_ai_enabled: 'false' }),
+    getPublicConfigsCached: async () => ({ app_name: 'cached-name' }),
+    getPublicConfigsFresh: async () => ({ app_name: 'fresh-name' }),
   });
 
   const response = await handler(
@@ -35,10 +33,8 @@ test('config/get-configs 在 fresh 模式下读取 fresh public-config', async (
       },
     })
   );
-  const body = (await response.json()) as {
-    data: { general_ai_enabled: string };
-  };
+  const body = (await response.json()) as { data: { app_name: string } };
 
   assert.equal(response.status, 200);
-  assert.equal(body.data.general_ai_enabled, 'false');
+  assert.equal(body.data.app_name, 'fresh-name');
 });

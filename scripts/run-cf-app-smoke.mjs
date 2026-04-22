@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 
-import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
-
 const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.CF_APP_SMOKE_REQUEST_TIMEOUT_MS || '30000',
   10
@@ -177,7 +175,11 @@ function normalizeOrigin(value, label) {
 }
 
 export function resolveCloudflareAppSmokeUrl() {
-  return process.env.CF_APP_SMOKE_URL?.trim() || getCurrentSiteAppUrl();
+  return (
+    process.env.CF_APP_SMOKE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    ''
+  );
 }
 
 export async function main() {

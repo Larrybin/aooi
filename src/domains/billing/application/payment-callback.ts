@@ -4,13 +4,13 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '@/shared/lib/api/errors';
-import { site } from '@/site';
 import { PaymentType, type PaymentSession } from '@/domains/billing/domain/payment';
 import type { Order, findOrderByOrderNo } from '@/domains/billing/infra/order';
 import type {
   readRuntimeSettingsCached,
   readRuntimeSettingsFresh,
 } from '@/domains/settings/application/settings-runtime.query';
+import type { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import type { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
 import type { handleCheckoutSuccess } from '@/domains/billing/application/flows';
 
@@ -24,6 +24,7 @@ type BillingCallbackLog = {
 type PaymentCallbackDeps = {
   readRuntimeSettingsCached: typeof readRuntimeSettingsCached;
   readRuntimeSettingsFresh: typeof readRuntimeSettingsFresh;
+  getServerPublicEnvConfigs: typeof getServerPublicEnvConfigs;
   findOrderByOrderNo: typeof findOrderByOrderNo;
   getPaymentServiceWithConfigs: typeof getPaymentServiceWithConfigs;
   handleCheckoutSuccess: typeof handleCheckoutSuccess;
@@ -37,7 +38,7 @@ export async function resolvePaymentCallbackRedirectQuery(
   },
   deps?: Pick<
     PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'findOrderByOrderNo'
+    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs' | 'findOrderByOrderNo'
   >
 ) {
   const resolvedDeps = deps ?? (await getPaymentCallbackReadDeps());
@@ -56,7 +57,10 @@ export async function resolvePaymentCallbackRedirectQuery(
 }
 
 export async function resolvePaymentCallbackPricingFallbackUrl(
-  deps?: Pick<PaymentCallbackDeps, 'readRuntimeSettingsCached'>
+  deps?: Pick<
+    PaymentCallbackDeps,
+    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
+  >
 ) {
   try {
     const resolvedDeps = deps ?? (await getPaymentCallbackPricingDeps());
@@ -70,27 +74,36 @@ export async function resolvePaymentCallbackPricingFallbackUrl(
 async function getPaymentCallbackReadDeps(): Promise<
   Pick<
     PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'findOrderByOrderNo'
+    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs' | 'findOrderByOrderNo'
   >
 > {
-  const [settingsModule, orderModule] = await Promise.all([
+  const [settingsModule, envModule, orderModule] = await Promise.all([
     import('@/domains/settings/application/settings-runtime.query'),
+    import('@/infra/runtime/env.server'),
     import('@/domains/billing/infra/order'),
   ]);
 
   return {
     readRuntimeSettingsCached: settingsModule.readRuntimeSettingsCached,
+    getServerPublicEnvConfigs: envModule.getServerPublicEnvConfigs,
     findOrderByOrderNo: orderModule.findOrderByOrderNo,
   };
 }
 
 async function getPaymentCallbackPricingDeps(): Promise<
-  Pick<PaymentCallbackDeps, 'readRuntimeSettingsCached'>
+  Pick<
+    PaymentCallbackDeps,
+    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
+  >
 > {
-  const settingsModule = await import('@/domains/settings/application/settings-runtime.query');
+  const [settingsModule, envModule] = await Promise.all([
+    import('@/domains/settings/application/settings-runtime.query'),
+    import('@/infra/runtime/env.server'),
+  ]);
 
   return {
     readRuntimeSettingsCached: settingsModule.readRuntimeSettingsCached,
+    getServerPublicEnvConfigs: envModule.getServerPublicEnvConfigs,
   };
 }
 
@@ -140,9 +153,14 @@ export async function confirmPaymentCallbackUseCase(
 }
 
 async function resolveAppUrl(
-  _deps: Pick<PaymentCallbackDeps, 'readRuntimeSettingsCached'>
+  deps: Pick<
+    PaymentCallbackDeps,
+    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
+  >
 ) {
-  return site.brand.appUrl;
+  const configs = await deps.readRuntimeSettingsCached();
+  const serverPublicEnvConfigs = deps.getServerPublicEnvConfigs();
+  return (configs.app_url || serverPublicEnvConfigs.app_url).trim();
 }
 
 function appendOrderNoToUrl(url: string, orderNo: string, appUrl: string): string {
@@ -179,9 +197,10 @@ function assertOrderVisibleToActor(
 }
 
 async function getPaymentCallbackDeps(): Promise<PaymentCallbackDeps> {
-  const [settingsModule, orderModule, paymentServiceModule, flowsModule] =
+  const [settingsModule, envModule, orderModule, paymentServiceModule, flowsModule] =
     await Promise.all([
       import('@/domains/settings/application/settings-runtime.query'),
+      import('@/infra/runtime/env.server'),
       import('@/domains/billing/infra/order'),
       import('@/infra/adapters/payment/service'),
       import('@/domains/billing/application/flows'),
@@ -190,6 +209,7 @@ async function getPaymentCallbackDeps(): Promise<PaymentCallbackDeps> {
   return {
     readRuntimeSettingsCached: settingsModule.readRuntimeSettingsCached,
     readRuntimeSettingsFresh: settingsModule.readRuntimeSettingsFresh,
+    getServerPublicEnvConfigs: envModule.getServerPublicEnvConfigs,
     findOrderByOrderNo: orderModule.findOrderByOrderNo,
     getPaymentServiceWithConfigs: paymentServiceModule.getPaymentServiceWithConfigs,
     handleCheckoutSuccess: flowsModule.handleCheckoutSuccess,

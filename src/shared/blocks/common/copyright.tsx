@@ -1,6 +1,6 @@
 'use client';
 
-import { site } from '@/site';
+import { envConfigs } from '@/config';
 import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
 export function Copyright({ brand }: { brand: BrandType }) {
@@ -10,11 +10,11 @@ export function Copyright({ brand }: { brand: BrandType }) {
     <div className="text-muted-foreground text-sm">
       © {currentYear}{' '}
       <a
-        href={brand?.url || site.brand.appUrl}
+        href={brand?.url || envConfigs.app_url}
         target={brand?.target || ''}
         className="text-primary hover:text-primary/80 cursor-pointer"
       >
-        {brand?.title || site.brand.appName}
+        {brand?.title || envConfigs.app_name}
       </a>
       , All rights reserved
     </div>

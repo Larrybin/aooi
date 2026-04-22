@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
-import { readCurrentSiteConfig } from './lib/site-config.mjs';
 
 const {
   CLOUDFLARE_ROUTER_WORKER,
@@ -96,24 +95,6 @@ function readSection(content, sectionName) {
 
   return match[1];
 }
-
-function normalizeOrigin(value, label) {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      fail(`${label} must use http/https`);
-    }
-    return url.origin;
-  } catch (error) {
-    fail(`${label} must be a valid URL (${String(error)})`);
-  }
-}
-
-const currentSite = readCurrentSiteConfig({ rootDir });
-const defaultSiteOrigin = normalizeOrigin(currentSite?.brand?.appUrl || '', 'site.brand.appUrl');
-const configuredStoragePublicBaseUrl =
-  process.env.STORAGE_PUBLIC_BASE_URL?.trim() || '';
-const forbiddenIdentityEnvName = ['NEXT_PUBLIC', 'APP', 'NAME'].join('_');
 
 function readOptionalSection(content, sectionName) {
   const pattern = new RegExp(
@@ -273,44 +254,16 @@ function assertSharedSettings(content, label, options = {}) {
     `${label}.vars.NEXT_PUBLIC_APP_URL`,
     /^\s*NEXT_PUBLIC_APP_URL\s*=\s*"([^"\n]+)"/m
   );
-  const trackedStoragePublicBaseUrl = readMaybeEmptyQuotedValue(
-    varsSection,
-    `${label}.vars.STORAGE_PUBLIC_BASE_URL`,
-    /^\s*STORAGE_PUBLIC_BASE_URL\s*=\s*"([^"\n]*)"/m
-  );
 
   if (deployTarget !== 'cloudflare') {
     fail(`${label}.vars.DEPLOY_TARGET must equal cloudflare`);
   }
 
-  if (normalizeOrigin(appUrl, `${label}.vars.NEXT_PUBLIC_APP_URL`) !== defaultSiteOrigin) {
+  if (appUrl !== 'https://mamamiya.pdfreprinting.net/') {
     fail(
-      `${label}.vars.NEXT_PUBLIC_APP_URL must share the same origin as site.brand.appUrl (${defaultSiteOrigin})`
+      `${label}.vars.NEXT_PUBLIC_APP_URL must equal https://mamamiya.pdfreprinting.net/`
     );
   }
-
-  if (
-    new RegExp(String.raw`^\s*${forbiddenIdentityEnvName}\s*=`, 'm').test(
-      varsSection
-    )
-  ) {
-    fail(
-      `${label}.vars.${forbiddenIdentityEnvName} is forbidden; site identity must come from @/site`
-    );
-  }
-
-  const effectiveStoragePublicBaseUrl =
-    configuredStoragePublicBaseUrl || trackedStoragePublicBaseUrl.trim();
-  if (!effectiveStoragePublicBaseUrl) {
-    fail(
-      `${label}.vars.STORAGE_PUBLIC_BASE_URL is required as the R2 public asset base URL; it is a runtime binding and must not come from settings/public-config`
-    );
-  }
-
-  normalizeOrigin(
-    effectiveStoragePublicBaseUrl,
-    `${label}.vars.STORAGE_PUBLIC_BASE_URL`
-  );
 }
 
 function assertRouterConfig() {

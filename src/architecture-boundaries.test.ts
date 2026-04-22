@@ -10,15 +10,6 @@ const srcRoot = path.resolve(repoRoot, 'src');
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const DIRS_TO_SKIP = new Set(['.next', 'node_modules']);
-const SITE_IDENTITY_SETTING_KEYS = [
-  ['app', 'name'],
-  ['app', 'url'],
-  ['general', 'support', 'email'],
-  ['app', 'logo'],
-  ['app', 'favicon'],
-  ['app', 'og', 'image'],
-  ['storage', 'public', 'base', 'url'],
-].map((parts) => parts.join('_'));
 
 type DirtyImportRule = {
   label: string;
@@ -276,83 +267,6 @@ test('architecture: 旧脏入口引用保持归零', async () => {
       count <= rule.baseline,
       true,
       `${rule.label} 引用数必须保持 ${rule.baseline}，当前为 ${count}`
-    );
-  }
-});
-
-test('architecture: runtime 只能通过 @/site 获取站点输入', async () => {
-  const files = (await readSourceFiles()).filter(
-    ({ repoPath }) => !isTestFile(repoPath)
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        /^@\/?sites(?:\/|$)|^sites(?:\/|$)|(?:^|\/)sites\//.test(specifier),
-        false,
-        `${file.repoPath} 不应导入 ${specifier}；运行时代码只能走 @/site`
-      );
-    }
-  }
-});
-
-test('architecture: 站点 identity 不允许从 settings/public-config 回流', async () => {
-  const files = (await readSourceFiles()).filter(
-    ({ repoPath }) => !isTestFile(repoPath)
-  );
-
-  for (const file of files) {
-    for (const key of SITE_IDENTITY_SETTING_KEYS) {
-      assert.equal(
-        file.content.includes(key),
-        false,
-        `${file.repoPath} 不应包含旧站点 identity setting key: ${key}`
-      );
-    }
-  }
-});
-
-test('architecture: canonical base 只能在 canonical helper 内构造', async () => {
-  const files = (await readSourceFiles()).filter(
-    ({ repoPath }) =>
-      !isTestFile(repoPath) &&
-      repoPath !== 'src/infra/url/canonical.ts' &&
-      /^src\/(?:app|surfaces)\//.test(repoPath)
-  );
-
-  for (const file of files) {
-    assert.equal(
-      /metadataBase:\s*new URL/.test(file.content),
-      false,
-      `${file.repoPath} 不应直接构造 metadataBase；请使用 buildMetadataBaseUrl`
-    );
-    assert.equal(
-      /new URL\([^)]*(?:site\.brand\.appUrl|brand\.appUrl)/.test(
-        file.content
-      ),
-      false,
-      `${file.repoPath} 不应直接用 site brand URL 构造 canonical；请使用 canonical helper`
-    );
-  }
-});
-
-test('architecture: deploy/smoke 脚本不得通过 NEXT_PUBLIC_APP_URL 反推站点 identity', async () => {
-  const scriptPaths = [
-    path.resolve(repoRoot, 'scripts/run-cf-app-deploy.mjs'),
-    path.resolve(repoRoot, 'scripts/run-cf-app-smoke.mjs'),
-  ];
-
-  for (const scriptPath of scriptPaths) {
-    const content = await readFile(scriptPath, 'utf8');
-    assert.equal(
-      /process\.env\.NEXT_PUBLIC_APP_URL/.test(content),
-      false,
-      `${toRepoPath(scriptPath)} 不应通过 process.env.NEXT_PUBLIC_APP_URL 反推 identity`
-    );
-    assert.equal(
-      /readQuotedTomlValue\([^)]*NEXT_PUBLIC_APP_URL/.test(content),
-      false,
-      `${toRepoPath(scriptPath)} 不应从 wrangler 内容反推 identity`
     );
   }
 });

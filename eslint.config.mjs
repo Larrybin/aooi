@@ -43,13 +43,6 @@ const noRuntimeLoadDotenvImportPattern = {
     "禁止在运行时代码中导入 '@/config/load-dotenv'（仅用于 scripts/CLI 加载本地 .env*）。",
 };
 
-const noRuntimeSiteConfigImportPattern = {
-  regex:
-    '(^@/sites/)|(^sites/)|(^\\.{1,2}/.*?/sites/)',
-  message:
-    "运行时代码禁止直接导入 'sites/**'；请统一走 '@/site'。",
-};
-
 const baseNoRestrictedImports = {
   paths: [
     {
@@ -62,16 +55,8 @@ const baseNoRestrictedImports = {
       message:
         "禁止在运行时代码中导入 '@/config/load-dotenv'（仅用于 scripts/CLI 加载本地 .env*）。",
     },
-    {
-      name: '@/sites',
-      message: "运行时代码禁止直接导入 '@/sites'；请统一走 '@/site'。",
-    },
   ],
-  patterns: [
-    noRuntimeDbConfigImportPattern,
-    noRuntimeLoadDotenvImportPattern,
-    noRuntimeSiteConfigImportPattern,
-  ],
+  patterns: [noRuntimeDbConfigImportPattern, noRuntimeLoadDotenvImportPattern],
 };
 
 const clientSurfaceNoRestrictedImports = {

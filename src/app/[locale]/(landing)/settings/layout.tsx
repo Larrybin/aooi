@@ -34,7 +34,7 @@ export default async function SettingsLayout({
   const tl = await getTranslations('landing');
   const publicConfigs = await getPublicConfigsCached();
   const initialSnapshot = await getSignedInUserSnapshot();
-  const brand = buildBrandPlaceholderValues();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   // settings title
   const title = t('title');
@@ -49,6 +49,7 @@ export default async function SettingsLayout({
   const { header, footer } = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(headerRaw, brand),
     footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
+    configs: publicConfigs,
   });
 
   return (

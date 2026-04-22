@@ -17,7 +17,7 @@ export async function uploadFileToCloudflareR2({
   storagePublicBaseUrl: string;
 }) {
   if (!storagePublicBaseUrl.trim()) {
-    throw new ServiceUnavailableError('STORAGE_PUBLIC_BASE_URL is not configured');
+    throw new ServiceUnavailableError('storage_public_base_url is not configured');
   }
 
   const bucket = getCloudflareStorageBucket();

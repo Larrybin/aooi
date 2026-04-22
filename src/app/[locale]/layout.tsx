@@ -10,13 +10,16 @@ import { routing } from '@/infra/platform/i18n/config';
 import { HtmlLangProvider } from '@/infra/platform/i18n/html-lang-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { buildMetadataBaseUrl } from '@/infra/url/canonical';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-runtime.query';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const brand = buildBrandPlaceholderValues();
+  const { configs } = await readRuntimeSettingsSafe();
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
+  const brand = buildBrandPlaceholderValues(configs);
 
   return {
-    metadataBase: buildMetadataBaseUrl(),
+    metadataBase: new URL(serverPublicEnvConfigs.app_url),
     title: {
       default: brand.appName,
       template: `%s | ${brand.appName}`,

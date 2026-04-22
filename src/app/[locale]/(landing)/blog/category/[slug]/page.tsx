@@ -15,10 +15,11 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import {
-  buildCanonicalUrl,
-  buildLanguageAlternates,
-} from '@/infra/url/canonical';
+  buildCanonicalUrlWithAppUrl,
+  buildLanguageAlternatesWithAppUrl,
+} from '@/surfaces/public/seo/metadata';
 import type {
   Blog as BlogType,
   Category as CategoryType,
@@ -34,9 +35,18 @@ export async function generateMetadata({
   setRequestLocale(locale);
   const t = await getTranslations('blog.metadata');
   const category = await getBlogCategory({ slug });
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
   const canonicalPath = `/blog/category/${slug}`;
-  const canonicalUrl = buildCanonicalUrl(canonicalPath, locale);
-  const languageAlternates = buildLanguageAlternates(canonicalPath);
+  const canonicalUrl = buildCanonicalUrlWithAppUrl(
+    canonicalPath,
+    locale,
+    brand.appUrl
+  );
+  const languageAlternates = buildLanguageAlternatesWithAppUrl(
+    canonicalPath,
+    brand.appUrl
+  );
 
   return {
     title: `${category?.title || slug} | ${t('title')}`,
@@ -83,7 +93,8 @@ export default async function CategoryBlogPage({
     url: `/blog`,
   });
 
-  const brand = buildBrandPlaceholderValues();
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   // build blog
   const blog: BlogType = {

@@ -66,12 +66,16 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test('resolvePostDeploySmokeUrl 在未显式传 env 时回退到当前 site app url', () => {
+test('resolvePostDeploySmokeUrl 在未显式传 env 时回退到 router wrangler 的 NEXT_PUBLIC_APP_URL', () => {
   const smokeUrl = resolvePostDeploySmokeUrl({
     processEnv: {},
+    routerConfigContent: `
+[vars]
+NEXT_PUBLIC_APP_URL = "https://mamamiya.pdfreprinting.net/"
+`,
   });
 
-  assert.equal(smokeUrl, 'http://localhost:3000');
+  assert.equal(smokeUrl, 'https://mamamiya.pdfreprinting.net/');
 });
 
 test('determineDeployMode 在 router 或任一 server 缺 deployment 时标记为 missing-deployments', () => {

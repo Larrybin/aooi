@@ -3,7 +3,6 @@ import type {
   StorageUploadResult,
 } from '@/extensions/storage';
 import type { Configs } from '@/domains/settings/application/settings-runtime.query';
-import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 import { uploadFileToCloudflareR2 } from '@/shared/platform/cloudflare/storage';
 import {
   buildStorageSpikeUploadMockResult,
@@ -15,15 +14,14 @@ export type StorageService = {
 };
 
 export function buildStorageServiceWithConfigs(
-  _configs: Configs,
+  configs: Configs,
   options?: {
     uploadMockEnabled?: boolean;
   }
 ) {
   const uploadMockEnabled =
     options?.uploadMockEnabled ?? isStorageSpikeUploadMockEnabled();
-  const storagePublicBaseUrl =
-    getRuntimeEnvString('STORAGE_PUBLIC_BASE_URL')?.trim() || '';
+  const storagePublicBaseUrl = configs.storage_public_base_url?.trim() || '';
 
   return {
     async uploadFile(options) {

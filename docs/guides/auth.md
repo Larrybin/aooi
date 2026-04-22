@@ -22,7 +22,7 @@ The auth system separates configuration into two layers to avoid database calls 
 // Base - used before DB access, no config table reads
 function buildAuthOptionsBase() {
   return {
-    appName: site.brand.appName,
+    appName: publicEnvConfigs.app_name,
     baseURL: runtimeEnv.authBaseUrl,
     secret: runtimeEnv.authSecret,
     // ...
@@ -168,14 +168,15 @@ Enabled by default. Can be toggled via database config:
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `BETTER_AUTH_SECRET` or `AUTH_SECRET`                  | Secret key for signing tokens (required in production)                                             |
 | `DATABASE_URL`                                         | PostgreSQL connection string (required in production unless running in Cloudflare Workers runtime) |
-| `BETTER_AUTH_URL` / `AUTH_URL` | Optional same-origin auth mirrors; canonical base URL still derives from `site.brand.appUrl` |
+| `BETTER_AUTH_URL` / `AUTH_URL` / `NEXT_PUBLIC_APP_URL` | Auth base URL (must be a valid http/https origin; validated in production)                         |
 
 Auth base URL 必须是纯 origin（如 `https://app.example.com`），不支持带路径/查询；生产环境缺失或无效会直接 fail-fast。
 
 Notes:
 
-- canonical auth base URL 由 `site.brand.appUrl` 决定。
-- `BETTER_AUTH_URL` 和 `AUTH_URL` 只能作为同源镜像存在，不能指向另一个 auth 域名。
+- 为了让本地/CI 的 `pnpm build` 在未设置 `NEXT_PUBLIC_APP_URL` 时也能通过，构建阶段缺省会回退到 `http://localhost:3000`。
+- 生产运行（`pnpm start`/部署）仍要求设置 `NEXT_PUBLIC_APP_URL`；同时 Next.js 会在 build 阶段内联 `NEXT_PUBLIC_*` 变量，因此发布构建务必提供正确值。
+- 当 `NEXT_PUBLIC_APP_URL` 已设置时，`BETTER_AUTH_URL` 和 `AUTH_URL` 只能作为同源镜像存在，不能指向另一个 auth 域名。
 - 若部署在 Cloudflare Workers（`nodejs_compat`）并通过 Hyperdrive 提供连接串，则 `DATABASE_URL` 可为空；非 Workers 运行时生产环境仍要求 `DATABASE_URL`。
 - 本地 Cloudflare smoke 默认要求显式 `DATABASE_URL` 来生成临时 Wrangler config；仓库根 `.dev.vars` 只允许非数据库的运行时键，Wrangler 模板本身也不存储本地数据库连接串。
 - CI 中的 `Cloudflare Deploy Acceptance` 同样生成临时 Wrangler config，并把 `localConnectionString` 指到 Postgres service container。
@@ -186,7 +187,7 @@ Notes:
 | --------------------- | ------------------------------------------------------------- |
 | `BETTER_AUTH_URL`     | Optional same-origin override for auth base URL               |
 | `AUTH_URL`            | Optional same-origin fallback when `BETTER_AUTH_URL` is unset |
-| `NEXT_PUBLIC_APP_URL` | Generated infra field derived from `site.brand.appUrl`       |
+| `NEXT_PUBLIC_APP_URL` | Canonical app/auth origin and callback base URL               |
 
 ## Database Schema
 
@@ -201,15 +202,15 @@ Better Auth uses the following tables (managed by Drizzle adapter):
 
 The auth system automatically trusts:
 
-1. Your site identity URL (`site.brand.appUrl`) — normalized to a valid origin (`http`/`https` only, otherwise fail-fast in production)
+1. Your application URL (`NEXT_PUBLIC_APP_URL`) — normalized to a valid origin (`http`/`https` only, otherwise fail-fast in production)
 2. Google accounts domain (`https://accounts.google.com`) for One Tap
 
-If you serve the app from multiple origins (custom domains, preview URLs, reverse proxies), ensure the runtime origin matches `site.brand.appUrl` or extend `buildTrustedOrigins()` accordingly; otherwise requests may be incorrectly blocked (or allowed).
+If you serve the app from multiple origins (custom domains, preview URLs, reverse proxies), ensure the runtime origin matches `NEXT_PUBLIC_APP_URL` or extend `buildTrustedOrigins()` accordingly; otherwise requests may be incorrectly blocked (or allowed).
 
 ## Security Best Practices
 
 1. **Always set `BETTER_AUTH_SECRET`** in production with a strong random value
-2. **Always keep auth mirrors same-origin** (`BETTER_AUTH_URL`/`AUTH_URL`) with `site.brand.appUrl`; mismatches fail fast in production
+2. **Always set auth base URL** (`BETTER_AUTH_URL`/`AUTH_URL`/`NEXT_PUBLIC_APP_URL`) to a valid origin; missing/invalid values fail fast in production
 3. **Never expose auth secrets** to client-side code
 4. **Use HTTPS** in production for secure cookie transmission
 5. **Reset password is rate-limited** (per-email sliding window; `5m` window, `3` attempts, `1` concurrent; shared across instances via Cloudflare Durable Object); excessive requests are throttled to protect outbound providers

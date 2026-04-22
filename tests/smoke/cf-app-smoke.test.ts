@@ -77,17 +77,25 @@ test('validateCloudflareAppSmokeResponse 支持相对 Location 重定向头', as
 
 test('resolveCloudflareAppSmokeUrl 优先使用显式 smoke url，其次 NEXT_PUBLIC_APP_URL', () => {
   const originalSmokeUrl = process.env.CF_APP_SMOKE_URL;
+  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   process.env.CF_APP_SMOKE_URL = 'https://smoke.example.com';
+  process.env.NEXT_PUBLIC_APP_URL = 'https://app.example.com';
   assert.equal(resolveCloudflareAppSmokeUrl(), 'https://smoke.example.com');
 
   delete process.env.CF_APP_SMOKE_URL;
-  assert.equal(resolveCloudflareAppSmokeUrl(), 'http://localhost:3000');
+  assert.equal(resolveCloudflareAppSmokeUrl(), 'https://app.example.com');
 
   if (originalSmokeUrl === undefined) {
     delete process.env.CF_APP_SMOKE_URL;
   } else {
     process.env.CF_APP_SMOKE_URL = originalSmokeUrl;
+  }
+
+  if (originalAppUrl === undefined) {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+  } else {
+    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
   }
 });
 

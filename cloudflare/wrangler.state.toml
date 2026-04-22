@@ -35,4 +35,3 @@ enabled = true
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://mamamiya.pdfreprinting.net/"
-STORAGE_PUBLIC_BASE_URL = ""

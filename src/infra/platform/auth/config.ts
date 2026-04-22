@@ -12,8 +12,9 @@ import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth
 import { isProductionEnv } from '@/shared/lib/env';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-runtime.query';
-import { site } from '@/site';
 import {
+  getRuntimeEnvString,
+  getServerPublicEnvConfigs,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
   isRuntimeEnvEnabled,
@@ -49,6 +50,18 @@ function assertAuthEnv() {
     );
   }
 
+  const rawAuthBaseUrl =
+    getRuntimeEnvString('BETTER_AUTH_URL') ??
+    getRuntimeEnvString('AUTH_URL') ??
+    getRuntimeEnvString('NEXT_PUBLIC_APP_URL') ??
+    '';
+
+  if (!rawAuthBaseUrl.trim()) {
+    throw new Error(
+      'Auth base URL is required in production. Set BETTER_AUTH_URL or AUTH_URL or NEXT_PUBLIC_APP_URL.'
+    );
+  }
+
   if (!runtimeEnv.databaseUrl.trim() && !isCloudflareWorkersRuntime()) {
     throw new Error(
       'DATABASE_URL is required in production for Better Auth database adapter.'
@@ -58,9 +71,16 @@ function assertAuthEnv() {
 
 function getAuthRuntimeContext(request?: Request) {
   const runtimeEnv = getServerRuntimeEnv();
+  const publicEnvConfigs = getServerPublicEnvConfigs();
   const isProduction = isProductionEnv();
   const normalizedAuthBaseUrl = new URL(runtimeEnv.authBaseUrl).origin;
-  const additionalAllowedAuthOrigins: string[] = [];
+  const compiledAppOrigin =
+    publicEnvConfigs.app_url && publicEnvConfigs.app_url !== normalizedAuthBaseUrl
+      ? new URL(publicEnvConfigs.app_url).origin
+      : null;
+  const additionalAllowedAuthOrigins = compiledAppOrigin
+    ? [compiledAppOrigin]
+    : [];
   const isAuthSpikeOAuthUpstreamMock = isAuthSpikeOAuthUpstreamMockEnabled();
   const runtimeBaseUrl = resolveRuntimeAuthBaseUrl({
     defaultBaseUrl: normalizedAuthBaseUrl,
@@ -77,6 +97,7 @@ function getAuthRuntimeContext(request?: Request) {
 
   return {
     runtimeEnv,
+    publicEnvConfigs,
     isProduction,
     normalizedAuthBaseUrl,
     additionalAllowedAuthOrigins,
@@ -89,13 +110,14 @@ function getAuthRuntimeContext(request?: Request) {
 function buildAuthOptionsBase(): BetterAuthOptions {
   const {
     runtimeEnv,
+    publicEnvConfigs,
     isProduction,
     normalizedAuthBaseUrl,
     additionalAllowedAuthOrigins,
   } = getAuthRuntimeContext();
 
   return {
-    appName: site.brand.appName,
+    appName: publicEnvConfigs.app_name,
     baseURL: normalizedAuthBaseUrl,
     secret: runtimeEnv.authSecret,
     trustedOrigins: buildTrustedAuthOrigins({
@@ -150,7 +172,7 @@ export async function getAuthOptions(
   assertAuthEnv();
   const baseAuthOptions = buildAuthOptionsBase();
   const configs = await readRuntimeSettingsCached();
-  const { isProduction, isAuthSpikeOAuthUpstreamMock } =
+  const { publicEnvConfigs, isProduction, isAuthSpikeOAuthUpstreamMock } =
     getAuthRuntimeContext(request);
   const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
   const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
@@ -158,7 +180,7 @@ export async function getAuthOptions(
     configs.email_auth_enabled !== 'false' ||
     (!isGoogleAuthEnabled && !isGithubAuthEnabled);
   const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthOriginDebug(request);
-  const appName = site.brand.appName.trim();
+  const appName = (configs.app_name || publicEnvConfigs.app_name || '').trim();
   const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
   if (isRuntimeEnvEnabled('CF_LOCAL_AUTH_DEBUG')) {
     log.warn('[auth-debug] request origin resolution', {
@@ -226,7 +248,7 @@ export async function getAuthOptions(
               const emailService = await getEmailService();
               const result = await emailService.sendEmail({
                 to: email,
-                subject: `${site.brand.appName} - Reset password`,
+                subject: `${publicEnvConfigs.app_name} - Reset password`,
                 ...buildResetPasswordEmailPayload({ url }),
               });
 

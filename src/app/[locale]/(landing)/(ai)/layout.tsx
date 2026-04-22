@@ -35,13 +35,14 @@ export default async function AiLandingLayout({
   }
 
   const t = await getTranslations('landing');
-  const brand = buildBrandPlaceholderValues();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   const headerRaw: HeaderType = t.raw('header');
   const footerRaw: FooterType = t.raw('footer');
   const { header, footer } = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(headerRaw, brand),
     footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
+    configs: publicConfigs,
   });
 
   return (

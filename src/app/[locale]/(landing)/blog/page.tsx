@@ -11,6 +11,7 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getMetadata } from '@/surfaces/public/seo/metadata';
 import type {
   Blog as BlogType,
@@ -75,7 +76,8 @@ export default async function BlogPage({
   }
 
   // build blog data
-  const brand = buildBrandPlaceholderValues();
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   const blog: BlogType = {
     ...replaceBrandPlaceholdersDeep(t.raw('blog'), brand),

@@ -22,6 +22,7 @@ import {
   replaceBrandPlaceholders,
 } from '@/infra/platform/brand/placeholders.server';
 import { createRelativeLink } from '@/mdx-components';
+import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
 export default async function DocsContentPage(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;
@@ -31,7 +32,8 @@ export default async function DocsContentPage(props: {
 
   if (!page) notFound();
 
-  const brand = buildBrandPlaceholderValues();
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   const MDXContent = page.data.body;
   const mdxComponents = getMDXComponents({
@@ -79,7 +81,8 @@ export async function generateMetadata(props: {
   const page = readDocsPage(params);
   if (!page) notFound();
 
-  const brand = buildBrandPlaceholderValues();
+  const publicConfigs = await getPublicConfigsCached();
+  const brand = buildBrandPlaceholderValues(publicConfigs);
 
   return {
     title: replaceBrandPlaceholders(page.data.title || '', brand),

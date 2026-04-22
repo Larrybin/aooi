@@ -14,7 +14,7 @@
 import 'server-only';
 
 import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
-import { site } from '@/site';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 
 import { ForbiddenError } from './errors';
 
@@ -73,7 +73,7 @@ function hostFromUrl(url: string): string | null {
 
 function appHost(): string | null {
   try {
-    return new URL(site.brand.appUrl).host || null;
+    return new URL(getServerPublicEnvConfigs().app_url).host || null;
   } catch {
     return null;
   }

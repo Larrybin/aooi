@@ -44,7 +44,6 @@ function buildLocalTopologyRuntimeVars(routerBaseUrl) {
     NEXT_PUBLIC_APP_URL: routerBaseUrl,
     AUTH_URL: routerBaseUrl,
     BETTER_AUTH_URL: routerBaseUrl,
-    STORAGE_PUBLIC_BASE_URL: `${routerBaseUrl}/assets/`,
     CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
   };
 }
@@ -170,11 +169,7 @@ export async function prepareCloudflareLocalTopologyArtifacts({
     );
   }
 
-  const runtimeVars = buildLocalTopologyRuntimeVars(routerBaseUrl);
   const runtimeExtraVars = resolveLocalTopologyExtraVars(extraVars, processEnv);
-  const storagePublicBaseUrl =
-    runtimeExtraVars.STORAGE_PUBLIC_BASE_URL ||
-    runtimeVars.STORAGE_PUBLIC_BASE_URL;
   const tmpRoot = path.resolve(rootDir, '.tmp');
   await mkdir(tmpRoot, { recursive: true });
 
@@ -189,7 +184,6 @@ export async function prepareCloudflareLocalTopologyArtifacts({
     template: routerTemplate,
     databaseUrl,
     appUrl: ports.routerBaseUrl,
-    storagePublicBaseUrl,
     deployTarget: 'cloudflare',
     devHost: routerDevOrigin.hostname,
     devUpstreamProtocol: routerDevOrigin.protocol.replace(/:$/, ''),
@@ -213,7 +207,6 @@ export async function prepareCloudflareLocalTopologyArtifacts({
       template,
       databaseUrl,
       appUrl: ports.routerBaseUrl,
-      storagePublicBaseUrl,
       deployTarget: 'cloudflare',
       devHost: routerDevOrigin.hostname,
       devUpstreamProtocol: routerDevOrigin.protocol.replace(/:$/, ''),
@@ -236,7 +229,7 @@ export async function prepareCloudflareLocalTopologyArtifacts({
     devVarsPath: resolvedDevVarsPath,
     extraVars: {
       DEPLOY_TARGET: 'cloudflare',
-      ...runtimeVars,
+      ...buildLocalTopologyRuntimeVars(ports.routerBaseUrl),
       ...runtimeExtraVars,
     },
   });

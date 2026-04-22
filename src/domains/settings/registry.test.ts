@@ -128,24 +128,6 @@ test('defineSettingsGroup: 展开后保留组级元数据和显式 visibility �
   );
 });
 
-test('settings registry: 禁止站点 identity 和 storage runtime binding 回流', () => {
-  const settingKey = (left: string, right: string) => `${left}_${right}`;
-  const forbiddenKeys = [
-    settingKey('app', 'name'),
-    settingKey('app', 'url'),
-    `general_${settingKey('support', 'email')}`,
-    settingKey('app', 'logo'),
-    settingKey('app', 'favicon'),
-    `app_${settingKey('og', 'image')}`,
-    `storage_${settingKey('public', 'base')}_url`,
-  ];
-
-  for (const key of forbiddenKeys) {
-    assert.equal(KNOWN_SETTING_KEYS.includes(key as never), false);
-    assert.equal(PUBLIC_SETTING_NAMES.includes(key as never), false);
-  }
-});
-
 test('settings registry: DSL 重写后 key 集合保持不变', () => {
   assert.deepEqual([...KNOWN_SETTING_KEYS].sort(), [
     'ads_enabled',
@@ -163,6 +145,11 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'affonso_cookie_duration',
     'affonso_enabled',
     'affonso_id',
+    'app_favicon',
+    'app_logo',
+    'app_name',
+    'app_og_image',
+    'app_url',
     'clarity_id',
     'creem_api_key',
     'creem_enabled',
@@ -180,6 +167,7 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'general_locale_switcher_enabled',
     'general_social_links',
     'general_social_links_enabled',
+    'general_support_email',
     'github_auth_enabled',
     'github_client_id',
     'github_client_secret',
@@ -204,6 +192,7 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'resend_api_key',
     'resend_sender_email',
     'select_payment_enabled',
+    'storage_public_base_url',
     'stripe_enabled',
     'stripe_payment_methods',
     'stripe_publishable_key',

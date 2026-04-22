@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { defaultLocale, locales, type Locale } from '@/config/locale';
-import { site } from '@/site';
 import {
   PaymentType,
   type CheckoutInfo,
@@ -58,18 +57,18 @@ function normalizeLocaleValue(
 function assertAppUrlOrigin(appUrl: string): string {
   const trimmed = (appUrl || '').trim();
   if (!trimmed) {
-    throw new ServiceUnavailableError('site.brand.appUrl is not configured');
+    throw new ServiceUnavailableError('app_url is not configured');
   }
 
   let origin: string;
   try {
     const url = new URL(trimmed);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error('site.brand.appUrl must use http or https');
+      throw new Error('app_url must use http or https');
     }
     origin = url.origin;
   } catch (error) {
-    throw new ServiceUnavailableError('invalid site.brand.appUrl configuration', {
+    throw new ServiceUnavailableError('invalid app_url configuration', {
       error,
     });
   }
@@ -154,7 +153,7 @@ function buildCallbackUrl({
   locale: string | null | undefined;
   paymentType: PaymentType;
 }): { callbackUrl: string; callbackBaseUrl: string } {
-  const appUrl = assertAppUrlOrigin(site.brand.appUrl);
+  const appUrl = assertAppUrlOrigin(configs.app_url ?? '');
   const activeLocale =
     normalizeLocaleValue(locale) ??
     normalizeLocaleValue(configs.locale) ??
@@ -179,6 +178,7 @@ function buildCheckoutOrder({
   paymentType,
   paymentInterval,
   orderNo,
+  configs,
   callbackUrl,
   callbackBaseUrl,
   metadata,
@@ -190,6 +190,7 @@ function buildCheckoutOrder({
   paymentType: PaymentType;
   paymentInterval: PaymentInterval;
   orderNo: string;
+  configs: PaymentRuntimeSettings;
   callbackUrl: string;
   callbackBaseUrl: string;
   metadata: Record<string, unknown> | null | undefined;
@@ -205,7 +206,7 @@ function buildCheckoutOrder({
     type: paymentType,
     metadata: {
       ...(metadata || {}),
-      appName: site.brand.appName,
+      app_name: configs.app_name,
       order_no: orderNo,
       user_id: user.id,
     },
@@ -374,6 +375,7 @@ export async function createPaymentCheckoutSession({
     paymentType,
     paymentInterval,
     orderNo,
+    configs,
     callbackUrl,
     callbackBaseUrl,
     metadata,

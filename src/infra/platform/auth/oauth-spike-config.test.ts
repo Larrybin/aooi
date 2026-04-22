@@ -82,12 +82,14 @@ test('mergeAuthSpikeOAuthConfigSeedConfigs 只覆盖 auth 相关 key，保留其
   assert.deepEqual(
     mergeAuthSpikeOAuthConfigSeedConfigs(
       {
+        app_name: 'Roller Rabbit',
         google_client_id: 'db-google-client-id',
         custom_flag: 'kept',
       },
       createEnv({ AUTH_SPIKE_OAUTH_CONFIG_SEED: 'true' })
     ),
     {
+      app_name: 'Roller Rabbit',
       google_auth_enabled: 'true',
       google_client_id: 'oauth-spike-google-client-id',
       google_client_secret: 'oauth-spike-google-client-secret',

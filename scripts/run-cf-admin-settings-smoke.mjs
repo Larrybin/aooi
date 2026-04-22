@@ -7,6 +7,7 @@ import postgres from 'postgres';
 import * as localeModule from '../src/config/locale/index.ts';
 import * as storagePublicUrlModule from '../src/shared/lib/storage-public-url.ts';
 import * as configConsistencyModule from '../src/shared/lib/config-consistency.ts';
+import * as settingsNormalizersModule from '../src/domains/settings/settings-normalizers.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
@@ -35,6 +36,9 @@ const { locales } = localeConfig;
 const storagePublicUrl =
   storagePublicUrlModule.default ?? storagePublicUrlModule;
 const { buildStorageObjectPublicUrl } = storagePublicUrl;
+const settingsNormalizers =
+  settingsNormalizersModule.default ?? settingsNormalizersModule;
+const { normalizeSettingOverrides } = settingsNormalizers;
 
 const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.CF_ADMIN_SETTINGS_SMOKE_REQUEST_TIMEOUT_MS || '30000',
@@ -43,11 +47,15 @@ const REQUEST_TIMEOUT_MS = Number.parseInt(
 const STORAGE_PUBLIC_BASE_URL = 'https://storage-spike.example.com/assets/';
 const SESSION_COOKIE_NAME = 'better-auth.session_token';
 const SMOKE_CONFIG_NAMES = [
-  'general_ai_enabled',
-  'general_docs_enabled',
-  'general_blog_enabled',
+  'app_name',
+  'app_url',
+  'general_support_email',
+  'storage_public_base_url',
+  'app_logo',
+  'app_favicon',
+  'app_og_image',
 ];
-const STORAGE_UPLOAD_FILES = Object.freeze({
+const BRAND_UPLOAD_FILES = Object.freeze({
   appLogo: {
     fileName: 'cf-admin-settings-logo.png',
     mimeType: 'image/png',
@@ -110,6 +118,15 @@ export function buildExpectedPublicAssetUrls({
   };
 }
 
+export function normalizeSeedSettings(values) {
+  const result = normalizeSettingOverrides(values);
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+
+  return result.value;
+}
+
 function createTempEmail(label) {
   return `cf-admin-settings-smoke+${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
 }
@@ -120,9 +137,10 @@ function createSessionToken() {
 
 function createSeedSettings(timestamp) {
   return {
-    general_ai_enabled: 'true',
-    general_docs_enabled: 'true',
-    general_blog_enabled: timestamp.length > 0 ? 'true' : 'false',
+    app_name: `CF Admin Settings ${timestamp}`,
+    app_url: `https://brand-${timestamp}.example.com/path?ignored=1`,
+    general_support_email: `Support.${timestamp}@EXAMPLE.COM`,
+    storage_public_base_url: STORAGE_PUBLIC_BASE_URL,
   };
 }
 
@@ -208,6 +226,10 @@ async function deleteConfigs(databaseUrl, names) {
   } finally {
     await sql.end({ timeout: 1 });
   }
+}
+
+async function writeConfigsNormalized(databaseUrl, values) {
+  await writeConfigsRaw(databaseUrl, normalizeSeedSettings(values));
 }
 
 async function restoreConfigBaseline(databaseUrl, baseline) {
@@ -317,10 +339,6 @@ async function startPreviewTopology({
     databaseUrl,
     routerBaseUrl,
     authSecret,
-    extraVars: {
-      STORAGE_PUBLIC_BASE_URL,
-      STORAGE_SPIKE_UPLOAD_MOCK: 'true',
-    },
   });
   const baseUrl = topology.getRouterBaseUrl();
 
@@ -371,14 +389,14 @@ async function uploadStorageFileViaSession({ baseUrl, cookieHeader, file }) {
   });
 }
 
-async function uploadStorageAssetsViaSession({
+async function uploadBrandAssetsViaSession({
   baseUrl,
   cookieHeader,
   storagePublicBaseUrl,
 }) {
   const uploads = {};
 
-  for (const [assetName, file] of Object.entries(STORAGE_UPLOAD_FILES)) {
+  for (const [assetName, file] of Object.entries(BRAND_UPLOAD_FILES)) {
     const response = await uploadStorageFileViaSession({
       baseUrl,
       cookieHeader,
@@ -407,13 +425,31 @@ async function uploadStorageAssetsViaSession({
     assert.equal(
       result.url,
       buildStorageObjectPublicUrl(result.key, storagePublicBaseUrl),
-      `[${assetName}] upload url must derive from STORAGE_PUBLIC_BASE_URL + objectKey`
+      `[${assetName}] upload url must derive from storage_public_base_url + objectKey`
     );
 
     uploads[assetName] = result;
   }
 
   return uploads;
+}
+
+async function assertStorageUploadDenied({ baseUrl, cookieHeader }) {
+  const response = await uploadStorageFileViaSession({
+    baseUrl,
+    cookieHeader,
+    file: BRAND_UPLOAD_FILES.appLogo,
+  });
+
+  assert.equal(
+    response.status,
+    503,
+    `expected denied upload 503, got ${response.status}, body=${response.bodyText}`
+  );
+  assert.equal(
+    response.json?.message,
+    'storage_public_base_url is not configured'
+  );
 }
 
 async function fetchPublicConfigs(baseUrl) {
@@ -441,21 +477,49 @@ async function fetchPublicConfigs(baseUrl) {
   return response.json?.data ?? {};
 }
 
-export function assertPublicSettingsProjection({ publicConfigs }) {
+export function assertPublicBrandConfigProjection({
+  publicConfigs,
+  expectedAppName,
+  expectedStoragePublicBaseUrl,
+  expectedObjectKeys,
+  expectedAssetUrls,
+}) {
   assert.equal(
-    publicConfigs.general_ai_enabled,
-    'true',
-    '[public-configs] general_ai_enabled should remain publicly readable'
+    publicConfigs.app_name,
+    expectedAppName,
+    '[public-configs] app_name should reflect seeded brand name'
   );
   assert.equal(
-    publicConfigs.general_docs_enabled,
-    'true',
-    '[public-configs] general_docs_enabled should remain publicly readable'
+    publicConfigs.storage_public_base_url,
+    expectedStoragePublicBaseUrl,
+    '[public-configs] storage_public_base_url should remain publicly readable'
   );
   assert.equal(
-    publicConfigs.general_blog_enabled,
-    'true',
-    '[public-configs] general_blog_enabled should remain publicly readable'
+    publicConfigs.app_logo,
+    expectedObjectKeys.appLogo,
+    '[public-configs] app_logo should persist objectKey'
+  );
+  assert.equal(
+    publicConfigs.app_favicon,
+    expectedObjectKeys.appFavicon,
+    '[public-configs] app_favicon should persist objectKey'
+  );
+  assert.equal(
+    publicConfigs.app_og_image,
+    expectedObjectKeys.appOgImage,
+    '[public-configs] app_og_image should persist objectKey'
+  );
+  assert.deepEqual(
+    buildExpectedPublicAssetUrls({
+      storagePublicBaseUrl: publicConfigs.storage_public_base_url,
+      objectKeys: {
+        appLogo: publicConfigs.app_logo,
+        appFavicon: publicConfigs.app_favicon,
+        appOgImage: publicConfigs.app_og_image,
+      },
+    }),
+    expectedAssetUrls,
+    '[public-configs] runtime derived public asset URLs should remain stable within the single local topology session'
   );
 }
 
@@ -497,9 +561,9 @@ export async function main() {
     await runPhaseSequence({
       phases: [
         {
-          label: 'seed-runtime-settings',
+          label: 'seed-brand-settings',
           action: async () => {
-            await writeConfigsRaw(databaseUrl, seedSettings);
+            await writeConfigsNormalized(databaseUrl, seedSettings);
           },
         },
         {
@@ -528,17 +592,17 @@ export async function main() {
           },
         },
         {
-          label: 'upload-storage-assets',
+          label: 'upload-brand-assets',
           action: async () => {
             assert.ok(
               baseUrl,
               'cloudflare baseUrl should be ready before uploads'
             );
 
-            const uploads = await uploadStorageAssetsViaSession({
+            const uploads = await uploadBrandAssetsViaSession({
               baseUrl,
               cookieHeader: signedInCookieHeader,
-              storagePublicBaseUrl: STORAGE_PUBLIC_BASE_URL,
+              storagePublicBaseUrl: seedSettings.storage_public_base_url,
             });
 
             uploadedKeys = {
@@ -547,13 +611,13 @@ export async function main() {
               appOgImage: uploads.appOgImage.key,
             };
             expectedAssetUrls = buildExpectedPublicAssetUrls({
-              storagePublicBaseUrl: STORAGE_PUBLIC_BASE_URL,
+              storagePublicBaseUrl: seedSettings.storage_public_base_url,
               objectKeys: uploadedKeys,
             });
           },
         },
         {
-          label: 'public-settings-projection',
+          label: 'public-brand-config-projection',
           action: async () => {
             assert(uploadedKeys, 'uploaded brand asset keys are required');
             assert.ok(
@@ -561,16 +625,39 @@ export async function main() {
               'cloudflare baseUrl should be ready before public config fetch'
             );
 
+            await writeConfigsNormalized(databaseUrl, {
+              app_logo: uploadedKeys.appLogo,
+              app_favicon: uploadedKeys.appFavicon,
+              app_og_image: uploadedKeys.appOgImage,
+            });
+
             const publicConfigs = await fetchPublicConfigs(baseUrl);
-            assertPublicSettingsProjection({ publicConfigs });
-            assert.deepEqual(
-              buildExpectedPublicAssetUrls({
-                storagePublicBaseUrl: STORAGE_PUBLIC_BASE_URL,
-                objectKeys: uploadedKeys,
-              }),
+            assertPublicBrandConfigProjection({
+              publicConfigs,
+              expectedAppName: seedSettings.app_name,
+              expectedStoragePublicBaseUrl:
+                seedSettings.storage_public_base_url,
+              expectedObjectKeys: uploadedKeys,
               expectedAssetUrls,
-              '[storage-upload] runtime derived public asset URLs should remain stable within the single local topology session'
+            });
+          },
+        },
+        {
+          label: 'upload-denied-without-storage-public-base-url',
+          action: async () => {
+            assert.ok(
+              baseUrl,
+              'cloudflare baseUrl should be ready before denied upload check'
             );
+
+            await writeConfigsNormalized(databaseUrl, {
+              storage_public_base_url: '',
+            });
+
+            await assertStorageUploadDenied({
+              baseUrl,
+              cookieHeader: signedInCookieHeader,
+            });
           },
         },
       ],

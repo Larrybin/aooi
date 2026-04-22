@@ -79,4 +79,3 @@ next-env.d.ts
 .codex
 .codex/context.md
 .gstack/
-.generated/

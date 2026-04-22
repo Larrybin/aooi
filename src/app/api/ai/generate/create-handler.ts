@@ -12,7 +12,7 @@ import type {
   NewAITask,
   updateAITaskById,
 } from '@/domains/ai/infra/ai-task';
-import { site } from '@/site';
+import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
 import type { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import {
   AiGenerateBodySchema,
@@ -33,13 +33,14 @@ type AiGenerateApiContext = {
 };
 
 function resolveAppUrlOrigin(appUrl: string): string {
+  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const raw = appUrl?.trim() || '';
-  if (!raw) return site.brand.appUrl;
+  if (!raw) return serverPublicEnvConfigs.app_url;
 
   try {
     return new URL(raw).origin;
   } catch {
-    return site.brand.appUrl;
+    return serverPublicEnvConfigs.app_url;
   }
 }
 
@@ -82,7 +83,7 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
     }
 
     const user = await api.requireUser();
-    const appUrl = resolveAppUrlOrigin('');
+    const appUrl = resolveAppUrlOrigin(configs.app_url);
     const callbackUrl = `${appUrl}/api/ai/notify/${capability.provider}`;
     const params: AIGenerateParams = {
       mediaType,

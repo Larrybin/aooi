@@ -125,10 +125,6 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
       assert.match(devVars, /NEXT_PUBLIC_APP_URL=http:\/\/127\.0\.0\.1:9787/);
       assert.match(devVars, /AUTH_URL=http:\/\/127\.0\.0\.1:9787/);
       assert.match(devVars, /BETTER_AUTH_URL=http:\/\/127\.0\.0\.1:9787/);
-      assert.match(
-        devVars,
-        /STORAGE_PUBLIC_BASE_URL=http:\/\/127\.0\.0\.1:9787\/assets\//
-      );
       assert.match(devVars, /CF_LOCAL_SMOKE_WORKERS_DEV=true/);
     } finally {
       await artifacts.cleanup();
