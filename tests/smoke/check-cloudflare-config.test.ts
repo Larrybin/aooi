@@ -101,6 +101,15 @@ async function runCheckCloudflareConfig({
   args?: string[];
 }) {
   const scriptPath = path.join(rootDir, 'scripts/check-cloudflare-config.mjs');
+  const isolatedEnv: Record<string, string | undefined> = {
+    ...process.env,
+  };
+
+  for (const secretName of requiredSecretEnvNames) {
+    delete isolatedEnv[secretName];
+  }
+  delete isolatedEnv[storagePublicBaseUrlName];
+
   try {
     const result = await execFileAsync(
       process.execPath,
@@ -117,7 +126,7 @@ async function runCheckCloudflareConfig({
       {
         cwd: rootDir,
         env: {
-          ...process.env,
+          ...isolatedEnv,
           SITE: 'mamamiya',
           ...env,
         },
