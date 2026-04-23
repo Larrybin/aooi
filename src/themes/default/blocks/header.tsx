@@ -23,11 +23,11 @@ import {
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
 import { listenEvent } from '@/shared/lib/dom/event-listener';
-import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 function NavigationMenuTrigger(
   props: React.ComponentProps<typeof RawNavigationMenuTrigger>
@@ -45,19 +45,16 @@ function SignUserSuspense({ userNav }: { userNav?: HeaderType['user_nav'] }) {
 
 export function Header({
   header,
-  publicConfigs,
+  publicConfig,
 }: {
   header: HeaderType;
-  publicConfigs?: Record<string, string>;
+  publicConfig?: PublicUiConfig;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-  const navItems = filterLandingNavItems(header.nav?.items, publicConfigs);
-  const isLocaleSwitcherEnabled = isConfigTrue(
-    publicConfigs ?? {},
-    'general_locale_switcher_enabled'
-  );
+  const navItems = filterLandingNavItems(header.nav?.items, publicConfig);
+  const isLocaleSwitcherEnabled = Boolean(publicConfig?.localeSwitcherEnabled);
 
   useEffect(() => {
     // Listen to scroll event to enable header styles on scroll

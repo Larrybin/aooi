@@ -15,7 +15,11 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -32,7 +36,11 @@ export default async function SettingsLayout({
   const { locale } = await params;
   const t = await getTranslations('settings.sidebar');
   const tl = await getTranslations('landing');
-  const publicConfigs = await getPublicConfigsCached();
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
   const initialSnapshot = await getSignedInUserSnapshot();
   const brand = buildBrandPlaceholderValues();
 
@@ -61,9 +69,17 @@ export default async function SettingsLayout({
         'common.uploader.image',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
         <AuthSnapshotProvider initialSnapshot={initialSnapshot}>
-          <LandingLayout header={header} footer={footer}>
+          <LandingLayout
+            header={header}
+            footer={footer}
+            publicConfig={publicUiConfig}
+          >
             <LocaleDetector />
             <ConsoleLayout
               title={title}

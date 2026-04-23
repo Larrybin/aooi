@@ -98,6 +98,42 @@ export const PUBLIC_SETTING_NAMES = Object.freeze(
 
 export const publicSettingNames = PUBLIC_SETTING_NAMES;
 
+export const PUBLIC_UI_SETTING_KEYS = Object.freeze({
+  aiEnabled: 'general_ai_enabled',
+  blogEnabled: 'general_blog_enabled',
+  docsEnabled: 'general_docs_enabled',
+  localeSwitcherEnabled: 'general_locale_switcher_enabled',
+  socialLinksEnabled: 'general_social_links_enabled',
+  socialLinks: 'general_social_links',
+  affonsoEnabled: 'affonso_enabled',
+  promotekitEnabled: 'promotekit_enabled',
+} as const);
+
+export const AUTH_RUNTIME_SETTING_KEYS = Object.freeze({
+  emailAuthEnabled: 'email_auth_enabled',
+  googleAuthEnabled: 'google_auth_enabled',
+  googleOneTapEnabled: 'google_one_tap_enabled',
+  githubAuthEnabled: 'github_auth_enabled',
+} as const);
+
+export const BILLING_RUNTIME_SETTING_KEYS = Object.freeze({
+  locale: 'locale',
+  defaultLocale: 'default_locale',
+  selectPaymentEnabled: 'select_payment_enabled',
+  defaultPaymentProvider: 'default_payment_provider',
+  stripeEnabled: 'stripe_enabled',
+  stripePaymentMethods: 'stripe_payment_methods',
+  creemEnabled: 'creem_enabled',
+  creemEnvironment: 'creem_environment',
+  creemProductIds: 'creem_product_ids',
+  paypalEnabled: 'paypal_enabled',
+  paypalEnvironment: 'paypal_environment',
+} as const);
+
+export const AI_RUNTIME_SETTING_KEYS = Object.freeze({
+  aiEnabled: 'general_ai_enabled',
+} as const);
+
 export const SETTING_DEFINITION_BY_NAME = derivedRegistry.byName as ReadonlyMap<
   KnownSettingKey,
   SettingDefinition

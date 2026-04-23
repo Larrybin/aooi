@@ -58,19 +58,6 @@ const googleAuthSettings = defineSettingsGroup(
       visibility: 'public',
       value: 'false',
     },
-    {
-      name: 'google_client_id',
-      title: 'Google Client ID',
-      type: 'text',
-      visibility: 'public',
-      placeholder: '',
-    },
-    {
-      name: 'google_client_secret',
-      title: 'Google Client Secret',
-      type: 'password',
-      placeholder: '',
-    },
   ] as const
 );
 
@@ -86,18 +73,7 @@ const githubAuthSettings = defineSettingsGroup(
       title: 'Auth Enabled',
       type: 'switch',
       visibility: 'public',
-    },
-    {
-      name: 'github_client_id',
-      title: 'Github Client ID',
-      type: 'text',
-      placeholder: '',
-    },
-    {
-      name: 'github_client_secret',
-      title: 'Github Client Secret',
-      type: 'password',
-      placeholder: '',
+      value: 'false',
     },
   ] as const
 );

@@ -1,36 +1,29 @@
 import type { Button, NavItem } from '@/shared/types/blocks/common';
 
-import { isConfigTrue } from '@/shared/lib/general-ui.client';
-import {
-  GENERAL_AI_ENABLED,
-  isAiEnabled,
-} from '@/domains/ai/domain/enablement';
-
-export const GENERAL_BLOG_ENABLED = 'general_blog_enabled';
-export const GENERAL_DOCS_ENABLED = 'general_docs_enabled';
-export { GENERAL_AI_ENABLED, isAiEnabled };
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function isLandingBlogEnabled(
-  publicConfigs: Record<string, string> | undefined
+  publicConfig: PublicUiConfig | undefined
 ) {
-  return isConfigTrue(publicConfigs ?? {}, GENERAL_BLOG_ENABLED);
+  return Boolean(publicConfig?.blogEnabled);
 }
 
 export function isLandingDocsEnabled(
-  publicConfigs: Record<string, string> | undefined
+  publicConfig: PublicUiConfig | undefined
 ) {
-  return isConfigTrue(publicConfigs ?? {}, GENERAL_DOCS_ENABLED);
+  return Boolean(publicConfig?.docsEnabled);
 }
 
 export function isLandingAiEnabled(
-  publicConfigs: Record<string, string> | undefined
+  publicConfig: PublicUiConfig | undefined
 ) {
-  return isAiEnabled(publicConfigs);
+  return isAiEnabled(publicConfig);
 }
 
 function shouldHideLandingUrl(
   url: string | undefined,
-  configs: Record<string, string>
+  publicConfig: PublicUiConfig
 ) {
   if (!url) return false;
 
@@ -49,15 +42,15 @@ function shouldHideLandingUrl(
     normalizedUrl.startsWith('/admin/chats/');
 
   if (isAiRoute) {
-    return !isAiEnabled(configs);
+    return !isAiEnabled(publicConfig);
   }
 
   if (normalizedUrl === '/blog' || normalizedUrl.startsWith('/blog/')) {
-    return !isLandingBlogEnabled(configs);
+    return !isLandingBlogEnabled(publicConfig);
   }
 
   if (normalizedUrl === '/docs' || normalizedUrl.startsWith('/docs/')) {
-    return !isLandingDocsEnabled(configs);
+    return !isLandingDocsEnabled(publicConfig);
   }
 
   return false;
@@ -65,21 +58,35 @@ function shouldHideLandingUrl(
 
 export function filterLandingNavItems(
   items: NavItem[] | undefined,
-  publicConfigs: Record<string, string> | undefined
+  publicConfig: PublicUiConfig | undefined
 ): NavItem[] {
   if (!items?.length) return [];
 
-  const configs = publicConfigs ?? {};
+  const nextPublicConfig =
+    publicConfig ??
+    ({
+      aiEnabled: false,
+      blogEnabled: false,
+      docsEnabled: false,
+      localeSwitcherEnabled: false,
+      socialLinksEnabled: false,
+      socialLinksJson: '',
+      socialLinks: [],
+      affiliate: {
+        affonsoEnabled: false,
+        promotekitEnabled: false,
+      },
+    } satisfies PublicUiConfig);
 
   const filtered: NavItem[] = [];
 
   for (const item of items) {
     const children = item.children?.length
-      ? filterLandingNavItems(item.children, publicConfigs)
+      ? filterLandingNavItems(item.children, nextPublicConfig)
       : [];
 
     const url = item.url ? item.url.trim() : '';
-    const hideUrl = shouldHideLandingUrl(url || undefined, configs);
+    const hideUrl = shouldHideLandingUrl(url || undefined, nextPublicConfig);
 
     const hasVisibleChildren = children.length > 0;
     const hasVisibleUrl = Boolean(url) && !hideUrl;
@@ -100,14 +107,28 @@ export function filterLandingNavItems(
 
 export function filterLandingButtons(
   buttons: Button[] | undefined,
-  publicConfigs: Record<string, string> | undefined
+  publicConfig: PublicUiConfig | undefined
 ): Button[] {
   if (!buttons?.length) return [];
 
-  const configs = publicConfigs ?? {};
+  const nextPublicConfig =
+    publicConfig ??
+    ({
+      aiEnabled: false,
+      blogEnabled: false,
+      docsEnabled: false,
+      localeSwitcherEnabled: false,
+      socialLinksEnabled: false,
+      socialLinksJson: '',
+      socialLinks: [],
+      affiliate: {
+        affonsoEnabled: false,
+        promotekitEnabled: false,
+      },
+    } satisfies PublicUiConfig);
 
   return buttons.filter((button) => {
     const url = button.url ? button.url.trim() : '';
-    return !shouldHideLandingUrl(url || undefined, configs);
+    return !shouldHideLandingUrl(url || undefined, nextPublicConfig);
   });
 }

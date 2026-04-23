@@ -17,7 +17,11 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import { requireAdminPageAccess } from './_guards/page-access';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
@@ -44,7 +48,11 @@ export default async function AdminLayout({
 
   const t = await getTranslations('admin.sidebar');
 
-  const publicConfigs = await getPublicConfigsCached();
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
   const brand = buildBrandPlaceholderValues();
   const sidebarRaw: SidebarType = replaceBrandPlaceholdersDeep(
     {
@@ -63,13 +71,13 @@ export default async function AdminLayout({
     main_navs: sidebar.main_navs
       ?.map((nav) => ({
         ...nav,
-        items: filterLandingNavItems(nav.items, publicConfigs),
+        items: filterLandingNavItems(nav.items, publicUiConfig),
       }))
       .filter((nav) => nav.items.length > 0),
     bottom_nav: sidebar.bottom_nav
       ? {
           ...sidebar.bottom_nav,
-          items: filterLandingNavItems(sidebar.bottom_nav.items, publicConfigs),
+          items: filterLandingNavItems(sidebar.bottom_nav.items, publicUiConfig),
         }
       : sidebar.bottom_nav,
     user: sidebar.user?.nav
@@ -77,7 +85,7 @@ export default async function AdminLayout({
           ...sidebar.user,
           nav: {
             ...sidebar.user.nav,
-            items: filterLandingNavItems(sidebar.user.nav.items, publicConfigs),
+            items: filterLandingNavItems(sidebar.user.nav.items, publicUiConfig),
           },
         }
       : sidebar.user,
@@ -88,7 +96,7 @@ export default async function AdminLayout({
             ...sidebar.footer.nav,
             items: filterLandingNavItems(
               sidebar.footer.nav.items,
-              publicConfigs
+              publicUiConfig
             ),
           },
         }
@@ -106,7 +114,11 @@ export default async function AdminLayout({
         'admin.settings',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
         <AuthSnapshotProvider initialSnapshot={initialUser}>
           <WorkspaceLayout sidebar={filteredSidebar} initialUser={initialUser}>
             <LocaleDetector />

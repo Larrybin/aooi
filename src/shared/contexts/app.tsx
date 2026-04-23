@@ -11,6 +11,11 @@ import {
 } from 'react';
 
 import { getAuthClient } from '@/infra/platform/auth/client';
+import type {
+  AuthUiRuntimeSettings,
+  BillingRuntimeSettings,
+  PublicUiConfig,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 
@@ -36,17 +41,57 @@ export interface ContextValue {
   setIsShowSignModal: (show: boolean) => void;
   isShowPaymentModal: boolean;
   setIsShowPaymentModal: (show: boolean) => void;
-  configs: Record<string, string>;
+  uiConfig: PublicUiConfig;
+  authSettings: AuthUiRuntimeSettings;
+  billingSettings: BillingRuntimeSettings;
 }
 
 const noop = () => {};
+
+const EMPTY_PUBLIC_UI_CONFIG: PublicUiConfig = {
+  aiEnabled: false,
+  blogEnabled: false,
+  docsEnabled: false,
+  localeSwitcherEnabled: false,
+  socialLinksEnabled: false,
+  socialLinksJson: '',
+  socialLinks: [],
+  affiliate: {
+    affonsoEnabled: false,
+    promotekitEnabled: false,
+  },
+};
+
+const EMPTY_AUTH_SETTINGS: AuthUiRuntimeSettings = {
+  emailAuthEnabled: true,
+  googleAuthEnabled: false,
+  googleOneTapEnabled: false,
+  googleClientId: '',
+  githubAuthEnabled: false,
+};
+
+const EMPTY_BILLING_SETTINGS: BillingRuntimeSettings = {
+  locale: '',
+  defaultLocale: '',
+  selectPaymentEnabled: false,
+  defaultPaymentProvider: '',
+  stripeEnabled: false,
+  stripePaymentMethods: '',
+  creemEnabled: false,
+  creemEnvironment: 'sandbox',
+  creemProductIds: '',
+  paypalEnabled: false,
+  paypalEnvironment: 'sandbox',
+};
 
 const defaultContextValue: ContextValue = {
   isShowSignModal: false,
   setIsShowSignModal: noop,
   isShowPaymentModal: false,
   setIsShowPaymentModal: noop,
-  configs: {},
+  uiConfig: EMPTY_PUBLIC_UI_CONFIG,
+  authSettings: EMPTY_AUTH_SETTINGS,
+  billingSettings: EMPTY_BILLING_SETTINGS,
 };
 
 const PublicAppContext = createContext<ContextValue>(defaultContextValue);
@@ -96,40 +141,33 @@ function isIgnorableOneTapError(error: unknown): boolean {
 
 export const PublicAppProvider = ({
   children,
-  initialConfigs,
+  initialUiConfig,
+  initialAuthSettings,
+  initialBillingSettings,
 }: {
   children: ReactNode;
-  initialConfigs: Record<string, string>;
+  initialUiConfig: PublicUiConfig;
+  initialAuthSettings: AuthUiRuntimeSettings;
+  initialBillingSettings: BillingRuntimeSettings;
 }) => {
-  const configs = initialConfigs;
+  const uiConfig = initialUiConfig;
+  const authSettings = initialAuthSettings;
+  const billingSettings = initialBillingSettings;
   const didToastOneTapError = useRef(false);
   const didShowOneTap = useRef(false);
 
-  // show sign modal
   const [isShowSignModal, setIsShowSignModal] = useState(false);
-
-  // show payment modal
   const [isShowPaymentModal, setIsShowPaymentModal] = useState(false);
 
-  const showOneTap = useCallback(async function (
-    configs: Record<string, string>
-  ) {
+  const showOneTap = useCallback(async function (settings: AuthUiRuntimeSettings) {
     try {
-      const client = getAuthClient(configs);
+      const client = getAuthClient(settings);
       if (!isOneTapCapable(client)) {
         return;
       }
       await client.oneTap({
         callbackURL: '/',
-        onPromptNotification: (_notification: unknown) => {
-          // Handle prompt dismissal silently
-          // This callback is triggered when the prompt is dismissed or skipped
-        },
-        // fetchOptions: {
-        //   onSuccess: () => {
-        //     router.push('/');
-        //   },
-        // },
+        onPromptNotification: (_notification: unknown) => {},
       });
     } catch (e: unknown) {
       if (isIgnorableOneTapError(e)) {
@@ -159,14 +197,14 @@ export const PublicAppProvider = ({
     }
 
     if (
-      configs.google_auth_enabled === 'true' &&
-      configs.google_client_id &&
-      configs.google_one_tap_enabled === 'true'
+      authSettings.googleAuthEnabled &&
+      authSettings.googleClientId &&
+      authSettings.googleOneTapEnabled
     ) {
       didShowOneTap.current = true;
-      void showOneTap(configs);
+      void showOneTap(authSettings);
     }
-  }, [configs, showOneTap]);
+  }, [authSettings, showOneTap]);
 
   return (
     <PublicAppContext.Provider
@@ -175,7 +213,9 @@ export const PublicAppProvider = ({
         setIsShowSignModal,
         isShowPaymentModal,
         setIsShowPaymentModal,
-        configs,
+        uiConfig,
+        authSettings,
+        billingSettings,
       }}
     >
       {children}

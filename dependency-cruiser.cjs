@@ -63,7 +63,8 @@ module.exports = {
       from: { path: '^src/infra/' },
       to: {
         path: '^src/(app|surfaces|domains/[^/]+/application)/',
-        pathNot: '^src/domains/settings/application/[^/]+\\.query\\.ts$',
+        pathNot:
+          '^src/domains/settings/application/(?:[^/]+\\.query|settings-store|settings-runtime\\.contracts)\\.ts$',
       },
     },
     {
@@ -77,14 +78,17 @@ module.exports = {
       to: {
         path: '^src/(domains|surfaces|infra)/',
         pathNot:
-          '^src/domains/settings/application/(settings-store|public-config\\.view)\\.ts$|^src/infra/runtime/env\\.server\\.ts$|^src/infra/platform/logging/',
+          '^src/domains/settings/application/settings-runtime\\.contracts\\.ts$|^src/infra/runtime/env\\.server\\.ts$|^src/infra/platform/logging/',
       },
     },
     {
       name: 'no-shared-ui-to-business-domains-or-adapters',
       severity: 'error',
       from: { path: '^src/shared/(blocks|components|contexts|hooks)/' },
-      to: { path: '^src/(domains|infra/adapters|surfaces)/' },
+      to: {
+        path: '^src/(domains|infra/adapters|surfaces)/',
+        pathNot: '^src/domains/settings/application/settings-runtime\\.contracts\\.ts$',
+      },
     },
   ],
   options: {

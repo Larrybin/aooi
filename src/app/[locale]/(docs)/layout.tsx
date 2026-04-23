@@ -13,7 +13,7 @@ import {
 } from '@/domains/content/application/docs-content.query';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { isLandingDocsEnabled } from '@/surfaces/public/navigation/landing-visibility';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 import { baseOptions } from './layout.config';
 
@@ -43,8 +43,8 @@ export default async function DocsRootLayout({
   children: ReactNode;
   params: Promise<{ locale?: string }>;
 }) {
-  const publicConfigs = await getPublicConfigsCached();
-  if (!isLandingDocsEnabled(publicConfigs)) {
+  const publicUiConfig = await readPublicUiConfigCached();
+  if (!isLandingDocsEnabled(publicUiConfig)) {
     notFound();
   }
 

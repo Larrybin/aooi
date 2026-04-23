@@ -12,7 +12,11 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -28,7 +32,11 @@ export default async function PageDetailLayout({
 }) {
   const { locale } = await params;
   const t = await getTranslations('landing');
-  const publicConfigs = await getPublicConfigsCached();
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
   const brand = buildBrandPlaceholderValues();
 
   const header: HeaderType = t.raw('header');
@@ -47,8 +55,16 @@ export default async function PageDetailLayout({
         'common.locale_detector',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
-        <LandingLayout header={branded.header} footer={branded.footer}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
+        <LandingLayout
+          header={branded.header}
+          footer={branded.footer}
+          publicConfig={publicUiConfig}
+        >
           <LocaleDetector />
           {children}
         </LandingLayout>

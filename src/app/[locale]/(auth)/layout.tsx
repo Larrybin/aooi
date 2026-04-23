@@ -7,7 +7,7 @@ import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default async function AuthLayout({
   children,
@@ -19,10 +19,9 @@ export default async function AuthLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const publicConfigs = await getPublicConfigsCached();
+  const publicUiConfig = await readPublicUiConfigCached();
   const brand = buildBrandPlaceholderValues();
-  const isLocaleSwitcherEnabled =
-    publicConfigs.general_locale_switcher_enabled === 'true';
+  const isLocaleSwitcherEnabled = publicUiConfig.localeSwitcherEnabled;
 
   const appName = brand.appName;
   return (

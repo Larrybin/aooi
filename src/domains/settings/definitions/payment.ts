@@ -88,25 +88,6 @@ const stripeSettings = defineSettingsGroup(
       placeholder: '',
     },
     {
-      name: 'stripe_publishable_key',
-      title: 'Stripe Publishable Key',
-      type: 'text',
-      placeholder: 'pk_',
-    },
-    {
-      name: 'stripe_secret_key',
-      title: 'Stripe Secret Key',
-      type: 'password',
-      placeholder: 'sk_',
-    },
-    {
-      name: 'stripe_signing_secret',
-      title: 'Stripe Signing Secret',
-      type: 'password',
-      placeholder: 'whsec_',
-      tip: 'Stripe Signing Secret is used to verify the webhook notification from Stripe',
-    },
-    {
       name: 'stripe_payment_methods',
       title: 'Stripe Payment Methods',
       type: 'checkbox',
@@ -146,19 +127,6 @@ const creemSettings = defineSettingsGroup(
         { title: 'Sandbox', value: 'sandbox' },
         { title: 'Production', value: 'production' },
       ],
-    },
-    {
-      name: 'creem_api_key',
-      title: 'Creem API Key',
-      type: 'password',
-      placeholder: 'creem_',
-    },
-    {
-      name: 'creem_signing_secret',
-      title: 'Creem Signing Secret',
-      type: 'password',
-      placeholder: 'whsec_',
-      tip: 'Creem Signing Secret is used to verify the webhook notification from Creem',
     },
     {
       name: 'creem_product_ids',
@@ -202,25 +170,6 @@ const paypalSettings = defineSettingsGroup(
         { title: 'Sandbox', value: 'sandbox' },
         { title: 'Production', value: 'production' },
       ],
-    },
-    {
-      name: 'paypal_client_id',
-      title: 'Paypal Client ID',
-      type: 'text',
-      placeholder: '',
-    },
-    {
-      name: 'paypal_client_secret',
-      title: 'Paypal Client Secret',
-      type: 'password',
-      placeholder: '',
-    },
-    {
-      name: 'paypal_webhook_id',
-      title: 'Paypal Webhook ID',
-      type: 'text',
-      placeholder: '',
-      tip: 'Paypal webhook id is used to verify webhook notification signatures.',
     },
   ] as const
 );

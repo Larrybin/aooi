@@ -1,13 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
-
 import { Link } from '@/infra/platform/i18n/navigation';
 import { usePublicAppContext } from '@/shared/contexts/app';
-import {
-  isConfigTrue,
-  parseGeneralSocialLinks,
-} from '@/shared/lib/general-ui.client';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 import { SmartIcon } from './smart-icon';
 
@@ -16,33 +11,28 @@ export function GeneralSocialLinks({
   itemClassName = 'text-muted-foreground hover:text-primary bg-background block cursor-pointer rounded-full p-2 duration-150',
   iconClassName,
   iconSize = 20,
-  configs: configsProp,
+  uiConfig: uiConfigProp,
 }: {
   className?: string;
   itemClassName?: string;
   iconClassName?: string;
   iconSize?: number;
-  configs?: Record<string, string>;
+  uiConfig?: PublicUiConfig;
 }) {
-  const { configs: contextConfigs } = usePublicAppContext();
-  const configs = configsProp ?? contextConfigs;
-  const generalSocialLinks = configs['general_social_links'] ?? '';
-  const items = useMemo(
-    () => parseGeneralSocialLinks(generalSocialLinks),
-    [generalSocialLinks]
-  );
+  const { uiConfig: contextUiConfig } = usePublicAppContext();
+  const resolvedUiConfig = uiConfigProp ?? contextUiConfig;
 
-  if (!isConfigTrue(configs, 'general_social_links_enabled')) {
+  if (!resolvedUiConfig.socialLinksEnabled) {
     return null;
   }
 
-  if (items.length === 0) {
+  if (resolvedUiConfig.socialLinks.length === 0) {
     return null;
   }
 
   return (
     <div className={className}>
-      {items.map((item, index) => (
+      {resolvedUiConfig.socialLinks.map((item, index) => (
         <Link
           key={`${item.icon}-${item.url}-${index}`}
           href={item.url || ''}

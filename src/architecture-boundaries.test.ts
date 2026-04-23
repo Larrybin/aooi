@@ -357,6 +357,48 @@ test('architecture: deploy/smoke 脚本不得通过 NEXT_PUBLIC_APP_URL 反推�
   }
 });
 
+test('architecture: Batch 2 旧 facade 与旧 bag 输入必须保持归零', async () => {
+  const files = await readSourceFiles();
+  const forbiddenPatterns = [
+    {
+      pattern:
+        /\breadRuntimeSettingsCached\b|\breadRuntimeSettingsFresh\b|\breadRuntimeSettingsSafe\b/,
+      message: '不应继续使用旧 runtime settings facade',
+    },
+    {
+      pattern: /\bgetPublicConfigsCached\b|\bgetPublicConfigsFresh\b/,
+      message: '不应继续使用旧 public-config facade',
+    },
+    {
+      pattern: /\bgetPaymentServiceWithConfigs\b/,
+      message: 'payment 不应继续使用 configs bag 入口',
+    },
+    {
+      pattern:
+        /\bbuildStorageServiceWithConfigs\b|\bgetStorageServiceWithConfigs\b/,
+      message: 'storage 不应继续接受 configs bag',
+    },
+    {
+      pattern: /initialConfigs=/,
+      message: 'PublicAppProvider 不应继续使用 initialConfigs',
+    },
+  ];
+
+  for (const file of files) {
+    if (isTestFile(file.repoPath)) {
+      continue;
+    }
+
+    for (const rule of forbiddenPatterns) {
+      assert.equal(
+        rule.pattern.test(file.content),
+        false,
+        `${file.repoPath} ${rule.message}`
+      );
+    }
+  }
+});
+
 test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP schema', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
     /^src\/domains\/[^/]+\/domain\//.test(repoPath)
@@ -456,9 +498,9 @@ test('architecture: Public Composition Layer 只导入只读 domain 入口', asy
       if (!match) continue;
 
       assert.equal(
-        /\.(?:query|view)(?:\.[^/.]+)?$/.test(match[1]),
+        queryViewAllowedSameDomainApplicationPathPattern.test(match[1]),
         true,
-        `${file.repoPath} 只能导入 *.query 或 *.view 只读 domain 入口: ${specifier}`
+        `${file.repoPath} 只能导入受控只读 domain 入口: ${specifier}`
       );
     }
   }
@@ -688,9 +730,9 @@ test('architecture: 跨域 application 依赖只能指向只读入口', async ()
       if (targetDomain === source.domain) continue;
 
       assert.equal(
-        /\.(?:query|view)(?:\.[^/.]+)?$/.test(targetPath),
+        queryViewAllowedSameDomainApplicationPathPattern.test(targetPath),
         true,
-        `${file.repoPath} 跨域依赖 ${specifier} 必须指向 *.query 或 *.view 只读入口`
+        `${file.repoPath} 跨域依赖 ${specifier} 必须指向受控只读入口`
       );
     }
   }

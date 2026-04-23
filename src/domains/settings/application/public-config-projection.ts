@@ -1,38 +1,29 @@
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import { PUBLIC_SETTING_NAMES } from '@/domains/settings/registry';
+import type { PublicUiConfig } from './settings-runtime.contracts';
+import { buildPublicUiConfig } from './settings-runtime.builders';
+import type { Configs } from './settings-store';
 
-export type ConfigMap = Record<string, string>;
-
-export function buildPublicConfigs(allConfigs: ConfigMap): ConfigMap {
-  const publicConfigs: Record<string, string> = {};
-
-  for (const key of PUBLIC_SETTING_NAMES) {
-    const value = allConfigs[key];
-    if (value !== undefined) {
-      publicConfigs[key] = value;
-    }
-  }
-
-  return publicConfigs;
+export function buildPublicUiProjection(configs: Configs): PublicUiConfig {
+  return buildPublicUiConfig(configs);
 }
 
-export async function readPublicConfigsByMode(
+export async function readPublicUiConfigByMode(
   mode: ConfigConsistencyMode,
   {
-    readRuntimeSettingsSafeImpl,
-    readRuntimeSettingsFreshImpl,
+    readSettingsSafeImpl,
+    readSettingsFreshImpl,
   }: {
-    readRuntimeSettingsSafeImpl: () => Promise<{
-      configs: ConfigMap;
+    readSettingsSafeImpl: () => Promise<{
+      configs: Configs;
       error?: Error;
     }>;
-    readRuntimeSettingsFreshImpl: () => Promise<ConfigMap>;
+    readSettingsFreshImpl: () => Promise<Configs>;
   }
-): Promise<ConfigMap> {
+): Promise<PublicUiConfig> {
   if (mode === 'fresh') {
-    return buildPublicConfigs(await readRuntimeSettingsFreshImpl());
+    return buildPublicUiProjection(await readSettingsFreshImpl());
   }
 
-  const { configs } = await readRuntimeSettingsSafeImpl();
-  return buildPublicConfigs(configs);
+  const { configs } = await readSettingsSafeImpl();
+  return buildPublicUiProjection(configs);
 }

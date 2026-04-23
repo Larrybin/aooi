@@ -14,7 +14,11 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -29,8 +33,12 @@ export default async function AiLandingLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const publicConfigs = await getPublicConfigsCached();
-  if (!isAiEnabled(publicConfigs)) {
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
+  if (!isAiEnabled(publicUiConfig)) {
     notFound();
   }
 
@@ -53,8 +61,16 @@ export default async function AiLandingLayout({
         'common.locale_detector',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
-        <LandingLayout header={header} footer={footer}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
+        <LandingLayout
+          header={header}
+          footer={footer}
+          publicConfig={publicUiConfig}
+        >
           <LocaleDetector />
           {children}
         </LandingLayout>

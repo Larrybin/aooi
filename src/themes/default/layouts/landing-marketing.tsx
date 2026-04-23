@@ -2,7 +2,11 @@ import type { ReactNode } from 'react';
 
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { PublicAppProvider } from '@/shared/contexts/app';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import type {
+  AuthUiRuntimeSettings,
+  BillingRuntimeSettings,
+  PublicUiConfig,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -16,28 +20,36 @@ export default async function LandingMarketingLayout({
   header,
   footer,
   locale,
+  publicUiConfig,
+  authSettings,
+  billingSettings,
 }: {
   children: ReactNode;
   header: HeaderType;
   footer: FooterType;
   locale: string;
+  publicUiConfig: PublicUiConfig;
+  authSettings: AuthUiRuntimeSettings;
+  billingSettings: BillingRuntimeSettings;
 }) {
-  const publicConfigs = await getPublicConfigsCached();
-
   return (
     <ScopedIntlProvider locale={locale} namespaces={['common.sign']}>
-      <PublicAppProvider initialConfigs={publicConfigs}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
         <div className="min-h-screen w-full">
           <MarketingHeader
             header={header}
             locale={locale}
-            publicConfigs={publicConfigs}
+            publicConfig={publicUiConfig}
           />
           <main role="main">{children}</main>
           <MarketingFooter
             footer={footer}
             locale={locale}
-            publicConfigs={publicConfigs}
+            publicConfig={publicUiConfig}
           />
         </div>
       </PublicAppProvider>
