@@ -6,8 +6,6 @@ import type { PublicUiConfig } from '@/domains/settings/application/settings-run
 
 const ENABLED_UI_CONFIG: PublicUiConfig = {
   aiEnabled: false,
-  blogEnabled: false,
-  docsEnabled: false,
   localeSwitcherEnabled: false,
   socialLinksEnabled: false,
   socialLinksJson: '',

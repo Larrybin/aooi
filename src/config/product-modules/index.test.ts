@@ -83,10 +83,6 @@ test('getProductModuleItemsByTab: 按 relationship/tier/注册表顺序返回模
     ['core_shell']
   );
   assert.deepEqual(
-    getProductModuleItemsByTab('content').map((item) => item.moduleId),
-    ['docs', 'blog']
-  );
-  assert.deepEqual(
     getProductModuleItemsByTab('email').map((item) => item.moduleId),
     ['auth', 'customer_service']
   );

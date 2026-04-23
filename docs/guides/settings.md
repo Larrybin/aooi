@@ -53,7 +53,7 @@ User settings writes are implemented via Server Actions (not `/api/settings/*` R
 
 ### Routes
 
-- `/<locale?>/admin/settings/<tab>` (e.g. `general`, `content`, `auth`, `payment`, `email`, `storage`, ...)
+- `/<locale?>/admin/settings/<tab>` (e.g. `general`, `auth`, `payment`, `email`, `storage`, ...)
 
 ### Access Control
 
@@ -81,7 +81,7 @@ Admin pages are guarded in two layers:
 - It is **not** the source of truth for module definitions, tiers, or verification levels.
 - The single source of truth is `src/config/product-modules/**`, and the human-readable matrix lives in `docs/guides/module-contract.md`.
 - Inside that module contract, `settingKeys` are no longer hand-maintained. They are derived from the settings registry by `moduleId`.
-- `general` is reserved for the Core Shell surface. AI / Docs / Blog module toggles no longer live there.
+- `general` is reserved for the Core Shell surface. Docs / Blog availability is site identity, not admin-editable runtime config.
 - Header rows on `/admin/settings/<tab>` are a read-only projection of that module contract. A tab may project multiple owned/supporting modules.
 
 ## Related Files

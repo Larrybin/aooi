@@ -1,6 +1,6 @@
 // data: docs source + public configs (unstable_cache tag=public-configs, revalidate=3600s) + locale param
-// cache: cached configs + default RSC
-// reason: docs are public; config-gated while keeping db reads cheap
+// cache: default RSC
+// reason: docs are public; site capability is the authoritative gate
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import type { Translations } from 'fumadocs-ui/i18n';
@@ -12,8 +12,7 @@ import {
   resolveDocsLocale,
 } from '@/domains/content/application/docs-content.query';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { isLandingDocsEnabled } from '@/surfaces/public/navigation/landing-visibility';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
+import { getSite } from '@/infra/platform/site';
 
 import { baseOptions } from './layout.config';
 
@@ -43,8 +42,7 @@ export default async function DocsRootLayout({
   children: ReactNode;
   params: Promise<{ locale?: string }>;
 }) {
-  const publicUiConfig = await readPublicUiConfigCached();
-  if (!isLandingDocsEnabled(publicUiConfig)) {
+  if (!getSite().capabilities.docs) {
     notFound();
   }
 

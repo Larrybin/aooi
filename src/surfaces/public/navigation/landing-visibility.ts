@@ -2,17 +2,18 @@ import type { Button, NavItem } from '@/shared/types/blocks/common';
 
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+import { getSite } from '@/infra/platform/site';
 
 export function isLandingBlogEnabled(
-  publicConfig: PublicUiConfig | undefined
+  _publicConfig?: PublicUiConfig
 ) {
-  return Boolean(publicConfig?.blogEnabled);
+  return Boolean(getSite().capabilities.blog);
 }
 
 export function isLandingDocsEnabled(
-  publicConfig: PublicUiConfig | undefined
+  _publicConfig?: PublicUiConfig
 ) {
-  return Boolean(publicConfig?.docsEnabled);
+  return Boolean(getSite().capabilities.docs);
 }
 
 export function isLandingAiEnabled(
@@ -66,8 +67,6 @@ export function filterLandingNavItems(
     publicConfig ??
     ({
       aiEnabled: false,
-      blogEnabled: false,
-      docsEnabled: false,
       localeSwitcherEnabled: false,
       socialLinksEnabled: false,
       socialLinksJson: '',
@@ -115,8 +114,6 @@ export function filterLandingButtons(
     publicConfig ??
     ({
       aiEnabled: false,
-      blogEnabled: false,
-      docsEnabled: false,
       localeSwitcherEnabled: false,
       socialLinksEnabled: false,
       socialLinksJson: '',

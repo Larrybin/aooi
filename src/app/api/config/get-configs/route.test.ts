@@ -6,8 +6,6 @@ import { buildGetConfigsLogic } from './route-logic';
 
 const CACHED_CONFIG: PublicUiConfig = {
   aiEnabled: true,
-  blogEnabled: false,
-  docsEnabled: true,
   localeSwitcherEnabled: false,
   socialLinksEnabled: false,
   socialLinksJson: '',

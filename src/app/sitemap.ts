@@ -2,21 +2,17 @@ import type { MetadataRoute } from 'next';
 
 import { locales } from '@/config/locale';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
+import { getSite } from '@/infra/platform/site';
 import { buildCanonicalUrl } from '@/infra/url/canonical';
-import {
-  isLandingBlogEnabled,
-  isLandingDocsEnabled,
-} from '@/surfaces/public/navigation/landing-visibility';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const publicConfig = await readPublicUiConfigCached();
+  const site = getSite();
   buildBrandPlaceholderValues();
   const routes = [
     '/',
     '/pricing',
-    ...(isLandingBlogEnabled(publicConfig) ? ['/blog'] : []),
-    ...(isLandingDocsEnabled(publicConfig) ? ['/docs'] : []),
+    ...(site.capabilities.blog ? ['/blog'] : []),
+    ...(site.capabilities.docs ? ['/docs'] : []),
   ];
   const lastModified = new Date();
 

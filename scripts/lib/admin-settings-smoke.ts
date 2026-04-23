@@ -20,7 +20,6 @@ export const ADMIN_SETTINGS_SMOKE_TABS = [
   'auth',
   'payment',
   'ai',
-  'content',
   'email',
   'storage',
 ] as const satisfies readonly SettingTabName[];

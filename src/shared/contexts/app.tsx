@@ -50,8 +50,6 @@ const noop = () => {};
 
 const EMPTY_PUBLIC_UI_CONFIG: PublicUiConfig = {
   aiEnabled: false,
-  blogEnabled: false,
-  docsEnabled: false,
   localeSwitcherEnabled: false,
   socialLinksEnabled: false,
   socialLinksJson: '',

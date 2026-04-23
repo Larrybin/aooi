@@ -2,7 +2,6 @@
   "groups": {
     "general_ui": "界面",
     "general_brand": "品牌",
-    "content_modules": "内容模块",
     "email_auth": "邮箱认证",
     "google_auth": "Google认证",
     "github_auth": "Github认证",
@@ -38,7 +37,6 @@
     },
     "tabs": {
       "general": "通用",
-      "content": "内容",
       "auth": "认证",
       "payment": "支付",
       "email": "邮箱",

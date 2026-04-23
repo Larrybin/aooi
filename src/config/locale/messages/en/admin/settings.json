@@ -2,7 +2,6 @@
   "groups": {
     "general_ui": "UI",
     "general_brand": "Brand",
-    "content_modules": "Content Modules",
     "email_auth": "Email Auth",
     "google_auth": "Google Auth",
     "github_auth": "Github Auth",
@@ -38,7 +37,6 @@
     },
     "tabs": {
       "general": "General",
-      "content": "Content",
       "auth": "Auth",
       "payment": "Payment",
       "email": "Email",
