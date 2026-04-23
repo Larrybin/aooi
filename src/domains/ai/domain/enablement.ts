@@ -1,7 +1,5 @@
-import { isConfigTrue } from '@/shared/lib/general-ui.client';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
-export const GENERAL_AI_ENABLED = 'general_ai_enabled';
-
-export function isAiEnabled(publicConfigs: Record<string, string> | undefined) {
-  return isConfigTrue(publicConfigs ?? {}, GENERAL_AI_ENABLED);
+export function isAiEnabled(config: PublicUiConfig | undefined) {
+  return Boolean(config?.aiEnabled);
 }

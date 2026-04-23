@@ -11,7 +11,11 @@ import { getUuid } from '@/shared/lib/hash';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 import { isProductionEnv } from '@/shared/lib/env';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-runtime.query';
+import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import type {
+  AuthServerBindings,
+  AuthUiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import { site } from '@/site';
 import {
   getServerRuntimeEnv,
@@ -24,6 +28,7 @@ import {
 } from '@/infra/platform/auth/reset-password-throttle';
 import { getEmailService } from '@/infra/adapters/email/service';
 import { installAuthSpikeOAuthFetchMock } from './oauth-spike.mock';
+import { getAuthServerBindings } from './server-bindings';
 import {
   buildTrustedAuthOrigins,
   isExplicitLocalAuthRuntimeEnabled,
@@ -149,17 +154,18 @@ export async function getAuthOptions(
   installAuthSpikeOAuthFetchMock();
   assertAuthEnv();
   const baseAuthOptions = buildAuthOptionsBase();
-  const configs = await readRuntimeSettingsCached();
+  const authSettings = await readAuthUiRuntimeSettingsCached();
+  const authBindings = getAuthServerBindings();
   const { isProduction, isAuthSpikeOAuthUpstreamMock } =
     getAuthRuntimeContext(request);
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
   const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthOriginDebug(request);
   const appName = site.brand.appName.trim();
-  const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
+  const socialProviders = await getSocialProviders({
+    settings: authSettings,
+    bindings: authBindings,
+    authBaseUrl: runtimeBaseUrl,
+  });
   if (isRuntimeEnvEnabled('CF_LOCAL_AUTH_DEBUG')) {
     log.warn('[auth-debug] request origin resolution', {
       operation: 'resolve-request-origin',
@@ -273,7 +279,7 @@ export async function getAuthOptions(
       : { enabled: false },
     socialProviders,
     plugins:
-      socialProviders.google && configs.google_one_tap_enabled === 'true'
+      socialProviders.google && authSettings.googleOneTapEnabled
         ? [oneTap()]
         : [],
   };
@@ -283,36 +289,43 @@ function buildSocialProviderRedirectURI(authBaseUrl: string, provider: string) {
   return `${authBaseUrl.replace(/\/+$/, '')}/api/auth/callback/${provider}`;
 }
 
-export async function getSocialProviders(configs: Configs, authBaseUrl: string) {
-  // get configs from db
+export async function getSocialProviders({
+  settings: authSettings,
+  bindings,
+  authBaseUrl,
+}: {
+  settings: AuthUiRuntimeSettings;
+  bindings: AuthServerBindings;
+  authBaseUrl: string;
+}) {
   const providers: Record<
     string,
     { clientId: string; clientSecret: string; redirectURI: string }
   > = {};
 
-  const googleEnabled = configs.google_auth_enabled === 'true';
-  const githubEnabled = configs.github_auth_enabled === 'true';
+  const googleEnabled = authSettings.googleAuthEnabled;
+  const githubEnabled = authSettings.githubAuthEnabled;
 
   if (
     googleEnabled &&
-    configs.google_client_id &&
-    configs.google_client_secret
+    bindings.googleClientId &&
+    bindings.googleClientSecret
   ) {
     providers.google = {
-      clientId: configs.google_client_id,
-      clientSecret: configs.google_client_secret,
+      clientId: bindings.googleClientId,
+      clientSecret: bindings.googleClientSecret,
       redirectURI: buildSocialProviderRedirectURI(authBaseUrl, 'google'),
     };
   }
 
   if (
     githubEnabled &&
-    configs.github_client_id &&
-    configs.github_client_secret
+    bindings.githubClientId &&
+    bindings.githubClientSecret
   ) {
     providers.github = {
-      clientId: configs.github_client_id,
-      clientSecret: configs.github_client_secret,
+      clientId: bindings.githubClientId,
+      clientSecret: bindings.githubClientSecret,
       redirectURI: buildSocialProviderRedirectURI(authBaseUrl, 'github'),
     };
   }

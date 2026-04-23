@@ -19,6 +19,25 @@ export type CloudflareBindings = {
   NEXT_CACHE_DO_QUEUE?: unknown;
   NEXT_TAG_CACHE_DO_SHARDED?: unknown;
   STATEFUL_LIMITERS?: unknown;
+  BETTER_AUTH_SECRET?: string;
+  AUTH_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  STRIPE_PUBLISHABLE_KEY?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_SIGNING_SECRET?: string;
+  CREEM_API_KEY?: string;
+  CREEM_SIGNING_SECRET?: string;
+  PAYPAL_CLIENT_ID?: string;
+  PAYPAL_CLIENT_SECRET?: string;
+  PAYPAL_WEBHOOK_ID?: string;
+  OPENROUTER_API_KEY?: string;
+  REPLICATE_API_TOKEN?: string;
+  FAL_API_KEY?: string;
+  KIE_API_KEY?: string;
+  STORAGE_PUBLIC_BASE_URL?: string;
 } & Record<string, unknown>;
 
 type RuntimeEnvOptions = {

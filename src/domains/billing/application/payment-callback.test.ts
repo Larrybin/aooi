@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  type BillingRuntimeSettings,
+  type PaymentRuntimeBindings,
   confirmPaymentCallbackUseCase,
   resolvePaymentCallbackPricingFallbackUrl,
   resolvePaymentCallbackRedirectQuery,
@@ -26,6 +28,31 @@ function createLog() {
   };
 }
 
+const BILLING_SETTINGS: BillingRuntimeSettings = {
+  locale: '',
+  defaultLocale: '',
+  selectPaymentEnabled: false,
+  defaultPaymentProvider: 'stripe',
+  stripeEnabled: true,
+  stripePaymentMethods: '',
+  creemEnabled: false,
+  creemEnvironment: 'sandbox',
+  creemProductIds: '',
+  paypalEnabled: false,
+  paypalEnvironment: 'sandbox',
+};
+
+const PAYMENT_BINDINGS: PaymentRuntimeBindings = {
+  stripePublishableKey: '',
+  stripeSecretKey: '',
+  stripeSigningSecret: '',
+  creemApiKey: '',
+  creemSigningSecret: '',
+  paypalClientId: '',
+  paypalClientSecret: '',
+  paypalWebhookId: '',
+};
+
 test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pricing', async () => {
   const log = createLog();
 
@@ -36,7 +63,7 @@ test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pric
       log,
     },
     {
-      readRuntimeSettingsCached: async () => ({}) as never,
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
       findOrderByOrderNo: async () => undefined as never,
     }
   );
@@ -49,7 +76,7 @@ test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pric
       log,
     },
     {
-      readRuntimeSettingsCached: async () => ({}) as never,
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
       findOrderByOrderNo: async () =>
         ({
           orderNo: 'order_1',
@@ -70,7 +97,7 @@ test('resolvePaymentCallbackRedirectQuery 成功返回带 order_no 的 redirectU
       log: createLog(),
     },
     {
-      readRuntimeSettingsCached: async () => ({}) as never,
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
       findOrderByOrderNo: async () =>
         ({
           orderNo: 'order_1',
@@ -86,7 +113,7 @@ test('resolvePaymentCallbackRedirectQuery 成功返回带 order_no 的 redirectU
 
 test('resolvePaymentCallbackPricingFallbackUrl 返回绝对 pricing fallback url', async () => {
   const result = await resolvePaymentCallbackPricingFallbackUrl({
-    readRuntimeSettingsCached: async () => ({}) as never,
+    readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
   });
 
   assert.equal(result, `${site.brand.appUrl}/pricing`);
@@ -94,8 +121,7 @@ test('resolvePaymentCallbackPricingFallbackUrl 返回绝对 pricing fallback url
 
 test('resolvePaymentCallbackPricingFallbackUrl 不再读取 settings/env appUrl fallback', async () => {
   const result = await resolvePaymentCallbackPricingFallbackUrl({
-    readRuntimeSettingsCached: async () =>
-      ({ ignoredSiteUrl: 'https://ignored.example.com' }) as never,
+    readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
   });
 
   assert.equal(result, `${site.brand.appUrl}/pricing`);
@@ -112,15 +138,16 @@ test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付',
           log: createLog(),
         },
         {
-          readRuntimeSettingsCached: async () => ({}) as never,
-          readRuntimeSettingsFresh: async () => ({}) as never,
+          readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+          readBillingRuntimeSettingsFresh: async () => BILLING_SETTINGS,
+          readPaymentRuntimeBindings: () => PAYMENT_BINDINGS,
           findOrderByOrderNo: async () =>
             ({
               orderNo: 'order_1',
               userId: 'user_1',
               paymentType: 'subscription',
             }) as never,
-          getPaymentServiceWithConfigs: async () => {
+          getPaymentService: async () => {
             throw new Error('should not call payment service');
           },
           handleCheckoutSuccess: async () => {
@@ -141,8 +168,9 @@ test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付',
       log: createLog(),
     },
     {
-      readRuntimeSettingsCached: async () => ({}) as never,
-      readRuntimeSettingsFresh: async () => ({}) as never,
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readBillingRuntimeSettingsFresh: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: () => PAYMENT_BINDINGS,
       findOrderByOrderNo: async () =>
         ({
           orderNo: 'order_1',
@@ -152,7 +180,7 @@ test('confirmPaymentCallbackUseCase 覆盖 invalid order 与成功确认支付',
           paymentSessionId: 'session_1',
           paymentProvider: 'stripe',
         }) as never,
-      getPaymentServiceWithConfigs: async () =>
+      getPaymentService: async () =>
         ({
           getPaymentSession: async () =>
             ({

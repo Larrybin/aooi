@@ -1,10 +1,39 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type {
+  BillingRuntimeSettings,
+  PaymentRuntimeBindings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import {
   cancelSubscriptionUseCase,
   readCancelableSubscriptionPageUseCase,
 } from './member-billing.actions';
+
+const BILLING_SETTINGS: BillingRuntimeSettings = {
+  locale: '',
+  defaultLocale: '',
+  selectPaymentEnabled: false,
+  defaultPaymentProvider: 'stripe',
+  stripeEnabled: true,
+  stripePaymentMethods: '',
+  creemEnabled: false,
+  creemEnvironment: 'sandbox',
+  creemProductIds: '',
+  paypalEnabled: false,
+  paypalEnvironment: 'sandbox',
+};
+
+const PAYMENT_BINDINGS: PaymentRuntimeBindings = {
+  stripePublishableKey: '',
+  stripeSecretKey: '',
+  stripeSigningSecret: '',
+  creemApiKey: '',
+  creemSigningSecret: '',
+  paypalClientId: '',
+  paypalClientSecret: '',
+  paypalWebhookId: '',
+};
 
 test('readCancelableSubscriptionPageUseCase 返回 not_found / forbidden / missing_subscription_target', async () => {
   const notFound = await readCancelableSubscriptionPageUseCase(
@@ -14,10 +43,11 @@ test('readCancelableSubscriptionPageUseCase 返回 not_found / forbidden / missi
     },
     {
       findSubscriptionBySubscriptionNo: async () => undefined,
-      getPaymentServiceWithConfigs: async () => ({
+      getPaymentService: async () => ({
         getProvider: () => undefined,
       }),
-      readRuntimeSettingsCached: async () => ({}),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );
   assert.deepEqual(notFound, { status: 'not_found' });
@@ -33,10 +63,11 @@ test('readCancelableSubscriptionPageUseCase 返回 not_found / forbidden / missi
           subscriptionNo: 'sub_1',
           userId: 'other_user',
         }) as never,
-      getPaymentServiceWithConfigs: async () => ({
+      getPaymentService: async () => ({
         getProvider: () => undefined,
       }),
-      readRuntimeSettingsCached: async () => ({}),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );
   assert.deepEqual(forbidden, { status: 'forbidden' });
@@ -54,10 +85,11 @@ test('readCancelableSubscriptionPageUseCase 返回 not_found / forbidden / missi
           paymentProvider: null,
           subscriptionId: null,
         }) as never,
-      getPaymentServiceWithConfigs: async () => ({
+      getPaymentService: async () => ({
         getProvider: () => undefined,
       }),
-      readRuntimeSettingsCached: async () => ({}),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );
   assert.deepEqual(missingTarget, { status: 'missing_subscription_target' });
@@ -78,10 +110,14 @@ test('readCancelableSubscriptionPageUseCase 对 provider 不可用返回 provide
           subscriptionId: 'provider_sub_1',
           status: 'canceled',
         }) as never,
-      getPaymentServiceWithConfigs: async () => ({
+      getPaymentService: async () => ({
         getProvider: () => undefined,
       }),
-      readRuntimeSettingsCached: async () => ({ stripe_enabled: 'false' }),
+      readBillingRuntimeSettingsCached: async () => ({
+        ...BILLING_SETTINGS,
+        stripeEnabled: false,
+      }),
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );
 
@@ -108,12 +144,13 @@ test('readCancelableSubscriptionPageUseCase 对 provider 不可用返回 provide
           currentPeriodStart: new Date('2026-04-01T00:00:00.000Z'),
           currentPeriodEnd: new Date('2026-05-01T00:00:00.000Z'),
         }) as never,
-      getPaymentServiceWithConfigs: async () => ({
+      getPaymentService: async () => ({
         getProvider: () => ({
           cancelSubscription: async () => ({ ok: true }),
         }),
       }),
-      readRuntimeSettingsCached: async () => ({ stripe_enabled: 'true' }),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );
 
@@ -142,10 +179,11 @@ test('readCancelableSubscriptionPageUseCase 在 payment service 构建失败时�
           currentPeriodStart: new Date('2026-04-01T00:00:00.000Z'),
           currentPeriodEnd: new Date('2026-05-01T00:00:00.000Z'),
         }) as never,
-      getPaymentServiceWithConfigs: async () => {
+      getPaymentService: async () => {
         throw new Error('stripe_signing_secret is required in production');
       },
-      readRuntimeSettingsCached: async () => ({ stripe_enabled: 'true' }),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );
 
@@ -167,12 +205,13 @@ test('cancelSubscriptionUseCase 仅在提交期返回 invalid_status', async () 
           paymentProvider: 'stripe',
           status: 'canceled',
         }) as never,
-      getPaymentServiceWithConfigs: async () => ({
+      getPaymentService: async () => ({
         getProvider: () => ({
           cancelSubscription: async () => ({ ok: true }),
         }),
       }),
-      readRuntimeSettingsCached: async () => ({ stripe_enabled: 'true' }),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
+      readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
       updateSubscriptionBySubscriptionNo: async () => ({}),
     }
   );

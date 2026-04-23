@@ -3,6 +3,10 @@ import type {
   streamText,
 } from 'ai';
 import type { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 export type ChatUser = {
   id: string;
@@ -91,8 +95,6 @@ export type RefundConsumedCreditResult =
   | { refunded: true }
   | { refunded: false; reason: string };
 
-export type ChatConfigs = Record<string, string>;
-
 export type ChatApplicationDeps = {
   generateId: () => string;
   now: () => Date;
@@ -126,7 +128,8 @@ export type ChatApplicationDeps = {
     status: ChatMessageStatus;
     limit: number;
   }) => Promise<ChatMessageRecord[]>;
-  readRuntimeSettings: () => Promise<ChatConfigs>;
+  readAiRuntimeSettings: () => Promise<AiRuntimeSettings>;
+  readAiProviderBindings: () => Promise<AiProviderBindings>;
   consumeCredits: (params: {
     userId: string;
     credits: number;

@@ -119,12 +119,20 @@ async function getRefreshMemberAiTaskDeps(): Promise<RefreshMemberAiTaskDeps> {
     import('@/domains/ai/infra/ai-task'),
     import('@/domains/ai/application/service'),
   ]);
+  const [{ readAiRuntimeSettingsCached }, { getAiProviderBindings }] =
+    await Promise.all([
+      import('@/domains/settings/application/settings-runtime.query'),
+      import('@/domains/ai/application/provider-bindings'),
+    ]);
 
   return {
     findAITaskById: aiTaskModule.findAITaskById,
     updateAITaskById: aiTaskModule.updateAITaskById,
     getProvider: async (name) => {
-      const aiService = await serviceModule.getAIService();
+      const aiService = serviceModule.getAIService({
+        settings: await readAiRuntimeSettingsCached(),
+        bindings: getAiProviderBindings(),
+      });
       return aiService.getProvider(name);
     },
   };

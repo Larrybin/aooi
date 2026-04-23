@@ -5,7 +5,10 @@ import { SignUp } from '@/domains/account/ui/auth/sign-up';
 import { getTranslations } from 'next-intl/server';
 
 import { buildCanonicalUrl } from '@/infra/url/canonical';
-import { readSettingsCached } from '@/domains/settings/application/settings-store';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 
 export async function generateMetadata({
   params,
@@ -31,7 +34,16 @@ export default async function SignUpPage({
 }) {
   const { callbackUrl } = await searchParams;
 
-  const configs = await readSettingsCached();
+  const [authSettings, publicUiConfig] = await Promise.all([
+    readAuthUiRuntimeSettingsCached(),
+    readPublicUiConfigCached(),
+  ]);
 
-  return <SignUp configs={configs} callbackUrl={callbackUrl || '/'} />;
+  return (
+    <SignUp
+      authSettings={authSettings}
+      publicUiConfig={publicUiConfig}
+      callbackUrl={callbackUrl || '/'}
+    />
+  );
 }

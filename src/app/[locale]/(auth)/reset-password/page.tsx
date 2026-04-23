@@ -5,7 +5,7 @@ import { ResetPassword } from '@/domains/account/ui/auth/reset-password';
 import { getTranslations } from 'next-intl/server';
 
 import { buildCanonicalUrl } from '@/infra/url/canonical';
-import { readSettingsCached } from '@/domains/settings/application/settings-store';
+import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 
 export async function generateMetadata({
   params,
@@ -29,7 +29,9 @@ export default async function ResetPasswordPage({
   searchParams: Promise<{ token?: string; error?: string }>;
 }) {
   const { token, error } = await searchParams;
-  const configs = await readSettingsCached();
+  const authSettings = await readAuthUiRuntimeSettingsCached();
 
-  return <ResetPassword token={token} error={error} configs={configs} />;
+  return (
+    <ResetPassword token={token} error={error} authSettings={authSettings} />
+  );
 }

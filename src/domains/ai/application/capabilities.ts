@@ -2,7 +2,10 @@ import {
   BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
-import type { Configs } from '@/domains/settings/application/settings-runtime.query';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import {
   listAvailableAICapabilities,
   resolveAICapability,
@@ -13,23 +16,37 @@ import type {
   AICapabilitySelection,
 } from '@/shared/types/ai-capability';
 
-function toAIProviderAvailability(configs: Configs): AIProviderAvailability {
+function toAIProviderAvailability(
+  bindings: AiProviderBindings
+): AIProviderAvailability {
   return {
-    kie: Boolean(configs.kie_api_key),
-    replicate: Boolean(configs.replicate_api_token),
+    kie: Boolean(bindings.kieApiKey),
+    replicate: Boolean(bindings.replicateApiToken),
   };
 }
 
-export function listConfiguredAICapabilities(configs: Configs) {
-  return listAvailableAICapabilities(toAIProviderAvailability(configs));
+export function listConfiguredAICapabilities(
+  settings: AiRuntimeSettings,
+  bindings: AiProviderBindings
+) {
+  if (!settings.aiEnabled) {
+    return [];
+  }
+
+  return listAvailableAICapabilities(toAIProviderAvailability(bindings));
 }
 
 export function resolveConfiguredAICapability(
-  configs: Configs,
+  settings: AiRuntimeSettings,
+  bindings: AiProviderBindings,
   selection: AICapabilitySelection
 ) {
+  if (!settings.aiEnabled) {
+    throw new ServiceUnavailableError('ai capability not available');
+  }
+
   const capability = resolveAICapability(
-    toAIProviderAvailability(configs),
+    toAIProviderAvailability(bindings),
     selection
   );
 
@@ -41,17 +58,27 @@ export function resolveConfiguredAICapability(
 }
 
 export async function listPublicAICapabilities() {
-  const { readRuntimeSettingsCached } = await import('@/domains/settings/application/settings-runtime.query');
-  const configs = await readRuntimeSettingsCached();
+  const [{ readAiRuntimeSettingsCached }, { getAiProviderBindings }] =
+    await Promise.all([
+      import('@/domains/settings/application/settings-runtime.query'),
+      import('./provider-bindings'),
+    ]);
+  const settings = await readAiRuntimeSettingsCached();
+  const bindings = getAiProviderBindings();
 
-  return listConfiguredAICapabilities(configs);
+  return listConfiguredAICapabilities(settings, bindings);
 }
 
 export async function resolvePublicAICapability(selection: AICapabilitySelection) {
-  const { readRuntimeSettingsCached } = await import('@/domains/settings/application/settings-runtime.query');
-  const configs = await readRuntimeSettingsCached();
+  const [{ readAiRuntimeSettingsCached }, { getAiProviderBindings }] =
+    await Promise.all([
+      import('@/domains/settings/application/settings-runtime.query'),
+      import('./provider-bindings'),
+    ]);
+  const settings = await readAiRuntimeSettingsCached();
+  const bindings = getAiProviderBindings();
 
-  return resolveConfiguredAICapability(configs, selection);
+  return resolveConfiguredAICapability(settings, bindings, selection);
 }
 
 export function requireCapability(

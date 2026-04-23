@@ -9,7 +9,7 @@ import {
   type PaymentOrder,
   type PaymentPrice,
 } from '@/domains/billing/domain/payment';
-import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
+import { getPaymentService } from '@/infra/adapters/payment/service';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -34,8 +34,10 @@ import {
   resolvePricingPaymentInterval,
   resolveSubscriptionPlanName,
 } from '@/domains/billing/domain/pricing';
-
-type PaymentRuntimeSettings = Record<string, string | undefined>;
+import type {
+  BillingRuntimeSettings,
+  PaymentRuntimeBindings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 type LogLike = {
   debug(message: string, meta?: unknown): void;
@@ -79,18 +81,18 @@ function assertAppUrlOrigin(appUrl: string): string {
 
 function resolvePaymentProviderName({
   requestedProvider,
-  configs,
+  settings,
   log,
 }: {
   requestedProvider: string | null | undefined;
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
   log: LogLike;
 }): string {
   const provider =
-    (requestedProvider || '').trim() || configs.default_payment_provider;
+    (requestedProvider || '').trim() || settings.defaultPaymentProvider;
   if (!provider) {
     log.error('payment: no payment provider configured', {
-      defaultPaymentProvider: configs.default_payment_provider,
+      defaultPaymentProvider: settings.defaultPaymentProvider,
     });
     throw new ServiceUnavailableError('payment provider not configured');
   }
@@ -101,13 +103,13 @@ async function getPaymentProductIdFromProviderConfig({
   productId,
   provider,
   checkoutCurrency,
-  configs,
+  settings,
   log,
 }: {
   productId: string;
   provider: string;
   checkoutCurrency: string;
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
   log: LogLike;
 }): Promise<string | undefined> {
   if (provider !== 'creem') {
@@ -116,7 +118,7 @@ async function getPaymentProductIdFromProviderConfig({
 
   try {
     const resolved = resolveCreemPaymentProductId({
-      configValue: configs.creem_product_ids,
+      configValue: settings.creemProductIds,
       productId,
       checkoutCurrency,
     });
@@ -146,19 +148,19 @@ async function getPaymentProductIdFromProviderConfig({
 }
 
 function buildCallbackUrl({
-  configs,
+  settings,
   locale,
   paymentType,
 }: {
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
   locale: string | null | undefined;
   paymentType: PaymentType;
 }): { callbackUrl: string; callbackBaseUrl: string } {
   const appUrl = assertAppUrlOrigin(site.brand.appUrl);
   const activeLocale =
     normalizeLocaleValue(locale) ??
-    normalizeLocaleValue(configs.locale) ??
-    normalizeLocaleValue(configs.default_locale);
+    normalizeLocaleValue(settings.locale) ??
+    normalizeLocaleValue(settings.defaultLocale);
 
   let callbackBaseUrl = appUrl;
   if (activeLocale && activeLocale !== defaultLocale) {
@@ -291,7 +293,8 @@ function buildPendingOrder({
 export async function createPaymentCheckoutSession({
   pricingItem,
   user,
-  configs,
+  settings,
+  bindings,
   currency,
   locale,
   paymentProvider,
@@ -300,7 +303,8 @@ export async function createPaymentCheckoutSession({
 }: {
   pricingItem: PricingItem;
   user: { id: string; email?: string | null; name?: string | null };
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
+  bindings: PaymentRuntimeBindings;
   currency: string | null | undefined;
   locale: string | null | undefined;
   paymentProvider: string | null | undefined;
@@ -313,7 +317,7 @@ export async function createPaymentCheckoutSession({
 
   const paymentProviderName = resolvePaymentProviderName({
     requestedProvider: paymentProvider,
-    configs,
+    settings,
     log,
   });
 
@@ -345,7 +349,7 @@ export async function createPaymentCheckoutSession({
         productId: pricingItem.product_id,
         provider: paymentProviderName,
         checkoutCurrency: pricingContext.checkoutCurrency,
-        configs,
+        settings,
         log,
       })) || '';
     paymentProductId = paymentProductId.trim();
@@ -363,7 +367,7 @@ export async function createPaymentCheckoutSession({
   }
 
   const { callbackUrl, callbackBaseUrl } = buildCallbackUrl({
-    configs,
+    settings,
     locale,
     paymentType,
   });
@@ -399,7 +403,10 @@ export async function createPaymentCheckoutSession({
     currentTime,
   });
 
-  const paymentService = await getPaymentServiceWithConfigs(configs);
+  const paymentService = await getPaymentService({
+    settings,
+    bindings,
+  });
 
   await createOrder(order);
 

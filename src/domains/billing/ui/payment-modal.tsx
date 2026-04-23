@@ -35,7 +35,7 @@ export function PaymentModal({
   onCheckout: (item: PricingItem, paymentProvider?: string) => void;
 }) {
   const t = useTranslations('common.payment');
-  const { isShowPaymentModal, setIsShowPaymentModal, configs } =
+  const { isShowPaymentModal, setIsShowPaymentModal, billingSettings } =
     usePublicAppContext();
 
   // todo: dynamic set callbackURL
@@ -55,7 +55,7 @@ export function PaymentModal({
           </DialogHeader>
           <PaymentProviders
             callbackUrl={callbackURL}
-            configs={configs}
+            billingSettings={billingSettings}
             loading={isLoading}
             setLoading={() => {}}
             pricingItem={pricingItem}
@@ -77,7 +77,7 @@ export function PaymentModal({
         </DrawerHeader>
         <PaymentProviders
           callbackUrl={callbackURL}
-          configs={configs}
+          billingSettings={billingSettings}
           loading={isLoading}
           setLoading={() => {}}
           pricingItem={pricingItem}

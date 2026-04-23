@@ -10,7 +10,7 @@ import {
   buildStorageSpikeUploadMockResult,
   isStorageSpikeUploadMockEnabled,
 } from './upload-mock';
-import { buildStorageServiceWithConfigs } from './service-builder';
+import { buildStorageService } from './service-builder';
 
 function withStoragePublicBaseUrl<T>(value: string | undefined, run: () => T): T {
   const previous = process.env.STORAGE_PUBLIC_BASE_URL;
@@ -91,10 +91,16 @@ test('resolveStoredAssetUrl 对 objectKey 依赖 STORAGE_PUBLIC_BASE_URL', () =>
   );
 });
 
-test('buildStorageServiceWithConfigs 在 mock 模式下返回 objectKey 对应 URL', async () => {
+test('buildStorageService 在 mock 模式下返回 objectKey 对应 URL', async () => {
   const service = withStoragePublicBaseUrl(
     'https://cdn.example.com/assets/',
-    () => buildStorageServiceWithConfigs({}, { uploadMockEnabled: true })
+    () =>
+      buildStorageService({
+        bindings: {
+          publicBaseUrl: 'https://cdn.example.com/assets/',
+        },
+        options: { uploadMockEnabled: true },
+      })
   );
 
   const result = await service.uploadFile({
@@ -112,10 +118,13 @@ test('buildStorageServiceWithConfigs 在 mock 模式下返回 objectKey 对应 U
   });
 });
 
-test('buildStorageServiceWithConfigs 缺少 STORAGE_PUBLIC_BASE_URL 时返回明确错误', async () => {
-  const service = withStoragePublicBaseUrl(undefined, () =>
-    buildStorageServiceWithConfigs({}, { uploadMockEnabled: false })
-  );
+test('buildStorageService 缺少 STORAGE_PUBLIC_BASE_URL 时返回明确错误', async () => {
+  const service = buildStorageService({
+    bindings: {
+      publicBaseUrl: '',
+    },
+    options: { uploadMockEnabled: false },
+  });
 
   await assert.rejects(
     service.uploadFile({
@@ -129,11 +138,13 @@ test('buildStorageServiceWithConfigs 缺少 STORAGE_PUBLIC_BASE_URL 时返回明
   );
 });
 
-test('buildStorageServiceWithConfigs 缺少 APP_STORAGE_R2_BUCKET binding 时返回明确错误', async () => {
-  const service = withStoragePublicBaseUrl(
-    'https://cdn.example.com/assets/',
-    () => buildStorageServiceWithConfigs({}, { uploadMockEnabled: false })
-  );
+test('buildStorageService 缺少 APP_STORAGE_R2_BUCKET binding 时返回明确错误', async () => {
+  const service = buildStorageService({
+    bindings: {
+      publicBaseUrl: 'https://cdn.example.com/assets/',
+    },
+    options: { uploadMockEnabled: false },
+  });
 
   await assert.rejects(
     service.uploadFile({
@@ -144,5 +155,16 @@ test('buildStorageServiceWithConfigs 缺少 APP_STORAGE_R2_BUCKET binding 时返
     (error: unknown) =>
       error instanceof Error &&
       error.message === 'APP_STORAGE_R2_BUCKET binding is missing'
+  );
+});
+
+test('buildStorageService 明确拒绝旧 configs 形态', () => {
+  assert.throws(
+    () =>
+      buildStorageService({
+        // @ts-expect-error runtime guard
+        configs: {},
+      }),
+    /Storage is binding-only/
   );
 });

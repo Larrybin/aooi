@@ -12,7 +12,8 @@ import {
   getChatMessages,
   getChatMessagesCount,
 } from '@/domains/chat/infra/chat-message';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { readAiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
 import {
   consumeCredits,
   refundConsumedCreditById,
@@ -208,7 +209,8 @@ export const chatStreamDeps = {
         limit,
       })
     ).map(mapChatMessageRecord),
-  readRuntimeSettings: readRuntimeSettingsCached,
+  readAiRuntimeSettings: readAiRuntimeSettingsCached,
+  readAiProviderBindings: async () => getAiProviderBindings(),
   consumeCredits,
   refundConsumedCreditById,
 };

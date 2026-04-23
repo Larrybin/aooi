@@ -20,14 +20,15 @@ import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import { cn } from '@/shared/lib/utils';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import type { Button as ButtonType } from '@/shared/types/blocks/common';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function SocialProviders({
-  configs,
+  authSettings,
   callbackUrl,
   loading,
   setLoading,
 }: {
-  configs: Record<string, string>;
+  authSettings: AuthUiRuntimeSettings;
   callbackUrl: string;
   loading: boolean;
   setLoading: (loading: boolean) => void;
@@ -93,7 +94,7 @@ export function SocialProviders({
 
   const providers: ButtonType[] = [];
 
-  if (configs.google_auth_enabled === 'true') {
+  if (authSettings.googleAuthEnabled) {
     providers.push({
       name: 'google',
       title: t('google_sign_in_title'),
@@ -102,7 +103,7 @@ export function SocialProviders({
     });
   }
 
-  if (configs.github_auth_enabled === 'true') {
+  if (authSettings.githubAuthEnabled) {
     providers.push({
       name: 'github',
       title: t('github_sign_in_title'),

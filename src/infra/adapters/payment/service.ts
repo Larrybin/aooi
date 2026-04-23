@@ -18,58 +18,56 @@ import type {
   PaymentProvider,
   PaymentSession,
 } from '@/domains/billing/domain/payment';
+import type {
+  BillingRuntimeSettings,
+  PaymentRuntimeBindings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 const log = createUseCaseLogger({
   domain: 'billing',
   useCase: 'payment-adapter-service',
 });
 
-export type PaymentRuntimeSettings = Record<string, string | undefined>;
+type PaymentServiceInput = {
+  settings: BillingRuntimeSettings;
+  bindings: PaymentRuntimeBindings;
+};
 
-function getConfigValue(
-  configs: PaymentRuntimeSettings,
-  key: string
-): string {
-  return configs[key] ?? '';
+function assertStructuredPaymentInput(
+  input: unknown
+): asserts input is PaymentServiceInput {
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    !('settings' in input) ||
+    !('bindings' in input) ||
+    Object.keys(input as Record<string, unknown>).some(
+      (key) => key !== 'settings' && key !== 'bindings'
+    )
+  ) {
+    throw new Error('Payment service requires structured settings + bindings');
+  }
 }
 
 async function addStripeProvider(
   registry: ProviderRegistry<PaymentProvider>,
-  configs: PaymentRuntimeSettings
+  input: PaymentServiceInput
 ) {
   const { StripeProvider } = await import('@/infra/adapters/payment/stripe');
-  const defaultProvider = configs.default_payment_provider;
+  const { settings, bindings } = input;
   const isProduction = isProductionEnv();
-  const signingSecret = configs.stripe_signing_secret || '';
 
-  if (isProduction && !signingSecret.trim()) {
+  if (isProduction && !bindings.stripeSigningSecret.trim()) {
     throw new ServiceUnavailableError(
       'stripe_signing_secret is required in production'
     );
   }
 
   let allowedPaymentMethods = ['card'];
-  const stripePaymentMethodsConfig = configs.stripe_payment_methods;
+  const stripePaymentMethodsConfig = settings.stripePaymentMethods;
 
-  if (typeof stripePaymentMethodsConfig === 'string') {
+  if (stripePaymentMethodsConfig) {
     const result = parseStripePaymentMethodsConfig(stripePaymentMethodsConfig);
-    if (!result.ok) {
-      log.warn(
-        'payment: invalid stripe payment methods config, fallback to card',
-        {
-          operation: 'parse-stripe-payment-methods',
-          error: result.error,
-        }
-      );
-    } else {
-      allowedPaymentMethods = result.methods;
-    }
-  }
-
-  if (Array.isArray(stripePaymentMethodsConfig)) {
-    const result = parseStripePaymentMethodsConfig(
-      JSON.stringify(stripePaymentMethodsConfig)
-    );
     if (!result.ok) {
       log.warn(
         'payment: invalid stripe payment methods config, fallback to card',
@@ -85,13 +83,13 @@ async function addStripeProvider(
 
   registry.addUnique(
     new StripeProvider({
-      secretKey: getConfigValue(configs, 'stripe_secret_key'),
-      publishableKey: getConfigValue(configs, 'stripe_publishable_key'),
-      signingSecret: getConfigValue(configs, 'stripe_signing_secret'),
+      secretKey: bindings.stripeSecretKey,
+      publishableKey: bindings.stripePublishableKey,
+      signingSecret: bindings.stripeSigningSecret,
       allowedPaymentMethods,
     }),
     {
-      isDefault: defaultProvider === 'stripe',
+      isDefault: settings.defaultPaymentProvider === 'stripe',
       invalidNameError: () =>
         new ServiceUnavailableError('Payment provider name is required'),
       duplicateNameError: (name) =>
@@ -104,19 +102,19 @@ async function addStripeProvider(
 
 async function addCreemProvider(
   registry: ProviderRegistry<PaymentProvider>,
-  configs: PaymentRuntimeSettings
+  input: PaymentServiceInput
 ) {
   const { CreemProvider } = await import('@/infra/adapters/payment/creem');
+  const { settings, bindings } = input;
 
   registry.addUnique(
     new CreemProvider({
-      apiKey: getConfigValue(configs, 'creem_api_key'),
-      environment:
-        configs.creem_environment === 'production' ? 'production' : 'sandbox',
-      signingSecret: getConfigValue(configs, 'creem_signing_secret'),
+      apiKey: bindings.creemApiKey,
+      environment: settings.creemEnvironment,
+      signingSecret: bindings.creemSigningSecret,
     }),
     {
-      isDefault: configs.default_payment_provider === 'creem',
+      isDefault: settings.defaultPaymentProvider === 'creem',
       invalidNameError: () =>
         new ServiceUnavailableError('Payment provider name is required'),
       duplicateNameError: (name) =>
@@ -129,20 +127,20 @@ async function addCreemProvider(
 
 async function addPayPalProvider(
   registry: ProviderRegistry<PaymentProvider>,
-  configs: PaymentRuntimeSettings
+  input: PaymentServiceInput
 ) {
   const { PayPalProvider } = await import('@/infra/adapters/payment/paypal');
+  const { settings, bindings } = input;
 
   registry.addUnique(
     new PayPalProvider({
-      clientId: getConfigValue(configs, 'paypal_client_id'),
-      clientSecret: getConfigValue(configs, 'paypal_client_secret'),
-      webhookId: getConfigValue(configs, 'paypal_webhook_id'),
-      environment:
-        configs.paypal_environment === 'production' ? 'production' : 'sandbox',
+      clientId: bindings.paypalClientId,
+      clientSecret: bindings.paypalClientSecret,
+      webhookId: bindings.paypalWebhookId,
+      environment: settings.paypalEnvironment,
     }),
     {
-      isDefault: configs.default_payment_provider === 'paypal',
+      isDefault: settings.defaultPaymentProvider === 'paypal',
       invalidNameError: () =>
         new ServiceUnavailableError('Payment provider name is required'),
       duplicateNameError: (name) =>
@@ -170,23 +168,25 @@ export type PaymentService = {
   }): Promise<PaymentEvent>;
 };
 
-export async function getPaymentServiceWithConfigs(
-  configs: PaymentRuntimeSettings
+export async function getPaymentService(
+  input: PaymentServiceInput
 ): Promise<PaymentService> {
+  assertStructuredPaymentInput(input);
+
   const registry = new ProviderRegistry<PaymentProvider>({
     toNameKey: trimmedProviderNameKey,
   });
 
-  if (configs.stripe_enabled === 'true') {
-    await addStripeProvider(registry, configs);
+  if (input.settings.stripeEnabled) {
+    await addStripeProvider(registry, input);
   }
 
-  if (configs.creem_enabled === 'true') {
-    await addCreemProvider(registry, configs);
+  if (input.settings.creemEnabled) {
+    await addCreemProvider(registry, input);
   }
 
-  if (configs.paypal_enabled === 'true') {
-    await addPayPalProvider(registry, configs);
+  if (input.settings.paypalEnabled) {
+    await addPayPalProvider(registry, input);
   }
 
   const resolveProvider = (provider?: string) => {
@@ -204,19 +204,19 @@ export async function getPaymentServiceWithConfigs(
   return {
     getProvider: (name) => registry.get(name),
     getDefaultProvider: () => registry.getDefault(),
-    async createPayment(input) {
-      return await resolveProvider(input.provider).createPayment({
-        order: input.order,
+    async createPayment(nextInput) {
+      return await resolveProvider(nextInput.provider).createPayment({
+        order: nextInput.order,
       });
     },
-    async getPaymentSession(input) {
-      return await resolveProvider(input.provider).getPaymentSession({
-        sessionId: input.sessionId,
+    async getPaymentSession(nextInput) {
+      return await resolveProvider(nextInput.provider).getPaymentSession({
+        sessionId: nextInput.sessionId,
       });
     },
-    async getPaymentEvent(input) {
-      return await resolveProvider(input.provider).getPaymentEvent({
-        req: input.req,
+    async getPaymentEvent(nextInput) {
+      return await resolveProvider(nextInput.provider).getPaymentEvent({
+        req: nextInput.req,
       });
     },
   } satisfies PaymentService;

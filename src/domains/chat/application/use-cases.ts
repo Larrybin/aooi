@@ -39,7 +39,8 @@ type StreamChatDeps = Pick<
   | 'findChatById'
   | 'createChatMessage'
   | 'getChatMessageWindow'
-  | 'readRuntimeSettings'
+  | 'readAiRuntimeSettings'
+  | 'readAiProviderBindings'
   | 'consumeCredits'
   | 'refundConsumedCreditById'
 >;
@@ -246,8 +247,12 @@ export async function streamChatUseCase(
 
   await requireOwnedChat(deps, input.chatId, input.user.id);
 
-  const configs = await deps.readRuntimeSettings();
-  const openrouterApiKey = configs.openrouter_api_key;
+  const settings = await deps.readAiRuntimeSettings();
+  if (!settings.aiEnabled) {
+    throw new ServiceUnavailableError('chat service unavailable');
+  }
+  const bindings = await deps.readAiProviderBindings();
+  const openrouterApiKey = bindings.openrouterApiKey;
   if (!openrouterApiKey) {
     input.log.error('chat: openrouter_api_key is missing');
     throw new ServiceUnavailableError('chat service unavailable');

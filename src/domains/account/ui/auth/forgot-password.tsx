@@ -21,11 +21,12 @@ import {
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { toErrorMessage } from '@/shared/lib/errors';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function ForgotPassword({
-  configs,
+  authSettings,
 }: {
-  configs: Record<string, string>;
+  authSettings: AuthUiRuntimeSettings;
 }) {
   const t = useTranslations('common.sign');
   const locale = useLocale();
@@ -33,11 +34,7 @@ export function ForgotPassword({
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
 
   const redirectTo = useMemo(() => {
     const resetPath =

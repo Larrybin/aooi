@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { UIMessage } from 'ai';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 import {
   createChatUseCase,
@@ -30,6 +34,28 @@ function createLog() {
     },
   };
 }
+
+const AI_SETTINGS_DISABLED: AiRuntimeSettings = {
+  aiEnabled: true,
+};
+
+const AI_SETTINGS_ENABLED: AiRuntimeSettings = {
+  aiEnabled: true,
+};
+
+const AI_BINDINGS_DISABLED: AiProviderBindings = {
+  openrouterApiKey: '',
+  replicateApiToken: '',
+  falApiKey: '',
+  kieApiKey: '',
+};
+
+const AI_BINDINGS_ENABLED: AiProviderBindings = {
+  openrouterApiKey: 'key_1',
+  replicateApiToken: '',
+  falApiKey: '',
+  kieApiKey: '',
+};
 
 test('createChatUseCase 生成 chat 标题和初始内容', async () => {
   let created: Record<string, unknown> | null = null;
@@ -153,7 +179,8 @@ test('streamChatUseCase 缺 provider key 时不扣 credits 并返回 service una
             throw new Error('should not persist');
           },
           getChatMessageWindow: async () => [],
-          readRuntimeSettings: async () => ({}),
+          readAiRuntimeSettings: async () => AI_SETTINGS_DISABLED,
+          readAiProviderBindings: async () => AI_BINDINGS_DISABLED,
           consumeCredits: async () => {
             consumed += 1;
             return { id: 'credit_1' };
@@ -207,7 +234,8 @@ test('streamChatUseCase 在 provider failure 时退款', async () => {
         return message as never;
       },
       getChatMessageWindow: async () => [],
-      readRuntimeSettings: async () => ({ openrouter_api_key: 'key_1' }),
+      readAiRuntimeSettings: async () => AI_SETTINGS_ENABLED,
+      readAiProviderBindings: async () => AI_BINDINGS_ENABLED,
       consumeCredits: async () => ({ id: 'credit_1' }),
       refundConsumedCreditById: async (creditId) => {
         refunds.push(creditId);
@@ -271,7 +299,8 @@ test('streamChatUseCase 在 assistant message 持久化失败时退款', async (
         return message as never;
       },
       getChatMessageWindow: async () => [],
-      readRuntimeSettings: async () => ({ openrouter_api_key: 'key_1' }),
+      readAiRuntimeSettings: async () => AI_SETTINGS_ENABLED,
+      readAiProviderBindings: async () => AI_BINDINGS_ENABLED,
       consumeCredits: async () => ({ id: 'credit_1' }),
       refundConsumedCreditById: async (creditId) => {
         refunds.push(creditId);

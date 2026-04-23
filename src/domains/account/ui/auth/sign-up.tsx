@@ -26,6 +26,10 @@ import {
 import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
+import type {
+  AuthUiRuntimeSettings,
+  PublicUiConfig,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 import { reportSignUpAffiliate } from './report-sign-up-affiliate';
 import { SocialProviders } from './social-providers';
@@ -35,10 +39,12 @@ function subscribeToHydration() {
 }
 
 export function SignUp({
-  configs,
+  authSettings,
+  publicUiConfig,
   callbackUrl = '/',
 }: {
-  configs: Record<string, string>;
+  authSettings: AuthUiRuntimeSettings;
+  publicUiConfig: PublicUiConfig;
   callbackUrl: string;
 }) {
   const t = useTranslations('common.sign');
@@ -54,11 +60,7 @@ export function SignUp({
     () => false
   );
 
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
 
   const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
@@ -103,7 +105,7 @@ export function SignUp({
           },
           onSuccess: () => {
             reportSignUpAffiliate({
-              configs,
+              uiConfig: publicUiConfig,
               userEmail: email,
             });
 
@@ -211,7 +213,7 @@ export function SignUp({
           )}
 
           <SocialProviders
-            configs={configs}
+            authSettings={authSettings}
             callbackUrl={localizedCallbackUrl || '/'}
             loading={loading}
             setLoading={setLoading}

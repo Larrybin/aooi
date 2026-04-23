@@ -5,7 +5,7 @@ import { ForgotPassword } from '@/domains/account/ui/auth/forgot-password';
 import { getTranslations } from 'next-intl/server';
 
 import { buildCanonicalUrl } from '@/infra/url/canonical';
-import { readSettingsCached } from '@/domains/settings/application/settings-store';
+import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 
 export async function generateMetadata({
   params,
@@ -24,6 +24,6 @@ export async function generateMetadata({
 }
 
 export default async function ForgotPasswordPage() {
-  const configs = await readSettingsCached();
-  return <ForgotPassword configs={configs} />;
+  const authSettings = await readAuthUiRuntimeSettingsCached();
+  return <ForgotPassword authSettings={authSettings} />;
 }

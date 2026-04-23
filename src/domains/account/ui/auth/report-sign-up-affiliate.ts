@@ -1,12 +1,13 @@
 type AffiliateWindow = Pick<Window, 'Affonso' | 'promotekit'>;
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function reportSignUpAffiliate({
-  configs,
+  uiConfig,
   userEmail,
   stripeCustomerId,
   win = typeof window !== 'undefined' ? window : undefined,
 }: {
-  configs: Record<string, string>;
+  uiConfig: PublicUiConfig;
   userEmail: string;
   stripeCustomerId?: string;
   win?: AffiliateWindow;
@@ -15,11 +16,11 @@ export function reportSignUpAffiliate({
     return;
   }
 
-  if (configs.affonso_enabled === 'true') {
+  if (uiConfig.affiliate.affonsoEnabled) {
     win.Affonso?.signup(userEmail);
   }
 
-  if (configs.promotekit_enabled === 'true') {
+  if (uiConfig.affiliate.promotekitEnabled) {
     win.promotekit?.refer(userEmail, stripeCustomerId);
   }
 }

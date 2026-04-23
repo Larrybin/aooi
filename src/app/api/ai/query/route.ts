@@ -18,6 +18,10 @@ import { safeJsonParse } from '@/shared/lib/json';
 import type { UpdateAITask } from '@/domains/ai/infra/ai-task';
 import { AiQueryBodySchema } from '@/shared/schemas/api/ai/query';
 import type { getAIService as getAIServiceFn } from '@/domains/ai/application/service';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 type MaybePromise<T> = T | Promise<T>;
 type AiQueryApiContext = Pick<
@@ -44,7 +48,16 @@ type AiQueryRouteDeps = {
   getApiContext: (req: Request) => MaybePromise<AiQueryApiContext>;
   findAITaskById: (id: string) => Promise<AiTaskLike | undefined>;
   updateAITaskById: (id: string, updateAITask: UpdateAITask) => Promise<unknown>;
-  getAIService: typeof getAIServiceFn;
+  readAiRuntimeSettings: (
+    mode: ConfigConsistencyMode
+  ) => Promise<AiRuntimeSettings>;
+  readAiProviderBindings: () => MaybePromise<AiProviderBindings>;
+  getAIService: (
+    input: {
+      settings: AiRuntimeSettings;
+      bindings: AiProviderBindings;
+    }
+  ) => MaybePromise<Awaited<ReturnType<typeof getAIServiceFn>>>;
   rateLimiter: {
     checkAndConsume: (key: string, now?: number) => Promise<{
       allowed: boolean;
@@ -74,9 +87,19 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
       const mod = await import('@/domains/ai/infra/ai-task');
       return await mod.updateAITaskById(id, updateAITask);
     },
-    getAIService: async (options) => {
+    readAiRuntimeSettings: async (_mode) => {
+      const mod = await import('@/domains/settings/application/settings-runtime.query');
+      return _mode === 'fresh'
+        ? mod.readAiRuntimeSettingsFresh()
+        : mod.readAiRuntimeSettingsCached();
+    },
+    readAiProviderBindings: async () => {
+      const mod = await import('@/domains/ai/application/provider-bindings');
+      return mod.getAiProviderBindings();
+    },
+    getAIService: async ({ settings, bindings }) => {
       const mod = await import('@/domains/ai/application/service');
-      return await mod.getAIService(options);
+      return mod.getAIService({ settings, bindings });
     },
     rateLimiter: createLimiterFactory().createAiQueryCooldownLimiter(),
     now: Date.now,
@@ -149,7 +172,9 @@ function buildAiQueryPostLogic(
       });
     }
 
-    const aiService = await deps.getAIService({ mode });
+    const settings = await deps.readAiRuntimeSettings(mode);
+    const bindings = await deps.readAiProviderBindings();
+    const aiService = await deps.getAIService({ settings, bindings });
     const aiProvider = aiService.getProvider(task.provider);
     if (!aiProvider) {
       throw new BadRequestError('invalid ai provider');

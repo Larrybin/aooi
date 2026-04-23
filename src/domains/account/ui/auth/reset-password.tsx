@@ -19,15 +19,16 @@ import {
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { toErrorMessage } from '@/shared/lib/errors';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function ResetPassword({
   token,
   error,
-  configs,
+  authSettings,
 }: {
   token?: string;
   error?: string;
-  configs: Record<string, string>;
+  authSettings: AuthUiRuntimeSettings;
 }) {
   const t = useTranslations('common.sign');
   const router = useRouter();
@@ -36,11 +37,7 @@ export function ResetPassword({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
 
   const showInvalidToken = error === 'INVALID_TOKEN';
   const showMissingToken = !token && !showInvalidToken;

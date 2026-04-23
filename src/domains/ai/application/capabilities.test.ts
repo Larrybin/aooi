@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AIMediaType } from '@/extensions/ai';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import { resolveAICapabilitySelection } from '@/domains/ai/domain/capability-selection';
 
 import {
@@ -9,10 +13,33 @@ import {
   resolveConfiguredAICapability,
 } from './capabilities';
 
+const AI_SETTINGS: AiRuntimeSettings = {
+  aiEnabled: true,
+};
+
+const AI_DISABLED_SETTINGS: AiRuntimeSettings = {
+  aiEnabled: false,
+};
+
+const REPLICATE_BINDINGS: AiProviderBindings = {
+  openrouterApiKey: '',
+  replicateApiToken: 'token',
+  falApiKey: '',
+  kieApiKey: '',
+};
+
+const KIE_BINDINGS: AiProviderBindings = {
+  openrouterApiKey: '',
+  replicateApiToken: '',
+  falApiKey: '',
+  kieApiKey: 'token',
+};
+
 test('listConfiguredAICapabilities: 仅暴露当前 provider 已配置的能力', () => {
-  const imageCapabilities = listConfiguredAICapabilities({
-    replicate_api_token: 'token',
-  });
+  const imageCapabilities = listConfiguredAICapabilities(
+    AI_SETTINGS,
+    REPLICATE_BINDINGS
+  );
   assert.equal(
     imageCapabilities.every(
       (capability) => capability.mediaType === AIMediaType.IMAGE
@@ -20,9 +47,10 @@ test('listConfiguredAICapabilities: 仅暴露当前 provider 已配置的能力'
     true
   );
 
-  const musicCapabilities = listConfiguredAICapabilities({
-    kie_api_key: 'token',
-  });
+  const musicCapabilities = listConfiguredAICapabilities(
+    AI_SETTINGS,
+    KIE_BINDINGS
+  );
   assert.equal(
     musicCapabilities.every(
       (capability) => capability.mediaType === AIMediaType.MUSIC
@@ -31,11 +59,17 @@ test('listConfiguredAICapabilities: 仅暴露当前 provider 已配置的能力'
   );
 });
 
+test('listConfiguredAICapabilities: ai disabled 时返回空数组', () => {
+  assert.deepEqual(
+    listConfiguredAICapabilities(AI_DISABLED_SETTINGS, REPLICATE_BINDINGS),
+    []
+  );
+});
+
 test('resolveConfiguredAICapability: 返回 canonical scene 和 costCredits', () => {
   const capability = resolveConfiguredAICapability(
-    {
-      replicate_api_token: 'token',
-    },
+    AI_SETTINGS,
+    REPLICATE_BINDINGS,
     {
       mediaType: AIMediaType.IMAGE,
       scene: 'image-to-image',
@@ -51,9 +85,8 @@ test('resolveConfiguredAICapability: 返回 canonical scene 和 costCredits', ()
 test('resolveConfiguredAICapability: 非法组合抛错', () => {
   assert.throws(() =>
     resolveConfiguredAICapability(
-      {
-        replicate_api_token: 'token',
-      },
+      AI_SETTINGS,
+      REPLICATE_BINDINGS,
       {
         mediaType: AIMediaType.MUSIC,
         scene: 'text-to-music',
@@ -61,6 +94,23 @@ test('resolveConfiguredAICapability: 非法组合抛错', () => {
         model: 'V5',
       }
     )
+  );
+});
+
+test('resolveConfiguredAICapability: ai disabled 时返回 capability unavailable', () => {
+  assert.throws(
+    () =>
+      resolveConfiguredAICapability(
+        AI_DISABLED_SETTINGS,
+        REPLICATE_BINDINGS,
+        {
+          mediaType: AIMediaType.IMAGE,
+          scene: 'image-to-image',
+          provider: 'replicate',
+          model: 'google/nano-banana',
+        }
+      ),
+    /ai capability not available/
   );
 });
 

@@ -113,6 +113,8 @@ test('send-email 路由限流契约: 冷却窗口内返回 429', async () => {
 
 test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async () => {
   let queryCalls = 0;
+  let settingsReadCalls = 0;
+  let bindingsReadCalls = 0;
   const task = {
     id: 'task-1',
     taskId: 'provider-task-1',
@@ -127,6 +129,10 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
   };
 
   const handler = createAiQueryPostHandler({
+    resolveConfigConsistencyMode: (request) =>
+      request.headers.get('x-aooi-config-consistency') === 'fresh'
+        ? 'fresh'
+        : 'cached',
     requireAiEnabled: async () => undefined,
     getApiContext: () =>
       createApiContextStub({
@@ -135,6 +141,19 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
       }),
     findAITaskById: async () => task,
     updateAITaskById: async () => task,
+    readAiRuntimeSettings: async () => {
+      settingsReadCalls += 1;
+      return { aiEnabled: true };
+    },
+    readAiProviderBindings: () => {
+      bindingsReadCalls += 1;
+      return {
+        openrouterApiKey: '',
+        replicateApiToken: 'replicate-token',
+        falApiKey: '',
+        kieApiKey: '',
+      };
+    },
     getAIService: async () => ({
       getProvider: () => ({
         query: async () => {
@@ -157,10 +176,81 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
   const first = await handler(req);
   assert.equal(first.status, 200);
   assert.equal(queryCalls, 1);
+  assert.equal(settingsReadCalls, 1);
+  assert.equal(bindingsReadCalls, 1);
 
   const second = await handler(req);
   assert.equal(second.status, 200);
   assert.equal(queryCalls, 1);
+  assert.equal(settingsReadCalls, 1);
+  assert.equal(bindingsReadCalls, 1);
+});
+
+test('ai/query 路由按一致性模式切换 cached/fresh settings reader', async () => {
+  const modes: string[] = [];
+  const handler = createAiQueryPostHandler({
+    resolveConfigConsistencyMode: (request) =>
+      request.headers.get('x-aooi-config-consistency') === 'fresh'
+        ? 'fresh'
+        : 'cached',
+    requireAiEnabled: async () => undefined,
+    getApiContext: () =>
+      createApiContextStub({
+        body: { taskId: 'task-1' },
+        userId: 'u1',
+      }),
+    findAITaskById: async () => ({
+      id: 'task-1',
+      taskId: 'provider-task-1',
+      userId: 'u1',
+      provider: 'mock-provider',
+      status: AITaskStatus.PROCESSING,
+      model: null,
+      prompt: null,
+      taskInfo: null,
+      taskResult: null,
+      creditId: null,
+    }),
+    updateAITaskById: async () => undefined,
+    readAiRuntimeSettings: async (mode) => {
+      modes.push(mode);
+      return { aiEnabled: true };
+    },
+    readAiProviderBindings: () => ({
+      openrouterApiKey: 'openrouter-key',
+      replicateApiToken: '',
+      falApiKey: '',
+      kieApiKey: '',
+    }),
+    getAIService: async () => ({
+      getProvider: () => ({
+        query: async () => ({ taskStatus: AITaskStatus.PROCESSING }),
+      }),
+    }),
+    rateLimiter: new CooldownLimiter({
+      bucket: 'test.route.ai-query.mode',
+      minIntervalMs: 0,
+      ttlMs: 60 * 60 * 1000,
+      store: createMemoryRateLimitStore(),
+    }),
+    now: () => 1_000,
+  });
+
+  const cachedResponse = await handler(
+    new Request('http://localhost/api/ai/query', { method: 'POST' })
+  );
+  assert.equal(cachedResponse.status, 200);
+
+  const freshResponse = await handler(
+    new Request('http://localhost/api/ai/query', {
+      method: 'POST',
+      headers: {
+        'x-aooi-config-consistency': 'fresh',
+      },
+    })
+  );
+  assert.equal(freshResponse.status, 200);
+  assert.deepEqual(modes, ['cached', 'fresh']);
 });
 
 test('verify-code 路由限流契约: 达到失败上限后返回 429', async () => {

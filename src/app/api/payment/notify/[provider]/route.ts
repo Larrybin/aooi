@@ -1,7 +1,7 @@
 import { createApiContext } from '@/app/api/_lib/context';
 import {
-  readRuntimeSettingsCached,
-  readRuntimeSettingsFresh,
+  readBillingRuntimeSettingsCached,
+  readBillingRuntimeSettingsFresh,
 } from '@/domains/settings/application/settings-runtime.query';
 import { withApi } from '@/shared/lib/api/route';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
@@ -34,7 +34,9 @@ import {
   type PaymentNotifyFlowDeps,
 } from '@/domains/billing/application/payment-notify-flow';
 import type { PaymentNotifyDeps } from '@/domains/billing/application/process-payment-notify';
-import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
+import { getPaymentService } from '@/infra/adapters/payment/service';
+import { getPaymentRuntimeBindings } from '@/infra/adapters/payment/runtime-bindings';
+import type { PaymentRuntimeBindings } from '@/domains/settings/application/settings-runtime.contracts';
 
 type PaymentNotifyRouteDeps = PaymentNotifyDeps & {
   createPaymentWebhookInboxReceipt: typeof createPaymentWebhookInboxReceipt;
@@ -43,8 +45,9 @@ type PaymentNotifyRouteDeps = PaymentNotifyDeps & {
   markPaymentWebhookInboxProcessFailed: typeof markPaymentWebhookInboxProcessFailed;
   markPaymentWebhookInboxProcessed: typeof markPaymentWebhookInboxProcessed;
   serializePaymentWebhookHeaders: typeof serializePaymentWebhookHeaders;
-  readRuntimeSettingsCached: typeof readRuntimeSettingsCached;
-  readRuntimeSettingsFresh: typeof readRuntimeSettingsFresh;
+  readBillingRuntimeSettingsCached: typeof readBillingRuntimeSettingsCached;
+  readBillingRuntimeSettingsFresh: typeof readBillingRuntimeSettingsFresh;
+  readPaymentRuntimeBindings: () => PaymentRuntimeBindings;
   now: () => Date;
 };
 
@@ -64,8 +67,9 @@ const paymentNotifyDeps: PaymentNotifyRouteDeps = {
   markPaymentWebhookInboxProcessFailed,
   markPaymentWebhookInboxProcessed,
   serializePaymentWebhookHeaders,
-  readRuntimeSettingsCached,
-  readRuntimeSettingsFresh,
+  readBillingRuntimeSettingsCached,
+  readBillingRuntimeSettingsFresh,
+  readPaymentRuntimeBindings: getPaymentRuntimeBindings,
   now: () => new Date(),
 };
 
@@ -82,12 +86,16 @@ function buildPaymentNotifyPostLogic(
     const { log } = api;
     const { provider } = await api.parseParams(params, PaymentNotifyParamsSchema);
     const mode = resolveConfigConsistencyMode(req);
-    const configs =
+    const settings =
       mode === 'fresh'
-        ? await deps.readRuntimeSettingsFresh()
-        : await deps.readRuntimeSettingsCached();
+        ? await deps.readBillingRuntimeSettingsFresh()
+        : await deps.readBillingRuntimeSettingsCached();
+    const bindings = deps.readPaymentRuntimeBindings();
 
-    const paymentService = await getPaymentServiceWithConfigs(configs);
+    const paymentService = await getPaymentService({
+      settings,
+      bindings,
+    });
 
     const flowDeps: PaymentNotifyFlowDeps = {
       ...deps,
