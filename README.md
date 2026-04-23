@@ -220,6 +220,11 @@ Read `content/docs` to start your AI SaaS project.
 - `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
 - Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and generated `NEXT_PUBLIC_APP_URL`, which must derive from the current `site.brand.appUrl`.
+- Cloudflare deploy settings contract is repo-controlled and site-scoped: `sites/<site>/deploy.settings.json` is the only non-secret source for `cf:check`, secrets generation, and deploy dry-run capability requirements.
+- `pnpm cf:check` validates the repo-controlled Cloudflare deploy contract, not live admin/runtime settings.
+- `pnpm cf:check -- --workers=state|app|all|<comma-list>` scopes validation to explicit Worker targets; the default is `all`.
+- Cloudflare secrets file generation requires an explicit `--workers=state|app|all|<comma-list>` scope. There is no implicit secrets scope.
+- `BETTER_AUTH_SECRET` / `AUTH_SECRET` are server runtime secrets for the Next server workers (`public-web/auth/payment/member/chat/admin`); provider secrets remain capability-specific, and the `state` worker does not consume auth secret.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 - The operator workstation must have a valid Wrangler OAuth login with Cloudflare Workers write access; verify with `pnpm exec wrangler whoami` before production deploy.
 - Any change to `src/config/db/schema.ts` must ship with committed files under `src/config/db/migrations/**`; acceptance must fail before deploy if they are missing.
@@ -293,7 +298,7 @@ Rules that matter:
 - the canonical server worker set is `public-web/auth/payment/member/chat/admin`; keep names, bindings, and split ownership aligned with `src/shared/config/cloudflare-worker-splits.ts`
 - router services and server worker names must stay in sync with `src/shared/config/cloudflare-worker-splits.ts`
 - router and all app workers must point Durable Object bindings at `roller-rabbit-state`
-- tracked Wrangler templates must keep `localConnectionString = ""`; local and CI DSNs only enter generated temporary configs
+- every tracked Wrangler config must keep `localConnectionString = ""`; local and CI DSNs only enter generated temporary configs
 - Do not add `CF_FALLBACK_ORIGIN`; single-origin Cloudflare mode forbids it
 
 #### 3. Set production secrets in Cloudflare
@@ -353,6 +358,12 @@ pnpm cf:check
 pnpm cf:build
 ```
 
+For a state-only preflight, use:
+
+```bash
+pnpm cf:check -- --workers=state
+```
+
 `pnpm cf:build` must keep every deployable Worker bundle under the Cloudflare 3 MiB gzip limit as verified by state/app dry-run upload checks. If it fails, do not deploy.
 
 #### 6. Deploy
@@ -376,7 +387,7 @@ pnpm cf:deploy:state
 pnpm cf:deploy
 ```
 
-`pnpm cf:deploy:state` always uses `wrangler deploy` and is the only command allowed to apply Durable Object migrations.
+`pnpm cf:deploy:state` always uses `wrangler deploy`, runs only the state-scoped Cloudflare preflight, and is the only command allowed to apply Durable Object migrations.
 `pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:app`.
 `pnpm cf:deploy:app` is a pure app release command. It does not bootstrap router/server workers, and it fails fast if any app worker deployment is missing.
 For a brand-new or partially initialized production environment, the required order is always `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.

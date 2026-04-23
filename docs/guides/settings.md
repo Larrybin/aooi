@@ -68,8 +68,8 @@ Admin pages are guarded in two layers:
 
 - Settings values are stored in the `config` table via `src/domains/settings/application/settings-store.ts`.
 - `settings-store.ts` owns writes and invalidates `CONFIGS_CACHE_TAG` / `PUBLIC_CONFIGS_CACHE_TAG`.
-- Runtime reads use `src/domains/settings/application/settings-runtime.query.ts`.
-- Public UI/SEO/theme reads use `src/domains/settings/application/public-config.view.ts`.
+- Runtime typed reads use `src/domains/settings/application/settings-runtime.query.ts`.
+- Public UI/SEO/theme data is projected as `PublicUiConfig` via `settings-runtime.builders.ts` and read through server-side query entrypoints.
 - Some fields are validated/normalized on submit (e.g. JSON for social links / payment methods / product mapping), and those rules now live directly on each setting definition.
 - The single source of truth for setting-level contract is `src/domains/settings/definitions/*.ts`, aggregated by `src/domains/settings/registry.ts`.
 - Public/private exposure, group metadata, module ownership, and submit-time normalize/validate behavior are all derived from that registry. `tabs.ts` remains a separate route contract on purpose.
@@ -92,8 +92,8 @@ Admin pages are guarded in two layers:
 - `src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx` - Admin settings page + Server Action submit
 - `src/domains/settings/registry.ts` - Settings registry aggregation + derived public/group indexes
 - `src/domains/settings/application/settings-store.ts` - DB settings persistence and cache invalidation
-- `src/domains/settings/application/settings-runtime.query.ts` - Runtime settings read projection
-- `src/domains/settings/application/public-config.view.ts` - Public config projection
+- `src/domains/settings/application/settings-runtime.query.ts` - Server-side typed runtime settings readers
+- `src/domains/settings/application/settings-runtime.builders.ts` - Closed typed runtime/public config builders
 
 ## How to Verify
 

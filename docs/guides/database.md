@@ -277,7 +277,7 @@ id = "hyperdrive-id"
 
 The `db()` function automatically detects and uses Hyperdrive.
 
-Tracked Wrangler files are templates. Keep `localConnectionString = ""` in version control and generate a temporary Wrangler config when local Hyperdrive access is needed.
+Tracked Wrangler configs are templates. Keep every checked-in `localConnectionString = ""` and generate a temporary Wrangler config when local Hyperdrive access is needed.
 
 Cloudflare helper commands:
 
