@@ -1,7 +1,6 @@
 import '@/config/load-dotenv';
 
 import { readFileSync } from 'node:fs';
-import path from 'node:path';
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';

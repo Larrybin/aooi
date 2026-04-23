@@ -4,8 +4,8 @@ import test from 'node:test';
 const cloudflareContextSymbol = Symbol.for('__cloudflare-context__');
 
 async function loadOpenNextConfig() {
-  const module = await import('../../.open-next/.build/open-next.config.mjs');
-  return module.default;
+  const configModule = await import('../../.open-next/.build/open-next.config.mjs');
+  return configModule.default;
 }
 
 function withCloudflareContext<T>(

@@ -116,7 +116,7 @@ function createSessionToken() {
   return crypto.randomUUID().replaceAll('-', '');
 }
 
-function createSeedSettings(timestamp) {
+function createSeedSettings() {
   return {
     general_ai_enabled: 'true',
   };
@@ -466,7 +466,7 @@ export async function main() {
     .replace(/[-:]/g, '')
     .replace(/\..+/, '');
   const baseline = await captureConfigBaseline(databaseUrl, SMOKE_CONFIG_NAMES);
-  const seedSettings = createSeedSettings(timestamp);
+  const seedSettings = createSeedSettings();
   const smokeUser = {
     email: createTempEmail('storage-user'),
     userName: `CF Admin Settings ${timestamp}`,
