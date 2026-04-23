@@ -3,7 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
 
 const rootDir = process.cwd();
 const REQUIRED_INCREMENTAL_CACHE_BINDING = 'NEXT_INC_CACHE_R2_BUCKET';
@@ -30,6 +31,145 @@ function readSection(content, sectionName) {
 function hasQuotedValue(content, pattern, expectedValue) {
   const match = content.match(pattern);
   return match?.[1] === expectedValue;
+}
+
+function escapeTomlBasicString(value) {
+  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+}
+
+function replaceQuotedValue(content, pattern, nextValue, label) {
+  if (!pattern.test(content)) {
+    throw new Error(`missing ${label} in wrangler config template`);
+  }
+
+  return content.replace(pattern, `$1${escapeTomlBasicString(nextValue)}$3`);
+}
+
+function normalizeTomlPath(value) {
+  return value.split(path.sep).join('/');
+}
+
+function rebaseRelativeTomlPath({
+  content,
+  pattern,
+  label,
+  templatePath,
+  outputPath,
+}) {
+  const match = content.match(pattern);
+  if (!match?.[2]) {
+    throw new Error(`missing ${label} in wrangler config template`);
+  }
+
+  const currentPath = match[2];
+  if (path.isAbsolute(currentPath)) {
+    return content;
+  }
+
+  const rebasedPath = normalizeTomlPath(
+    path.relative(
+      path.dirname(outputPath),
+      path.resolve(path.dirname(templatePath), currentPath)
+    )
+  );
+
+  return content.replace(pattern, `$1${escapeTomlBasicString(rebasedPath)}$3`);
+}
+
+function upsertTomlTableStringValue(content, tableName, key, value) {
+  const lines = content.split('\n');
+  const tableHeader = `[${tableName}]`;
+  const entryLine = `${key} = "${escapeTomlBasicString(value)}"`;
+  const tableIndex = lines.findIndex((line) => line.trim() === tableHeader);
+
+  if (tableIndex === -1) {
+    if (lines.at(-1) !== '') {
+      lines.push('');
+    }
+
+    lines.push(tableHeader, entryLine);
+    return lines.join('\n');
+  }
+
+  let tableEndIndex = lines.length;
+  for (let index = tableIndex + 1; index < lines.length; index += 1) {
+    if (lines[index].trim().startsWith('[')) {
+      tableEndIndex = index;
+      break;
+    }
+  }
+
+  for (let index = tableIndex + 1; index < tableEndIndex; index += 1) {
+    if (lines[index].trim().startsWith(`${key} = `)) {
+      lines[index] = entryLine;
+      return lines.join('\n');
+    }
+  }
+
+  lines.splice(tableEndIndex, 0, entryLine);
+  return lines.join('\n');
+}
+
+function replaceOrInsertArrayTable(content, tableName, rows) {
+  const pattern = new RegExp(
+    String.raw`\n?\[\[${tableName}\]\]\s*[\s\S]*?(?=\n\[\[|\n\[[^\[]|$)`,
+    'g'
+  );
+  const cleaned = content.replace(pattern, '').replace(/\n{3,}/g, '\n\n');
+  const block = rows
+    .map((row) => {
+      const entries = Object.entries(row)
+        .map(([key, value]) => `${key} = "${escapeTomlBasicString(value)}"`)
+        .join('\n');
+      return `[[${tableName}]]\n${entries}`;
+    })
+    .join('\n\n');
+
+  if (!block) {
+    return cleaned;
+  }
+
+  return cleaned.trimEnd().concat('\n\n', block, '\n');
+}
+
+function replaceOrInsertDurableObjectBindings(content, bindings) {
+  const pattern =
+    /\n?\[\[durable_objects\.bindings\]\]\s*[\s\S]*?(?=\n\[\[|\n\[[^\[]|$)/g;
+  const cleaned = content.replace(pattern, '').replace(/\n{3,}/g, '\n\n');
+  const block = Object.entries(bindings)
+    .map(
+      ([name, binding]) =>
+        `[[durable_objects.bindings]]\nname = "${escapeTomlBasicString(name)}"\nclass_name = "${escapeTomlBasicString(binding.className)}"${
+          binding.scriptName
+            ? `\nscript_name = "${escapeTomlBasicString(binding.scriptName)}"`
+            : ''
+        }`
+    )
+    .join('\n\n');
+
+  return cleaned.trimEnd().concat('\n\n', block, '\n');
+}
+
+function replaceOrInsertMigrations(content, migrations) {
+  const pattern = /\n?\[\[migrations\]\]\s*[\s\S]*?(?=\n\[\[|\n\[[^\[]|$)/g;
+  const cleaned = content.replace(pattern, '').replace(/\n{3,}/g, '\n\n');
+
+  if (!migrations) {
+    return cleaned;
+  }
+
+  const classes = migrations.newSqliteClasses
+    .map((className) => `  "${escapeTomlBasicString(className)}",`)
+    .join('\n');
+  const block = [
+    '[[migrations]]',
+    `tag = "${escapeTomlBasicString(migrations.tag)}"`,
+    'new_sqlite_classes = [',
+    classes,
+    ']',
+  ].join('\n');
+
+  return cleaned.trimEnd().concat('\n\n', block, '\n');
 }
 
 function assertTemplateContract(content, templatePath) {
@@ -107,100 +247,121 @@ function assertTemplateContract(content, templatePath) {
   }
 }
 
-function escapeTomlBasicString(value) {
-  return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-}
-
-function replaceQuotedValue(content, pattern, nextValue, label) {
-  if (!pattern.test(content)) {
-    throw new Error(`missing ${label} in wrangler config template`);
+function resolveWorkerContract(contract, workerSlot) {
+  if (workerSlot === 'router') {
+    return contract.router;
   }
 
-  return content.replace(pattern, `$1${escapeTomlBasicString(nextValue)}$3`);
-}
-
-function normalizeTomlPath(value) {
-  return value.split(path.sep).join('/');
-}
-
-function rebaseRelativeTomlPath({
-  content,
-  pattern,
-  label,
-  templatePath,
-  outputPath,
-}) {
-  const match = content.match(pattern);
-  if (!match?.[2]) {
-    throw new Error(`missing ${label} in wrangler config template`);
+  if (workerSlot === 'state') {
+    return contract.stateWorker;
   }
 
-  const currentPath = match[2];
-  if (path.isAbsolute(currentPath)) {
-    return content;
-  }
+  return contract.serverWorkers[workerSlot];
+}
 
-  const rebasedPath = normalizeTomlPath(
-    path.relative(
-      path.dirname(outputPath),
-      path.resolve(path.dirname(templatePath), currentPath)
-    )
+function applyWorkerSpecificBindings(content, contract, workerSlot) {
+  let nextContent = content;
+  const worker = resolveWorkerContract(contract, workerSlot);
+
+  nextContent = replaceQuotedValue(
+    nextContent,
+    /(^\s*name\s*=\s*")([^"\n]*)(")/m,
+    worker.workerName,
+    'name'
   );
 
-  return content.replace(pattern, `$1${escapeTomlBasicString(rebasedPath)}$3`);
-}
+  if (workerSlot === 'router') {
+    nextContent = replaceOrInsertArrayTable(nextContent, 'routes', [
+      {
+        pattern: contract.route.pattern,
+        custom_domain: String(contract.route.customDomain),
+      },
+    ]).replace(/custom_domain = "true"/g, 'custom_domain = true');
 
-function replaceVersionVars(content, versionVars) {
-  let nextContent = content;
+    nextContent = replaceOrInsertArrayTable(
+      nextContent,
+      'services',
+      Object.entries(contract.router.serviceBindings).map(
+        ([binding, service]) => ({
+          binding,
+          service,
+        })
+      )
+    );
 
-  for (const [key, value] of Object.entries(versionVars)) {
+    nextContent = replaceOrInsertDurableObjectBindings(
+      nextContent,
+      contract.router.durableObjects
+    );
+  } else if (workerSlot === 'state') {
+    nextContent = replaceOrInsertArrayTable(nextContent, 'services', [
+      {
+        binding: 'WORKER_SELF_REFERENCE',
+        service: contract.stateWorker.selfReferenceService,
+      },
+    ]);
+    nextContent = replaceOrInsertDurableObjectBindings(
+      nextContent,
+      contract.stateWorker.durableObjects
+    );
+    nextContent = replaceOrInsertMigrations(
+      nextContent,
+      contract.stateWorker.migrations
+    );
+  } else {
+    nextContent = replaceOrInsertArrayTable(nextContent, 'services', [
+      {
+        binding: 'WORKER_SELF_REFERENCE',
+        service: contract.workers.router,
+      },
+    ]);
+    nextContent = replaceOrInsertDurableObjectBindings(
+      nextContent,
+      contract.router.durableObjects
+    );
+    nextContent = replaceOrInsertMigrations(nextContent, null);
+  }
+
+  if (workerSlot !== 'state') {
+    nextContent = replaceOrInsertArrayTable(nextContent, 'r2_buckets', [
+      {
+        binding: REQUIRED_INCREMENTAL_CACHE_BINDING,
+        bucket_name: contract.resources.incrementalCacheBucket,
+      },
+      {
+        binding: REQUIRED_APP_STORAGE_BINDING,
+        bucket_name: contract.resources.appStorageBucket,
+      },
+    ]);
+
     nextContent = replaceQuotedValue(
       nextContent,
-      new RegExp(`(^\\s*${key}\\s*=\\s*")([^"\\n]*)(")`, 'm'),
-      value,
-      `vars.${key}`
+      /(^\s*id\s*=\s*")([^"\n]*)(")/m,
+      contract.resources.hyperdriveId,
+      '[[hyperdrive]].id'
     );
   }
 
   return nextContent;
 }
 
-function upsertTomlTableStringValue(content, tableName, key, value) {
-  const lines = content.split('\n');
-  const tableHeader = `[${tableName}]`;
-  const entryLine = `${key} = "${escapeTomlBasicString(value)}"`;
-  const tableIndex = lines.findIndex((line) => line.trim() === tableHeader);
+function replaceVars(content, vars) {
+  let nextContent = content;
 
-  if (tableIndex === -1) {
-    if (lines.at(-1) !== '') {
-      lines.push('');
-    }
-
-    lines.push(tableHeader, entryLine);
-    return lines.join('\n');
+  for (const [key, value] of Object.entries(vars)) {
+    const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*")([^"\\n]*)(")`, 'm');
+    nextContent = pattern.test(nextContent)
+      ? replaceQuotedValue(nextContent, pattern, value, `vars.${key}`)
+      : upsertTomlTableStringValue(nextContent, 'vars', key, value);
   }
 
-  let tableEndIndex = lines.length;
-  for (let index = tableIndex + 1; index < lines.length; index += 1) {
-    if (lines[index].trim().startsWith('[')) {
-      tableEndIndex = index;
-      break;
-    }
-  }
-
-  for (let index = tableIndex + 1; index < tableEndIndex; index += 1) {
-    if (lines[index].trim().startsWith(`${key} = `)) {
-      lines[index] = entryLine;
-      return lines.join('\n');
-    }
-  }
-
-  lines.splice(tableEndIndex, 0, entryLine);
-  return lines.join('\n');
+  return nextContent;
 }
 
 export function buildCloudflareWranglerConfig({
   template,
+  contract,
+  workerSlot,
   databaseUrl,
   appUrl,
   storagePublicBaseUrl,
@@ -222,6 +383,17 @@ export function buildCloudflareWranglerConfig({
 
   let nextContent = template;
 
+  nextContent = applyWorkerSpecificBindings(nextContent, contract, workerSlot);
+
+  const effectiveVars = {
+    NEXT_PUBLIC_APP_URL: appUrl ?? contract.appUrl,
+    STORAGE_PUBLIC_BASE_URL: storagePublicBaseUrl ?? '',
+    DEPLOY_TARGET: deployTarget ?? 'cloudflare',
+    ...(workerSlot === 'router' ? contract.router.versionVars : {}),
+    ...(workerSlot === 'router' ? contract.router.workerNameVars : {}),
+    ...versionVars,
+  };
+
   if (databaseUrl !== undefined) {
     nextContent = replaceQuotedValue(
       nextContent,
@@ -231,34 +403,7 @@ export function buildCloudflareWranglerConfig({
     );
   }
 
-  if (appUrl !== undefined) {
-    nextContent = replaceQuotedValue(
-      nextContent,
-      /(^\s*NEXT_PUBLIC_APP_URL\s*=\s*")([^"\n]*)(")/m,
-      appUrl,
-      'vars.NEXT_PUBLIC_APP_URL'
-    );
-  }
-
-  if (storagePublicBaseUrl !== undefined) {
-    nextContent = replaceQuotedValue(
-      nextContent,
-      /(^\s*STORAGE_PUBLIC_BASE_URL\s*=\s*")([^"\n]*)(")/m,
-      storagePublicBaseUrl,
-      'vars.STORAGE_PUBLIC_BASE_URL'
-    );
-  }
-
-  if (deployTarget !== undefined) {
-    nextContent = replaceQuotedValue(
-      nextContent,
-      /(^\s*DEPLOY_TARGET\s*=\s*")([^"\n]*)(")/m,
-      deployTarget,
-      'vars.DEPLOY_TARGET'
-    );
-  }
-
-  nextContent = replaceVersionVars(nextContent, versionVars);
+  nextContent = replaceVars(nextContent, effectiveVars);
 
   if (devHost !== undefined) {
     nextContent = upsertTomlTableStringValue(nextContent, 'dev', 'host', devHost);
@@ -294,6 +439,30 @@ export function buildCloudflareWranglerConfig({
   return nextContent;
 }
 
+function inferWorkerSlotFromTemplate(templatePath) {
+  const relativeTemplatePath = path.relative(rootDir, templatePath).replaceAll(
+    path.sep,
+    '/'
+  );
+
+  if (relativeTemplatePath === 'wrangler.cloudflare.toml') {
+    return 'router';
+  }
+
+  if (relativeTemplatePath === 'cloudflare/wrangler.state.toml') {
+    return 'state';
+  }
+
+  const serverMatch = relativeTemplatePath.match(
+    /^cloudflare\/wrangler\.server-(.+)\.toml$/
+  );
+  if (serverMatch?.[1]) {
+    return serverMatch[1];
+  }
+
+  throw new Error(`cannot infer worker slot from template: ${relativeTemplatePath}`);
+}
+
 function parseArgs(argv) {
   const options = {
     out: path.resolve(rootDir, '.tmp/wrangler.cloudflare.generated.toml'),
@@ -301,12 +470,14 @@ function parseArgs(argv) {
     databaseUrl:
       process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
       process.env.DATABASE_URL?.trim(),
-    appUrl: getCurrentSiteAppUrl(),
+    appUrl: undefined,
     storagePublicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL?.trim(),
     deployTarget: process.env.DEPLOY_TARGET?.trim(),
     devHost: process.env.CF_LOCAL_DEV_HOST?.trim(),
     devUpstreamProtocol: process.env.CF_LOCAL_DEV_UPSTREAM_PROTOCOL?.trim(),
     versionVars: {},
+    workerSlot: undefined,
+    siteKey: resolveRequiredSiteKey(process.env),
   };
 
   for (const arg of argv) {
@@ -350,6 +521,16 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg.startsWith('--worker-slot=')) {
+      options.workerSlot = arg.split('=')[1];
+      continue;
+    }
+
+    if (arg.startsWith('--site=')) {
+      options.siteKey = arg.split('=')[1];
+      continue;
+    }
+
     if (arg.startsWith('--var=')) {
       const raw = arg.slice('--var='.length);
       const separatorIndex = raw.indexOf('=');
@@ -369,8 +550,16 @@ function parseArgs(argv) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const template = await readFile(options.template, 'utf8');
+  const contract = resolveSiteDeployContract({
+    rootDir,
+    siteKey: options.siteKey,
+  });
+  const workerSlot =
+    options.workerSlot || inferWorkerSlotFromTemplate(options.template);
   const nextConfig = buildCloudflareWranglerConfig({
     template,
+    contract,
+    workerSlot,
     databaseUrl: options.databaseUrl,
     appUrl: options.appUrl,
     storagePublicBaseUrl: options.storagePublicBaseUrl,

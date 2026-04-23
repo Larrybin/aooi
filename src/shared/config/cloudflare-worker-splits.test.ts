@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { resolveSiteDeployContract } from '../../../scripts/lib/site-deploy-contract.mjs';
 import {
   buildVersionOverridesHeader,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
@@ -8,6 +9,11 @@ import {
   resolveWorkerTarget,
   stripLocalePrefix,
 } from './cloudflare-worker-splits';
+
+const contract = resolveSiteDeployContract({
+  rootDir: process.cwd(),
+  siteKey: 'mamamiya',
+});
 
 test('stripLocalePrefix 去掉 locale 前缀并保留根路径', () => {
   assert.equal(stripLocalePrefix('/zh/docs/foo'), '/docs/foo');
@@ -48,11 +54,17 @@ test('buildVersionOverridesHeader 只为已配置版本生成 header', () => {
     ADMIN_WORKER_VERSION_ID: 'admin-version',
     MEMBER_WORKER_VERSION_ID: 'member-version',
     CHAT_WORKER_VERSION_ID: 'chat-version',
+    PUBLIC_WEB_WORKER_NAME: contract.serverWorkers['public-web'].workerName,
+    AUTH_WORKER_NAME: contract.serverWorkers.auth.workerName,
+    PAYMENT_WORKER_NAME: contract.serverWorkers.payment.workerName,
+    ADMIN_WORKER_NAME: contract.serverWorkers.admin.workerName,
+    MEMBER_WORKER_NAME: contract.serverWorkers.member.workerName,
+    CHAT_WORKER_NAME: contract.serverWorkers.chat.workerName,
   });
 
   assert.equal(
     header,
-    'roller-rabbit-public-web="public-web-version", roller-rabbit-auth="auth-version", roller-rabbit-payment="payment-version", roller-rabbit-member="member-version", roller-rabbit-chat="chat-version", roller-rabbit-admin="admin-version"'
+    `${contract.serverWorkers['public-web'].workerName}="public-web-version", ${contract.serverWorkers.auth.workerName}="auth-version", ${contract.serverWorkers.payment.workerName}="payment-version", ${contract.serverWorkers.member.workerName}="member-version", ${contract.serverWorkers.chat.workerName}="chat-version", ${contract.serverWorkers.admin.workerName}="admin-version"`
   );
 
   assert.equal(buildVersionOverridesHeader({}), null);

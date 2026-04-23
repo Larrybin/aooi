@@ -46,11 +46,11 @@ test('package scripts: public smoke command names stay stable', async () => {
   );
   assert.equal(
     packageJson.scripts['test:cf-app-smoke'],
-    'node --import tsx scripts/smoke.mjs cf-app'
+    'node scripts/run-with-site.mjs node --import tsx scripts/smoke.mjs cf-app'
   );
   assert.equal(
     packageJson.scripts['test:cf-local-smoke'],
-    'node --import tsx scripts/smoke.mjs cf-local'
+    'node scripts/run-with-site.mjs node --import tsx scripts/smoke.mjs cf-local'
   );
   assert.match(
     packageJson.scripts['test:cf-admin-settings-smoke'],
@@ -58,6 +58,6 @@ test('package scripts: public smoke command names stay stable', async () => {
   );
   assert.match(
     packageJson.scripts['test:cf-admin-settings-smoke'],
-    /node --import tsx scripts\/smoke\.mjs cf-admin-settings$/
+    /node scripts\/run-with-site\.mjs node --import tsx scripts\/smoke\.mjs cf-admin-settings$/
   );
 });

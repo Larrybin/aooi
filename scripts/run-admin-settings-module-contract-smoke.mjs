@@ -12,6 +12,7 @@ import {
   waitForNodeReady,
 } from './run-local-auth-spike.mjs';
 import * as authSpikeBrowserModule from '../src/testing/auth-spike.browser.ts';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import {
   runNodeScript,
   stopChild,
@@ -105,7 +106,7 @@ export async function main() {
   const lockedNodeBaseUrl = lockedNodeInfo?.appUrl ?? null;
   const wranglerConfigPath =
     process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(rootDir, 'wrangler.cloudflare.toml');
+    path.resolve(rootDir, resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath);
   const databaseUrl =
     process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
     process.env.DATABASE_URL?.trim() ||

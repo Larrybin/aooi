@@ -82,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      SITE: mamamiya
 
     steps:
       - name: Checkout repository
@@ -98,7 +100,7 @@ jobs:
 
       - name: Build release metadata
         run: >
-          node scripts/create-cloudflare-release-metadata.mjs
+          node scripts/run-with-site.mjs node scripts/create-cloudflare-release-metadata.mjs
           --base-sha="${{ github.event.before }}"
           --head-sha="${{ github.sha }}"
           --out=".tmp/release-metadata.json"

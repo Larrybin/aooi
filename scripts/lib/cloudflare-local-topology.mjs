@@ -10,7 +10,6 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits.ts';
 import { buildCloudflareWranglerConfig } from '../create-cf-wrangler-config.mjs';
 import {
   createWranglerMultiConfigDevManager,
@@ -18,9 +17,8 @@ import {
   normalizePreviewBaseUrl,
   resolveAuthSecret,
 } from './cloudflare-dev-runtime.mjs';
-
-const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, getServerWorkerMetadata } =
-  cloudflareWorkerSplits;
+import { resolveSiteDeployContract } from './site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './site-config.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -112,29 +110,38 @@ export async function resolveCloudflareLocalTopologyPorts({
   };
 }
 
-function resolveServerWorkerHandlerPath(target) {
-  const metadata = getServerWorkerMetadata(target);
+function resolveServerWorkerHandlerPath(target, processEnv = process.env) {
+  const contract = resolveSiteDeployContract({
+    rootDir,
+    siteKey: resolveRequiredSiteKey(processEnv),
+  });
+  const metadata = contract.serverWorkers[target];
   return path.join(
     path.dirname(metadata.bundleEntryRelativePath),
     'handler.mjs'
   );
 }
 
-function getRequiredLocalBuildArtifactPaths() {
+function getRequiredLocalBuildArtifactPaths(processEnv = process.env) {
+  const contract = resolveSiteDeployContract({
+    rootDir,
+    siteKey: resolveRequiredSiteKey(processEnv),
+  });
   return [
     ...ROUTER_RUNTIME_ARTIFACTS,
-    ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) =>
-      resolveServerWorkerHandlerPath(target)
+    ...Object.keys(contract.serverWorkers).map((target) =>
+      resolveServerWorkerHandlerPath(target, processEnv)
     ),
   ];
 }
 
 export async function assertCloudflareLocalBuildArtifactsReady({
   rootPath = rootDir,
+  processEnv = process.env,
 } = {}) {
   const missingPaths = [];
 
-  for (const relativePath of getRequiredLocalBuildArtifactPaths()) {
+  for (const relativePath of getRequiredLocalBuildArtifactPaths(processEnv)) {
     try {
       await stat(path.resolve(rootPath, relativePath));
     } catch {
@@ -157,7 +164,7 @@ export async function assertCloudflareLocalBuildArtifactsReady({
 
 export async function prepareCloudflareLocalTopologyArtifacts({
   databaseUrl,
-  routerTemplatePath = path.resolve(rootDir, 'wrangler.cloudflare.toml'),
+  routerTemplatePath = null,
   routerBaseUrl = DEFAULT_ROUTER_BASE_URL,
   authSecret = resolveAuthSecret(),
   extraVars = {},
@@ -175,6 +182,10 @@ export async function prepareCloudflareLocalTopologyArtifacts({
   const storagePublicBaseUrl =
     runtimeExtraVars.STORAGE_PUBLIC_BASE_URL ||
     runtimeVars.STORAGE_PUBLIC_BASE_URL;
+  const contract = resolveSiteDeployContract({
+    rootDir,
+    siteKey: resolveRequiredSiteKey(processEnv),
+  });
   const tmpRoot = path.resolve(rootDir, '.tmp');
   await mkdir(tmpRoot, { recursive: true });
 
@@ -183,17 +194,22 @@ export async function prepareCloudflareLocalTopologyArtifacts({
   const persistDir = path.join(tempDir, 'state');
   const ports = await resolveCloudflareLocalTopologyPorts({ routerBaseUrl });
   const routerDevOrigin = new URL(ports.routerBaseUrl);
-  const routerTemplate = await readFile(routerTemplatePath, 'utf8');
+  const resolvedRouterTemplatePath =
+    routerTemplatePath ||
+    path.resolve(rootDir, contract.router.wranglerConfigRelativePath);
+  const routerTemplate = await readFile(resolvedRouterTemplatePath, 'utf8');
   const routerConfigPath = path.join(tempDir, 'wrangler.cloudflare.local.toml');
   const routerConfig = buildCloudflareWranglerConfig({
     template: routerTemplate,
+    contract,
+    workerSlot: 'router',
     databaseUrl,
     appUrl: ports.routerBaseUrl,
     storagePublicBaseUrl,
     deployTarget: 'cloudflare',
     devHost: routerDevOrigin.hostname,
     devUpstreamProtocol: routerDevOrigin.protocol.replace(/:$/, ''),
-    templatePath: routerTemplatePath,
+    templatePath: resolvedRouterTemplatePath,
     outputPath: routerConfigPath,
     validateTemplateContract: true,
   });
@@ -201,16 +217,14 @@ export async function prepareCloudflareLocalTopologyArtifacts({
   await mkdir(persistDir, { recursive: true });
 
   const serverWorkers = [];
-  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
-    const metadata = getServerWorkerMetadata(target);
-    const templatePath = path.resolve(
-      rootDir,
-      metadata.wranglerConfigRelativePath
-    );
+  for (const [target, metadata] of Object.entries(contract.serverWorkers)) {
+    const templatePath = path.resolve(rootDir, metadata.wranglerConfigRelativePath);
     const template = await readFile(templatePath, 'utf8');
     const configPath = path.join(tempDir, `wrangler.${target}.local.toml`);
     const config = buildCloudflareWranglerConfig({
       template,
+      contract,
+      workerSlot: target,
       databaseUrl,
       appUrl: ports.routerBaseUrl,
       storagePublicBaseUrl,
@@ -236,6 +250,7 @@ export async function prepareCloudflareLocalTopologyArtifacts({
     devVarsPath: resolvedDevVarsPath,
     extraVars: {
       DEPLOY_TARGET: 'cloudflare',
+      CF_LOCAL_WRANGLER_CONFIG_PATH: routerConfigPath,
       ...runtimeVars,
       ...runtimeExtraVars,
     },
@@ -293,7 +308,7 @@ export function renderCloudflareLocalTopologyLogs(topology) {
 export async function startCloudflareLocalDevTopology(
   {
     databaseUrl,
-    routerTemplatePath = path.resolve(rootDir, 'wrangler.cloudflare.toml'),
+    routerTemplatePath = null,
     routerBaseUrl = DEFAULT_ROUTER_BASE_URL,
     authSecret,
     extraVars = {},
@@ -374,7 +389,7 @@ export async function startCloudflareLocalDevTopology(
 
 export async function resolveCloudflareLocalDatabaseUrl({
   processEnv = process.env,
-  wranglerConfigPath = path.resolve(rootDir, 'wrangler.cloudflare.toml'),
+  wranglerConfigPath = processEnv.CF_LOCAL_WRANGLER_CONFIG_PATH?.trim() || '',
 } = {}) {
   const explicitDatabaseUrl =
     processEnv.AUTH_SPIKE_DATABASE_URL?.trim() ||

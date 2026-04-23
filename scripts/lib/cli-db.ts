@@ -22,10 +22,12 @@ function resolveCliDatabaseUrl() {
   }
 
   const wranglerConfigPath =
-    process.env.CF_LOCAL_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(process.cwd(), 'wrangler.cloudflare.toml');
+    process.env.CF_LOCAL_WRANGLER_CONFIG_PATH?.trim() || '';
 
   try {
+    if (!wranglerConfigPath) {
+      throw new Error('missing generated local wrangler config path');
+    }
     const wranglerContent = readFileSync(wranglerConfigPath, 'utf8');
     const localConnectionString =
       readWranglerLocalConnectionString(wranglerContent);
@@ -37,7 +39,7 @@ function resolveCliDatabaseUrl() {
   }
 
   throw new Error(
-    'DATABASE_URL is required; if you rely on Cloudflare local DB wiring, point CF_LOCAL_WRANGLER_CONFIG_PATH at a generated temporary Wrangler config with [[hyperdrive]].localConnectionString'
+    'DATABASE_URL is required; if you rely on Cloudflare local DB wiring, point CF_LOCAL_WRANGLER_CONFIG_PATH at the generated temporary local Wrangler config with [[hyperdrive]].localConnectionString'
   );
 }
 

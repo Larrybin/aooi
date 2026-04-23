@@ -50,7 +50,12 @@ test('assertCloudflareLocalBuildArtifactsReady 缺少 .open-next 构建产物时
 
   try {
     await assert.rejects(
-      assertCloudflareLocalBuildArtifactsReady({ rootPath: tempDir }),
+      assertCloudflareLocalBuildArtifactsReady({
+        rootPath: tempDir,
+        processEnv: {
+          SITE: 'mamamiya',
+        },
+      }),
       /Run `pnpm cf:build` before starting Cloudflare local smoke or spikes/i
     );
   } finally {
@@ -72,7 +77,9 @@ test('prepareCloudflareLocalTopologyArtifacts 会生成 router 和全部 server 
       routerBaseUrl,
       authSecret: 'topology-secret-0123456789abcdef',
       devVarsPath,
-      processEnv: {},
+      processEnv: {
+        SITE: 'mamamiya',
+      },
     });
 
     try {
@@ -146,7 +153,9 @@ test('prepareCloudflareLocalTopologyArtifacts 默认在临时 topology 目录内
   const artifacts = await prepareCloudflareLocalTopologyArtifacts({
     databaseUrl,
     authSecret: 'topology-secret-0123456789abcdef',
-    processEnv: {},
+    processEnv: {
+      SITE: 'mamamiya',
+    },
   });
 
   try {

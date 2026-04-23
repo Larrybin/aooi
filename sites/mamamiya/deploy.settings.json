@@ -1,8 +1,35 @@
 {
-  "google_auth_enabled": false,
-  "github_auth_enabled": false,
-  "stripe_enabled": false,
-  "creem_enabled": false,
-  "paypal_enabled": false,
-  "general_ai_enabled": false
+  "configVersion": 1,
+  "bindingRequirements": {
+    "secrets": {
+      "authSharedSecret": true,
+      "googleOauth": false,
+      "githubOauth": false,
+      "stripe": false,
+      "creem": false,
+      "paypal": false,
+      "openrouter": false
+    },
+    "vars": {
+      "storagePublicBaseUrl": true
+    }
+  },
+  "workers": {
+    "router": "roller-rabbit",
+    "state": "roller-rabbit-state",
+    "public-web": "roller-rabbit-public-web",
+    "auth": "roller-rabbit-auth",
+    "payment": "roller-rabbit-payment",
+    "member": "roller-rabbit-member",
+    "chat": "roller-rabbit-chat",
+    "admin": "roller-rabbit-admin"
+  },
+  "resources": {
+    "incrementalCacheBucket": "roller-rabbit-opennext-cache",
+    "appStorageBucket": "roller-rabbit-storage",
+    "hyperdriveId": "d208cd72765b46a7b0849fc687e2fb61"
+  },
+  "state": {
+    "schemaVersion": 1
+  }
 }

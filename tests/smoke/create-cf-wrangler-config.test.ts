@@ -3,6 +3,12 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { buildCloudflareWranglerConfig } from '../../scripts/create-cf-wrangler-config.mjs';
+import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
+
+const contract = resolveSiteDeployContract({
+  rootDir: process.cwd(),
+  siteKey: 'mamamiya',
+});
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -10,16 +16,39 @@ function escapeRegExp(value: string) {
 
 test('buildCloudflareWranglerConfig 为 router 模板注入数据库、app url、deploy target 与 version vars', () => {
   const template = `
-name = "roller-rabbit"
+name = "router-template"
 main = "cloudflare/workers/router.ts"
 
 [assets]
 directory = ".open-next/assets"
 
+[images]
+binding = "IMAGES"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "id_123"
+id = "d208cd72765b46a7b0849fc687e2fb61"
 localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
 
 [vars]
 DEPLOY_TARGET = "cloudflare"
@@ -27,11 +56,23 @@ NEXT_PUBLIC_APP_URL = "http://localhost:3000"
 STORAGE_PUBLIC_BASE_URL = ""
 PUBLIC_WEB_WORKER_VERSION_ID = ""
 AUTH_WORKER_VERSION_ID = ""
+PAYMENT_WORKER_VERSION_ID = ""
+MEMBER_WORKER_VERSION_ID = ""
+CHAT_WORKER_VERSION_ID = ""
+ADMIN_WORKER_VERSION_ID = ""
+PUBLIC_WEB_WORKER_NAME = ""
+AUTH_WORKER_NAME = ""
+PAYMENT_WORKER_NAME = ""
+MEMBER_WORKER_NAME = ""
+CHAT_WORKER_NAME = ""
+ADMIN_WORKER_NAME = ""
 `;
 
   const outputPath = '/repo/.tmp/router/wrangler.cloudflare.deploy.toml';
   const config = buildCloudflareWranglerConfig({
     template,
+    contract,
+    workerSlot: 'router',
     databaseUrl: 'postgresql://postgres:postgres@127.0.0.1:5432/aooi',
     appUrl: 'http://127.0.0.1:8787',
     storagePublicBaseUrl: 'http://127.0.0.1:8787/assets/',
@@ -67,20 +108,46 @@ AUTH_WORKER_VERSION_ID = ""
   assert.match(config, /DEPLOY_TARGET = "cloudflare"/);
   assert.match(config, /PUBLIC_WEB_WORKER_VERSION_ID = "v-public-web"/);
   assert.match(config, /AUTH_WORKER_VERSION_ID = "v-auth"/);
-  assert.match(config, /\[dev\]\nhost = "127\.0\.0\.1"\nupstream_protocol = "http"/);
+  assert.match(
+    config,
+    new RegExp(`PUBLIC_WEB_WORKER_NAME = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`)
+  );
+  assert.match(config, /\[dev\][\s\S]*host = "127\.0\.0\.1"/);
+  assert.match(config, /\[dev\][\s\S]*upstream_protocol = "http"/);
 });
 
 test('buildCloudflareWranglerConfig 为 server 模板重写相对 main 与 assets 路径', () => {
   const template = `
+name = "public-web-template"
 main = "workers/server-public-web.ts"
 
 [assets]
 directory = "../.open-next/assets"
 
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "id_123"
+id = "d208cd72765b46a7b0849fc687e2fb61"
 localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
 
 [vars]
 DEPLOY_TARGET = "cloudflare"
@@ -91,6 +158,8 @@ STORAGE_PUBLIC_BASE_URL = ""
   const outputPath = '/repo/.tmp/server/default.toml';
   const config = buildCloudflareWranglerConfig({
     template,
+    contract,
+    workerSlot: 'public-web',
     templatePath: '/repo/cloudflare/wrangler.server-public-web.toml',
     outputPath,
   });
@@ -108,26 +177,67 @@ STORAGE_PUBLIC_BASE_URL = ""
     )
   );
   assert.match(config, /localConnectionString = ""/);
+  assert.match(
+    config,
+    new RegExp(`name = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`)
+  );
 });
 
 test('buildCloudflareWranglerConfig 会在已有 [dev] 段内覆盖 host 并补齐 upstream_protocol', () => {
   const template = `
-name = "roller-rabbit"
+name = "router-template"
 main = "cloudflare/workers/router.ts"
 
 [assets]
 directory = ".open-next/assets"
 
+[images]
+binding = "IMAGES"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "d208cd72765b46a7b0849fc687e2fb61"
+localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
+
 [dev]
 host = "example.com"
 
 [vars]
+DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://example.com"
 STORAGE_PUBLIC_BASE_URL = ""
+PUBLIC_WEB_WORKER_NAME = ""
+AUTH_WORKER_NAME = ""
+PAYMENT_WORKER_NAME = ""
+MEMBER_WORKER_NAME = ""
+CHAT_WORKER_NAME = ""
+ADMIN_WORKER_NAME = ""
 `;
 
   const config = buildCloudflareWranglerConfig({
     template,
+    contract,
+    workerSlot: 'router',
     devHost: 'localhost',
     devUpstreamProtocol: 'http',
     templatePath: '/repo/wrangler.cloudflare.toml',
@@ -142,25 +252,30 @@ STORAGE_PUBLIC_BASE_URL = ""
 
 test('buildCloudflareWranglerConfig 支持 state 模板且不强制要求 R2 buckets', () => {
   const template = `
+name = "state-template"
 main = "workers/state.ts"
 
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
-service = "roller-rabbit"
+service = "placeholder-router"
 
 [[durable_objects.bindings]]
 name = "STATEFUL_LIMITERS"
 class_name = "StatefulLimitersDurableObject"
 
+[observability]
+enabled = true
+
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://example.com"
-STORAGE_PUBLIC_BASE_URL = ""
 `;
 
   const outputPath = '/repo/.tmp/state.toml';
   const config = buildCloudflareWranglerConfig({
     template,
+    contract,
+    workerSlot: 'state',
     templatePath: '/repo/cloudflare/wrangler.state.toml',
     outputPath,
     validateTemplateContract: true,
@@ -172,4 +287,6 @@ STORAGE_PUBLIC_BASE_URL = ""
       `main = "${escapeRegExp(path.relative(path.dirname(outputPath), '/repo/cloudflare/workers/state.ts'))}"`
     )
   );
+  assert.doesNotMatch(config, /\[\[r2_buckets\]\]/);
+  assert.match(config, /STORAGE_PUBLIC_BASE_URL = ""/);
 });

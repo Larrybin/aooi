@@ -9,19 +9,21 @@ import { fileURLToPath } from 'node:url';
 import { readOpenNextGeneratedModules } from '../../scripts/sync-open-next-generated-types.mjs';
 import {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
-  CLOUDFLARE_ROUTER_WORKER_NAME,
-  CLOUDFLARE_SERVER_WORKERS,
   CLOUDFLARE_SERVICE_BINDINGS,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
-  CLOUDFLARE_STATE_WORKER_NAME,
   getServerWorkerMetadata,
 } from '../../src/shared/config/cloudflare-worker-splits';
+import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..'
 );
 const execFile = promisify(execFileCallback);
+const contract = resolveSiteDeployContract({
+  rootDir,
+  siteKey: 'mamamiya',
+});
 
 test('router worker 不直接 import server handler', async () => {
   const routerSource = await fs.readFile(
@@ -158,7 +160,11 @@ test('router wrangler services 与 split manifest 一致', async () => {
 
   assert.match(
     wranglerConfig,
-    new RegExp(`service = "${CLOUDFLARE_ROUTER_WORKER_NAME}"`)
+    new RegExp(`name = "${contract.workers.router}"`)
+  );
+  assert.match(
+    wranglerConfig,
+    new RegExp(`service = "${contract.workers.router}"`)
   );
 
   for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
@@ -168,7 +174,7 @@ test('router wrangler services 与 split manifest 一致', async () => {
     );
     assert.match(
       wranglerConfig,
-      new RegExp(`service = "${CLOUDFLARE_SERVER_WORKERS[target]}"`)
+      new RegExp(`service = "${contract.serverWorkers[target].workerName}"`)
     );
   }
 });
@@ -197,8 +203,40 @@ test('router 与 server worker 的 Durable Object bindings 全部指向 state wo
 
   for (const configPath of configPaths) {
     const source = await fs.readFile(configPath, 'utf8');
-    assert.match(source, new RegExp(`script_name = "${CLOUDFLARE_STATE_WORKER_NAME}"`));
+    assert.match(
+      source,
+      new RegExp(`script_name = "${contract.workers.state}"`)
+    );
     assert.doesNotMatch(source, /\[\[migrations\]\]/);
+  }
+});
+
+test('state-first app-second 兼容窗口依赖同一 state owner 与同一路由回指契约', async () => {
+  const stateSource = await fs.readFile(
+    path.join(rootDir, 'cloudflare/wrangler.state.toml'),
+    'utf8'
+  );
+  assert.match(
+    stateSource,
+    new RegExp(`service = "${contract.router.workerName}"`),
+    'state worker 必须通过 WORKER_SELF_REFERENCE 回指当前 router'
+  );
+
+  for (const target of CLOUDFLARE_ALL_SERVER_WORKER_TARGETS) {
+    const source = await fs.readFile(
+      path.join(rootDir, `cloudflare/wrangler.server-${target}.toml`),
+      'utf8'
+    );
+    assert.match(
+      source,
+      new RegExp(`service = "${contract.router.workerName}"`),
+      `${target} worker 必须通过 WORKER_SELF_REFERENCE 回指当前 router`
+    );
+    assert.match(
+      source,
+      new RegExp(`script_name = "${contract.stateWorker.workerName}"`),
+      `${target} worker 必须继续绑定同一个 state DO owner`
+    );
   }
 });
 
@@ -218,7 +256,7 @@ test('只有 state worker 保留 Durable Object exports 与 migrations', async (
   assert.match(stateWrangler, /\[\[migrations\]\]/);
   assert.match(
     stateWrangler,
-    new RegExp(`name = "${CLOUDFLARE_STATE_WORKER_NAME}"`)
+    new RegExp(`name = "${contract.workers.state}"`)
   );
 });
 

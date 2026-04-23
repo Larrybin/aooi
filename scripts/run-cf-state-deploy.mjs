@@ -4,19 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import { CLOUDFLARE_STATE_WORKER_SCOPE } from './lib/cloudflare-runtime-bindings.mjs';
-
-const { CLOUDFLARE_STATE_WORKER, CLOUDFLARE_STATE_WORKER_NAME } =
-  cloudflareWorkerSplits;
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
 
 const rootDir = process.cwd();
-const stateConfigPath = path.resolve(
-  rootDir,
-  CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath
-);
 
 function log(message) {
   console.log(`[cf:deploy:state] ${message}`);
@@ -27,7 +21,7 @@ export function createDeployMessage(label = 'state-deploy') {
 }
 
 export function buildStateDeployWranglerArgs({
-  name = CLOUDFLARE_STATE_WORKER_NAME,
+  name,
   configPath,
   secretsPath,
   message = createDeployMessage(),
@@ -87,12 +81,22 @@ function runWrangler(args) {
 }
 
 async function createStateDeployArtifacts() {
+  const contract = resolveSiteDeployContract({
+    rootDir,
+    siteKey: resolveRequiredSiteKey(process.env),
+  });
+  const stateConfigPath = path.resolve(
+    rootDir,
+    contract.stateWorker.wranglerConfigRelativePath
+  );
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'cf-state-deploy-'));
   const tempConfigPath = path.join(tempDir, 'wrangler.state.toml');
   const secretsPath = path.join(tempDir, 'state.secrets.env');
   const template = await readFile(stateConfigPath, 'utf8');
   const content = buildCloudflareWranglerConfig({
     template,
+    contract,
+    workerSlot: 'state',
     templatePath: stateConfigPath,
     outputPath: tempConfigPath,
     validateTemplateContract: true,
@@ -105,6 +109,7 @@ async function createStateDeployArtifacts() {
   });
 
   return {
+    workerName: contract.stateWorker.workerName,
     configPath: tempConfigPath,
     secretsPath,
     async cleanup() {
@@ -120,9 +125,10 @@ export async function deployCloudflareState({
   const artifacts = await createArtifacts();
 
   try {
-    log(`deploying ${CLOUDFLARE_STATE_WORKER_NAME} via wrangler deploy`);
+    log(`deploying ${artifacts.workerName} via wrangler deploy`);
     await runWranglerCommand(
       buildStateDeployWranglerArgs({
+        name: artifacts.workerName,
         configPath: artifacts.configPath,
         secretsPath: artifacts.secretsPath,
       })

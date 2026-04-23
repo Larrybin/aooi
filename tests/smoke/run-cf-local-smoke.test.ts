@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -87,6 +88,7 @@ test('runCloudflareLocalSmoke 先等待 preview ready，再执行 app smoke，�
 
   await runCloudflareLocalSmoke(
     {
+      templatePath: path.resolve(process.cwd(), 'wrangler.cloudflare.toml'),
       databaseUrl: 'postgresql://demo',
       baseUrl: 'http://127.0.0.1:8787',
     },
