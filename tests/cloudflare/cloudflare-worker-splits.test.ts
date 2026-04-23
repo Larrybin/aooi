@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveSiteDeployContract } from '../../../scripts/lib/site-deploy-contract.mjs';
+import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 import {
   buildVersionOverridesHeader,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
   getSplitWorker,
   resolveWorkerTarget,
   stripLocalePrefix,
-} from './cloudflare-worker-splits';
+} from '../../src/shared/config/cloudflare-worker-splits';
 
 const contract = resolveSiteDeployContract({
   rootDir: process.cwd(),
