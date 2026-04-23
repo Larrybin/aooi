@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = process.cwd();
 
+export function buildOpenNextBuildArgs() {
+  return ['exec', 'opennextjs-cloudflare', 'build', '--skipWranglerConfigCheck'];
+}
+
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -27,7 +31,7 @@ function runCommand(command, args) {
 }
 
 async function main() {
-  await runCommand('pnpm', ['exec', 'opennextjs-cloudflare', 'build']);
+  await runCommand('pnpm', buildOpenNextBuildArgs());
   await runCommand('node', ['--import', 'tsx', 'scripts/bundle-cf-server-functions.mjs']);
   await runCommand('node', ['--import', 'tsx', 'scripts/run-cf-multi-build-check.mjs']);
 }
