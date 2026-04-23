@@ -47,7 +47,7 @@ enabled = true
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://mamamiya.pdfreprinting.net/"
-NEXT_PUBLIC_APP_NAME = "Roller Rabbit"
 NEXT_PUBLIC_THEME = "default"
+STORAGE_PUBLIC_BASE_URL = ""
 DATABASE_PROVIDER = "postgresql"
 DB_SINGLETON_ENABLED = "true"

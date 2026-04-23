@@ -1,10 +1,6 @@
 import { safeJsonParse } from '@/shared/lib/json';
 import type { NavItem } from '@/shared/types/blocks/common';
 
-export function isConfigTrue(configs: Record<string, string>, key: string) {
-  return configs[key] === 'true';
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

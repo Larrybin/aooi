@@ -2,15 +2,27 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { reportSignUpAffiliate } from './report-sign-up-affiliate';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+
+const ENABLED_UI_CONFIG: PublicUiConfig = {
+  aiEnabled: false,
+  blogEnabled: false,
+  docsEnabled: false,
+  localeSwitcherEnabled: false,
+  socialLinksEnabled: false,
+  socialLinksJson: '',
+  socialLinks: [],
+  affiliate: {
+    affonsoEnabled: true,
+    promotekitEnabled: true,
+  },
+};
 
 test('reportSignUpAffiliate 在开启时上报 Affonso 和 PromoteKit', () => {
   const calls: string[] = [];
 
   reportSignUpAffiliate({
-    configs: {
-      affonso_enabled: 'true',
-      promotekit_enabled: 'true',
-    },
+    uiConfig: ENABLED_UI_CONFIG,
     userEmail: 'user@example.com',
     stripeCustomerId: 'cus_123',
     win: {
@@ -37,9 +49,12 @@ test('reportSignUpAffiliate 在 provider 缺失或关闭时静默跳过', () => 
   const calls: string[] = [];
 
   reportSignUpAffiliate({
-    configs: {
-      affonso_enabled: 'false',
-      promotekit_enabled: 'true',
+    uiConfig: {
+      ...ENABLED_UI_CONFIG,
+      affiliate: {
+        affonsoEnabled: false,
+        promotekitEnabled: true,
+      },
     },
     userEmail: 'user@example.com',
     win: {
@@ -52,10 +67,7 @@ test('reportSignUpAffiliate 在 provider 缺失或关闭时静默跳过', () => 
   });
 
   reportSignUpAffiliate({
-    configs: {
-      affonso_enabled: 'true',
-      promotekit_enabled: 'true',
-    },
+    uiConfig: ENABLED_UI_CONFIG,
     userEmail: 'user@example.com',
   });
 

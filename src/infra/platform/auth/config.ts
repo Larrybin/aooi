@@ -11,10 +11,13 @@ import { getUuid } from '@/shared/lib/hash';
 import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 import { isProductionEnv } from '@/shared/lib/env';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-runtime.query';
+import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import type {
+  AuthServerBindings,
+  AuthUiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
+import { site } from '@/site';
 import {
-  getRuntimeEnvString,
-  getServerPublicEnvConfigs,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
   isRuntimeEnvEnabled,
@@ -25,6 +28,7 @@ import {
 } from '@/infra/platform/auth/reset-password-throttle';
 import { getEmailService } from '@/infra/adapters/email/service';
 import { installAuthSpikeOAuthFetchMock } from './oauth-spike.mock';
+import { getAuthServerBindings } from './server-bindings';
 import {
   buildTrustedAuthOrigins,
   isExplicitLocalAuthRuntimeEnabled,
@@ -50,18 +54,6 @@ function assertAuthEnv() {
     );
   }
 
-  const rawAuthBaseUrl =
-    getRuntimeEnvString('BETTER_AUTH_URL') ??
-    getRuntimeEnvString('AUTH_URL') ??
-    getRuntimeEnvString('NEXT_PUBLIC_APP_URL') ??
-    '';
-
-  if (!rawAuthBaseUrl.trim()) {
-    throw new Error(
-      'Auth base URL is required in production. Set BETTER_AUTH_URL or AUTH_URL or NEXT_PUBLIC_APP_URL.'
-    );
-  }
-
   if (!runtimeEnv.databaseUrl.trim() && !isCloudflareWorkersRuntime()) {
     throw new Error(
       'DATABASE_URL is required in production for Better Auth database adapter.'
@@ -71,16 +63,9 @@ function assertAuthEnv() {
 
 function getAuthRuntimeContext(request?: Request) {
   const runtimeEnv = getServerRuntimeEnv();
-  const publicEnvConfigs = getServerPublicEnvConfigs();
   const isProduction = isProductionEnv();
   const normalizedAuthBaseUrl = new URL(runtimeEnv.authBaseUrl).origin;
-  const compiledAppOrigin =
-    publicEnvConfigs.app_url && publicEnvConfigs.app_url !== normalizedAuthBaseUrl
-      ? new URL(publicEnvConfigs.app_url).origin
-      : null;
-  const additionalAllowedAuthOrigins = compiledAppOrigin
-    ? [compiledAppOrigin]
-    : [];
+  const additionalAllowedAuthOrigins: string[] = [];
   const isAuthSpikeOAuthUpstreamMock = isAuthSpikeOAuthUpstreamMockEnabled();
   const runtimeBaseUrl = resolveRuntimeAuthBaseUrl({
     defaultBaseUrl: normalizedAuthBaseUrl,
@@ -97,7 +82,6 @@ function getAuthRuntimeContext(request?: Request) {
 
   return {
     runtimeEnv,
-    publicEnvConfigs,
     isProduction,
     normalizedAuthBaseUrl,
     additionalAllowedAuthOrigins,
@@ -110,14 +94,13 @@ function getAuthRuntimeContext(request?: Request) {
 function buildAuthOptionsBase(): BetterAuthOptions {
   const {
     runtimeEnv,
-    publicEnvConfigs,
     isProduction,
     normalizedAuthBaseUrl,
     additionalAllowedAuthOrigins,
   } = getAuthRuntimeContext();
 
   return {
-    appName: publicEnvConfigs.app_name,
+    appName: site.brand.appName,
     baseURL: normalizedAuthBaseUrl,
     secret: runtimeEnv.authSecret,
     trustedOrigins: buildTrustedAuthOrigins({
@@ -171,17 +154,18 @@ export async function getAuthOptions(
   installAuthSpikeOAuthFetchMock();
   assertAuthEnv();
   const baseAuthOptions = buildAuthOptionsBase();
-  const configs = await readRuntimeSettingsCached();
-  const { publicEnvConfigs, isProduction, isAuthSpikeOAuthUpstreamMock } =
+  const authSettings = await readAuthUiRuntimeSettingsCached();
+  const authBindings = getAuthServerBindings();
+  const { isProduction, isAuthSpikeOAuthUpstreamMock } =
     getAuthRuntimeContext(request);
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
   const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthOriginDebug(request);
-  const appName = (configs.app_name || publicEnvConfigs.app_name || '').trim();
-  const socialProviders = await getSocialProviders(configs, runtimeBaseUrl);
+  const appName = site.brand.appName.trim();
+  const socialProviders = await getSocialProviders({
+    settings: authSettings,
+    bindings: authBindings,
+    authBaseUrl: runtimeBaseUrl,
+  });
   if (isRuntimeEnvEnabled('CF_LOCAL_AUTH_DEBUG')) {
     log.warn('[auth-debug] request origin resolution', {
       operation: 'resolve-request-origin',
@@ -248,7 +232,7 @@ export async function getAuthOptions(
               const emailService = await getEmailService();
               const result = await emailService.sendEmail({
                 to: email,
-                subject: `${publicEnvConfigs.app_name} - Reset password`,
+                subject: `${site.brand.appName} - Reset password`,
                 ...buildResetPasswordEmailPayload({ url }),
               });
 
@@ -295,7 +279,7 @@ export async function getAuthOptions(
       : { enabled: false },
     socialProviders,
     plugins:
-      socialProviders.google && configs.google_one_tap_enabled === 'true'
+      socialProviders.google && authSettings.googleOneTapEnabled
         ? [oneTap()]
         : [],
   };
@@ -305,36 +289,43 @@ function buildSocialProviderRedirectURI(authBaseUrl: string, provider: string) {
   return `${authBaseUrl.replace(/\/+$/, '')}/api/auth/callback/${provider}`;
 }
 
-export async function getSocialProviders(configs: Configs, authBaseUrl: string) {
-  // get configs from db
+export async function getSocialProviders({
+  settings: authSettings,
+  bindings,
+  authBaseUrl,
+}: {
+  settings: AuthUiRuntimeSettings;
+  bindings: AuthServerBindings;
+  authBaseUrl: string;
+}) {
   const providers: Record<
     string,
     { clientId: string; clientSecret: string; redirectURI: string }
   > = {};
 
-  const googleEnabled = configs.google_auth_enabled === 'true';
-  const githubEnabled = configs.github_auth_enabled === 'true';
+  const googleEnabled = authSettings.googleAuthEnabled;
+  const githubEnabled = authSettings.githubAuthEnabled;
 
   if (
     googleEnabled &&
-    configs.google_client_id &&
-    configs.google_client_secret
+    bindings.googleClientId &&
+    bindings.googleClientSecret
   ) {
     providers.google = {
-      clientId: configs.google_client_id,
-      clientSecret: configs.google_client_secret,
+      clientId: bindings.googleClientId,
+      clientSecret: bindings.googleClientSecret,
       redirectURI: buildSocialProviderRedirectURI(authBaseUrl, 'google'),
     };
   }
 
   if (
     githubEnabled &&
-    configs.github_client_id &&
-    configs.github_client_secret
+    bindings.githubClientId &&
+    bindings.githubClientSecret
   ) {
     providers.github = {
-      clientId: configs.github_client_id,
-      clientSecret: configs.github_client_secret,
+      clientId: bindings.githubClientId,
+      clientSecret: bindings.githubClientSecret,
       redirectURI: buildSocialProviderRedirectURI(authBaseUrl, 'github'),
     };
   }

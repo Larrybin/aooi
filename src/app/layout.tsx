@@ -4,7 +4,7 @@
 import '@/config/style/global.css';
 
 import { defaultLocale, isRtlLocale } from '@/config/locale';
-import { readRuntimeSettingsSafe } from '@/domains/settings/application/settings-runtime.query';
+import { readSettingsSafe } from '@/domains/settings/application/settings-store';
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 import { getAdsRuntimeForRequest } from '@/infra/adapters/ads/service';
 import { getAffiliateManagerWithConfigs } from '@/infra/adapters/affiliate/service';
@@ -40,7 +40,7 @@ export default async function RootLayout({
   let customerServiceBodyScripts = null;
 
   if (isProduction || isDebug) {
-    const { configs } = await readRuntimeSettingsSafe();
+    const { configs } = await readSettingsSafe();
 
     const adsRuntime = await getAdsRuntimeForRequest();
     if (adsRuntime.enabled) {

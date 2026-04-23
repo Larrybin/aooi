@@ -3,14 +3,15 @@ import 'server-only';
 import { AIMediaType, type AIProvider } from '@/extensions/ai';
 import { KieProvider, ReplicateProvider } from '@/extensions/ai/providers';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   ProviderRegistry,
   trimmedProviderNameKey,
 } from '@/shared/lib/providers/provider-registry';
-import type { Configs } from '@/domains/settings/application/settings-runtime.query';
-
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
+import { getAiProviderBindings } from './provider-bindings';
 
 export type AIService = {
   getProvider(name: string): AIProvider | undefined;
@@ -21,15 +22,21 @@ export type AIService = {
 /**
  * get ai manager with configs
  */
-export function getAIServiceWithConfigs(configs: Configs) {
+export function getAIService({
+  settings: _settings,
+  bindings,
+}: {
+  settings: AiRuntimeSettings;
+  bindings: AiProviderBindings;
+}) {
   const registry = new ProviderRegistry<AIProvider>({
     toNameKey: trimmedProviderNameKey,
   });
 
-  if (configs.kie_api_key) {
+  if (bindings.kieApiKey) {
     registry.addUnique(
       new KieProvider({
-        apiKey: configs.kie_api_key,
+        apiKey: bindings.kieApiKey,
       }),
       {
         invalidNameError: () =>
@@ -40,10 +47,10 @@ export function getAIServiceWithConfigs(configs: Configs) {
     );
   }
 
-  if (configs.replicate_api_token) {
+  if (bindings.replicateApiToken) {
     registry.addUnique(
       new ReplicateProvider({
-        apiToken: configs.replicate_api_token,
+        apiToken: bindings.replicateApiToken,
       }),
       {
         invalidNameError: () =>
@@ -61,11 +68,12 @@ export function getAIServiceWithConfigs(configs: Configs) {
   } satisfies AIService;
 }
 
-/**
- * global ai service
- */
-export async function getAIService(options: {
-  mode?: ConfigConsistencyMode;
-} = {}): Promise<AIService> {
-  return await buildServiceFromLatestConfigs(getAIServiceWithConfigs, options);
+export async function getConfiguredAIService(): Promise<AIService> {
+  const { readAiRuntimeSettingsCached } = await import(
+    '@/domains/settings/application/settings-runtime.query'
+  );
+  return getAIService({
+    settings: await readAiRuntimeSettingsCached(),
+    bindings: getAiProviderBindings(),
+  });
 }

@@ -8,7 +8,7 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { retrieveMemberBillingPortalUrl } from '@/domains/billing/application/member-billing.actions';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
 
 export default async function RetrieveBillingPage({
   params,
@@ -35,11 +35,10 @@ export default async function RetrieveBillingPage({
     | undefined;
   let errorMessage: string | undefined;
   try {
-    const serverPublicEnvConfigs = getServerPublicEnvConfigs();
     result = await retrieveMemberBillingPortalUrl({
       subscriptionNo: subscription_no,
       actorUserId: user.id,
-      returnUrl: `${serverPublicEnvConfigs.app_url}/settings/billing`,
+      returnUrl: buildCanonicalUrl('/settings/billing'),
     });
   } catch (error: unknown) {
     errorMessage = toErrorMessage(error) || t('errors.get_billing_failed');

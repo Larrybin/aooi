@@ -44,7 +44,7 @@ test('settings registry: public settings 精确来自 visibility=public', () => 
 });
 
 test('settings registry: public settings 契约不应误公开敏感或仅服务端消费的 key', () => {
-  assert.equal(PUBLIC_SETTING_NAMES.includes('google_client_id'), true);
+  assert.equal(PUBLIC_SETTING_NAMES.includes('google_client_id'), false);
   assert.equal(PUBLIC_SETTING_NAMES.includes('github_client_id'), false);
   assert.equal(PUBLIC_SETTING_NAMES.includes('google_client_secret'), false);
   assert.equal(PUBLIC_SETTING_NAMES.includes('github_client_secret'), false);
@@ -128,6 +128,24 @@ test('defineSettingsGroup: 展开后保留组级元数据和显式 visibility �
   );
 });
 
+test('settings registry: 禁止站点 identity 和 storage runtime binding 回流', () => {
+  const settingKey = (left: string, right: string) => `${left}_${right}`;
+  const forbiddenKeys = [
+    settingKey('app', 'name'),
+    settingKey('app', 'url'),
+    `general_${settingKey('support', 'email')}`,
+    settingKey('app', 'logo'),
+    settingKey('app', 'favicon'),
+    `app_${settingKey('og', 'image')}`,
+    `storage_${settingKey('public', 'base')}_url`,
+  ];
+
+  for (const key of forbiddenKeys) {
+    assert.equal(KNOWN_SETTING_KEYS.includes(key as never), false);
+    assert.equal(PUBLIC_SETTING_NAMES.includes(key as never), false);
+  }
+});
+
 test('settings registry: DSL 重写后 key 集合保持不变', () => {
   assert.deepEqual([...KNOWN_SETTING_KEYS].sort(), [
     'ads_enabled',
@@ -145,63 +163,66 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'affonso_cookie_duration',
     'affonso_enabled',
     'affonso_id',
-    'app_favicon',
-    'app_logo',
-    'app_name',
-    'app_og_image',
-    'app_url',
     'clarity_id',
-    'creem_api_key',
     'creem_enabled',
     'creem_environment',
     'creem_product_ids',
-    'creem_signing_secret',
     'crisp_enabled',
     'crisp_website_id',
     'default_payment_provider',
     'email_auth_enabled',
-    'fal_api_key',
     'general_ai_enabled',
     'general_blog_enabled',
     'general_docs_enabled',
     'general_locale_switcher_enabled',
     'general_social_links',
     'general_social_links_enabled',
-    'general_support_email',
     'github_auth_enabled',
-    'github_client_id',
-    'github_client_secret',
     'google_analytics_id',
     'google_auth_enabled',
-    'google_client_id',
-    'google_client_secret',
     'google_one_tap_enabled',
-    'kie_api_key',
     'openpanel_client_id',
-    'openrouter_api_key',
-    'paypal_client_id',
-    'paypal_client_secret',
     'paypal_enabled',
     'paypal_environment',
-    'paypal_webhook_id',
     'plausible_domain',
     'plausible_src',
     'promotekit_enabled',
     'promotekit_id',
-    'replicate_api_token',
     'resend_api_key',
     'resend_sender_email',
     'select_payment_enabled',
-    'storage_public_base_url',
     'stripe_enabled',
     'stripe_payment_methods',
-    'stripe_publishable_key',
-    'stripe_secret_key',
-    'stripe_signing_secret',
     'tawk_enabled',
     'tawk_property_id',
     'tawk_widget_id',
   ]);
+});
+
+test('settings registry: auth/payment/AI secret keys 已彻底移出 registry', () => {
+  const removedSecretKeys = [
+    'google_client_id',
+    'google_client_secret',
+    'github_client_id',
+    'github_client_secret',
+    'stripe_publishable_key',
+    'stripe_secret_key',
+    'stripe_signing_secret',
+    'creem_api_key',
+    'creem_signing_secret',
+    'paypal_client_id',
+    'paypal_client_secret',
+    'paypal_webhook_id',
+    'openrouter_api_key',
+    'replicate_api_token',
+    'fal_api_key',
+    'kie_api_key',
+  ] as const;
+
+  for (const key of removedSecretKeys) {
+    assert.equal(KNOWN_SETTING_KEYS.includes(key as never), false, key);
+    assert.equal(PUBLIC_SETTING_NAMES.includes(key as never), false, key);
+  }
 });
 
 test('deriveSettingsRegistry: group 元数据不一致时快速失败', () => {
@@ -221,9 +242,9 @@ test('deriveSettingsRegistry: group 元数据不一致时快速失败', () => {
           tab: 'auth',
         },
         {
-          name: 'google_client_id',
-          title: 'Google Client ID',
-          type: 'text',
+          name: 'google_one_tap_enabled',
+          title: 'OneTap Enabled',
+          type: 'switch',
           moduleId: 'auth',
           visibility: 'public',
           group: {

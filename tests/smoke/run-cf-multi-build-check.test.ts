@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
-  buildStateDryRunArgs,
   buildVersionUploadDryRunArgs,
   parseDryRunUploadSize,
 } from '../../scripts/run-cf-multi-build-check.mjs';
 
-test('加载 run-cf-multi-build-check 时 state worker 不依赖 server bundle metadata', async () => {
-  const loadedModule = await import('../../scripts/run-cf-multi-build-check.mjs');
-  assert.equal(typeof loadedModule.buildStateDryRunArgs, 'function');
+test('run-cf-multi-build-check 只覆盖 app worker，不再 dry-run state', async () => {
+  const source = await readFile('scripts/run-cf-multi-build-check.mjs', 'utf8');
+
+  assert.doesNotMatch(source, /label:\s*['"]state['"]/);
+  assert.doesNotMatch(source, /buildStateDryRunArgs/);
+  assert.doesNotMatch(source, /wrangler\.state\.toml/);
 });
 
 test('parseDryRunUploadSize 解析 wrangler dry-run 输出中的 total/gzip 体积', () => {
@@ -26,27 +29,6 @@ Your Worker has access to the following bindings:
 
 test('parseDryRunUploadSize 在缺少体积行时失败', () => {
   assert.throws(() => parseDryRunUploadSize('no size info'), /parse dry-run upload size/i);
-});
-
-test('buildStateDryRunArgs 为 state worker 固定使用 wrangler deploy --dry-run', () => {
-  assert.deepEqual(
-    buildStateDryRunArgs({
-      configPath: '/tmp/wrangler.state.toml',
-      name: 'roller-rabbit-state',
-      secretsPath: '/tmp/state.secrets.env',
-    }),
-    [
-      'deploy',
-      '--dry-run',
-      '--config',
-      '/tmp/wrangler.state.toml',
-      '--name',
-      'roller-rabbit-state',
-      '--keep-vars',
-      '--secrets-file',
-      '/tmp/state.secrets.env',
-    ]
-  );
 });
 
 test('buildVersionUploadDryRunArgs 为 app worker 固定使用 wrangler versions upload --dry-run', () => {

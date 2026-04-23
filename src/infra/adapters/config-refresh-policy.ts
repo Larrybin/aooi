@@ -2,10 +2,10 @@ import 'server-only';
 
 import { type ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
-  readRuntimeSettingsCached,
-  readRuntimeSettingsFresh,
+  readSettingsCached,
+  readSettingsFresh,
   type Configs,
-} from '@/domains/settings/application/settings-runtime.query';
+} from '@/domains/settings/application/settings-store';
 import { readServiceConfigsByMode } from '@/infra/adapters/config-read-mode';
 
 export type ConfigRefreshPolicy = 'cached';
@@ -30,8 +30,8 @@ export async function buildServiceFromLatestConfigs<T>(
   const configs = await readServiceConfigsByMode(
     options.mode ?? CONFIG_REFRESH_POLICY,
     {
-      readRuntimeSettingsCachedImpl: readRuntimeSettingsCached,
-      readRuntimeSettingsFreshImpl: readRuntimeSettingsFresh,
+      readSettingsCachedImpl: readSettingsCached,
+      readSettingsFreshImpl: readSettingsFresh,
     }
   );
   return await buildWithConfigs(configs);

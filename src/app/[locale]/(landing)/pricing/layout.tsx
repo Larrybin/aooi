@@ -12,7 +12,11 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -28,15 +32,18 @@ export default async function PricingLayout({
 }) {
   const { locale } = await params;
   const t = await getTranslations('landing');
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
+  const brand = buildBrandPlaceholderValues();
 
   const header: HeaderType = t.raw('header');
   const footer: FooterType = t.raw('footer');
   const branded = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(header, brand),
     footer: replaceBrandPlaceholdersDeep(footer, brand),
-    configs: publicConfigs,
   });
 
   return (
@@ -48,8 +55,16 @@ export default async function PricingLayout({
         'common.locale_detector',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
-        <LandingLayout header={branded.header} footer={branded.footer}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
+        <LandingLayout
+          header={branded.header}
+          footer={branded.footer}
+          publicConfig={publicUiConfig}
+        >
           <LocaleDetectorLazy />
           {children}
         </LandingLayout>

@@ -10,9 +10,10 @@ import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import type { Button as ButtonType } from '@/shared/types/blocks/common';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
+import type { BillingRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function PaymentProviders({
-  configs,
+  billingSettings,
   callbackUrl: _callbackUrl,
   loading,
   setLoading: _setLoading,
@@ -20,7 +21,7 @@ export function PaymentProviders({
   onCheckout,
   className,
 }: {
-  configs: Record<string, string>;
+  billingSettings: BillingRuntimeSettings;
   callbackUrl: string;
   loading: boolean;
   setLoading: (loading: boolean) => void;
@@ -60,7 +61,7 @@ export function PaymentProviders({
 
   const providers: ButtonType[] = [];
 
-  if (configs.stripe_enabled === 'true' && isProviderAllowed('stripe')) {
+  if (billingSettings.stripeEnabled && isProviderAllowed('stripe')) {
     providers.push({
       name: 'stripe',
       title: 'Stripe',
@@ -69,7 +70,7 @@ export function PaymentProviders({
     });
   }
 
-  if (configs.creem_enabled === 'true' && isProviderAllowed('creem')) {
+  if (billingSettings.creemEnabled && isProviderAllowed('creem')) {
     providers.push({
       name: 'creem',
       title: 'Creem',
@@ -78,7 +79,7 @@ export function PaymentProviders({
     });
   }
 
-  if (configs.paypal_enabled === 'true' && isProviderAllowed('paypal')) {
+  if (billingSettings.paypalEnabled && isProviderAllowed('paypal')) {
     providers.push({
       name: 'paypal',
       title: 'PayPal',

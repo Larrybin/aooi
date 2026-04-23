@@ -1,34 +1,27 @@
 import 'server-only';
 
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { Configs } from '@/domains/settings/application/settings-runtime.query';
-
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 import {
-  buildStorageServiceWithConfigs,
+  buildStorageService,
+  type StorageRuntimeBindings,
   type StorageService,
 } from './service-builder';
 
-/**
- * get storage service with configs
- */
-export function getStorageServiceWithConfigs(
-  configs: Configs,
-  options?: {
-    uploadMockEnabled?: boolean;
-  }
-) {
-  return buildStorageServiceWithConfigs(configs, options);
+function readStorageRuntimeBindings(): StorageRuntimeBindings {
+  return {
+    publicBaseUrl: getRuntimeEnvString('STORAGE_PUBLIC_BASE_URL')?.trim() || '',
+  };
 }
 
-/**
- * Global storage service. In production this is Cloudflare R2 binding only.
- */
-export async function getStorageService(options: {
+export function getStorageRuntimeBindings(): StorageRuntimeBindings {
+  return { ...readStorageRuntimeBindings() };
+}
+
+export async function getStorageService(_options: {
   mode?: ConfigConsistencyMode;
 } = {}): Promise<StorageService> {
-  return await buildServiceFromLatestConfigs(
-    getStorageServiceWithConfigs,
-    options
-  );
+  return buildStorageService({
+    bindings: readStorageRuntimeBindings(),
+  });
 }

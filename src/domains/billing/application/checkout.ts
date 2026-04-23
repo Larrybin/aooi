@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { defaultLocale, locales, type Locale } from '@/config/locale';
+import { site } from '@/site';
 import {
   PaymentType,
   type CheckoutInfo,
@@ -8,7 +9,7 @@ import {
   type PaymentOrder,
   type PaymentPrice,
 } from '@/domains/billing/domain/payment';
-import { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
+import { getPaymentService } from '@/infra/adapters/payment/service';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -33,8 +34,10 @@ import {
   resolvePricingPaymentInterval,
   resolveSubscriptionPlanName,
 } from '@/domains/billing/domain/pricing';
-
-type PaymentRuntimeSettings = Record<string, string | undefined>;
+import type {
+  BillingRuntimeSettings,
+  PaymentRuntimeBindings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 
 type LogLike = {
   debug(message: string, meta?: unknown): void;
@@ -57,18 +60,18 @@ function normalizeLocaleValue(
 function assertAppUrlOrigin(appUrl: string): string {
   const trimmed = (appUrl || '').trim();
   if (!trimmed) {
-    throw new ServiceUnavailableError('app_url is not configured');
+    throw new ServiceUnavailableError('site.brand.appUrl is not configured');
   }
 
   let origin: string;
   try {
     const url = new URL(trimmed);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error('app_url must use http or https');
+      throw new Error('site.brand.appUrl must use http or https');
     }
     origin = url.origin;
   } catch (error) {
-    throw new ServiceUnavailableError('invalid app_url configuration', {
+    throw new ServiceUnavailableError('invalid site.brand.appUrl configuration', {
       error,
     });
   }
@@ -78,18 +81,18 @@ function assertAppUrlOrigin(appUrl: string): string {
 
 function resolvePaymentProviderName({
   requestedProvider,
-  configs,
+  settings,
   log,
 }: {
   requestedProvider: string | null | undefined;
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
   log: LogLike;
 }): string {
   const provider =
-    (requestedProvider || '').trim() || configs.default_payment_provider;
+    (requestedProvider || '').trim() || settings.defaultPaymentProvider;
   if (!provider) {
     log.error('payment: no payment provider configured', {
-      defaultPaymentProvider: configs.default_payment_provider,
+      defaultPaymentProvider: settings.defaultPaymentProvider,
     });
     throw new ServiceUnavailableError('payment provider not configured');
   }
@@ -100,13 +103,13 @@ async function getPaymentProductIdFromProviderConfig({
   productId,
   provider,
   checkoutCurrency,
-  configs,
+  settings,
   log,
 }: {
   productId: string;
   provider: string;
   checkoutCurrency: string;
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
   log: LogLike;
 }): Promise<string | undefined> {
   if (provider !== 'creem') {
@@ -115,7 +118,7 @@ async function getPaymentProductIdFromProviderConfig({
 
   try {
     const resolved = resolveCreemPaymentProductId({
-      configValue: configs.creem_product_ids,
+      configValue: settings.creemProductIds,
       productId,
       checkoutCurrency,
     });
@@ -145,19 +148,19 @@ async function getPaymentProductIdFromProviderConfig({
 }
 
 function buildCallbackUrl({
-  configs,
+  settings,
   locale,
   paymentType,
 }: {
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
   locale: string | null | undefined;
   paymentType: PaymentType;
 }): { callbackUrl: string; callbackBaseUrl: string } {
-  const appUrl = assertAppUrlOrigin(configs.app_url ?? '');
+  const appUrl = assertAppUrlOrigin(site.brand.appUrl);
   const activeLocale =
     normalizeLocaleValue(locale) ??
-    normalizeLocaleValue(configs.locale) ??
-    normalizeLocaleValue(configs.default_locale);
+    normalizeLocaleValue(settings.locale) ??
+    normalizeLocaleValue(settings.defaultLocale);
 
   let callbackBaseUrl = appUrl;
   if (activeLocale && activeLocale !== defaultLocale) {
@@ -178,7 +181,6 @@ function buildCheckoutOrder({
   paymentType,
   paymentInterval,
   orderNo,
-  configs,
   callbackUrl,
   callbackBaseUrl,
   metadata,
@@ -190,7 +192,6 @@ function buildCheckoutOrder({
   paymentType: PaymentType;
   paymentInterval: PaymentInterval;
   orderNo: string;
-  configs: PaymentRuntimeSettings;
   callbackUrl: string;
   callbackBaseUrl: string;
   metadata: Record<string, unknown> | null | undefined;
@@ -206,7 +207,7 @@ function buildCheckoutOrder({
     type: paymentType,
     metadata: {
       ...(metadata || {}),
-      app_name: configs.app_name,
+      appName: site.brand.appName,
       order_no: orderNo,
       user_id: user.id,
     },
@@ -292,7 +293,8 @@ function buildPendingOrder({
 export async function createPaymentCheckoutSession({
   pricingItem,
   user,
-  configs,
+  settings,
+  bindings,
   currency,
   locale,
   paymentProvider,
@@ -301,7 +303,8 @@ export async function createPaymentCheckoutSession({
 }: {
   pricingItem: PricingItem;
   user: { id: string; email?: string | null; name?: string | null };
-  configs: PaymentRuntimeSettings;
+  settings: BillingRuntimeSettings;
+  bindings: PaymentRuntimeBindings;
   currency: string | null | undefined;
   locale: string | null | undefined;
   paymentProvider: string | null | undefined;
@@ -314,7 +317,7 @@ export async function createPaymentCheckoutSession({
 
   const paymentProviderName = resolvePaymentProviderName({
     requestedProvider: paymentProvider,
-    configs,
+    settings,
     log,
   });
 
@@ -346,7 +349,7 @@ export async function createPaymentCheckoutSession({
         productId: pricingItem.product_id,
         provider: paymentProviderName,
         checkoutCurrency: pricingContext.checkoutCurrency,
-        configs,
+        settings,
         log,
       })) || '';
     paymentProductId = paymentProductId.trim();
@@ -364,7 +367,7 @@ export async function createPaymentCheckoutSession({
   }
 
   const { callbackUrl, callbackBaseUrl } = buildCallbackUrl({
-    configs,
+    settings,
     locale,
     paymentType,
   });
@@ -375,7 +378,6 @@ export async function createPaymentCheckoutSession({
     paymentType,
     paymentInterval,
     orderNo,
-    configs,
     callbackUrl,
     callbackBaseUrl,
     metadata,
@@ -401,7 +403,10 @@ export async function createPaymentCheckoutSession({
     currentTime,
   });
 
-  const paymentService = await getPaymentServiceWithConfigs(configs);
+  const paymentService = await getPaymentService({
+    settings,
+    bindings,
+  });
 
   await createOrder(order);
 

@@ -2,6 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
+import {
+  getRequiredRuntimeBindingsByWorker,
+  readCloudflareRuntimeSettings,
+  resolveCloudflareWorkerKeys,
+} from './lib/cloudflare-runtime-bindings.mjs';
+import { readCurrentSiteConfig } from './lib/site-config.mjs';
 
 const {
   CLOUDFLARE_ROUTER_WORKER,
@@ -17,21 +23,29 @@ const {
 } = cloudflareWorkerSplits;
 
 const rootDir = process.cwd();
-const routerConfigPath = path.resolve(rootDir, CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath);
-const stateConfigPath = path.resolve(rootDir, CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath);
+const routerConfigPath = path.resolve(
+  rootDir,
+  CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath
+);
+const stateConfigPath = path.resolve(
+  rootDir,
+  CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath
+);
 const DO_OWNER_WORKER_NAME = CLOUDFLARE_STATE_WORKER_NAME;
 const SHARED_INCREMENTAL_CACHE_BUCKET = 'roller-rabbit-opennext-cache';
 const SHARED_APP_STORAGE_BUCKET = 'roller-rabbit-storage';
 const DO_BINDINGS = new Map(
-  Object.entries(CLOUDFLARE_DURABLE_OBJECT_BINDINGS).map(([name, className]) => [
-    name,
-    { className },
-  ])
+  Object.entries(CLOUDFLARE_DURABLE_OBJECT_BINDINGS).map(
+    ([name, className]) => [name, { className }]
+  )
 );
 const serverConfigPaths = Object.fromEntries(
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
     target,
-    path.resolve(rootDir, getServerWorkerMetadata(target).wranglerConfigRelativePath),
+    path.resolve(
+      rootDir,
+      getServerWorkerMetadata(target).wranglerConfigRelativePath
+    ),
   ])
 );
 
@@ -96,12 +110,66 @@ function readSection(content, sectionName) {
   return match[1];
 }
 
+function normalizeOrigin(value, label) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      fail(`${label} must use http/https`);
+    }
+    return url.origin;
+  } catch (error) {
+    fail(`${label} must be a valid URL (${String(error)})`);
+  }
+}
+
+const currentSite = readCurrentSiteConfig({ rootDir });
+const defaultSiteOrigin = normalizeOrigin(
+  currentSite?.brand?.appUrl || '',
+  'site.brand.appUrl'
+);
+const configuredStoragePublicBaseUrl =
+  process.env.STORAGE_PUBLIC_BASE_URL?.trim() || '';
+const forbiddenIdentityEnvName = ['NEXT_PUBLIC', 'APP', 'NAME'].join('_');
+const runtimeSettings = readCloudflareRuntimeSettings();
+const requiredBindingsByWorker =
+  getRequiredRuntimeBindingsByWorker(runtimeSettings);
+const workerKeys = parseWorkerKeys(process.argv.slice(2));
+
+function parseWorkerKeys(args) {
+  const workersArg = args.find((arg) => arg.startsWith('--workers='));
+  try {
+    return resolveCloudflareWorkerKeys(
+      workersArg ? workersArg.split('=')[1] : 'all'
+    );
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+}
+
 function readOptionalSection(content, sectionName) {
   const pattern = new RegExp(
     String.raw`\[${sectionName}\]\s*([\s\S]*?)(?=\n\[\[|\n\[|$)`
   );
   const match = content.match(pattern);
   return match?.[1] ?? null;
+}
+
+function assertRequiredRuntimeBindings(label, workerKey) {
+  const requirements = requiredBindingsByWorker.get(workerKey) || [];
+  for (const requirement of requirements) {
+    const value = process.env[requirement.name]?.trim() || '';
+    if (!value) {
+      if (requirement.kind === 'runtime') {
+        fail(
+          `${label} requires runtime binding ${requirement.name} because worker ${requirement.worker} runs ${requirement.capability}; runtime secrets do not come from settings`
+        );
+      }
+
+      fail(
+        `${label} requires runtime binding ${requirement.name} because setting ${requirement.setting} enables ${requirement.capability}; runtime secrets no longer come from settings`
+      );
+    }
+  }
 }
 
 function readFlags(content) {
@@ -118,6 +186,7 @@ function assertSharedSettings(content, label, options = {}) {
     requiresAssets = true,
     requiresR2Buckets = true,
     requiresHyperdrive = true,
+    requiresStoragePublicBaseUrl = true,
   } = options;
   const compatibilityDate = readQuotedValue(
     content,
@@ -150,9 +219,7 @@ function assertSharedSettings(content, label, options = {}) {
 
   const expectedFlags = ['global_fetch_strictly_public', 'nodejs_compat'];
   if (JSON.stringify(flags) !== JSON.stringify(expectedFlags)) {
-    fail(
-      `${label}.compatibility_flags must equal ${expectedFlags.join(', ')}`
-    );
+    fail(`${label}.compatibility_flags must equal ${expectedFlags.join(', ')}`);
   }
 
   const observabilitySection = readSection(content, 'observability');
@@ -189,7 +256,9 @@ function assertSharedSettings(content, label, options = {}) {
       /^\s*binding\s*=\s*"NEXT_INC_CACHE_R2_BUCKET"/m.test(table)
     );
     if (!incrementalCacheBucket) {
-      fail(`${label} missing [[r2_buckets]] binding = "NEXT_INC_CACHE_R2_BUCKET"`);
+      fail(
+        `${label} missing [[r2_buckets]] binding = "NEXT_INC_CACHE_R2_BUCKET"`
+      );
     }
     const incrementalBucketName = readQuotedValue(
       incrementalCacheBucket,
@@ -237,7 +306,9 @@ function assertSharedSettings(content, label, options = {}) {
       /^\s*localConnectionString\s*=\s*"([^"\n]*)"/m
     );
     if (localConnectionString !== '') {
-      fail(`${label}.hyperdrive.localConnectionString must be empty in tracked templates`);
+      fail(
+        `${label}.hyperdrive.localConnectionString must be empty in tracked templates`
+      );
     }
   } else if (hyperdriveTables.length > 0) {
     fail(`${label} must not define [[hyperdrive]]`);
@@ -259,9 +330,42 @@ function assertSharedSettings(content, label, options = {}) {
     fail(`${label}.vars.DEPLOY_TARGET must equal cloudflare`);
   }
 
-  if (appUrl !== 'https://mamamiya.pdfreprinting.net/') {
+  if (
+    normalizeOrigin(appUrl, `${label}.vars.NEXT_PUBLIC_APP_URL`) !==
+    defaultSiteOrigin
+  ) {
     fail(
-      `${label}.vars.NEXT_PUBLIC_APP_URL must equal https://mamamiya.pdfreprinting.net/`
+      `${label}.vars.NEXT_PUBLIC_APP_URL must share the same origin as site.brand.appUrl (${defaultSiteOrigin})`
+    );
+  }
+
+  if (
+    new RegExp(String.raw`^\s*${forbiddenIdentityEnvName}\s*=`, 'm').test(
+      varsSection
+    )
+  ) {
+    fail(
+      `${label}.vars.${forbiddenIdentityEnvName} is forbidden; site identity must come from @/site`
+    );
+  }
+
+  if (requiresStoragePublicBaseUrl) {
+    const trackedStoragePublicBaseUrl = readMaybeEmptyQuotedValue(
+      varsSection,
+      `${label}.vars.STORAGE_PUBLIC_BASE_URL`,
+      /^\s*STORAGE_PUBLIC_BASE_URL\s*=\s*"([^"\n]*)"/m
+    );
+    const effectiveStoragePublicBaseUrl =
+      configuredStoragePublicBaseUrl || trackedStoragePublicBaseUrl.trim();
+    if (!effectiveStoragePublicBaseUrl) {
+      fail(
+        `${label}.vars.STORAGE_PUBLIC_BASE_URL is required as the R2 public asset base URL; it is a runtime binding and must not come from settings/public-config`
+      );
+    }
+
+    normalizeOrigin(
+      effectiveStoragePublicBaseUrl,
+      `${label}.vars.STORAGE_PUBLIC_BASE_URL`
     );
   }
 }
@@ -269,6 +373,7 @@ function assertSharedSettings(content, label, options = {}) {
 function assertRouterConfig() {
   const content = readFile(routerConfigPath);
   assertSharedSettings(content, 'router');
+  assertRequiredRuntimeBindings('router', 'router');
 
   const workerName = readQuotedValue(
     content,
@@ -344,7 +449,9 @@ function assertRouterConfig() {
       new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
     );
     if (!table) {
-      fail(`router missing [[durable_objects.bindings]] name = "${bindingName}"`);
+      fail(
+        `router missing [[durable_objects.bindings]] name = "${bindingName}"`
+      );
     }
 
     const actualClassName = readQuotedValue(
@@ -382,7 +489,9 @@ function assertStateConfig() {
     requiresAssets: false,
     requiresR2Buckets: false,
     requiresHyperdrive: false,
+    requiresStoragePublicBaseUrl: false,
   });
+  assertRequiredRuntimeBindings('state', 'state');
 
   const workerName = readQuotedValue(
     content,
@@ -428,7 +537,9 @@ function assertStateConfig() {
       new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
     );
     if (!table) {
-      fail(`state missing [[durable_objects.bindings]] name = "${bindingName}"`);
+      fail(
+        `state missing [[durable_objects.bindings]] name = "${bindingName}"`
+      );
     }
 
     const actualClassName = readQuotedValue(
@@ -452,6 +563,7 @@ function assertStateConfig() {
 function assertServerConfig(target, configPath) {
   const content = readFile(configPath);
   assertSharedSettings(content, `${target}`);
+  assertRequiredRuntimeBindings(`${target}`, target);
 
   const workerName = readQuotedValue(
     content,
@@ -463,10 +575,9 @@ function assertServerConfig(target, configPath) {
     `${target}.main`,
     /^\s*main\s*=\s*"([^"\n]+)"/m
   );
-  const expectedMain = getServerWorkerMetadata(target).workerEntryRelativePath.replace(
-    /^cloudflare\//,
-    ''
-  );
+  const expectedMain = getServerWorkerMetadata(
+    target
+  ).workerEntryRelativePath.replace(/^cloudflare\//, '');
 
   if (workerName !== CLOUDFLARE_SERVER_WORKERS[target]) {
     fail(`${target}.name must equal ${CLOUDFLARE_SERVER_WORKERS[target]}`);
@@ -510,7 +621,9 @@ function assertServerConfig(target, configPath) {
       new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
     );
     if (!table) {
-      fail(`${target} missing [[durable_objects.bindings]] name = "${bindingName}"`);
+      fail(
+        `${target} missing [[durable_objects.bindings]] name = "${bindingName}"`
+      );
     }
 
     const actualClassName = readQuotedValue(
@@ -538,14 +651,26 @@ function assertServerConfig(target, configPath) {
 
   const migrationTables = readArrayTable(content, 'migrations');
   if (migrationTables.length > 0) {
-    fail(`${target} must not define [[migrations]] because only state owns Durable Objects`);
+    fail(
+      `${target} must not define [[migrations]] because only state owns Durable Objects`
+    );
   }
 }
 
-assertRouterConfig();
-assertStateConfig();
-for (const [target, configPath] of Object.entries(serverConfigPaths)) {
-  assertServerConfig(target, configPath);
+for (const workerKey of workerKeys) {
+  if (workerKey === 'router') {
+    assertRouterConfig();
+    continue;
+  }
+
+  if (workerKey === 'state') {
+    assertStateConfig();
+    continue;
+  }
+
+  assertServerConfig(workerKey, serverConfigPaths[workerKey]);
 }
 
-console.log('[cf:check] production-only state/app Cloudflare config structure looks good');
+console.log(
+  `[cf:check] Cloudflare config structure looks good for workers: ${workerKeys.join(', ')}`
+);

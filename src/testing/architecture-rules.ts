@@ -93,7 +93,7 @@ export const ARCHITECTURE_RULES = {
   ],
   applicationFanOutLimit: 2,
   queryViewAllowedSameDomainApplicationPathPattern:
-    '^(?:[^/]+\\.)?(?:query|view)(?:\\.[^/.]+)?$',
+    '^(?:[^/]+\\.)?(?:query|view|contracts)(?:\\.[^/.]+)?$',
   aggregation: {
     pathPattern: '/application/aggregation/[^/]+\\.aggregation\\.ts$',
     marker: 'architecture-exception: cross-domain-aggregation',

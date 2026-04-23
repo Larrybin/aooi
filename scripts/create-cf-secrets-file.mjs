@@ -3,9 +3,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import * as envContractNamespace from '../src/config/env-contract.ts';
+import {
+  collectRequiredRuntimeBindings,
+  normalizeCloudflareWorkerKeys,
+  readCloudflareRuntimeSettings,
+  resolveCloudflareWorkerKeys,
+} from './lib/cloudflare-runtime-bindings.mjs';
 
-const envContractModule =
-  envContractNamespace.default ?? envContractNamespace;
+const envContractModule = envContractNamespace.default ?? envContractNamespace;
 const { assertAllowedEnvKeys, CLOUDFLARE_SECRET_ENV_KEYS } = envContractModule;
 
 const rootDir = process.cwd();
@@ -35,15 +40,64 @@ export function resolveCloudflareAuthSecretValue(
   );
 }
 
+function resolveRequiredSecretValue(processEnv, name, fallbackValue) {
+  const value = processEnv[name]?.trim();
+  if (value) {
+    return value;
+  }
+
+  if (fallbackValue?.trim()) {
+    return fallbackValue.trim();
+  }
+
+  throw new Error(`${name} is required to build Cloudflare secrets`);
+}
+
+function buildSecretFallbacks(requiredRequirements, processEnv, options) {
+  const secretFallbacks = new Map();
+  const needsAuthSecret = requiredRequirements.some(
+    (requirement) =>
+      requirement.name === 'BETTER_AUTH_SECRET' ||
+      requirement.name === 'AUTH_SECRET'
+  );
+
+  if (!needsAuthSecret) {
+    return secretFallbacks;
+  }
+
+  const authSecret = resolveCloudflareAuthSecretValue(processEnv, options);
+  secretFallbacks.set('BETTER_AUTH_SECRET', authSecret);
+  secretFallbacks.set('AUTH_SECRET', authSecret);
+  return secretFallbacks;
+}
+
 export function buildCloudflareSecretsEnv(
   processEnv = process.env,
   options = {}
 ) {
-  const authSecret = resolveCloudflareAuthSecretValue(processEnv, options);
+  const workerKeys = normalizeCloudflareWorkerKeys(options.workerKeys);
+  const runtimeSettings =
+    options.runtimeSettings ??
+    readCloudflareRuntimeSettings({
+      processEnv,
+      rootDir: options.rootDir ?? process.cwd(),
+    });
+  const requiredRequirements = collectRequiredRuntimeBindings(
+    workerKeys,
+    runtimeSettings
+  );
+  const requiredSecretNames = Array.from(
+    new Set(requiredRequirements.map((requirement) => requirement.name))
+  );
+  const secretFallbacks = buildSecretFallbacks(
+    requiredRequirements,
+    processEnv,
+    options
+  );
   const resolvedSecrets = Object.fromEntries(
-    CLOUDFLARE_SECRET_NAMES.map((name) => [
+    requiredSecretNames.map((name) => [
       name,
-      processEnv[name]?.trim() || authSecret,
+      resolveRequiredSecretValue(processEnv, name, secretFallbacks.get(name)),
     ])
   );
 
@@ -53,15 +107,21 @@ export function buildCloudflareSecretsEnv(
     'Cloudflare secrets env'
   );
 
-  return `${CLOUDFLARE_SECRET_NAMES.map((name) => `${name}=${resolvedSecrets[name]}`).join('\n')}\n`;
+  return `${requiredSecretNames.map((name) => `${name}=${resolvedSecrets[name]}`).join('\n')}\n`;
 }
 
 export async function writeCloudflareSecretsFile({
   outputPath = path.resolve(rootDir, '.tmp/cloudflare.secrets.env'),
   processEnv = process.env,
   fallbackAuthSecret,
+  workerKeys,
+  rootDir: runtimeRootDir,
 } = {}) {
-  const content = buildCloudflareSecretsEnv(processEnv, { fallbackAuthSecret });
+  const content = buildCloudflareSecretsEnv(processEnv, {
+    fallbackAuthSecret,
+    workerKeys,
+    rootDir: runtimeRootDir,
+  });
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, content, 'utf8');
 
@@ -73,10 +133,20 @@ export async function writeCloudflareSecretsFile({
 
 async function main() {
   const outArg = process.argv.slice(2).find((arg) => arg.startsWith('--out='));
+  const workersArg = process.argv
+    .slice(2)
+    .find((arg) => arg.startsWith('--workers='));
   const outputPath = outArg
     ? path.resolve(rootDir, outArg.split('=')[1])
     : path.resolve(rootDir, '.tmp/cloudflare.secrets.env');
-  const result = await writeCloudflareSecretsFile({ outputPath });
+  if (!workersArg) {
+    throw new Error(
+      'Cloudflare secrets generation requires --workers=state|app|all|<comma-list>'
+    );
+  }
+
+  const workerKeys = resolveCloudflareWorkerKeys(workersArg.split('=')[1]);
+  const result = await writeCloudflareSecretsFile({ outputPath, workerKeys });
   process.stdout.write(`${result.outputPath}\n`);
 }
 

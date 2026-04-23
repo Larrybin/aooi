@@ -3,6 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
+
 const rootDir = process.cwd();
 const REQUIRED_INCREMENTAL_CACHE_BINDING = 'NEXT_INC_CACHE_R2_BUCKET';
 const REQUIRED_APP_STORAGE_BINDING = 'APP_STORAGE_R2_BUCKET';
@@ -201,6 +203,7 @@ export function buildCloudflareWranglerConfig({
   template,
   databaseUrl,
   appUrl,
+  storagePublicBaseUrl,
   deployTarget,
   devHost,
   devUpstreamProtocol,
@@ -234,6 +237,15 @@ export function buildCloudflareWranglerConfig({
       /(^\s*NEXT_PUBLIC_APP_URL\s*=\s*")([^"\n]*)(")/m,
       appUrl,
       'vars.NEXT_PUBLIC_APP_URL'
+    );
+  }
+
+  if (storagePublicBaseUrl !== undefined) {
+    nextContent = replaceQuotedValue(
+      nextContent,
+      /(^\s*STORAGE_PUBLIC_BASE_URL\s*=\s*")([^"\n]*)(")/m,
+      storagePublicBaseUrl,
+      'vars.STORAGE_PUBLIC_BASE_URL'
     );
   }
 
@@ -289,7 +301,8 @@ function parseArgs(argv) {
     databaseUrl:
       process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
       process.env.DATABASE_URL?.trim(),
-    appUrl: process.env.NEXT_PUBLIC_APP_URL?.trim(),
+    appUrl: getCurrentSiteAppUrl(),
+    storagePublicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL?.trim(),
     deployTarget: process.env.DEPLOY_TARGET?.trim(),
     devHost: process.env.CF_LOCAL_DEV_HOST?.trim(),
     devUpstreamProtocol: process.env.CF_LOCAL_DEV_UPSTREAM_PROTOCOL?.trim(),
@@ -319,6 +332,11 @@ function parseArgs(argv) {
 
     if (arg.startsWith('--deploy-target=')) {
       options.deployTarget = arg.split('=')[1];
+      continue;
+    }
+
+    if (arg.startsWith('--storage-public-base-url=')) {
+      options.storagePublicBaseUrl = arg.split('=')[1];
       continue;
     }
 
@@ -355,6 +373,7 @@ async function main() {
     template,
     databaseUrl: options.databaseUrl,
     appUrl: options.appUrl,
+    storagePublicBaseUrl: options.storagePublicBaseUrl,
     deployTarget: options.deployTarget,
     devHost: options.devHost,
     devUpstreamProtocol: options.devUpstreamProtocol,

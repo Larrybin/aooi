@@ -40,13 +40,9 @@ export function SignInForm({
   const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { configs, setIsShowSignModal } = usePublicAppContext();
+  const { authSettings, setIsShowSignModal } = usePublicAppContext();
 
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
 
   const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
@@ -177,7 +173,7 @@ export function SignInForm({
         )}
 
         <SocialProviders
-          configs={configs}
+          authSettings={authSettings}
           callbackUrl={localizedCallbackUrl || '/'}
           loading={loading}
           setLoading={setLoading}

@@ -14,7 +14,10 @@ import {
   exactProviderNameKey,
   ProviderRegistry,
 } from '@/shared/lib/providers/provider-registry';
-import { readRuntimeSettingsCached, type Configs } from '@/domains/settings/application/settings-runtime.query';
+import {
+  readSettingsCached,
+  type Configs,
+} from '@/domains/settings/application/settings-store';
 
 export type EmailService = {
   sendEmail(email: EmailMessage): Promise<EmailSendResult>;
@@ -87,7 +90,7 @@ export function getEmailServiceWithConfigs(configs: Configs) {
  * global email service
  */
 export async function getEmailService(): Promise<EmailService> {
-  const configs = await readRuntimeSettingsCached();
+  const configs = await readSettingsCached();
   const signature = buildConfigsSignature(configs);
 
   if (cachedEmailService?.signature === signature) {

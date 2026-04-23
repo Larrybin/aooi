@@ -12,14 +12,15 @@ import type {
   NewAITask,
   updateAITaskById,
 } from '@/domains/ai/infra/ai-task';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-import type { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { site } from '@/site';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
 } from '@/shared/schemas/api/ai/generate';
-import type { getAIServiceWithConfigs } from '@/domains/ai/application/service';
+import type { AiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import type { getAIService } from '@/domains/ai/application/service';
 import type { resolveConfiguredAICapability } from '@/domains/ai/application/capabilities';
+import type { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
 
 type AiGenerateApiContext = {
   log: {
@@ -33,14 +34,13 @@ type AiGenerateApiContext = {
 };
 
 function resolveAppUrlOrigin(appUrl: string): string {
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
   const raw = appUrl?.trim() || '';
-  if (!raw) return serverPublicEnvConfigs.app_url;
+  if (!raw) return site.brand.appUrl;
 
   try {
     return new URL(raw).origin;
   } catch {
-    return serverPublicEnvConfigs.app_url;
+    return site.brand.appUrl;
   }
 }
 
@@ -51,8 +51,9 @@ export type AiGenerateRouteDeps = {
     parseJson: AiGenerateApiContext['parseJson'];
     requireUser: AiGenerateApiContext['requireUser'];
   };
-  readRuntimeSettings: typeof readRuntimeSettingsCached;
-  getAIServiceWithConfigs: typeof getAIServiceWithConfigs;
+  readAiRuntimeSettings: () => Promise<AiRuntimeSettings>;
+  readAiProviderBindings: typeof getAiProviderBindings;
+  getAIService: typeof getAIService;
   resolveConfiguredAICapability: typeof resolveConfiguredAICapability;
   createAITask: typeof createAITask;
   updateAITaskById: typeof updateAITaskById;
@@ -68,22 +69,23 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
     const { provider, mediaType, model, prompt, options, scene } =
       await api.parseJson(AiGenerateBodySchema);
 
-    const configs = await deps.readRuntimeSettings();
-    const capability = deps.resolveConfiguredAICapability(configs, {
+    const settings = await deps.readAiRuntimeSettings();
+    const bindings = deps.readAiProviderBindings();
+    const capability = deps.resolveConfiguredAICapability(settings, bindings, {
       mediaType,
       scene: scene || '',
       provider,
       model,
     });
 
-    const aiService = deps.getAIServiceWithConfigs(configs);
+    const aiService = deps.getAIService({ settings, bindings });
     const aiProvider = aiService.getProvider(capability.provider);
     if (!aiProvider) {
       throw new BadRequestError('invalid ai capability');
     }
 
     const user = await api.requireUser();
-    const appUrl = resolveAppUrlOrigin(configs.app_url);
+    const appUrl = resolveAppUrlOrigin('');
     const callbackUrl = `${appUrl}/api/ai/notify/${capability.provider}`;
     const params: AIGenerateParams = {
       mediaType,

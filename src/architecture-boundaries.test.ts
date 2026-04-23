@@ -10,6 +10,15 @@ const srcRoot = path.resolve(repoRoot, 'src');
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const DIRS_TO_SKIP = new Set(['.next', 'node_modules']);
+const SITE_IDENTITY_SETTING_KEYS = [
+  ['app', 'name'],
+  ['app', 'url'],
+  ['general', 'support', 'email'],
+  ['app', 'logo'],
+  ['app', 'favicon'],
+  ['app', 'og', 'image'],
+  ['storage', 'public', 'base', 'url'],
+].map((parts) => parts.join('_'));
 
 type DirtyImportRule = {
   label: string;
@@ -271,6 +280,125 @@ test('architecture: 旧脏入口引用保持归零', async () => {
   }
 });
 
+test('architecture: runtime 只能通过 @/site 获取站点输入', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) => !isTestFile(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        /^@\/?sites(?:\/|$)|^sites(?:\/|$)|(?:^|\/)sites\//.test(specifier),
+        false,
+        `${file.repoPath} 不应导入 ${specifier}；运行时代码只能走 @/site`
+      );
+    }
+  }
+});
+
+test('architecture: 站点 identity 不允许从 settings/public-config 回流', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) => !isTestFile(repoPath)
+  );
+
+  for (const file of files) {
+    for (const key of SITE_IDENTITY_SETTING_KEYS) {
+      assert.equal(
+        file.content.includes(key),
+        false,
+        `${file.repoPath} 不应包含旧站点 identity setting key: ${key}`
+      );
+    }
+  }
+});
+
+test('architecture: canonical base 只能在 canonical helper 内构造', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) =>
+      !isTestFile(repoPath) &&
+      repoPath !== 'src/infra/url/canonical.ts' &&
+      /^src\/(?:app|surfaces)\//.test(repoPath)
+  );
+
+  for (const file of files) {
+    assert.equal(
+      /metadataBase:\s*new URL/.test(file.content),
+      false,
+      `${file.repoPath} 不应直接构造 metadataBase；请使用 buildMetadataBaseUrl`
+    );
+    assert.equal(
+      /new URL\([^)]*(?:site\.brand\.appUrl|brand\.appUrl)/.test(
+        file.content
+      ),
+      false,
+      `${file.repoPath} 不应直接用 site brand URL 构造 canonical；请使用 canonical helper`
+    );
+  }
+});
+
+test('architecture: deploy/smoke 脚本不得通过 NEXT_PUBLIC_APP_URL 反推站点 identity', async () => {
+  const scriptPaths = [
+    path.resolve(repoRoot, 'scripts/run-cf-app-deploy.mjs'),
+    path.resolve(repoRoot, 'scripts/run-cf-app-smoke.mjs'),
+  ];
+
+  for (const scriptPath of scriptPaths) {
+    const content = await readFile(scriptPath, 'utf8');
+    assert.equal(
+      /process\.env\.NEXT_PUBLIC_APP_URL/.test(content),
+      false,
+      `${toRepoPath(scriptPath)} 不应通过 process.env.NEXT_PUBLIC_APP_URL 反推 identity`
+    );
+    assert.equal(
+      /readQuotedTomlValue\([^)]*NEXT_PUBLIC_APP_URL/.test(content),
+      false,
+      `${toRepoPath(scriptPath)} 不应从 wrangler 内容反推 identity`
+    );
+  }
+});
+
+test('architecture: Batch 2 旧 facade 与旧 bag 输入必须保持归零', async () => {
+  const files = await readSourceFiles();
+  const forbiddenPatterns = [
+    {
+      pattern:
+        /\breadRuntimeSettingsCached\b|\breadRuntimeSettingsFresh\b|\breadRuntimeSettingsSafe\b/,
+      message: '不应继续使用旧 runtime settings facade',
+    },
+    {
+      pattern: /\bgetPublicConfigsCached\b|\bgetPublicConfigsFresh\b/,
+      message: '不应继续使用旧 public-config facade',
+    },
+    {
+      pattern: /\bgetPaymentServiceWithConfigs\b/,
+      message: 'payment 不应继续使用 configs bag 入口',
+    },
+    {
+      pattern:
+        /\bbuildStorageServiceWithConfigs\b|\bgetStorageServiceWithConfigs\b/,
+      message: 'storage 不应继续接受 configs bag',
+    },
+    {
+      pattern: /initialConfigs=/,
+      message: 'PublicAppProvider 不应继续使用 initialConfigs',
+    },
+  ];
+
+  for (const file of files) {
+    if (isTestFile(file.repoPath)) {
+      continue;
+    }
+
+    for (const rule of forbiddenPatterns) {
+      assert.equal(
+        rule.pattern.test(file.content),
+        false,
+        `${file.repoPath} ${rule.message}`
+      );
+    }
+  }
+});
+
 test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP schema', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
     /^src\/domains\/[^/]+\/domain\//.test(repoPath)
@@ -370,9 +498,9 @@ test('architecture: Public Composition Layer 只导入只读 domain 入口', asy
       if (!match) continue;
 
       assert.equal(
-        /\.(?:query|view)(?:\.[^/.]+)?$/.test(match[1]),
+        queryViewAllowedSameDomainApplicationPathPattern.test(match[1]),
         true,
-        `${file.repoPath} 只能导入 *.query 或 *.view 只读 domain 入口: ${specifier}`
+        `${file.repoPath} 只能导入受控只读 domain 入口: ${specifier}`
       );
     }
   }
@@ -602,9 +730,9 @@ test('architecture: 跨域 application 依赖只能指向只读入口', async ()
       if (targetDomain === source.domain) continue;
 
       assert.equal(
-        /\.(?:query|view)(?:\.[^/.]+)?$/.test(targetPath),
+        queryViewAllowedSameDomainApplicationPathPattern.test(targetPath),
         true,
-        `${file.repoPath} 跨域依赖 ${specifier} 必须指向 *.query 或 *.view 只读入口`
+        `${file.repoPath} 跨域依赖 ${specifier} 必须指向受控只读入口`
       );
     }
   }

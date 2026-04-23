@@ -7,8 +7,7 @@ import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default async function AuthLayout({
   children,
@@ -19,14 +18,12 @@ export default async function AuthLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
-  const isLocaleSwitcherEnabled =
-    publicConfigs.general_locale_switcher_enabled === 'true';
+  const publicUiConfig = await readPublicUiConfigCached();
+  const brand = buildBrandPlaceholderValues();
+  const isLocaleSwitcherEnabled = publicUiConfig.localeSwitcherEnabled;
 
-  const appName = brand.appName || serverPublicEnvConfigs.app_name;
+  const appName = brand.appName;
   return (
     <ScopedIntlProvider
       locale={locale}
@@ -38,7 +35,7 @@ export default async function AuthLayout({
             brand={{
               title: appName,
               logo: {
-                src: brand.appLogo || serverPublicEnvConfigs.app_logo,
+                src: brand.appLogo,
                 alt: appName,
               },
               url: '/',

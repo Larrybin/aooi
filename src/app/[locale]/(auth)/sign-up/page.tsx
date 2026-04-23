@@ -4,9 +4,11 @@
 import { SignUp } from '@/domains/account/ui/auth/sign-up';
 import { getTranslations } from 'next-intl/server';
 
-import { defaultLocale } from '@/config/locale';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-import { readSettingsCached } from '@/domains/settings/application/settings-store';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 
 export async function generateMetadata({
   params,
@@ -14,17 +16,13 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
 
   const t = await getTranslations('common');
 
   return {
     title: `${t('sign.sign_up_title')} - ${t('metadata.title')}`,
     alternates: {
-      canonical:
-        locale !== defaultLocale
-          ? `${serverPublicEnvConfigs.app_url}/${locale}/sign-up`
-          : `${serverPublicEnvConfigs.app_url}/sign-up`,
+      canonical: buildCanonicalUrl('/sign-up', locale),
     },
   };
 }
@@ -36,7 +34,16 @@ export default async function SignUpPage({
 }) {
   const { callbackUrl } = await searchParams;
 
-  const configs = await readSettingsCached();
+  const [authSettings, publicUiConfig] = await Promise.all([
+    readAuthUiRuntimeSettingsCached(),
+    readPublicUiConfigCached(),
+  ]);
 
-  return <SignUp configs={configs} callbackUrl={callbackUrl || '/'} />;
+  return (
+    <SignUp
+      authSettings={authSettings}
+      publicUiConfig={publicUiConfig}
+      callbackUrl={callbackUrl || '/'}
+    />
+  );
 }

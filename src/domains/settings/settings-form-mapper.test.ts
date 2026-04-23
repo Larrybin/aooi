@@ -13,19 +13,19 @@ test('mapSettingsToForms: 仅映射当前 tab 并绑定提交处理器', () => {
   const forms = mapSettingsToForms({
     tab: 'general',
     groups: [
-      { name: 'general_brand', title: 'Brand', tab: 'general' as const },
+      { name: 'general_ui', title: 'General UI', tab: 'general' as const },
       { name: 'payment_general', title: 'Payment', tab: 'payment' as const },
     ],
     settings: [
       {
-        name: 'app_name',
-        title: 'App Name',
-        type: 'text',
+        name: 'general_social_links_enabled',
+        title: 'Social Links Enabled',
+        type: 'switch',
         moduleId: 'core_shell',
         visibility: 'public',
         group: {
-          id: 'general_brand',
-          titleKey: 'groups.general_brand',
+          id: 'general_ui',
+          titleKey: 'groups.general_ui',
         },
         tab: 'general',
       },
@@ -42,15 +42,15 @@ test('mapSettingsToForms: 仅映射当前 tab 并绑定提交处理器', () => {
         tab: 'payment',
       },
     ] satisfies readonly SettingDefinition[],
-    configs: { app_name: 'Demo' },
+    configs: { general_social_links_enabled: 'true' },
     submitLabel: 'Save',
     onSubmit: submitHandler,
   });
 
   assert.equal(forms.length, 1);
-  assert.equal(forms[0]?.title, 'Brand');
+  assert.equal(forms[0]?.title, 'General UI');
   assert.equal(forms[0]?.fields.length, 1);
-  assert.equal(forms[0]?.fields[0]?.name, 'app_name');
+  assert.equal(forms[0]?.fields[0]?.name, 'general_social_links_enabled');
   assert.equal(forms[0]?.submit?.button?.title, 'Save');
   assert.equal(forms[0]?.submit?.handler, submitHandler);
 });

@@ -3,24 +3,21 @@ import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { Copyright } from '@/shared/blocks/common/copyright';
 import { GeneralSocialLinks } from '@/shared/blocks/common/general-social-links';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
-import { isConfigTrue } from '@/shared/lib/general-ui.client';
 import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function Footer({
   footer,
-  publicConfigs,
+  publicConfig,
 }: {
   footer: FooterType;
-  publicConfigs?: Record<string, string>;
+  publicConfig?: PublicUiConfig;
 }) {
-  const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
-  const isLocaleSwitcherEnabled = isConfigTrue(
-    publicConfigs ?? {},
-    'general_locale_switcher_enabled'
-  );
+  const navItems = filterLandingNavItems(footer.nav?.items, publicConfig);
+  const isLocaleSwitcherEnabled = Boolean(publicConfig?.localeSwitcherEnabled);
   const navGridCols =
     navItems.length >= 3
       ? 'sm:grid-cols-3'
@@ -107,7 +104,7 @@ export function Footer({
             </div>
           ) : null}
 
-          <GeneralSocialLinks configs={publicConfigs} />
+          <GeneralSocialLinks uiConfig={publicConfig} />
         </div>
       </div>
     </footer>

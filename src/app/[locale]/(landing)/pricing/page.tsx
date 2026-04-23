@@ -10,7 +10,6 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { getMetadata } from '@/surfaces/public/seo/metadata';
 import type {
   FAQ as FAQType,
@@ -41,8 +40,7 @@ export default async function PricingPage({
   // loading pricing data
   const t = await getTranslations('pricing');
 
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   // build sections
   const pricing: PricingType = replaceBrandPlaceholdersDeep(

@@ -6,6 +6,7 @@ import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visi
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 function withLocale(href: string, locale: string) {
   if (!href) return href;
@@ -18,13 +19,13 @@ function withLocale(href: string, locale: string) {
 export function MarketingFooter({
   footer,
   locale,
-  publicConfigs,
+  publicConfig,
 }: {
   footer: FooterType;
   locale: string;
-  publicConfigs?: Record<string, string>;
+  publicConfig?: PublicUiConfig;
 }) {
-  const navItems = filterLandingNavItems(footer.nav?.items, publicConfigs);
+  const navItems = filterLandingNavItems(footer.nav?.items, publicConfig);
   let navGridCols = 'sm:grid-cols-1';
   if (navItems.length >= 3) {
     navGridCols = 'sm:grid-cols-3';

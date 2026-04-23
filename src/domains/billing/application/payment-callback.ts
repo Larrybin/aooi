@@ -4,15 +4,16 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from '@/shared/lib/api/errors';
+import { site } from '@/site';
 import { PaymentType, type PaymentSession } from '@/domains/billing/domain/payment';
 import type { Order, findOrderByOrderNo } from '@/domains/billing/infra/order';
 import type {
-  readRuntimeSettingsCached,
-  readRuntimeSettingsFresh,
+  readBillingRuntimeSettingsCached,
+  readBillingRuntimeSettingsFresh,
 } from '@/domains/settings/application/settings-runtime.query';
-import type { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
-import type { getPaymentServiceWithConfigs } from '@/infra/adapters/payment/service';
+import type { getPaymentService } from '@/infra/adapters/payment/service';
 import type { handleCheckoutSuccess } from '@/domains/billing/application/flows';
+import type { PaymentRuntimeBindings } from '@/domains/settings/application/settings-runtime.contracts';
 
 type BillingCallbackLog = {
   debug(message: string, meta?: unknown): void;
@@ -22,11 +23,11 @@ type BillingCallbackLog = {
 };
 
 type PaymentCallbackDeps = {
-  readRuntimeSettingsCached: typeof readRuntimeSettingsCached;
-  readRuntimeSettingsFresh: typeof readRuntimeSettingsFresh;
-  getServerPublicEnvConfigs: typeof getServerPublicEnvConfigs;
+  readBillingRuntimeSettingsCached: typeof readBillingRuntimeSettingsCached;
+  readBillingRuntimeSettingsFresh: typeof readBillingRuntimeSettingsFresh;
+  readPaymentRuntimeBindings: () => PaymentRuntimeBindings;
   findOrderByOrderNo: typeof findOrderByOrderNo;
-  getPaymentServiceWithConfigs: typeof getPaymentServiceWithConfigs;
+  getPaymentService: typeof getPaymentService;
   handleCheckoutSuccess: typeof handleCheckoutSuccess;
 };
 
@@ -38,7 +39,7 @@ export async function resolvePaymentCallbackRedirectQuery(
   },
   deps?: Pick<
     PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs' | 'findOrderByOrderNo'
+    'readBillingRuntimeSettingsCached' | 'findOrderByOrderNo'
   >
 ) {
   const resolvedDeps = deps ?? (await getPaymentCallbackReadDeps());
@@ -57,10 +58,7 @@ export async function resolvePaymentCallbackRedirectQuery(
 }
 
 export async function resolvePaymentCallbackPricingFallbackUrl(
-  deps?: Pick<
-    PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
-  >
+  deps?: Pick<PaymentCallbackDeps, 'readBillingRuntimeSettingsCached'>
 ) {
   try {
     const resolvedDeps = deps ?? (await getPaymentCallbackPricingDeps());
@@ -74,36 +72,29 @@ export async function resolvePaymentCallbackPricingFallbackUrl(
 async function getPaymentCallbackReadDeps(): Promise<
   Pick<
     PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs' | 'findOrderByOrderNo'
+    'readBillingRuntimeSettingsCached' | 'findOrderByOrderNo'
   >
 > {
-  const [settingsModule, envModule, orderModule] = await Promise.all([
+  const [settingsModule, orderModule] = await Promise.all([
     import('@/domains/settings/application/settings-runtime.query'),
-    import('@/infra/runtime/env.server'),
     import('@/domains/billing/infra/order'),
   ]);
 
   return {
-    readRuntimeSettingsCached: settingsModule.readRuntimeSettingsCached,
-    getServerPublicEnvConfigs: envModule.getServerPublicEnvConfigs,
+    readBillingRuntimeSettingsCached:
+      settingsModule.readBillingRuntimeSettingsCached,
     findOrderByOrderNo: orderModule.findOrderByOrderNo,
   };
 }
 
 async function getPaymentCallbackPricingDeps(): Promise<
-  Pick<
-    PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
-  >
+  Pick<PaymentCallbackDeps, 'readBillingRuntimeSettingsCached'>
 > {
-  const [settingsModule, envModule] = await Promise.all([
-    import('@/domains/settings/application/settings-runtime.query'),
-    import('@/infra/runtime/env.server'),
-  ]);
+  const settingsModule = await import('@/domains/settings/application/settings-runtime.query');
 
   return {
-    readRuntimeSettingsCached: settingsModule.readRuntimeSettingsCached,
-    getServerPublicEnvConfigs: envModule.getServerPublicEnvConfigs,
+    readBillingRuntimeSettingsCached:
+      settingsModule.readBillingRuntimeSettingsCached,
   };
 }
 
@@ -130,11 +121,16 @@ export async function confirmPaymentCallbackUseCase(
     throw new BadRequestError('invalid order');
   }
 
-  const paymentService = await resolvedDeps.getPaymentServiceWithConfigs(
+  const [settings, bindings] = await Promise.all([
     input.mode === 'fresh'
-      ? await resolvedDeps.readRuntimeSettingsFresh()
-      : await resolvedDeps.readRuntimeSettingsCached()
-  );
+      ? resolvedDeps.readBillingRuntimeSettingsFresh()
+      : resolvedDeps.readBillingRuntimeSettingsCached(),
+    Promise.resolve(resolvedDeps.readPaymentRuntimeBindings()),
+  ]);
+  const paymentService = await resolvedDeps.getPaymentService({
+    settings,
+    bindings,
+  });
   const session: PaymentSession = await paymentService.getPaymentSession({
     provider: order.paymentProvider,
     sessionId: order.paymentSessionId,
@@ -153,14 +149,9 @@ export async function confirmPaymentCallbackUseCase(
 }
 
 async function resolveAppUrl(
-  deps: Pick<
-    PaymentCallbackDeps,
-    'readRuntimeSettingsCached' | 'getServerPublicEnvConfigs'
-  >
+  _deps: Pick<PaymentCallbackDeps, 'readBillingRuntimeSettingsCached'>
 ) {
-  const configs = await deps.readRuntimeSettingsCached();
-  const serverPublicEnvConfigs = deps.getServerPublicEnvConfigs();
-  return (configs.app_url || serverPublicEnvConfigs.app_url).trim();
+  return site.brand.appUrl;
 }
 
 function appendOrderNoToUrl(url: string, orderNo: string, appUrl: string): string {
@@ -197,21 +188,25 @@ function assertOrderVisibleToActor(
 }
 
 async function getPaymentCallbackDeps(): Promise<PaymentCallbackDeps> {
-  const [settingsModule, envModule, orderModule, paymentServiceModule, flowsModule] =
+  const [settingsModule, orderModule, paymentServiceModule, flowsModule] =
     await Promise.all([
       import('@/domains/settings/application/settings-runtime.query'),
-      import('@/infra/runtime/env.server'),
       import('@/domains/billing/infra/order'),
       import('@/infra/adapters/payment/service'),
       import('@/domains/billing/application/flows'),
     ]);
+  const { getPaymentRuntimeBindings } = await import(
+    '@/infra/adapters/payment/runtime-bindings'
+  );
 
   return {
-    readRuntimeSettingsCached: settingsModule.readRuntimeSettingsCached,
-    readRuntimeSettingsFresh: settingsModule.readRuntimeSettingsFresh,
-    getServerPublicEnvConfigs: envModule.getServerPublicEnvConfigs,
+    readBillingRuntimeSettingsCached:
+      settingsModule.readBillingRuntimeSettingsCached,
+    readBillingRuntimeSettingsFresh:
+      settingsModule.readBillingRuntimeSettingsFresh,
+    readPaymentRuntimeBindings: getPaymentRuntimeBindings,
     findOrderByOrderNo: orderModule.findOrderByOrderNo,
-    getPaymentServiceWithConfigs: paymentServiceModule.getPaymentServiceWithConfigs,
+    getPaymentService: paymentServiceModule.getPaymentService,
     handleCheckoutSuccess: flowsModule.handleCheckoutSuccess,
   };
 }

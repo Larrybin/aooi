@@ -3,6 +3,7 @@ import {
   type GoogleOneTapOptions,
 } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 type OneTapPlugin = NonNullable<
   Exclude<Parameters<typeof createAuthClient>[0], undefined>['plugins']
@@ -70,15 +71,15 @@ export const {
   resetPassword,
 } = authClient;
 
-export function getAuthClient(configs: Record<string, string>) {
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
+export function getAuthClient(settings: AuthUiRuntimeSettings) {
+  const isGoogleAuthEnabled = settings.googleAuthEnabled;
   const plugins =
     isGoogleAuthEnabled &&
-    configs.google_client_id &&
-    configs.google_one_tap_enabled === 'true'
+    settings.googleClientId &&
+    settings.googleOneTapEnabled
       ? [
           makeOneTapPlugin({
-            clientId: configs.google_client_id,
+            clientId: settings.googleClientId,
             autoSelect: false,
             cancelOnTapOutside: false,
             context: 'signin',

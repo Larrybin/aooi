@@ -8,6 +8,7 @@ import { AppImage } from '@/shared/blocks/common/app-image';
 import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 function withLocale(href: string, locale: string) {
   if (!href) return href;
@@ -89,13 +90,13 @@ function MarketingNavItem({ item, locale }: { item: NavItem; locale: string }) {
 export function MarketingHeader({
   header,
   locale,
-  publicConfigs,
+  publicConfig,
 }: {
   header: HeaderType;
   locale: string;
-  publicConfigs?: Record<string, string>;
+  publicConfig?: PublicUiConfig;
 }) {
-  const navItems = filterLandingNavItems(header.nav?.items, publicConfigs);
+  const navItems = filterLandingNavItems(header.nav?.items, publicConfig);
 
   return (
     <header

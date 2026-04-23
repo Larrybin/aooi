@@ -1,7 +1,7 @@
 function normalizeBaseUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
-    throw new Error('storage_public_base_url must not be empty');
+    throw new Error('STORAGE_PUBLIC_BASE_URL must not be empty');
   }
 
   let url: URL;
@@ -9,13 +9,13 @@ function normalizeBaseUrl(value: string): string {
     url = new URL(trimmed);
   } catch (error: unknown) {
     throw new Error(
-      `storage_public_base_url must be a valid URL (got: ${trimmed}, error: ${String(error)})`
+      `STORAGE_PUBLIC_BASE_URL must be a valid URL (got: ${trimmed}, error: ${String(error)})`
     );
   }
 
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new Error(
-      `storage_public_base_url must use http/https (got: ${trimmed})`
+      `STORAGE_PUBLIC_BASE_URL must use http/https (got: ${trimmed})`
     );
   }
 
@@ -58,7 +58,7 @@ export function normalizeStoragePublicBaseUrl(
       error:
         error instanceof Error
           ? error.message
-          : 'storage_public_base_url is invalid',
+          : 'STORAGE_PUBLIC_BASE_URL is invalid',
     };
   }
 }

@@ -8,8 +8,8 @@ type BrandIdentity = {
   logoSrc: string;
 };
 
-function getBrandIdentity(configs?: Record<string, string>): BrandIdentity {
-  const brand = buildBrandPlaceholderValues(configs);
+function getBrandIdentity(): BrandIdentity {
+  const brand = buildBrandPlaceholderValues();
   return {
     name: brand.appName || '',
     url: brand.appUrl || '',
@@ -20,9 +20,8 @@ function getBrandIdentity(configs?: Record<string, string>): BrandIdentity {
 export function applyBrandToLandingHeaderFooter(params: {
   header: Header;
   footer: Footer;
-  configs?: Record<string, string>;
 }): { header: Header; footer: Footer } {
-  const brand = getBrandIdentity(params.configs);
+  const brand = getBrandIdentity();
 
   const header = {
     ...params.header,
@@ -64,10 +63,9 @@ export function applyBrandToLandingHeaderFooter(params: {
 }
 
 export function applyBrandToSidebar(
-  sidebar: Sidebar,
-  configs?: Record<string, string>
+  sidebar: Sidebar
 ): Sidebar {
-  const brand = getBrandIdentity(configs);
+  const brand = getBrandIdentity();
 
   const header = sidebar.header?.brand
     ? {

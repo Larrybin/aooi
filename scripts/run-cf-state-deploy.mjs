@@ -4,9 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
+import { CLOUDFLARE_STATE_WORKER_SCOPE } from './lib/cloudflare-runtime-bindings.mjs';
 
 const { CLOUDFLARE_STATE_WORKER, CLOUDFLARE_STATE_WORKER_NAME } =
   cloudflareWorkerSplits;
@@ -98,7 +99,10 @@ async function createStateDeployArtifacts() {
   });
 
   await writeFile(tempConfigPath, content, 'utf8');
-  await writeCloudflareSecretsFile({ outputPath: secretsPath });
+  await writeCloudflareSecretsFile({
+    outputPath: secretsPath,
+    workerKeys: CLOUDFLARE_STATE_WORKER_SCOPE,
+  });
 
   return {
     configPath: tempConfigPath,

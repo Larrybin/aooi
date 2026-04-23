@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { execFile as execFileCallback } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 import { readOpenNextGeneratedModules } from '../../scripts/sync-open-next-generated-types.mjs';
@@ -19,6 +21,7 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..'
 );
+const execFile = promisify(execFileCallback);
 
 test('router worker 不直接 import server handler', async () => {
   const routerSource = await fs.readFile(
@@ -219,17 +222,32 @@ test('只有 state worker 保留 Durable Object exports 与 migrations', async (
   );
 });
 
-test('tracked wrangler templates 不允许提交真实 localConnectionString', async () => {
-  const configPaths = [
-    path.join(rootDir, 'wrangler.cloudflare.toml'),
-    ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) =>
-      path.join(rootDir, `cloudflare/wrangler.server-${target}.toml`)
-    ),
-  ];
+test('tracked wrangler 配置不允许提交真实 localConnectionString', async () => {
+  const { stdout } = await execFile(
+    'git',
+    ['ls-files', '*wrangler*.toml'],
+    { cwd: rootDir }
+  );
+  const configPaths = stdout
+    .split('\n')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((relativePath) => path.join(rootDir, relativePath));
+
+  assert.ok(configPaths.length > 0, '至少应存在一个受版本控制的 wrangler 配置');
 
   for (const configPath of configPaths) {
     const source = await fs.readFile(configPath, 'utf8');
-    assert.match(source, /^\s*localConnectionString\s*=\s*""/m);
+
+    if (!source.includes('localConnectionString')) {
+      continue;
+    }
+
+    assert.match(
+      source,
+      /^\s*localConnectionString\s*=\s*""/m,
+      `${path.relative(rootDir, configPath)} 不允许提交真实 localConnectionString`
+    );
   }
 });
 

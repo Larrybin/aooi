@@ -1,0 +1,8 @@
+{
+  "google_auth_enabled": false,
+  "github_auth_enabled": false,
+  "stripe_enabled": false,
+  "creem_enabled": false,
+  "paypal_enabled": false,
+  "general_ai_enabled": false
+}

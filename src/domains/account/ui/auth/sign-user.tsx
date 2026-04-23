@@ -48,12 +48,12 @@ export function SignUser({
 }) {
   const t = useTranslations('common.sign');
   const snapshot = useAuthSnapshot();
-  const { isShowSignModal, setIsShowSignModal, configs } =
+  const { isShowSignModal, setIsShowSignModal, uiConfig } =
     usePublicAppContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const userNavItems = filterLandingNavItems(userNav?.items, configs);
+  const userNavItems = filterLandingNavItems(userNav?.items, uiConfig);
 
   const search = searchParams.toString();
   const callbackUrl = normalizeCallbackUrl(

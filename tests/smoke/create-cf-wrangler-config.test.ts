@@ -24,6 +24,7 @@ localConnectionString = ""
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "http://localhost:3000"
+STORAGE_PUBLIC_BASE_URL = ""
 PUBLIC_WEB_WORKER_VERSION_ID = ""
 AUTH_WORKER_VERSION_ID = ""
 `;
@@ -33,6 +34,7 @@ AUTH_WORKER_VERSION_ID = ""
     template,
     databaseUrl: 'postgresql://postgres:postgres@127.0.0.1:5432/aooi',
     appUrl: 'http://127.0.0.1:8787',
+    storagePublicBaseUrl: 'http://127.0.0.1:8787/assets/',
     deployTarget: 'cloudflare',
     devHost: '127.0.0.1',
     devUpstreamProtocol: 'http',
@@ -61,6 +63,7 @@ AUTH_WORKER_VERSION_ID = ""
     /localConnectionString = "postgresql:\/\/postgres:postgres@127\.0\.0\.1:5432\/aooi"/
   );
   assert.match(config, /NEXT_PUBLIC_APP_URL = "http:\/\/127\.0\.0\.1:8787"/);
+  assert.match(config, /STORAGE_PUBLIC_BASE_URL = "http:\/\/127\.0\.0\.1:8787\/assets\/"/);
   assert.match(config, /DEPLOY_TARGET = "cloudflare"/);
   assert.match(config, /PUBLIC_WEB_WORKER_VERSION_ID = "v-public-web"/);
   assert.match(config, /AUTH_WORKER_VERSION_ID = "v-auth"/);
@@ -82,6 +85,7 @@ localConnectionString = ""
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
 `;
 
   const outputPath = '/repo/.tmp/server/default.toml';
@@ -119,6 +123,7 @@ host = "example.com"
 
 [vars]
 NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
 `;
 
   const config = buildCloudflareWranglerConfig({
@@ -150,6 +155,7 @@ class_name = "StatefulLimitersDurableObject"
 [vars]
 DEPLOY_TARGET = "cloudflare"
 NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
 `;
 
   const outputPath = '/repo/.tmp/state.toml';

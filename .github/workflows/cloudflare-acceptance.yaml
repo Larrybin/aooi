@@ -28,11 +28,13 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      SITE: mamamiya
       DEPLOY_TARGET: cloudflare
       DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
       AUTH_SECRET: ci-auth-secret-not-for-production
+      STORAGE_PUBLIC_BASE_URL: http://127.0.0.1:8787/assets/
 
     steps:
       - name: Checkout repository

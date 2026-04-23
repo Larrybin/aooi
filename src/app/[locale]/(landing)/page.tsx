@@ -9,7 +9,11 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { filterLandingButtons } from '@/surfaces/public/navigation/landing-visibility';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import {
   type Footer as FooterType,
   type Header as HeaderType,
@@ -29,8 +33,12 @@ export default async function LandingPage({
   // load page data
   const t = await getTranslations('landing');
 
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
+  const brand = buildBrandPlaceholderValues();
 
   // build page params
   const hero = replaceBrandPlaceholdersDeep(t.raw('hero'), brand);
@@ -40,7 +48,7 @@ export default async function LandingPage({
     hero: hero
       ? {
           ...hero,
-          buttons: filterLandingButtons(hero.buttons, publicConfigs),
+          buttons: filterLandingButtons(hero.buttons, publicUiConfig),
         }
       : undefined,
     logos: replaceBrandPlaceholdersDeep(t.raw('logos'), brand),
@@ -55,7 +63,7 @@ export default async function LandingPage({
     cta: cta
       ? {
           ...cta,
-          buttons: filterLandingButtons(cta.buttons, publicConfigs),
+          buttons: filterLandingButtons(cta.buttons, publicUiConfig),
         }
       : undefined,
   };
@@ -66,11 +74,17 @@ export default async function LandingPage({
   const { header, footer } = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(headerRaw, brand),
     footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
-    configs: publicConfigs,
   });
 
   return (
-    <LandingMarketingLayout header={header} footer={footer} locale={locale}>
+    <LandingMarketingLayout
+      header={header}
+      footer={footer}
+      locale={locale}
+      publicUiConfig={publicUiConfig}
+      authSettings={authSettings}
+      billingSettings={billingSettings}
+    >
       <LandingPageView locale={locale} page={page} />
     </LandingMarketingLayout>
   );

@@ -7,17 +7,17 @@ test('readServiceConfigsByMode 默认读取 cached 配置', async () => {
   const calls: string[] = [];
 
   const configs = await readServiceConfigsByMode(undefined, {
-    readRuntimeSettingsCachedImpl: async () => {
+    readSettingsCachedImpl: async () => {
       calls.push('cached');
-      return { app_name: 'cached' };
+      return { general_ai_enabled: 'cached' };
     },
-    readRuntimeSettingsFreshImpl: async () => {
+    readSettingsFreshImpl: async () => {
       calls.push('fresh');
-      return { app_name: 'fresh' };
+      return { general_ai_enabled: 'fresh' };
     },
   });
 
-  assert.deepEqual(configs, { app_name: 'cached' });
+  assert.deepEqual(configs, { general_ai_enabled: 'cached' });
   assert.deepEqual(calls, ['cached']);
 });
 
@@ -25,16 +25,16 @@ test('readServiceConfigsByMode 在 fresh 模式下读取 fresh 配置', async ()
   const calls: string[] = [];
 
   const configs = await readServiceConfigsByMode('fresh', {
-    readRuntimeSettingsCachedImpl: async () => {
+    readSettingsCachedImpl: async () => {
       calls.push('cached');
-      return { app_name: 'cached' };
+      return { general_ai_enabled: 'cached' };
     },
-    readRuntimeSettingsFreshImpl: async () => {
+    readSettingsFreshImpl: async () => {
       calls.push('fresh');
-      return { app_name: 'fresh' };
+      return { general_ai_enabled: 'fresh' };
     },
   });
 
-  assert.deepEqual(configs, { app_name: 'fresh' });
+  assert.deepEqual(configs, { general_ai_enabled: 'fresh' });
   assert.deepEqual(calls, ['fresh']);
 });

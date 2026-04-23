@@ -1,29 +1,51 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 import { buildGetConfigsLogic } from './route-logic';
+
+const CACHED_CONFIG: PublicUiConfig = {
+  aiEnabled: true,
+  blogEnabled: false,
+  docsEnabled: true,
+  localeSwitcherEnabled: false,
+  socialLinksEnabled: false,
+  socialLinksJson: '',
+  socialLinks: [],
+  affiliate: {
+    affonsoEnabled: false,
+    promotekitEnabled: false,
+  },
+};
+
+const FRESH_CONFIG: PublicUiConfig = {
+  ...CACHED_CONFIG,
+  aiEnabled: false,
+};
 
 test('config/get-configs 默认读取 cached public-config', async () => {
   const handler = buildGetConfigsLogic({
     resolveConfigConsistencyMode: () => 'cached',
-    getPublicConfigsCached: async () => ({ app_name: 'cached-name' }),
-    getPublicConfigsFresh: async () => ({ app_name: 'fresh-name' }),
+    getPublicUiConfigCached: async () => CACHED_CONFIG,
+    getPublicUiConfigFresh: async () => FRESH_CONFIG,
   });
 
   const response = await handler(
     new Request('http://localhost/api/config/get-configs')
   );
-  const body = (await response.json()) as { data: { app_name: string } };
+  const body = (await response.json()) as {
+    data: { aiEnabled: boolean };
+  };
 
   assert.equal(response.status, 200);
-  assert.equal(body.data.app_name, 'cached-name');
+  assert.equal(body.data.aiEnabled, true);
 });
 
 test('config/get-configs 在 fresh 模式下读取 fresh public-config', async () => {
   const handler = buildGetConfigsLogic({
     resolveConfigConsistencyMode: () => 'fresh',
-    getPublicConfigsCached: async () => ({ app_name: 'cached-name' }),
-    getPublicConfigsFresh: async () => ({ app_name: 'fresh-name' }),
+    getPublicUiConfigCached: async () => CACHED_CONFIG,
+    getPublicUiConfigFresh: async () => FRESH_CONFIG,
   });
 
   const response = await handler(
@@ -33,8 +55,10 @@ test('config/get-configs 在 fresh 模式下读取 fresh public-config', async (
       },
     })
   );
-  const body = (await response.json()) as { data: { app_name: string } };
+  const body = (await response.json()) as {
+    data: { aiEnabled: boolean };
+  };
 
   assert.equal(response.status, 200);
-  assert.equal(body.data.app_name, 'fresh-name');
+  assert.equal(body.data.aiEnabled, false);
 });

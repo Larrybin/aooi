@@ -80,7 +80,12 @@ export function Pricing({
 }) {
   const locale = useLocale();
   const t = useTranslations('pricing.page');
-  const { setIsShowSignModal, setIsShowPaymentModal, configs } =
+  const {
+    setIsShowSignModal,
+    setIsShowPaymentModal,
+    billingSettings,
+    uiConfig,
+  } =
     usePublicAppContext();
   const {
     data: details,
@@ -210,7 +215,7 @@ export function Pricing({
       return;
     }
 
-    if (configs.select_payment_enabled === 'true') {
+    if (billingSettings.selectPaymentEnabled) {
       setPricingItem(displayedItem);
       setIsShowPaymentModal(true);
       setProductId(null);
@@ -219,7 +224,7 @@ export function Pricing({
 
     void handleCheckout(
       displayedItem,
-      configs.default_payment_provider,
+      billingSettings.defaultPaymentProvider,
       accountDetails
     );
   };
@@ -233,7 +238,7 @@ export function Pricing({
 
     // get Affonso referral
     if (
-      configs.affonso_enabled === 'true' &&
+      uiConfig.affiliate.affonsoEnabled &&
       ['stripe', 'creem'].includes(paymentProvider)
     ) {
       const affonsoReferral = getCookie('affonso_referral') || '';
@@ -242,7 +247,7 @@ export function Pricing({
 
     // get PromoteKit referral
     if (
-      configs.promotekit_enabled === 'true' &&
+      uiConfig.affiliate.promotekitEnabled &&
       ['stripe'].includes(paymentProvider)
     ) {
       const promotekitReferral =

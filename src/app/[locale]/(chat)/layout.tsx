@@ -20,7 +20,11 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 export default async function ChatLayout({
@@ -33,18 +37,22 @@ export default async function ChatLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const publicConfigs = await getPublicConfigsCached();
-  if (!isAiEnabled(publicConfigs)) {
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
+  if (!isAiEnabled(publicUiConfig)) {
     notFound();
   }
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   const t = await getTranslations('ai.chat');
   const sidebarRaw: SidebarType = replaceBrandPlaceholdersDeep(
     t.raw('sidebar'),
     brand
   );
-  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw, publicConfigs);
+  const sidebar: SidebarType = applyBrandToSidebar(sidebarRaw);
 
   sidebar.library = <ChatLibrary />;
   const initialUser = await getSignedInUserSnapshot();
@@ -59,7 +67,11 @@ export default async function ChatLayout({
         'ai.chat',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
         <AuthSnapshotProvider initialSnapshot={initialUser}>
           <ChatContextProvider>
             <WorkspaceLayout sidebar={sidebar} initialUser={initialUser}>

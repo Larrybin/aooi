@@ -61,7 +61,7 @@ Notes:
 - Cloudflare preview is removed from the supported contract. The repo now targets a router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers with version affinity.
 - `pnpm cf:check` validates the router + server Wrangler configs against `src/shared/config/cloudflare-worker-splits.ts`.
 - `pnpm cf:build` runs the OpenNext multi-bundle build and hard-fails if any required Worker bundle is missing or if `wrangler versions upload --dry-run` reports a deployable gzip bundle `>= 3 MiB`.
-- `pnpm test:cf-admin-settings-smoke` is the Cloudflare-only local acceptance gate for admin/settings brand storage semantics. It always runs `pnpm cf:build` first, seeds settings directly in Postgres, exercises the real `/api/storage/upload-image` route inside one local Cloudflare runtime session, and then verifies public config projection plus the `storage_public_base_url` missing-error path.
+- `pnpm test:cf-admin-settings-smoke` is the Cloudflare-only local acceptance gate for storage semantics. It always runs `pnpm cf:build` first, seeds settings directly in Postgres, exercises the real `/api/storage/upload-image` route inside one local Cloudflare runtime session, and then verifies public config projection plus the `STORAGE_PUBLIC_BASE_URL` missing-error path.
 - `pnpm test:cf-local-smoke` is the canonical local Cloudflare runtime gate. It generates the full temporary topology, verifies the required `.open-next` artifacts exist, starts the router plus all server Workers through one `wrangler dev` multi-config session, and finally runs the read-only smoke against the router origin. `scripts/run-cf-local-smoke.mjs` backfills `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` from `.dev.vars` (or `CF_LOCAL_SMOKE_DEV_VARS_PATH`) when they are missing, and local smoke runtime seeds the public docs/AI config toggles so the read-only path does not depend on preloaded DB config rows.
 - `pnpm cf:deploy` is the only supported Cloudflare deploy entry. It bootstraps brand-new Workers with `wrangler deploy`, and uses version-affinity rollout for steady-state deploys.
 - Multi-worker Cloudflare auth requires the same `BETTER_AUTH_SECRET` on the router Worker and every `cloudflare/wrangler.server-*.toml` Worker; missing the secret on any server Worker will surface as production 500s during instrumentation startup.
@@ -72,7 +72,7 @@ Notes:
 - Cloudflare state is governed as `first-class` / `preview-only` / `blocked`; see `docs/architecture/dual-deploy-governance.md`.
 - Auth spike raw conclusions now have explicit governance actions; use the decision table in `docs/architecture/dual-deploy-governance.md` instead of inferring policy from exit codes.
 - Current repo status is `ready` for Cloudflare multi-worker build, local smoke, and real deploy validation through the canonical scripts above. On April 15, 2026, `pnpm cf:build` measured the deployable gzip sizes as `public-web 2.21 MiB`, `member 1.91 MiB`, `admin 1.75 MiB`, `payment 1.58 MiB`, `chat 1.50 MiB`, `auth 1.23 MiB`, `router 0.14 MiB`.
-- Cloudflare topology is fixed: `NEXT_PUBLIC_APP_URL` is the canonical app/auth origin, and `AUTH_URL` / `BETTER_AUTH_URL` may only exist as same-origin mirrors of it.
+- Cloudflare topology is fixed: `site.brand.appUrl` from the explicit `SITE` config is the canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated as an infra artifact from that value, and `AUTH_URL` / `BETTER_AUTH_URL` may only exist as same-origin mirrors.
 - Production Cloudflare routing is fixed in `wrangler.cloudflare.toml`: `workers_dev = false`, `preview_urls = false`, and the router Worker is bound through `[[routes]]` as the custom domain.
 - Runtime-specific code must stay inside `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 - For details, see `docs/guides/database.md`.
@@ -211,11 +211,10 @@ Supporting multiple currencies with automatic conversion
 
 Configuring Cloudflare-only public asset delivery for uploaded files and brand assets.
 
-Configuration in Admin Dashboard at `/<locale?>/admin/settings/storage`:
+Configuration:
 
-- Navigate to Settings → Storage
-- Set `storage_public_base_url`
-- Brand asset uploads require `APP_STORAGE_R2_BUCKET` binding plus `storage_public_base_url`
+- Set runtime binding `STORAGE_PUBLIC_BASE_URL`
+- Uploads require `APP_STORAGE_R2_BUCKET` binding plus `STORAGE_PUBLIC_BASE_URL`
 
 ## Resend Email Service Integration
 
@@ -269,8 +268,6 @@ import { envConfigs } from '@/config';
 // Server-only config (DO NOT import in client components)
 import { serverEnv } from '@/config/server';
 
-envConfigs.app_url;
-envConfigs.app_name;
 envConfigs.theme;
 envConfigs.locale;
 
@@ -293,15 +290,13 @@ Configuring app metadata and assets
 ```toml
 # .env - Local development
 NEXT_PUBLIC_APP_URL = "http://localhost:3000"
-NEXT_PUBLIC_APP_NAME = "My Project"
 NEXT_PUBLIC_THEME = "default"
 
 # .env.production - Production deployment
 NEXT_PUBLIC_APP_URL = "https://your-domain.com"
-NEXT_PUBLIC_APP_NAME = "My SaaS Product"
 ```
 
-Recommended: configure Brand via `/<locale?>/admin/settings/general` (see `README.md`).
+Configure brand identity in `sites/<site-key>/site.config.json`. Runtime settings no longer own app identity fields.
 
 SEO files:
 
@@ -330,14 +325,14 @@ Production contract:
 2. Bind the shared OpenNext cache bucket as `NEXT_INC_CACHE_R2_BUCKET`.
 3. Bind the business upload bucket as `APP_STORAGE_R2_BUCKET`.
 4. Bind router image optimization as `IMAGES`.
-5. Configure `storage_public_base_url` in admin settings before brand asset uploads.
+5. Configure `STORAGE_PUBLIC_BASE_URL` before uploads.
 6. Use the same `BETTER_AUTH_SECRET` / `AUTH_SECRET` across router and all server Workers.
 
 Local acceptance notes:
 
 - `pnpm test:cf-local-smoke` is the canonical Cloudflare local runtime gate.
 - `pnpm test:cf-admin-settings-smoke` is the Cloudflare-only admin/settings brand storage gate.
-- The admin/settings smoke uses the config API ready probe, then separately validates upload, restart, public config projection, and the explicit `storage_public_base_url is not configured` failure path.
+- The admin/settings smoke uses the config API ready probe, then separately validates upload, restart, public config projection, and the explicit `STORAGE_PUBLIC_BASE_URL is not configured` failure path.
 
 ## Admin Dashboard Configuration
 
@@ -364,8 +359,8 @@ Key configuration categories accessible via Admin Dashboard:
 
 **Storage:**
 
-- `storage_public_base_url`
-- Brand asset uploads depend on `APP_STORAGE_R2_BUCKET` + `storage_public_base_url`
+- `STORAGE_PUBLIC_BASE_URL`
+- Uploads depend on `APP_STORAGE_R2_BUCKET` + `STORAGE_PUBLIC_BASE_URL`
 
 **Email:**
 

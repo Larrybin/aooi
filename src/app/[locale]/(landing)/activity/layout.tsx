@@ -17,7 +17,11 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import type {
   Footer as FooterType,
   Header as HeaderType,
@@ -32,15 +36,19 @@ export default async function ActivityLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const publicConfigs = await getPublicConfigsCached();
-  if (!isAiEnabled(publicConfigs)) {
+  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
+    readPublicUiConfigCached(),
+    readAuthUiRuntimeSettingsCached(),
+    readBillingRuntimeSettingsCached(),
+  ]);
+  if (!isAiEnabled(publicUiConfig)) {
     notFound();
   }
   const initialSnapshot = await getSignedInUserSnapshot();
 
   const t = await getTranslations('activity.sidebar');
   const tl = await getTranslations('landing');
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   // settings title
   const title = t('title');
@@ -55,7 +63,6 @@ export default async function ActivityLayout({
   const { header, footer } = applyBrandToLandingHeaderFooter({
     header: replaceBrandPlaceholdersDeep(headerRaw, brand),
     footer: replaceBrandPlaceholdersDeep(footerRaw, brand),
-    configs: publicConfigs,
   });
 
   return (
@@ -67,9 +74,17 @@ export default async function ActivityLayout({
         'common.locale_detector',
       ]}
     >
-      <PublicAppProvider initialConfigs={publicConfigs}>
+      <PublicAppProvider
+        initialUiConfig={publicUiConfig}
+        initialAuthSettings={authSettings}
+        initialBillingSettings={billingSettings}
+      >
         <AuthSnapshotProvider initialSnapshot={initialSnapshot}>
-          <LandingLayout header={header} footer={footer}>
+          <LandingLayout
+            header={header}
+            footer={footer}
+            publicConfig={publicUiConfig}
+          >
             <LocaleDetector />
             <ConsoleLayout
               title={title}

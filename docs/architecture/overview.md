@@ -173,8 +173,8 @@ explicit policy inputs, not a raw settings object.
 Settings is not a business semantics owner.
 
 - `domains/settings/application/settings-store.ts`: DB settings read/write, merge, patch, cache-tag invalidation.
-- `domains/settings/application/settings-runtime.query.ts`: read-only runtime settings projection.
-- `domains/settings/application/public-config.view.ts`: public read projection for UI/SEO/theme.
+- `domains/settings/application/settings-runtime.query.ts`: server-side typed runtime settings readers.
+- `domains/settings/application/settings-runtime.builders.ts`: closed typed builders for `PublicUiConfig` and runtime subsets.
 - Business domains interpret setting values. For example, billing owns provider enablement semantics through billing domain functions.
 
 ## Server Logging Boundary

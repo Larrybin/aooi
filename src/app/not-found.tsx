@@ -4,11 +4,9 @@ import { AppImage } from '@/shared/blocks/common/app-image';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 
 export default async function NotFoundPage() {
-  const publicConfigs = await getPublicConfigsCached();
-  const brand = buildBrandPlaceholderValues(publicConfigs);
+  const brand = buildBrandPlaceholderValues();
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-4">

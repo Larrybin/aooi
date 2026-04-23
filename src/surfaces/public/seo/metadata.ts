@@ -2,79 +2,18 @@ import 'server-only';
 
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { defaultLocale, locales } from '@/config/locale';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import {
+  buildCanonicalUrl,
+  buildLanguageAlternates,
+  buildMetadataBaseUrl,
+} from '@/infra/url/canonical';
 
 type MetadataFields = {
   title: string;
   description: string;
   keywords: string;
 };
-
-function stripTrailingSlash(value: string) {
-  return value.endsWith('/') ? value.slice(0, -1) : value;
-}
-
-function normalizeRelativePath(value: string) {
-  if (!value) return '/';
-  if (value.startsWith('/')) return value;
-  return `/${value}`;
-}
-
-export function buildCanonicalUrl(pathOrUrl: string, locale: string) {
-  return buildCanonicalUrlWithAppUrl(
-    pathOrUrl,
-    locale,
-    getServerPublicEnvConfigs().app_url
-  );
-}
-
-export function buildCanonicalUrlWithAppUrl(
-  pathOrUrl: string,
-  locale: string,
-  appUrl: string
-) {
-  if (!pathOrUrl) pathOrUrl = '/';
-
-  if (pathOrUrl.startsWith('http')) {
-    return pathOrUrl;
-  }
-
-  const baseUrl = stripTrailingSlash(appUrl);
-  const relativePath = normalizeRelativePath(pathOrUrl);
-  const localePrefix = !locale || locale === defaultLocale ? '' : `/${locale}`;
-
-  if (relativePath === '/') {
-    return localePrefix ? `${baseUrl}${localePrefix}` : `${baseUrl}/`;
-  }
-
-  return `${baseUrl}${localePrefix}${relativePath}`;
-}
-
-export function buildLanguageAlternates(relativePath: string) {
-  return buildLanguageAlternatesWithAppUrl(
-    relativePath,
-    getServerPublicEnvConfigs().app_url
-  );
-}
-
-export function buildLanguageAlternatesWithAppUrl(
-  relativePath: string,
-  appUrl: string
-) {
-  if (relativePath.startsWith('http')) {
-    return undefined;
-  }
-
-  return Object.fromEntries(
-    locales.map((locale) => [
-      locale,
-      buildCanonicalUrlWithAppUrl(relativePath, locale, appUrl),
-    ])
-  );
-}
 
 // get metadata for page component
 export function getMetadata(
@@ -97,7 +36,7 @@ export function getMetadata(
     const { locale } = await params;
     setRequestLocale(locale);
 
-    const brand = buildBrandPlaceholderValues(await getPublicConfigsCached());
+    const brand = buildBrandPlaceholderValues();
 
     // passed metadata
     const passedMetadata = {
@@ -122,20 +61,13 @@ export function getMetadata(
     }
 
     // canonical url
-    const canonicalUrl = buildCanonicalUrlWithAppUrl(
-      options.canonicalUrl || '/',
-      locale,
-      brand.appUrl
-    );
+    const canonicalUrl = buildCanonicalUrl(options.canonicalUrl || '/', locale);
     const canonicalPathForAlternates =
       options.canonicalUrl && options.canonicalUrl.startsWith('http')
         ? undefined
-        : normalizeRelativePath(options.canonicalUrl || '/');
+        : options.canonicalUrl || '/';
     const languageAlternates = canonicalPathForAlternates
-      ? buildLanguageAlternatesWithAppUrl(
-          canonicalPathForAlternates,
-          brand.appUrl
-        )
+      ? buildLanguageAlternates(canonicalPathForAlternates)
       : undefined;
 
     const title =
@@ -160,7 +92,7 @@ export function getMetadata(
     }
 
     return {
-      metadataBase: new URL(stripTrailingSlash(brand.appUrl)),
+      metadataBase: buildMetadataBaseUrl(),
       title:
         passedMetadata.title ||
         translatedMetadata.title ||

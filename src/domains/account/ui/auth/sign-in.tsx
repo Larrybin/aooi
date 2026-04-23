@@ -29,6 +29,7 @@ import {
 import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 import { SocialProviders } from './social-providers';
 
@@ -37,10 +38,10 @@ function subscribeToHydration() {
 }
 
 export function SignIn({
-  configs,
+  authSettings,
   callbackUrl = '/',
 }: {
-  configs: Record<string, string>;
+  authSettings: AuthUiRuntimeSettings;
   callbackUrl: string;
 }) {
   const t = useTranslations('common.sign');
@@ -55,11 +56,7 @@ export function SignIn({
     () => false
   );
 
-  const isGoogleAuthEnabled = configs.google_auth_enabled === 'true';
-  const isGithubAuthEnabled = configs.github_auth_enabled === 'true';
-  const isEmailAuthEnabled =
-    configs.email_auth_enabled !== 'false' ||
-    (!isGoogleAuthEnabled && !isGithubAuthEnabled);
+  const isEmailAuthEnabled = authSettings.emailAuthEnabled;
 
   const safeCallbackUrl = normalizeCallbackUrl(callbackUrl);
   const localizedCallbackUrl = localizeCallbackUrl({
@@ -193,7 +190,7 @@ export function SignIn({
           )}
 
           <SocialProviders
-            configs={configs}
+            authSettings={authSettings}
             callbackUrl={localizedCallbackUrl || '/'}
             loading={loading}
             setLoading={setLoading}

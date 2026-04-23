@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from 'react';
 import type { ControllerRenderProps } from 'react-hook-form';
 
-import { resolveStoredAssetUrl } from '@/shared/lib/storage-public-url';
 import type { FormField } from '@/shared/types/blocks/form';
 
 import { ImageUploader, type ImageUploaderValue } from '../common';
@@ -36,10 +35,6 @@ export function UploadImage({
     typeof field.attributes?.accept === 'string'
       ? field.attributes.accept
       : 'image/*,.ico';
-  const storagePublicBaseUrl =
-    typeof _data?.storage_public_base_url === 'string'
-      ? _data.storage_public_base_url
-      : '';
   const storageValueMode =
     typeof metadata?.storageValueMode === 'string'
       ? metadata.storageValueMode
@@ -61,12 +56,9 @@ export function UploadImage({
 
     return storedValues.map((storedValue) => ({
       value: storedValue,
-      preview: resolveStoredAssetUrl({
-        value: storedValue,
-        storagePublicBaseUrl,
-      }),
+      preview: storedValue,
     }));
-  }, [formField.value, storagePublicBaseUrl]);
+  }, [formField.value]);
 
   const handleChange = useCallback(
     (items: ImageUploaderValue[]) => {

@@ -38,7 +38,7 @@ test('PublicAppProvider 不再在公共壳层读取 session、details 或 config
   assert.equal(content.includes('get-user-info'), false);
 });
 
-test('公共 layout 都必须向 PublicAppProvider 注入 initialConfigs', async () => {
+test('公共 layout 都必须向 PublicAppProvider 注入 typed initial props', async () => {
   const layoutFiles = [
     'src/themes/default/layouts/landing-marketing.tsx',
     'src/app/[locale]/(landing)/pricing/layout.tsx',
@@ -54,9 +54,45 @@ test('公共 layout 都必须向 PublicAppProvider 注入 initialConfigs', async
   for (const layoutFile of layoutFiles) {
     const content = await readRepoFile(layoutFile);
     assert.equal(
-      content.includes('<PublicAppProvider initialConfigs={publicConfigs}>'),
+      content.includes('<PublicAppProvider'),
       true,
-      `${layoutFile} 必须传入 initialConfigs`
+      `${layoutFile} 必须使用 PublicAppProvider`
+    );
+    assert.equal(
+      content.includes('initialUiConfig='),
+      true,
+      `${layoutFile} 必须传入 initialUiConfig`
+    );
+    assert.equal(
+      content.includes('initialAuthSettings='),
+      true,
+      `${layoutFile} 必须传入 initialAuthSettings`
+    );
+    assert.equal(
+      content.includes('initialBillingSettings='),
+      true,
+      `${layoutFile} 必须传入 initialBillingSettings`
+    );
+    assert.equal(
+      content.includes('initialConfigs='),
+      false,
+      `${layoutFile} 不应继续传入 initialConfigs`
+    );
+  }
+});
+
+test('themes/default/layouts 不再直接读取 settings runtime query', async () => {
+  const layoutFiles = [
+    'src/themes/default/layouts/landing.tsx',
+    'src/themes/default/layouts/landing-marketing.tsx',
+  ];
+
+  for (const layoutFile of layoutFiles) {
+    const content = await readRepoFile(layoutFile);
+    assert.equal(
+      content.includes('settings-runtime.query'),
+      false,
+      `${layoutFile} 不应再直接依赖 settings-runtime.query`
     );
   }
 });

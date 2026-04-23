@@ -40,7 +40,13 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
       prompt: 'hello',
       options: { image_input: ['https://example.com/a.png'] },
     }),
-    readRuntimeSettings: async () => ({ app_url: 'https://app.example.com' }) as never,
+    readAiRuntimeSettings: async () => ({ aiEnabled: true }) as never,
+    readAiProviderBindings: () => ({
+      openrouterApiKey: '',
+      replicateApiToken: 'token_1',
+      falApiKey: '',
+      kieApiKey: '',
+    }),
     resolveConfiguredAICapability: () => ({
       mediaType: AIMediaType.IMAGE,
       scene: 'image-to-image',
@@ -50,7 +56,7 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
       costCredits: 4,
       isDefault: true,
     }),
-    getAIServiceWithConfigs: () =>
+    getAIService: () =>
       ({
         getProvider: () => ({
           generate: async () => ({
@@ -103,10 +109,17 @@ test('ai/generate 路由非法 capability 统一返回 400', async () => {
       model: 'V5',
       prompt: 'hello',
     }),
-    readRuntimeSettings: async () => ({}) as never,
+    readAiRuntimeSettings: async () => ({ aiEnabled: true }) as never,
+    readAiProviderBindings: () => ({
+      openrouterApiKey: '',
+      replicateApiToken: '',
+      falApiKey: '',
+      kieApiKey: 'key_1',
+    }),
     resolveConfiguredAICapability: () => {
       throw new BadRequestError('invalid ai capability');
     },
+    getAIService: () => ({ getProvider: () => undefined }) as never,
   });
 
   const response = await handler(

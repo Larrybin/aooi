@@ -5,10 +5,9 @@ import { Heading } from 'fumadocs-ui/components/heading';
 import type { MDXComponents } from 'mdx/types';
 
 import {
-  getDefaultSupportEmailFromOrigin,
   getDomainFromOrigin,
 } from '@/shared/lib/support-email';
-import { getServerPublicEnvConfigs } from '@/infra/runtime/env.server';
+import { site } from '@/site';
 
 // Custom link component with nofollow for external links
 const CustomLink = ({
@@ -85,11 +84,10 @@ function normalizePath(path: string): string {
 }
 
 function buildDefaultBrandMdxComponents(): MDXComponents {
-  const serverPublicEnvConfigs = getServerPublicEnvConfigs();
-  const appName = serverPublicEnvConfigs.app_name || '';
-  const appUrl = serverPublicEnvConfigs.app_url || '';
+  const appName = site.brand.appName;
+  const appUrl = site.brand.appUrl;
   const domain = getDomainFromOrigin(appUrl);
-  const supportEmail = getDefaultSupportEmailFromOrigin(appUrl);
+  const supportEmail = site.brand.supportEmail;
 
   const AppName = () => appName;
   const AppUrl = () => appUrl;

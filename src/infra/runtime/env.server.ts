@@ -1,7 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import {
-  isBuildTimeEnv,
   resolvePublicEnvConfigs,
   type PublicEnvConfigs,
 } from '@/config/public-env';
@@ -20,6 +19,25 @@ export type CloudflareBindings = {
   NEXT_CACHE_DO_QUEUE?: unknown;
   NEXT_TAG_CACHE_DO_SHARDED?: unknown;
   STATEFUL_LIMITERS?: unknown;
+  BETTER_AUTH_SECRET?: string;
+  AUTH_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  STRIPE_PUBLISHABLE_KEY?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_SIGNING_SECRET?: string;
+  CREEM_API_KEY?: string;
+  CREEM_SIGNING_SECRET?: string;
+  PAYPAL_CLIENT_ID?: string;
+  PAYPAL_CLIENT_SECRET?: string;
+  PAYPAL_WEBHOOK_ID?: string;
+  OPENROUTER_API_KEY?: string;
+  REPLICATE_API_TOKEN?: string;
+  FAL_API_KEY?: string;
+  KIE_API_KEY?: string;
+  STORAGE_PUBLIC_BASE_URL?: string;
 } & Record<string, unknown>;
 
 type RuntimeEnvOptions = {
@@ -77,7 +95,6 @@ export function getServerRuntimeEnv(
   options: RuntimeEnvOptions = {}
 ): ServerRuntimeEnv {
   const envLike = {
-    NEXT_PUBLIC_APP_URL: getRuntimeEnvString('NEXT_PUBLIC_APP_URL', options),
     BETTER_AUTH_URL: getRuntimeEnvString('BETTER_AUTH_URL', options),
     AUTH_URL: getRuntimeEnvString('AUTH_URL', options),
   };
@@ -101,35 +118,10 @@ export function getServerRuntimeEnv(
 export function getServerPublicEnvConfigs(
   options: RuntimeEnvOptions = {}
 ): PublicEnvConfigs {
-  const env = options.env ?? process.env;
   const bindings =
     options.bindings === undefined ? getCloudflareBindings() : options.bindings;
 
   return resolvePublicEnvConfigs({
-    nextPublicAppUrl: getRuntimeEnvString('NEXT_PUBLIC_APP_URL', {
-      ...options,
-      bindings,
-    }),
-    nextPublicAppName: getRuntimeEnvString('NEXT_PUBLIC_APP_NAME', {
-      ...options,
-      bindings,
-    }),
-    nextPublicAppLogo: getRuntimeEnvString('NEXT_PUBLIC_APP_LOGO', {
-      ...options,
-      bindings,
-    }),
-    nextPublicAppFavicon: getRuntimeEnvString(
-      'NEXT_PUBLIC_APP_FAVICON',
-      { ...options, bindings }
-    ),
-    nextPublicAppPreviewImage: getRuntimeEnvString(
-      'NEXT_PUBLIC_APP_PREVIEW_IMAGE',
-      { ...options, bindings }
-    ),
-    nextPublicAppOgImage: getRuntimeEnvString('NEXT_PUBLIC_APP_OG_IMAGE', {
-      ...options,
-      bindings,
-    }),
     nextPublicTheme: getRuntimeEnvString('NEXT_PUBLIC_THEME', {
       ...options,
       bindings,
@@ -138,14 +130,6 @@ export function getServerPublicEnvConfigs(
       'NEXT_PUBLIC_DEFAULT_LOCALE',
       { ...options, bindings }
     ),
-    nodeEnv: env.NODE_ENV,
-    buildTime:
-      bindings === null
-        ? isBuildTimeEnv({
-            npm_lifecycle_event: env.npm_lifecycle_event,
-            NEXT_PHASE: env.NEXT_PHASE,
-          })
-        : false,
   });
 }
 

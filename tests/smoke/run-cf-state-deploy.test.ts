@@ -1,10 +1,22 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
   buildStateDeployWranglerArgs,
   deployCloudflareState,
 } from '../../scripts/run-cf-state-deploy.mjs';
+
+test('package cf:deploy:state 只跑 state-scoped check 且不串完整 cf:build', async () => {
+  const manifest = JSON.parse(await readFile('package.json', 'utf8')) as {
+    scripts: Record<string, string>;
+  };
+  const command = manifest.scripts['cf:deploy:state'];
+
+  assert.match(command, /check-cloudflare-config\.mjs --workers=state/);
+  assert.doesNotMatch(command, /pnpm cf:check(?!-)/);
+  assert.doesNotMatch(command, /pnpm cf:build/);
+});
 
 test('buildStateDeployWranglerArgs 固定使用 wrangler deploy 与 keep-vars', () => {
   const args = buildStateDeployWranglerArgs({

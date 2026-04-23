@@ -14,6 +14,8 @@ RUN pnpm i --frozen-lockfile
 FROM deps AS builder
 
 WORKDIR /app
+ARG SITE=mamamiya
+ENV SITE=$SITE
 
 # Install dependencies based on the preferred package manager
 COPY . .
