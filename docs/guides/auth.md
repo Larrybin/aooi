@@ -56,7 +56,7 @@ Notes:
 
 - This endpoint is a contract exception: it bypasses `withApi()` and does not return the standard `{code,message,data}` envelope (Better Auth controls redirects/cookies/status codes).
 - The route is `force-dynamic`, and responses are marked `Cache-Control: no-store`.
-- This route is exercised by the Cloudflare smoke chain (`pnpm test:cf-local-smoke` and `pnpm test:cf-app-smoke`).
+- This route is exercised by the Cloudflare smoke chain (`SITE=<site-key> pnpm test:cf-local-smoke` and `SITE=<site-key> pnpm test:cf-app-smoke`).
 - The local dual-runtime harness depends on a generated temporary Wrangler config whose `localConnectionString` points at a migrated Postgres instance. Every tracked Wrangler config must keep `localConnectionString = ""`.
 
 ```typescript
