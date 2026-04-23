@@ -4,10 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 
 const {
   CLOUDFLARE_ROUTER_WORKER_NAME,
@@ -27,7 +27,10 @@ const routerConfigPath = path.resolve(
 const serverConfigPaths = Object.fromEntries(
   uploadOrder.map((target) => [
     target,
-    path.resolve(rootDir, getServerWorkerMetadata(target).wranglerConfigRelativePath),
+    path.resolve(
+      rootDir,
+      getServerWorkerMetadata(target).wranglerConfigRelativePath
+    ),
   ])
 );
 const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
@@ -188,12 +191,15 @@ async function readCurrentVersionId(name, configPath) {
   }
 
   try {
-    const payload = parseWranglerJsonPayload(result.stdout) ?? JSON.parse(result.stdout);
+    const payload =
+      parseWranglerJsonPayload(result.stdout) ?? JSON.parse(result.stdout);
     const candidates = collectVersionCandidates(payload)
       .filter((candidate, index, all) => {
         return all.findIndex((entry) => entry.id === candidate.id) === index;
       })
-      .sort((left, right) => (right.percentage ?? -1) - (left.percentage ?? -1));
+      .sort(
+        (left, right) => (right.percentage ?? -1) - (left.percentage ?? -1)
+      );
 
     return candidates[0]?.id ?? null;
   } catch {
@@ -207,7 +213,10 @@ function buildVersionSpec(versionId, percentage) {
 
 export function buildVersionDeploySpecs(currentVersionId, nextVersionId) {
   return currentVersionId
-    ? [buildVersionSpec(nextVersionId, 100), buildVersionSpec(currentVersionId, 0)]
+    ? [
+        buildVersionSpec(nextVersionId, 100),
+        buildVersionSpec(currentVersionId, 0),
+      ]
     : [buildVersionSpec(nextVersionId, 100)];
 }
 
@@ -239,7 +248,10 @@ export function buildRouterDeployConfigContent(content, versionIds) {
     template: content,
     storagePublicBaseUrl,
     templatePath: routerConfigPath,
-    outputPath: path.resolve(rootDir, '.tmp/wrangler.cloudflare.router.deploy.toml'),
+    outputPath: path.resolve(
+      rootDir,
+      '.tmp/wrangler.cloudflare.router.deploy.toml'
+    ),
     versionVars: Object.fromEntries(
       uploadOrder.map((target) => [
         CLOUDFLARE_VERSION_ID_VARS[target],
@@ -270,9 +282,7 @@ export function buildRouterDirectDeployArgs({
   ];
 }
 
-export function resolvePostDeploySmokeUrl({
-  processEnv = process.env,
-} = {}) {
+export function resolvePostDeploySmokeUrl({ processEnv = process.env } = {}) {
   return processEnv.CF_APP_SMOKE_URL?.trim() || siteAppUrl;
 }
 
@@ -286,9 +296,10 @@ export function determineDeployMode(currentVersions) {
     : 'steady-state';
 }
 
-async function createTempDeployArtifacts({
+export async function createTempDeployArtifacts({
   name,
   templatePath,
+  workerKeys,
   versionIds,
 }) {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), `cf-${name}-`));
@@ -312,7 +323,10 @@ async function createTempDeployArtifacts({
   });
 
   await writeFile(tempConfigPath, content, 'utf8');
-  await writeCloudflareSecretsFile({ outputPath: secretsPath });
+  await writeCloudflareSecretsFile({
+    outputPath: secretsPath,
+    workerKeys,
+  });
 
   return {
     tempDir,
@@ -348,7 +362,9 @@ async function uploadWorkerVersion({ name, configPath, secretsPath }) {
     '--secrets-file',
     secretsPath,
   ]);
-  const versionId = parseUploadedVersionId(`${result.stdout}\n${result.stderr}`);
+  const versionId = parseUploadedVersionId(
+    `${result.stdout}\n${result.stderr}`
+  );
   log(`uploaded ${name} version ${versionId}`);
   return versionId;
 }
@@ -450,6 +466,7 @@ async function deploySteadyState(currentVersions) {
       const artifacts = await createTempDeployArtifacts({
         name,
         templatePath: serverConfigPaths[target],
+        workerKeys: [target],
       });
       serverArtifacts.push({ target, ...artifacts });
     }
@@ -480,6 +497,7 @@ async function deploySteadyState(currentVersions) {
     targetRouterArtifacts = await createTempDeployArtifacts({
       name: CLOUDFLARE_ROUTER_WORKER_NAME,
       templatePath: routerConfigPath,
+      workerKeys: ['router'],
       versionIds: targetRouterVersionIds,
     });
     await deployRouterDirect({
@@ -524,13 +542,13 @@ export async function deployCloudflareApp({
     throw buildMissingDeploymentsError(currentVersions);
   }
 
-  log('detected existing app worker deployments; entering steady-state rollout');
+  log(
+    'detected existing app worker deployments; entering steady-state rollout'
+  );
   await deploySteadyStateImpl(currentVersions);
 }
 
-export {
-  buildCloudflareWranglerConfig,
-};
+export { buildCloudflareWranglerConfig };
 
 const entryScriptPath = process.argv[1]
   ? pathToFileURL(path.resolve(process.argv[1])).href

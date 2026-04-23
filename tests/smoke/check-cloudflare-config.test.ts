@@ -15,6 +15,26 @@ const tsxLoader = require.resolve('tsx');
 const storagePublicBaseUrlName = ['STORAGE', 'PUBLIC', 'BASE', 'URL'].join('_');
 const forbiddenIdentityEnvName = ['NEXT_PUBLIC', 'APP', 'NAME'].join('_');
 const appUrlEnvName = ['NEXT_PUBLIC', 'APP', 'URL'].join('_');
+const requiredSecretEnvNames = [
+  'BETTER_AUTH_SECRET',
+  'AUTH_SECRET',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET',
+  'STRIPE_PUBLISHABLE_KEY',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_SIGNING_SECRET',
+  'CREEM_API_KEY',
+  'CREEM_SIGNING_SECRET',
+  'PAYPAL_CLIENT_ID',
+  'PAYPAL_CLIENT_SECRET',
+  'PAYPAL_WEBHOOK_ID',
+  'OPENROUTER_API_KEY',
+  'REPLICATE_API_TOKEN',
+  'FAL_API_KEY',
+  'KIE_API_KEY',
+] as const;
 
 async function copyCloudflareConfigFixture(tempDir: string) {
   await mkdir(path.join(tempDir, 'cloudflare'), { recursive: true });
@@ -30,6 +50,7 @@ async function copyCloudflareConfigFixture(tempDir: string) {
     'cloudflare/wrangler.server-chat.toml',
     'cloudflare/wrangler.server-admin.toml',
     'sites/mamamiya/site.config.json',
+    'sites/mamamiya/deploy.settings.json',
   ];
 
   for (const file of files) {
@@ -54,13 +75,32 @@ async function withFixture(
   };
 }
 
+async function writeDeploySettings(
+  tempDir: string,
+  values: Partial<Record<string, boolean>>
+) {
+  const configPath = path.join(tempDir, 'sites/mamamiya/deploy.settings.json');
+  const current = JSON.parse(await readFile(configPath, 'utf8')) as Record<
+    string,
+    boolean
+  >;
+  await writeFile(
+    configPath,
+    JSON.stringify({ ...current, ...values }, null, 2) + '\n',
+    'utf8'
+  );
+}
+
 async function runCheckCloudflareConfig({
   cwd,
   env = {},
+  args = [],
 }: {
   cwd: string;
   env?: Record<string, string | undefined>;
+  args?: string[];
 }) {
+  const scriptPath = path.join(rootDir, 'scripts/check-cloudflare-config.mjs');
   try {
     const result = await execFileAsync(
       process.execPath,
@@ -70,7 +110,8 @@ async function runCheckCloudflareConfig({
         '--eval',
         [
           `process.chdir(${JSON.stringify(cwd)});`,
-          `await import(${JSON.stringify(pathToFileURL(path.join(rootDir, 'scripts/check-cloudflare-config.mjs')).href)});`,
+          `process.argv = [process.argv[0], ${JSON.stringify(scriptPath)}, ${args.map((arg) => JSON.stringify(arg)).join(', ')}];`,
+          `await import(${JSON.stringify(pathToFileURL(scriptPath).href)});`,
         ].join(' '),
       ],
       {
@@ -103,6 +144,65 @@ async function runCheckCloudflareConfig({
     };
   }
 }
+
+test('cf:check --workers=state 只校验 state worker 且不要求 auth secret 或 storage public binding', async () => {
+  const fixture = await withFixture();
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=state'],
+      env: {
+        [storagePublicBaseUrlName]: '',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+    assert.match(result.stdout, /workers: state/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check --workers=app 仍要求 app server runtime auth secret', async () => {
+  const fixture = await withFixture();
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=app'],
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /BETTER_AUTH_SECRET|AUTH_SECRET/);
+    assert.match(result.stderr, /server runtime auth secret/i);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 拒绝未知 worker scope', async () => {
+  const fixture = await withFixture();
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=unknown-worker'],
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /Unknown Cloudflare worker/);
+    assert.match(result.stderr, /state|app|all/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
 
 test('cf:check 缺少 storage public runtime binding 时失败', async () => {
   const fixture = await withFixture();
@@ -159,7 +259,10 @@ test('cf:check 禁止 Cloudflare vars 回流站点 identity env', async () => {
 
 test('cf:check 要求 Cloudflare app URL 与默认站点 identity 同源', async () => {
   const fixture = await withFixture(async (fixtureDir) => {
-    const configPath = path.join(fixtureDir, 'cloudflare/wrangler.server-auth.toml');
+    const configPath = path.join(
+      fixtureDir,
+      'cloudflare/wrangler.server-auth.toml'
+    );
     const content = await readFile(configPath, 'utf8');
     await writeFile(
       configPath,
@@ -176,6 +279,12 @@ test('cf:check 要求 Cloudflare app URL 与默认站点 identity 同源', async
       cwd: fixture.fixtureDir,
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        ...Object.fromEntries(
+          requiredSecretEnvNames.map((name) => [
+            name,
+            `${name.toLowerCase()}_value`,
+          ])
+        ),
       },
     });
 
@@ -195,11 +304,133 @@ test('cf:check 接受显式 storage public runtime binding', async () => {
       cwd: fixture.fixtureDir,
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        ...Object.fromEntries(
+          requiredSecretEnvNames.map((name) => [
+            name,
+            `${name.toLowerCase()}_value`,
+          ])
+        ),
       },
     });
 
     assert.equal(result.ok, true, result.stderr);
     assert.match(result.stdout, /Cloudflare config structure looks good/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 在默认禁用 provider 时只要求 server runtime auth secret，不要求 provider secrets', async () => {
+  const fixture = await withFixture();
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        AUTH_SECRET: 'better-secret',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 仅对已启用 auth provider 要求对应 bindings', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await writeDeploySettings(fixtureDir, {
+      google_auth_enabled: true,
+      github_auth_enabled: true,
+    });
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        AUTH_SECRET: 'better-secret',
+        GITHUB_CLIENT_ID: 'github-client-id',
+        GITHUB_CLIENT_SECRET: 'github-client-secret',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET/);
+    assert.match(result.stderr, /google_auth_enabled/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 在 chat worker 场景只要求 OPENROUTER_API_KEY', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await writeDeploySettings(fixtureDir, {
+      general_ai_enabled: true,
+    });
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        AUTH_SECRET: 'better-secret',
+        OPENROUTER_API_KEY: 'openrouter-key',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 已启用能力缺 bindings 时给出 setting -> binding 错误', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await writeDeploySettings(fixtureDir, {
+      general_ai_enabled: true,
+    });
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        AUTH_SECRET: 'better-secret',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /OPENROUTER_API_KEY/);
+    assert.match(result.stderr, /general_ai_enabled/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 缺少 server runtime auth secret 时给出 worker 级错误', async () => {
+  const fixture = await withFixture();
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /BETTER_AUTH_SECRET|AUTH_SECRET/);
+    assert.match(result.stderr, /server runtime auth secret/i);
+    assert.match(result.stderr, /worker auth|worker public-web|worker payment/);
   } finally {
     await fixture.cleanup();
   }

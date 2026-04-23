@@ -4,9 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
+import { CLOUDFLARE_STATE_WORKER_SCOPE } from './lib/cloudflare-runtime-bindings.mjs';
 
 const { CLOUDFLARE_STATE_WORKER, CLOUDFLARE_STATE_WORKER_NAME } =
   cloudflareWorkerSplits;
@@ -16,7 +17,6 @@ const stateConfigPath = path.resolve(
   rootDir,
   CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath
 );
-const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
 
 function log(message) {
   console.log(`[cf:deploy:state] ${message}`);
@@ -93,14 +93,16 @@ async function createStateDeployArtifacts() {
   const template = await readFile(stateConfigPath, 'utf8');
   const content = buildCloudflareWranglerConfig({
     template,
-    storagePublicBaseUrl,
     templatePath: stateConfigPath,
     outputPath: tempConfigPath,
     validateTemplateContract: true,
   });
 
   await writeFile(tempConfigPath, content, 'utf8');
-  await writeCloudflareSecretsFile({ outputPath: secretsPath });
+  await writeCloudflareSecretsFile({
+    outputPath: secretsPath,
+    workerKeys: CLOUDFLARE_STATE_WORKER_SCOPE,
+  });
 
   return {
     configPath: tempConfigPath,

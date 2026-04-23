@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -9,6 +10,7 @@ import {
   buildRouterDirectDeployArgs,
   buildRouterDeployConfigContent,
   buildVersionDeploySpecs,
+  createTempDeployArtifacts,
   deployCloudflareApp,
   determineDeployMode,
   parseWranglerJsonPayload,
@@ -19,6 +21,16 @@ const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
   cloudflareWorkerSplits;
 const expectedStoragePublicBaseUrl =
   process.env.STORAGE_PUBLIC_BASE_URL?.trim() ?? '';
+
+test('package cf:deploy:app 只跑 app-scoped check', async () => {
+  const manifest = JSON.parse(await readFile('package.json', 'utf8')) as {
+    scripts: Record<string, string>;
+  };
+  const command = manifest.scripts['cf:deploy:app'];
+
+  assert.match(command, /pnpm cf:check -- --workers=app/);
+  assert.doesNotMatch(command, /pnpm cf:check &&/);
+});
 
 test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 改写为部署态配置', () => {
   const template = `
@@ -146,6 +158,97 @@ test('buildRouterDirectDeployArgs 对 router 固定使用 wrangler deploy 与 ke
     '/tmp/router.secrets.env',
   ]);
   assert.equal(args.includes('versions'), false);
+});
+
+test('createTempDeployArtifacts 对 router 使用 router-scoped secrets', async () => {
+  const previousSite = process.env.SITE;
+  const previousBetterAuthSecret = process.env.BETTER_AUTH_SECRET;
+  const previousAuthSecret = process.env.AUTH_SECRET;
+
+  try {
+    process.env.SITE = 'mamamiya';
+    process.env.BETTER_AUTH_SECRET = 'better-secret';
+    process.env.AUTH_SECRET = 'auth-secret';
+
+    const artifacts = await createTempDeployArtifacts({
+      name: 'roller-rabbit',
+      templatePath: path.resolve(process.cwd(), 'wrangler.cloudflare.toml'),
+      workerKeys: ['router'],
+    });
+
+    try {
+      const secrets = await readFile(artifacts.secretsPath, 'utf8');
+      assert.equal(secrets, '\n');
+      assert.doesNotMatch(secrets, /BETTER_AUTH_SECRET|AUTH_SECRET/);
+    } finally {
+      await artifacts.cleanup();
+    }
+  } finally {
+    if (previousSite === undefined) {
+      delete process.env.SITE;
+    } else {
+      process.env.SITE = previousSite;
+    }
+    if (previousBetterAuthSecret === undefined) {
+      delete process.env.BETTER_AUTH_SECRET;
+    } else {
+      process.env.BETTER_AUTH_SECRET = previousBetterAuthSecret;
+    }
+    if (previousAuthSecret === undefined) {
+      delete process.env.AUTH_SECRET;
+    } else {
+      process.env.AUTH_SECRET = previousAuthSecret;
+    }
+  }
+});
+
+test('createTempDeployArtifacts 对 server worker 使用单 worker secrets scope', async () => {
+  const previousSite = process.env.SITE;
+  const previousBetterAuthSecret = process.env.BETTER_AUTH_SECRET;
+  const previousAuthSecret = process.env.AUTH_SECRET;
+
+  try {
+    process.env.SITE = 'mamamiya';
+    process.env.BETTER_AUTH_SECRET = 'better-secret';
+    delete process.env.AUTH_SECRET;
+
+    const artifacts = await createTempDeployArtifacts({
+      name: 'roller-rabbit-auth',
+      templatePath: path.resolve(
+        process.cwd(),
+        'cloudflare/wrangler.server-auth.toml'
+      ),
+      workerKeys: ['auth'],
+    });
+
+    try {
+      const secrets = await readFile(artifacts.secretsPath, 'utf8');
+      assert.equal(
+        secrets,
+        ['BETTER_AUTH_SECRET=better-secret', 'AUTH_SECRET=better-secret', ''].join(
+          '\n'
+        )
+      );
+    } finally {
+      await artifacts.cleanup();
+    }
+  } finally {
+    if (previousSite === undefined) {
+      delete process.env.SITE;
+    } else {
+      process.env.SITE = previousSite;
+    }
+    if (previousBetterAuthSecret === undefined) {
+      delete process.env.BETTER_AUTH_SECRET;
+    } else {
+      process.env.BETTER_AUTH_SECRET = previousBetterAuthSecret;
+    }
+    if (previousAuthSecret === undefined) {
+      delete process.env.AUTH_SECRET;
+    } else {
+      process.env.AUTH_SECRET = previousAuthSecret;
+    }
+  }
 });
 
 test('buildRouterAppVersionIds 先保留当前 server 版本，再切到新 server 版本', () => {

@@ -46,8 +46,8 @@
     "cf:check": "node scripts/run-with-site.mjs node --import tsx scripts/check-cloudflare-config.mjs",
     "cf:build": "node scripts/run-with-site.mjs pnpm exec opennextjs-cloudflare build --config wrangler.cloudflare.toml && node --import tsx scripts/bundle-cf-server-functions.mjs && node --import tsx scripts/run-cf-multi-build-check.mjs",
     "cf:deploy": "pnpm cf:deploy:app",
-    "cf:deploy:state": "pnpm cf:check && pnpm cf:build && node --import tsx scripts/run-cf-state-deploy.mjs",
-    "cf:deploy:app": "pnpm cf:check && pnpm cf:build && node --import tsx scripts/run-cf-app-deploy.mjs",
+    "cf:deploy:state": "node scripts/run-with-site.mjs node --import tsx scripts/check-cloudflare-config.mjs --workers=state && node --import tsx scripts/run-cf-state-deploy.mjs",
+    "cf:deploy:app": "pnpm cf:check -- --workers=app && pnpm cf:build && node --import tsx scripts/run-cf-app-deploy.mjs",
     "cf:typegen": "node scripts/run-with-site.mjs pnpm exec wrangler types --config wrangler.cloudflare.toml --env-interface CloudflareEnv src/shared/types/cloudflare.d.ts",
     "cf:typegen:check": "node --import tsx scripts/check-cf-typegen.mjs"
   },
