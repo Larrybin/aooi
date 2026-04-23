@@ -10,7 +10,7 @@ import { AppImage } from '@/shared/blocks/common/app-image';
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { safeJsonParse } from '@/shared/lib/json';
 import {
@@ -25,7 +25,7 @@ export default async function AiTasksPage({
 }: {
   searchParams: Promise<{ page?: number; pageSize?: number; type?: string }>;
 }) {
-  if (!isAiEnabled(await getPublicConfigsCached())) {
+  if (!isAiEnabled(await readPublicUiConfigCached())) {
     notFound();
   }
 

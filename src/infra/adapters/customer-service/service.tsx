@@ -6,7 +6,7 @@ import {
   TawkCustomerServiceProvider,
 } from '@/extensions/customer-service';
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { Configs } from '@/domains/settings/application/settings-runtime.query';
+import type { Configs } from '@/domains/settings/application/settings-store';
 
 import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
 

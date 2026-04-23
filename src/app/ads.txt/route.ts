@@ -1,5 +1,5 @@
 import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
-import { readRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { readSettingsCached } from '@/domains/settings/application/settings-store';
 import {
   getAdsTxtBody,
   resolveAdsRuntime,
@@ -10,7 +10,7 @@ import { buildAdsTxtResponse } from './response';
 export async function GET(req: Request) {
   const { log } = getRequestLogger(req);
   try {
-    const configs = await readRuntimeSettingsCached();
+    const configs = await readSettingsCached();
     const runtime = resolveAdsRuntime(configs);
     return buildAdsTxtResponse(getAdsTxtBody(runtime));
   } catch (error) {

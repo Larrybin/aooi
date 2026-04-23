@@ -1,18 +1,17 @@
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-
-type ConfigMap = Record<string, string>;
+import type { Configs } from '@/domains/settings/application/settings-store';
 
 export async function readServiceConfigsByMode(
   mode: ConfigConsistencyMode = 'cached',
   {
-    readRuntimeSettingsCachedImpl,
-    readRuntimeSettingsFreshImpl,
+    readSettingsCachedImpl,
+    readSettingsFreshImpl,
   }: {
-    readRuntimeSettingsCachedImpl: () => Promise<ConfigMap>;
-    readRuntimeSettingsFreshImpl: () => Promise<ConfigMap>;
+    readSettingsCachedImpl: () => Promise<Configs>;
+    readSettingsFreshImpl: () => Promise<Configs>;
   }
-): Promise<ConfigMap> {
+): Promise<Configs> {
   return mode === 'fresh'
-    ? await readRuntimeSettingsFreshImpl()
-    : await readRuntimeSettingsCachedImpl();
+    ? await readSettingsFreshImpl()
+    : await readSettingsCachedImpl();
 }

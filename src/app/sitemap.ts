@@ -7,16 +7,16 @@ import {
   isLandingBlogEnabled,
   isLandingDocsEnabled,
 } from '@/surfaces/public/navigation/landing-visibility';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const publicConfigs = await getPublicConfigsCached();
+  const publicConfig = await readPublicUiConfigCached();
   buildBrandPlaceholderValues();
   const routes = [
     '/',
     '/pricing',
-    ...(isLandingBlogEnabled(publicConfigs) ? ['/blog'] : []),
-    ...(isLandingDocsEnabled(publicConfigs) ? ['/docs'] : []),
+    ...(isLandingBlogEnabled(publicConfig) ? ['/blog'] : []),
+    ...(isLandingDocsEnabled(publicConfig) ? ['/docs'] : []),
   ];
   const lastModified = new Date();
 

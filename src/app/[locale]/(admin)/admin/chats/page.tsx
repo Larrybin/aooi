@@ -14,13 +14,13 @@ import {
 } from '@/domains/chat/application/admin-chats.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { getPublicConfigsCached } from '@/domains/settings/application/public-config.view';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default createAdminTablePage<AdminChatRow, AdminChatsListQuery>({
   namespace: 'admin.chats',
   permission: PERMISSIONS.AITASKS_READ,
   beforeLoad: async () => {
-    if (!isAiEnabled(await getPublicConfigsCached())) {
+    if (!isAiEnabled(await readPublicUiConfigCached())) {
       notFound();
     }
   },
