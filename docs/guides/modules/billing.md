@@ -11,9 +11,9 @@ Billing covers the commercial mainline:
 
 ## Required Configuration
 
-- `default_payment_provider`
-- `select_payment_enabled`
-- provider-specific secrets under the `payment` tab
+- `site.capabilities.payment`
+- provider-specific secrets for the active capability
+- active provider settings under the `payment` tab
 
 ## External Services
 
@@ -30,8 +30,8 @@ Billing covers the commercial mainline:
 
 - Checkout renders but webhook verification is misconfigured.
 - Product ID mapping drifts from pricing config.
-- Provider is enabled in settings without the required signing secret.
+- Site declares a payment capability without the required provider secrets.
 
 ## Product Impact If Disabled
 
-The template can no longer sell plans, credits, or subscriptions through the default billing path.
+The template can no longer sell plans, credits, or subscriptions through the billing path for the current site.

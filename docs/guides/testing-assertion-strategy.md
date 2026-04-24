@@ -41,7 +41,7 @@
 
 仓库示例：
 
-- [src/app/api/payment/notify/[provider]/route.test.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/notify/[provider]/route.test.ts)
+- [tests/contract/payment-notify-route.test.ts](/Users/bin/Desktop/project/aooi/tests/contract/payment-notify-route.test.ts)
 - [src/app/api/storage/upload-image/route.test.ts](/Users/bin/Desktop/project/aooi/src/app/api/storage/upload-image/route.test.ts)
 - [src/middleware.test.ts](/Users/bin/Desktop/project/aooi/src/middleware.test.ts)
 - [tests/smoke/cf-app-smoke.test.ts](/Users/bin/Desktop/project/aooi/tests/smoke/cf-app-smoke.test.ts)

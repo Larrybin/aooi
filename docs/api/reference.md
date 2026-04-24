@@ -182,7 +182,7 @@ Notes:
 | `POST` | `/api/payment/checkout`          | Create checkout session                   |
 | `GET`  | `/api/payment/callback`          | Legacy: redirect-only checkout callback   |
 | `POST` | `/api/payment/callback`          | Finalize checkout (requires login + CSRF) |
-| `POST` | `/api/payment/notify/[provider]` | Webhook notifications                     |
+| `POST` | `/api/payment/notify`            | Webhook notifications                     |
 
 Notes:
 
@@ -196,7 +196,6 @@ Notes:
   "product_id": "pro_monthly",    // Required: Product ID from pricing
   "currency": "usd",               // Optional: Override currency
   "locale": "en",                  // Optional: Locale for callbacks (as-needed routing; non-default adds prefix; zh-CN -> zh)
-  "payment_provider": "stripe",    // Optional: Specific provider
   "metadata": {}                   // Optional: Custom metadata
 }
 ```

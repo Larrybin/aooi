@@ -1,6 +1,6 @@
 # Payment Integration Guide
 
-This guide covers the multi-provider payment system supporting one-time payments and subscriptions.
+This guide covers the site-scoped payment system for one-time payments and subscriptions.
 
 ## Architecture Overview
 
@@ -19,10 +19,10 @@ src/infra/adapters/payment/
 src/app/api/payment/
   checkout/route.ts
   callback/route.ts
-  notify/[provider]/route.ts
+  notify/route.ts
 ```
 
-`settings` stores payment-related fields and values only. Billing interprets provider enablement, pricing, subscription, and credit behavior.
+`settings` stores payment-related fields and values only. The active provider is derived from `site.capabilities.payment`, while billing interprets pricing, subscription, and credit behavior.
 
 ## Core Concepts
 
@@ -40,11 +40,11 @@ src/app/api/payment/
 4. Billing application code builds order/session semantics.
 5. Payment adapter code creates the upstream checkout session.
 
-Route handlers remain HTTP adapters; they should not own pricing rules or provider selection semantics.
+Route handlers remain HTTP adapters; they should not own pricing rules or active-provider contract semantics.
 
 ## Webhook Flow
 
-1. `src/app/api/payment/notify/[provider]/route.ts` parses provider route params.
+1. `src/app/api/payment/notify/route.ts` derives the active provider from `site.capabilities.payment`.
 2. The route reads runtime settings through `settings-runtime.query`.
 3. The route passes request metadata into `handlePaymentNotifyRequest()`.
 4. Billing application code records inbox/audit state and applies order/subscription transitions.
@@ -60,23 +60,21 @@ Route handlers remain HTTP adapters; they should not own pricing rules or provid
 
 ## Configuration
 
-Payment settings are registered under `src/domains/settings/definitions/payment.ts`, persisted through `settings-store`, and read as values by billing/payment adapter code.
+Payment settings are registered under `src/domains/settings/definitions/payment.ts`, persisted through `settings-store`, and read as values by billing/payment adapter code. The active provider is derived from `site.capabilities.payment`, and only the active provider's runtime fields remain configurable.
 
 Examples:
 
-- `stripe_enabled`
-- `stripe_public_key`
-- `stripe_private_key`
-- `stripe_webhook_secret`
-- `paypal_enabled`
-- `creem_enabled`
+- `stripe_payment_methods`
+- `creem_environment`
+- `creem_product_ids`
+- `paypal_environment`
 
-Provider availability semantics belong to billing/provider assembly, not settings.
+Provider availability semantics belong to `site.capabilities.payment`; settings only carry the active provider's runtime fields.
 
 ## Related Files
 
 - `src/domains/billing/domain/payment.ts` - Canonical payment types and provider interface
-- `src/domains/billing/domain/pricing.ts` - Pricing lookup and provider selection semantics
+- `src/domains/billing/domain/pricing.ts` - Pricing lookup and checkout amount/currency resolution
 - `src/domains/billing/domain/credit.ts` - Credit semantics
 - `src/domains/billing/application/checkout.ts` - Checkout orchestration
 - `src/domains/billing/application/flows.ts` - Order/subscription state transitions

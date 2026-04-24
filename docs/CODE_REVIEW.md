@@ -311,7 +311,7 @@
 > 面向路径：pricing 页面 → checkout API → creem 支付 → callback → 订单 / 订阅 / 权益（credits）落账。
 
 - **接口与输入校验**
-  - `POST /api/payment/checkout` 等入口必须对请求体使用 zod schema 校验（`product_id`、`currency`、`locale`、`payment_provider`、`metadata` 等），禁止只用手写 `if` 判断。
+- `POST /api/payment/checkout` 等入口必须对请求体使用 zod schema 校验（`product_id`、`currency`、`locale`、`metadata` 等），禁止只用手写 `if` 判断。
   - 回调入口（如 `/api/payment/callback`）对 query params 至少做基本格式约束（长度、字符集），不要直接信任原始字符串。
 
 - **金额与币种逻辑**

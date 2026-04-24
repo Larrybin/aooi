@@ -135,8 +135,8 @@
 - Checkout：`src/app/api/payment/checkout/route.ts`
   - 使用 zod schema 校验请求体（`PaymentCheckoutBodySchema`）
   - 金额由服务端 pricing 数据计算（不信任客户端传入金额）
-  - 允许 provider 白名单校验（按 currency 配置优先）
-- Webhook notify：`src/app/api/payment/notify/[provider]/route.ts`
+  - active provider 由 `site.capabilities.payment` 派生，checkout 不再接受 provider 选择输入
+- Webhook notify：`src/app/api/payment/notify/route.ts`
   - provider event 获取异常分类映射为 401/400/配置错误
   - 对订单状态做幂等短路（已终态直接返回 success）
 
@@ -251,4 +251,4 @@
 - `src/core/db/index.ts`
 - `src/core/auth/config.ts`
 - `src/app/api/payment/checkout/route.ts`
-- `src/app/api/payment/notify/[provider]/route.ts`
+- `src/app/api/payment/notify/route.ts`

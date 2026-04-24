@@ -91,7 +91,7 @@
 约定：入口只做入站适配（鉴权/校验/调用 domain application/返回响应），避免引入 UI 依赖图或业务规则；具体护栏见 `eslint.config.mjs`、`src/testing/architecture-rules.ts` 与 `docs/architecture/shared-layering.md`。
 
 - 支付 checkout：`src/app/api/payment/checkout/route.ts`
-- 支付回调/通知：`src/app/api/payment/notify/[provider]/route.ts`
+- 支付回调/通知：`src/app/api/payment/notify/route.ts`
 
 ### 错误处理（API / Server Actions）
 
