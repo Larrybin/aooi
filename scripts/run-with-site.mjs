@@ -14,6 +14,14 @@ const SITE_REQUIRED_COMMANDS = [
   'node --import tsx scripts/run-cf-app-deploy.mjs',
   'node --import tsx scripts/run-cf-state-deploy.mjs',
 ];
+const CONTENT_GENERATION_REQUIRED_COMMANDS = [
+  'pnpm exec next',
+  'node scripts/next-build.mjs',
+  'pnpm exec @better-auth/cli generate',
+  'node --import tsx scripts/smoke.mjs',
+  'node --import tsx scripts/run-cf-app-deploy.mjs',
+  'node --import tsx scripts/run-cf-state-deploy.mjs',
+];
 
 if (args.length === 0) {
   process.stderr.write('Usage: node scripts/run-with-site.mjs <command> [...args]\n');
@@ -34,6 +42,13 @@ function joinCommand(parts) {
 function requiresExplicitSite(commandParts) {
   const joinedCommand = joinCommand(commandParts);
   return SITE_REQUIRED_COMMANDS.some((prefix) => joinedCommand.startsWith(prefix));
+}
+
+function requiresContentGeneration(commandParts) {
+  const joinedCommand = joinCommand(commandParts);
+  return CONTENT_GENERATION_REQUIRED_COMMANDS.some((prefix) =>
+    joinedCommand.startsWith(prefix)
+  );
 }
 
 function buildSiteEnv(commandParts, env = process.env) {
@@ -85,13 +100,15 @@ async function main() {
     process.exit(generateExitCode);
   }
 
-  const generateContentExitCode = await runNodeScript(
-    generateContentScript,
-    [],
-    siteEnv
-  );
-  if (generateContentExitCode !== 0) {
-    process.exit(generateContentExitCode);
+  if (requiresContentGeneration([command, ...commandArgs])) {
+    const generateContentExitCode = await runNodeScript(
+      generateContentScript,
+      [],
+      siteEnv
+    );
+    if (generateContentExitCode !== 0) {
+      process.exit(generateContentExitCode);
+    }
   }
 
   const child = spawn(command, commandArgs, {

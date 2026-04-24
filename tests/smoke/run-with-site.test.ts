@@ -88,3 +88,18 @@ test('run-with-site 尊重显式 SITE', async () => {
   assert.match(result.stdout, /\[site\] generated mamamiya/);
   assert.equal(result.stdout.trimEnd().split('\n').at(-1), 'mamamiya');
 });
+
+test('run-with-site 对 release metadata 只生成 site module，不预生成 content source', async () => {
+  const result = await runWithSite([
+    'node',
+    'scripts/create-cloudflare-release-metadata.mjs',
+    '--head-sha=HEAD',
+    '--out=.tmp/test-release-metadata.json',
+  ], {
+    SITE: 'mamamiya',
+  });
+
+  assert.equal(result.ok, true, result.stderr);
+  assert.match(result.stdout, /\[site\] generated mamamiya/);
+  assert.doesNotMatch(result.stdout, /\[content\] generated/);
+});
