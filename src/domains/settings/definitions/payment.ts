@@ -5,12 +5,6 @@ import {
 } from '../value-rules';
 import { defineSettingsGroup } from './builder';
 
-const basicPaymentGroup = {
-  id: 'basic_payment',
-  titleKey: 'groups.basic_payment',
-  description: 'custom your basic payment settings',
-} as const;
-
 const stripeGroup = {
   id: 'stripe',
   titleKey: 'groups.stripe',
@@ -31,46 +25,6 @@ const paypalGroup = {
   description: 'custom your paypal settings',
 } as const;
 
-const basicPaymentSettings = defineSettingsGroup(
-  {
-    moduleId: 'billing',
-    tab: 'payment',
-    group: basicPaymentGroup,
-    defaultVisibility: 'public',
-  },
-  [
-    {
-      name: 'select_payment_enabled',
-      title: 'Select Payment Method Enabled',
-      type: 'switch',
-      value: 'false',
-      tip: 'whether allow users to select payment method, if disabled, the default payment provider will be used',
-      placeholder: '',
-    },
-    {
-      name: 'default_payment_provider',
-      title: 'Default Payment Provider',
-      type: 'select',
-      value: 'stripe',
-      options: [
-        {
-          title: 'Stripe',
-          value: 'stripe',
-        },
-        {
-          title: 'Creem',
-          value: 'creem',
-        },
-        {
-          title: 'Paypal',
-          value: 'paypal',
-        },
-      ],
-      tip: 'Choose the default payment provider to use',
-    },
-  ] as const
-);
-
 const stripeSettings = defineSettingsGroup(
   {
     moduleId: 'billing',
@@ -79,14 +33,6 @@ const stripeSettings = defineSettingsGroup(
     defaultVisibility: 'private',
   },
   [
-    {
-      name: 'stripe_enabled',
-      title: 'Stripe Enabled',
-      type: 'switch',
-      visibility: 'public',
-      value: 'false',
-      placeholder: '',
-    },
     {
       name: 'stripe_payment_methods',
       title: 'Stripe Payment Methods',
@@ -111,13 +57,6 @@ const creemSettings = defineSettingsGroup(
     defaultVisibility: 'private',
   },
   [
-    {
-      name: 'creem_enabled',
-      title: 'Creem Enabled',
-      type: 'switch',
-      visibility: 'public',
-      value: 'false',
-    },
     {
       name: 'creem_environment',
       title: 'Creem Environment',
@@ -155,13 +94,6 @@ const paypalSettings = defineSettingsGroup(
   },
   [
     {
-      name: 'paypal_enabled',
-      title: 'Paypal Enabled',
-      type: 'switch',
-      visibility: 'public',
-      value: 'false',
-    },
-    {
       name: 'paypal_environment',
       title: 'Paypal Environment',
       type: 'select',
@@ -175,7 +107,6 @@ const paypalSettings = defineSettingsGroup(
 );
 
 export const paymentSettings = [
-  ...basicPaymentSettings,
   ...stripeSettings,
   ...creemSettings,
   ...paypalSettings,

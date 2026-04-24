@@ -19,10 +19,8 @@ export function mapSettingsToForms({
 }): FormType[] {
   return groups
     .filter((group) => group.tab === tab)
-    .map((group) => ({
-      title: group.title,
-      description: group.description,
-      fields: settings
+    .flatMap((group) => {
+      const fields = settings
         .filter((setting) => setting.group.id === group.name)
         .map((setting) => ({
           name: setting.name,
@@ -35,17 +33,29 @@ export function mapSettingsToForms({
           value: setting.value,
           attributes: setting.attributes,
           metadata: setting.metadata,
-        })),
-      passby: {
-        provider: group.name,
-        tab: group.tab,
-      },
-      data: configs,
-      submit: {
-        button: {
-          title: submitLabel,
+        }));
+
+      if (fields.length === 0) {
+        return [];
+      }
+
+      return [
+        {
+          title: group.title,
+          description: group.description,
+          fields,
+          passby: {
+            provider: group.name,
+            tab: group.tab,
+          },
+          data: configs,
+          submit: {
+            button: {
+              title: submitLabel,
+            },
+            handler: onSubmit,
+          },
         },
-        handler: onSubmit,
-      },
-    }));
+      ];
+    });
 }

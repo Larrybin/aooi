@@ -2,6 +2,7 @@ import {
   ALL_SETTINGS,
   type KnownSettingKey,
 } from '@/domains/settings/registry';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import type { SettingTabName } from '@/domains/settings/tab-names';
 
 import type {
@@ -274,6 +275,8 @@ function compareTabItemPriority(
 }
 
 export function getProductModuleItemsByTab(tab: SettingTabName) {
+  const paymentCapability = resolveSitePaymentCapability();
+
   return PRODUCT_MODULES.flatMap((module) =>
     (
       [
@@ -281,6 +284,7 @@ export function getProductModuleItemsByTab(tab: SettingTabName) {
         { relationship: 'supporting', tabs: module.supportingTabs },
       ] as const
     )
+      .filter(() => !(tab === 'payment' && paymentCapability === 'none'))
       .filter(({ tabs }) => tabs.includes(tab))
       .map(({ relationship }) =>
         createProductModuleTabItem(module, relationship)

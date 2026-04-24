@@ -115,14 +115,9 @@ export const AUTH_RUNTIME_SETTING_KEYS = Object.freeze({
 export const BILLING_RUNTIME_SETTING_KEYS = Object.freeze({
   locale: 'locale',
   defaultLocale: 'default_locale',
-  selectPaymentEnabled: 'select_payment_enabled',
-  defaultPaymentProvider: 'default_payment_provider',
-  stripeEnabled: 'stripe_enabled',
   stripePaymentMethods: 'stripe_payment_methods',
-  creemEnabled: 'creem_enabled',
   creemEnvironment: 'creem_environment',
   creemProductIds: 'creem_product_ids',
-  paypalEnabled: 'paypal_enabled',
   paypalEnvironment: 'paypal_environment',
 } as const);
 
@@ -160,6 +155,18 @@ export function getSettingGroupsFromRegistry(
     description: group.description,
     tab: group.tab,
   }));
+}
+
+export function getSettingGroupsFromDefinitions(
+  settings: readonly SettingDefinition[],
+  translate: (key: string) => string
+): SettingGroup[] {
+  return getSettingGroupsFromRegistry(translate).filter((group) =>
+    settings.some(
+      (setting) =>
+        setting.group.id === group.name && setting.tab === group.tab
+    )
+  );
 }
 
 export async function getSettingGroups() {

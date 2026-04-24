@@ -5,6 +5,7 @@ import {
   type ProductModuleTier,
   type ProductModuleVerification,
 } from '@/config/product-modules';
+import type { SettingTabName } from '@/domains/settings/tab-names';
 
 export interface SettingsModuleContractRow {
   moduleId: ProductModuleId;
@@ -16,7 +17,7 @@ export interface SettingsModuleContractRow {
 }
 
 export function getSettingsModuleContractRows(
-  tab: Parameters<typeof getProductModuleItemsByTab>[0]
+  tab: SettingTabName
 ): SettingsModuleContractRow[] {
   return getProductModuleItemsByTab(tab);
 }

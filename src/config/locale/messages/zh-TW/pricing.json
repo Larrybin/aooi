@@ -48,8 +48,7 @@
             "currency": "CNY",
             "amount": 69900,
             "price": "¥699",
-            "original_price": "¥1399",
-            "payment_providers": ["stripe"]
+            "original_price": "¥1399"
           }
         ],
         "unit": "",
@@ -91,8 +90,7 @@
             "currency": "CNY",
             "amount": 139900,
             "price": "¥1399",
-            "original_price": "¥1999",
-            "payment_providers": ["stripe"]
+            "original_price": "¥1999"
           }
         ],
         "unit": "",
@@ -132,8 +130,7 @@
             "currency": "CNY",
             "amount": 199900,
             "price": "¥1999",
-            "original_price": "¥2799",
-            "payment_providers": ["stripe", "creem"]
+            "original_price": "¥2799"
           }
         ],
         "unit": "",

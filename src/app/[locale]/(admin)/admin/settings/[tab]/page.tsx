@@ -32,6 +32,7 @@ import { parseFormData } from '@/shared/lib/action/form';
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import type { Crumb } from '@/shared/types/blocks/common';
+import { getAvailableSettingTabs } from '@/domains/settings';
 
 const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
 
@@ -48,6 +49,10 @@ export default async function SettingsPage({
   }
 
   const settingsTab = tab;
+  const availableTabs = await getAvailableSettingTabs();
+  if (!availableTabs.includes(settingsTab)) {
+    notFound();
+  }
 
   // Check if user has permission to read settings
   await requireAllPagePermissions({
