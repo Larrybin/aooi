@@ -169,26 +169,31 @@ export type ReasoningContentProps = ComponentProps<
 };
 
 export const ReasoningContent = memo(
-  ({ className, children, remarkRehypeOptions, ...props }: ReasoningContentProps) => (
-    <CollapsibleContent
-      className={cn(
-        "mt-4 text-sm",
-        "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-        className
-      )}
-      {...props}
-    >
-      <Streamdown
-        {...props}
-        remarkRehypeOptions={{
-          ...(remarkRehypeOptions ?? {}),
-          allowDangerousHtml: false,
-        }}
+  ({ className, children, remarkRehypeOptions, ...props }: ReasoningContentProps) => {
+    const { dir, ...contentProps } = props;
+
+    return (
+      <CollapsibleContent
+        className={cn(
+          "mt-4 text-sm",
+          "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+          className
+        )}
+        dir={dir}
+        {...contentProps}
       >
-        {children}
-      </Streamdown>
-    </CollapsibleContent>
-  )
+        <Streamdown
+          dir={dir === 'auto' || dir === 'ltr' || dir === 'rtl' ? dir : undefined}
+          remarkRehypeOptions={{
+            ...(remarkRehypeOptions ?? {}),
+            allowDangerousHtml: false,
+          }}
+        >
+          {children}
+        </Streamdown>
+      </CollapsibleContent>
+    );
+  }
 );
 
 Reasoning.displayName = "Reasoning";

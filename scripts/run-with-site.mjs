@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 
 const args = process.argv.slice(2);
 const TEST_SITE_KEY = 'dev-local';
+const TEST_AUTH_SHARED_SECRET = 'dev-local-auth-secret-dev-local-auth-secret';
+const TEST_STORAGE_PUBLIC_BASE_URL = 'http://127.0.0.1:9787/assets/';
 const SITE_REQUIRED_COMMANDS = [
   'pnpm exec next',
   'node scripts/next-build.mjs',
@@ -24,11 +26,17 @@ const CONTENT_GENERATION_REQUIRED_COMMANDS = [
 ];
 
 if (args.length === 0) {
-  process.stderr.write('Usage: node scripts/run-with-site.mjs <command> [...args]\n');
+  process.stderr.write(
+    'Usage: node scripts/run-with-site.mjs <command> [...args]\n'
+  );
   process.exit(1);
 }
 
-const generateScript = resolve(process.cwd(), 'scripts', 'generate-site-module.mjs');
+const generateScript = resolve(
+  process.cwd(),
+  'scripts',
+  'generate-site-module.mjs'
+);
 const generateContentScript = resolve(
   process.cwd(),
   'scripts',
@@ -41,7 +49,9 @@ function joinCommand(parts) {
 
 function requiresExplicitSite(commandParts) {
   const joinedCommand = joinCommand(commandParts);
-  return SITE_REQUIRED_COMMANDS.some((prefix) => joinedCommand.startsWith(prefix));
+  return SITE_REQUIRED_COMMANDS.some((prefix) =>
+    joinedCommand.startsWith(prefix)
+  );
 }
 
 function requiresContentGeneration(commandParts) {
@@ -54,7 +64,22 @@ function requiresContentGeneration(commandParts) {
 function buildSiteEnv(commandParts, env = process.env) {
   const siteKey = env.SITE?.trim();
   if (siteKey) {
-    return env;
+    if (siteKey !== TEST_SITE_KEY) {
+      return env;
+    }
+
+    const nextEnv = {
+      ...env,
+      STORAGE_PUBLIC_BASE_URL:
+        env.STORAGE_PUBLIC_BASE_URL?.trim() || TEST_STORAGE_PUBLIC_BASE_URL,
+    };
+
+    if (!nextEnv.BETTER_AUTH_SECRET?.trim() && !nextEnv.AUTH_SECRET?.trim()) {
+      nextEnv.BETTER_AUTH_SECRET = TEST_AUTH_SHARED_SECRET;
+      nextEnv.AUTH_SECRET = TEST_AUTH_SHARED_SECRET;
+    }
+
+    return nextEnv;
   }
 
   if (requiresExplicitSite(commandParts)) {
@@ -64,10 +89,21 @@ function buildSiteEnv(commandParts, env = process.env) {
     process.exit(1);
   }
 
-  return {
+  const nextEnv = {
     ...env,
     SITE: TEST_SITE_KEY,
   };
+
+  if (!nextEnv.STORAGE_PUBLIC_BASE_URL?.trim()) {
+    nextEnv.STORAGE_PUBLIC_BASE_URL = TEST_STORAGE_PUBLIC_BASE_URL;
+  }
+
+  if (!nextEnv.BETTER_AUTH_SECRET?.trim() && !nextEnv.AUTH_SECRET?.trim()) {
+    nextEnv.BETTER_AUTH_SECRET = TEST_AUTH_SHARED_SECRET;
+    nextEnv.AUTH_SECRET = TEST_AUTH_SHARED_SECRET;
+  }
+
+  return nextEnv;
 }
 
 function runNodeScript(scriptPath, scriptArgs = [], env = process.env) {
