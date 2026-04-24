@@ -1,5 +1,7 @@
+import type { LimiterBucket } from '@/shared/lib/api/limiters-config';
+
 export type RateLimitStateRecord = {
-  bucket: string;
+  bucket: LimiterBucket;
   scopeKey: string;
   lastActionAt: number | null;
   windowStartedAt: number | null;
@@ -18,7 +20,7 @@ export type LockedRateLimitStore = {
 
 export type RateLimitStore = {
   withLock<T>(
-    bucket: string,
+    bucket: LimiterBucket,
     scopeKeys: string[],
     fn: (store: LockedRateLimitStore) => Promise<T>
   ): Promise<T>;
@@ -33,13 +35,13 @@ function normalizeScopeKeys(scopeKeys: string[]): string[] {
 export function createMemoryRateLimitStore(): RateLimitStore {
   const records = new Map<string, RateLimitStateRecord>();
 
-  function buildKey(bucket: string, scopeKey: string) {
+  function buildKey(bucket: LimiterBucket, scopeKey: string) {
     return `${bucket}:${scopeKey}`;
   }
 
   return {
     async withLock(bucket, _scopeKeys, fn) {
-      const normalizedBucket = bucket.trim();
+      const normalizedBucket = bucket;
       const store: LockedRateLimitStore = {
         async get(scopeKey) {
           return records.get(buildKey(normalizedBucket, scopeKey)) || null;

@@ -226,3 +226,42 @@ test('buildCloudflareSecretsEnv 按 deploy.settings.json 与 workerKeys 限定 s
     await rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('buildCloudflareSecretsEnv 对 payment capability 推导的 active provider 缺 secret 时直接失败，并带环境上下文', () => {
+  assert.throws(
+    () =>
+      buildCloudflareSecretsEnv(
+        {
+          SITE: 'mamamiya',
+          NODE_ENV: 'production',
+          DEPLOY_TARGET: 'cloudflare',
+          BETTER_AUTH_SECRET: 'better-secret',
+        },
+        {
+          workerKeys: ['payment'],
+          runtimeSettings: {
+            secrets: {
+              authSharedSecret: true,
+              googleOauth: false,
+              githubOauth: false,
+              openrouter: false,
+            },
+            vars: {
+              storagePublicBaseUrl: true,
+            },
+            payment: {
+              capability: 'stripe',
+              provider: 'stripe',
+              requiredSecrets: [
+                'STRIPE_PUBLISHABLE_KEY',
+                'STRIPE_SECRET_KEY',
+                'STRIPE_SIGNING_SECRET',
+              ],
+              requiresSecrets: true,
+            },
+          },
+        }
+      ),
+    /SITE=mamamiya.*NODE_ENV=production.*DEPLOY_TARGET=cloudflare.*workers=payment/i
+  );
+});

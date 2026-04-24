@@ -272,9 +272,6 @@ test('旧平铺 deploy.settings 仍可提取 state migration 输入', () => {
   const normalized = normalizeRevisionDeploySettings({
     google_auth_enabled: false,
     github_auth_enabled: false,
-    stripe_enabled: false,
-    creem_enabled: false,
-    paypal_enabled: false,
     general_ai_enabled: false,
   });
 
@@ -317,9 +314,6 @@ test('revision normalizer 对旧 site/deploy/state-template 输入构造最小 s
     deploySettings: {
       google_auth_enabled: false,
       github_auth_enabled: false,
-      stripe_enabled: false,
-      creem_enabled: false,
-      paypal_enabled: false,
       general_ai_enabled: false,
     },
     stateTemplate: `

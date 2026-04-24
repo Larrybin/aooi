@@ -7,12 +7,13 @@ import {
   FixedWindowAttemptLimiter,
   FixedWindowQuotaLimiter,
 } from './limiters';
+import { LimiterBucket } from './limiters-config';
 import { createMemoryRateLimitStore } from './rate-limit-store';
 
 test('CooldownLimiter: 冷却窗口内拒绝并返回 retryAfterSeconds', async () => {
   let now = 1_000;
   const limiter = new CooldownLimiter({
-    bucket: 'test.cooldown.check',
+    bucket: LimiterBucket.API_SEND_EMAIL,
     minIntervalMs: 1_000,
     ttlMs: 10_000,
     now: () => now,
@@ -32,7 +33,7 @@ test('CooldownLimiter: 冷却窗口内拒绝并返回 retryAfterSeconds', async 
 
 test('CooldownLimiter: rollback 只撤销同一时间戳写入', async () => {
   const limiter = new CooldownLimiter({
-    bucket: 'test.cooldown.rollback',
+    bucket: LimiterBucket.API_SEND_EMAIL,
     minIntervalMs: 1_000,
     ttlMs: 10_000,
     store: createMemoryRateLimitStore(),
@@ -50,7 +51,7 @@ test('CooldownLimiter: rollback 只撤销同一时间戳写入', async () => {
 test('CooldownLimiter: TTL 过期后自动清理并放行', async () => {
   let now = 1_000;
   const limiter = new CooldownLimiter({
-    bucket: 'test.cooldown.ttl',
+    bucket: LimiterBucket.API_SEND_EMAIL,
     minIntervalMs: 10_000,
     ttlMs: 1_000,
     now: () => now,
@@ -65,7 +66,7 @@ test('CooldownLimiter: TTL 过期后自动清理并放行', async () => {
 test('FixedWindowAttemptLimiter: 达到上限后拒绝，成功后可清空', async () => {
   let now = 1_000;
   const limiter = new FixedWindowAttemptLimiter({
-    bucket: 'test.attempt.window',
+    bucket: LimiterBucket.API_VERIFY_EMAIL_CODE,
     windowMs: 10_000,
     maxAttempts: 3,
     now: () => now,
@@ -92,7 +93,7 @@ test('FixedWindowAttemptLimiter: 达到上限后拒绝，成功后可清空', as
 test('FixedWindowAttemptLimiter: 窗口过期后自动放行', async () => {
   let now = 1_000;
   const limiter = new FixedWindowAttemptLimiter({
-    bucket: 'test.attempt.expire',
+    bucket: LimiterBucket.API_VERIFY_EMAIL_CODE,
     windowMs: 1_000,
     maxAttempts: 1,
     now: () => now,
@@ -109,7 +110,7 @@ test('FixedWindowAttemptLimiter: 窗口过期后自动放行', async () => {
 test('FixedWindowQuotaLimiter: 同时覆盖次数上限和并发上限', async () => {
   let now = 1_000;
   const limiter = new FixedWindowQuotaLimiter({
-    bucket: 'test.quota.window',
+    bucket: LimiterBucket.API_EMAIL_TEST,
     windowMs: 10_000,
     maxAttempts: 2,
     maxConcurrent: 1,
@@ -136,7 +137,7 @@ test('FixedWindowQuotaLimiter: 同时覆盖次数上限和并发上限', async (
 
 test('DualConcurrencyLimiter: 同时限制全局并发和单 key 并发', async () => {
   const limiter = new DualConcurrencyLimiter({
-    bucket: 'test.concurrency.dual',
+    bucket: LimiterBucket.API_STORAGE_UPLOAD,
     maxGlobal: 2,
     maxPerKey: 1,
     leaseMs: 5_000,

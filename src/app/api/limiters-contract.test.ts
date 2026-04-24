@@ -8,6 +8,7 @@ import {
   FixedWindowAttemptLimiter,
   FixedWindowQuotaLimiter,
 } from '@/shared/lib/api/limiters';
+import { LimiterBucket } from '@/shared/lib/api/limiters-config';
 import { createMemoryRateLimitStore } from '@/shared/lib/api/rate-limit-store';
 
 import { createAiQueryPostHandler } from './ai/query/route';
@@ -82,7 +83,7 @@ test('send-email 路由限流契约: 冷却窗口内返回 429', async () => {
     deleteEmailVerificationCodesByIdentifierExceptId: async () => undefined,
     buildVerificationCodeEmailPayload: async () => ({}),
     rateLimiter: new CooldownLimiter({
-      bucket: 'test.route.send-email',
+      bucket: LimiterBucket.API_SEND_EMAIL,
       minIntervalMs: 60_000,
       ttlMs: 15 * 60 * 1000,
       store: createMemoryRateLimitStore(),
@@ -160,7 +161,7 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
       }),
     }),
     rateLimiter: new CooldownLimiter({
-      bucket: 'test.route.ai-query',
+      bucket: LimiterBucket.API_AI_QUERY,
       minIntervalMs: 4_000,
       ttlMs: 60 * 60 * 1000,
       store: createMemoryRateLimitStore(),
@@ -225,7 +226,7 @@ test('ai/query 路由按一致性模式切换 cached/fresh settings reader', asy
       }),
     }),
     rateLimiter: new CooldownLimiter({
-      bucket: 'test.route.ai-query.mode',
+      bucket: LimiterBucket.API_AI_QUERY,
       minIntervalMs: 0,
       ttlMs: 60 * 60 * 1000,
       store: createMemoryRateLimitStore(),
@@ -261,7 +262,7 @@ test('verify-code 路由限流契约: 达到失败上限后返回 429', async ()
       reason: 'mismatch' as const,
     }),
     attemptLimiter: new FixedWindowAttemptLimiter({
-      bucket: 'test.route.verify-code',
+      bucket: LimiterBucket.API_VERIFY_EMAIL_CODE,
       windowMs: 15 * 60 * 1000,
       maxAttempts: 5,
       store: createMemoryRateLimitStore(),
@@ -314,7 +315,7 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
     }),
     buildVerificationCodeEmailPayload: async () => ({}),
     quotaLimiter: new FixedWindowQuotaLimiter({
-      bucket: 'test.route.email-test',
+      bucket: LimiterBucket.API_EMAIL_TEST,
       windowMs: 5 * 60 * 1000,
       maxAttempts: 3,
       maxConcurrent: 1,
@@ -361,7 +362,7 @@ test('storage/upload-image 路由并发契约: 全局与单用户上限同时生
   const pendingResolvers: Array<(value: unknown) => void> = [];
   let activeUploads = 0;
   const concurrencyLimiter = new DualConcurrencyLimiter({
-    bucket: 'test.route.storage-upload',
+    bucket: LimiterBucket.API_STORAGE_UPLOAD,
     maxGlobal: 4,
     maxPerKey: 2,
     leaseMs: 15 * 60 * 1000,

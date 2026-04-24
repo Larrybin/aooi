@@ -53,6 +53,15 @@ function resolveRequiredSecretValue(processEnv, name, fallbackValue) {
   throw new Error(`${name} is required to build Cloudflare secrets`);
 }
 
+function buildCloudflareContext(processEnv, workerKeys) {
+  return {
+    site: processEnv.SITE?.trim() || 'unknown',
+    nodeEnv: processEnv.NODE_ENV?.trim() || 'development',
+    deployTarget: processEnv.DEPLOY_TARGET?.trim() || 'cloudflare',
+    workerScope: workerKeys.join(','),
+  };
+}
+
 function buildSecretFallbacks(requiredRequirements, processEnv, options) {
   const secretFallbacks = new Map();
   const needsAuthSecret = requiredRequirements.some((requirement) =>
@@ -102,10 +111,19 @@ export function buildCloudflareSecretsEnv(
     options
   );
   const resolvedSecrets = Object.fromEntries(
-    requiredSecretNames.map((name) => [
-      name,
-      resolveRequiredSecretValue(processEnv, name, secretFallbacks.get(name)),
-    ])
+    requiredSecretNames.map((name) => {
+      try {
+        return [
+          name,
+          resolveRequiredSecretValue(processEnv, name, secretFallbacks.get(name)),
+        ];
+      } catch (error) {
+        const context = buildCloudflareContext(processEnv, workerKeys);
+        throw new Error(
+          `[cf:secrets] missing required secret ${name} for SITE=${context.site} NODE_ENV=${context.nodeEnv} DEPLOY_TARGET=${context.deployTarget} workers=${context.workerScope}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    })
   );
 
   assertAllowedEnvKeys(

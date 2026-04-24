@@ -551,3 +551,50 @@ test('cf:check 缺少 server runtime auth secret 时给出 worker 级错误', as
     await fixture.cleanup();
   }
 });
+
+test('cf:check active payment provider 缺 secret 时带环境上下文并直接失败', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    const siteConfigPath = path.join(
+      fixtureDir,
+      'sites/mamamiya/site.config.json'
+    );
+    const siteConfig = JSON.parse(await readFile(siteConfigPath, 'utf8'));
+    await writeFile(
+      siteConfigPath,
+      JSON.stringify(
+        {
+          ...siteConfig,
+          capabilities: {
+            ...siteConfig.capabilities,
+            payment: 'stripe',
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=payment'],
+      env: {
+        NODE_ENV: 'production',
+        DEPLOY_TARGET: 'cloudflare',
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_SIGNING_SECRET/);
+    assert.match(result.stderr, /SITE=mamamiya/);
+    assert.match(result.stderr, /NODE_ENV=production/);
+    assert.match(result.stderr, /DEPLOY_TARGET=cloudflare/);
+    assert.match(result.stderr, /workers=payment/);
+  } finally {
+    await fixture.cleanup();
+  }
+});

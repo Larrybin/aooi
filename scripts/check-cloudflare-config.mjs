@@ -150,8 +150,14 @@ function assertRequiredRuntimeBindings(
     );
     if (!value) {
       const displayName = names.join(' or ');
+      const site = process.env.SITE?.trim() || 'unknown';
+      const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
+      const deployTarget = process.env.DEPLOY_TARGET?.trim() || 'cloudflare';
+      const workerScope = process.argv
+        .find((arg) => arg.startsWith('--workers='))
+        ?.split('=')[1] || 'all';
       fail(
-        `${label} requires runtime binding ${displayName} because worker ${requirement.worker} runs ${requirement.capability}; runtime settings do not control deploy requirements`
+        `${label} requires runtime binding ${displayName} because worker ${requirement.worker} runs ${requirement.capability}; runtime settings do not control deploy requirements (SITE=${site} NODE_ENV=${nodeEnv} DEPLOY_TARGET=${deployTarget} workers=${workerScope})`
       );
     }
   }

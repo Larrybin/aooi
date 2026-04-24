@@ -9,6 +9,7 @@ import {
 import {
   AI_QUERY_RATE_LIMIT_CONFIG,
   EMAIL_TEST_QUOTA_LIMIT_CONFIG,
+  LimiterBucket,
   SEND_EMAIL_RATE_LIMIT_CONFIG,
   STORAGE_UPLOAD_CONCURRENCY_LIMIT_CONFIG,
   VERIFY_CODE_ATTEMPT_LIMIT_CONFIG,
@@ -25,7 +26,7 @@ import {
 } from '@/shared/platform/cloudflare/stateful-limiters';
 
 type ResetPasswordQuotaConfig = {
-  bucket: string;
+  bucket: LimiterBucket;
   windowMs: number;
   maxAttempts: number;
   maxConcurrent: number;
@@ -38,7 +39,7 @@ type LimiterFactoryOptions = {
 };
 
 const DEFAULT_RESET_PASSWORD_QUOTA_CONFIG = {
-  bucket: 'auth.reset-password',
+  bucket: LimiterBucket.AUTH_RESET_PASSWORD,
   windowMs: 5 * 60 * 1000,
   maxAttempts: 3,
   maxConcurrent: 1,

@@ -1,32 +1,34 @@
 import { getCloudflareBindings } from '@/infra/runtime/env.server';
+import { site } from '@/site';
 
 import type {
   AllowedLimitResult,
   DeniedLimitResult,
   LimitResult,
 } from '@/shared/lib/api/limiters';
+import type { LimiterBucket } from '@/shared/lib/api/limiters-config';
 
 type CooldownConfig = {
-  bucket: string;
+  bucket: LimiterBucket;
   minIntervalMs: number;
   ttlMs: number;
 };
 
 type AttemptConfig = {
-  bucket: string;
+  bucket: LimiterBucket;
   windowMs: number;
   maxAttempts: number;
 };
 
 type QuotaConfig = {
-  bucket: string;
+  bucket: LimiterBucket;
   windowMs: number;
   maxAttempts: number;
   maxConcurrent: number;
 };
 
 type DualConfig = {
-  bucket: string;
+  bucket: LimiterBucket;
   maxGlobal: number;
   maxPerKey: number;
   leaseMs: number;
@@ -40,17 +42,22 @@ type StatefulLimiterNamespace = Pick<
 const BUCKET_SCOPED_OBJECT_PREFIX = 'bucket';
 const KEY_SCOPED_OBJECT_PREFIX = 'scope';
 
+export function buildSiteScopedLimiterBucket(bucket: LimiterBucket): string {
+  return `${site.key}:${bucket}`;
+}
+
 export function buildStatefulLimiterObjectName(
-  bucket: string,
+  bucket: LimiterBucket,
   key?: string
 ): string {
+  const siteScopedBucket = buildSiteScopedLimiterBucket(bucket);
   return key
-    ? `${KEY_SCOPED_OBJECT_PREFIX}:${bucket}:${key}`
-    : `${BUCKET_SCOPED_OBJECT_PREFIX}:${bucket}`;
+    ? `${KEY_SCOPED_OBJECT_PREFIX}:${siteScopedBucket}:${key}`
+    : `${BUCKET_SCOPED_OBJECT_PREFIX}:${siteScopedBucket}`;
 }
 
 async function callStatefulLimiter<T>(
-  bucket: string,
+  bucket: LimiterBucket,
   body: Record<string, unknown>,
   options: {
     key?: string;
@@ -76,7 +83,8 @@ async function callStatefulLimiter<T>(
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      bucket,
+      bucket: buildSiteScopedLimiterBucket(bucket),
+      canonicalBucket: bucket,
       ...body,
     }),
   });

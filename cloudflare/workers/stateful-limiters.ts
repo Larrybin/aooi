@@ -4,6 +4,7 @@ import {
   FixedWindowAttemptLimiter,
   FixedWindowQuotaLimiter,
 } from '@/shared/lib/api/limiters';
+import type { LimiterBucket } from '@/shared/lib/api/limiters-config';
 import type {
   LockedRateLimitStore,
   RateLimitStateRecord,
@@ -27,9 +28,11 @@ type DurableObjectRequestBody =
         | 'cooldown.checkAndConsume'
         | 'cooldown.consume';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         minIntervalMs: number;
         ttlMs: number;
       };
@@ -37,9 +40,11 @@ type DurableObjectRequestBody =
   | {
       action: 'cooldown.rollback';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       consumedAt: number;
       config: {
+        bucket: LimiterBucket;
         minIntervalMs: number;
         ttlMs: number;
       };
@@ -47,8 +52,10 @@ type DurableObjectRequestBody =
   | {
       action: 'cooldown.clear';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       config: {
+        bucket: LimiterBucket;
         minIntervalMs: number;
         ttlMs: number;
       };
@@ -56,9 +63,11 @@ type DurableObjectRequestBody =
   | {
       action: 'attempt.check';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         windowMs: number;
         maxAttempts: number;
       };
@@ -66,9 +75,11 @@ type DurableObjectRequestBody =
   | {
       action: 'attempt.recordFailure';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         windowMs: number;
         maxAttempts: number;
       };
@@ -76,8 +87,10 @@ type DurableObjectRequestBody =
   | {
       action: 'attempt.clear';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       config: {
+        bucket: LimiterBucket;
         windowMs: number;
         maxAttempts: number;
       };
@@ -85,9 +98,11 @@ type DurableObjectRequestBody =
   | {
       action: 'quota.acquire';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         windowMs: number;
         maxAttempts: number;
         maxConcurrent: number;
@@ -96,9 +111,11 @@ type DurableObjectRequestBody =
   | {
       action: 'quota.release';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         windowMs: number;
         maxAttempts: number;
         maxConcurrent: number;
@@ -107,9 +124,11 @@ type DurableObjectRequestBody =
   | {
       action: 'dual.acquire';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         maxGlobal: number;
         maxPerKey: number;
         leaseMs: number;
@@ -118,9 +137,11 @@ type DurableObjectRequestBody =
   | {
       action: 'dual.release';
       bucket: string;
+      canonicalBucket: LimiterBucket;
       key: string;
       now: number;
       config: {
+        bucket: LimiterBucket;
         maxGlobal: number;
         maxPerKey: number;
         leaseMs: number;
@@ -270,7 +291,7 @@ export class StatefulLimitersDurableObject {
       case 'cooldown.check': {
         const limiter = new CooldownLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.check(body.key, body.now));
@@ -278,7 +299,7 @@ export class StatefulLimitersDurableObject {
       case 'cooldown.checkAndConsume': {
         const limiter = new CooldownLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.checkAndConsume(body.key, body.now));
@@ -286,7 +307,7 @@ export class StatefulLimitersDurableObject {
       case 'cooldown.consume': {
         const limiter = new CooldownLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.consume(body.key, body.now));
@@ -294,7 +315,7 @@ export class StatefulLimitersDurableObject {
       case 'cooldown.rollback': {
         const limiter = new CooldownLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         await limiter.rollback(body.key, body.consumedAt);
@@ -303,7 +324,7 @@ export class StatefulLimitersDurableObject {
       case 'cooldown.clear': {
         const limiter = new CooldownLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         await limiter.clear(body.key);
@@ -312,7 +333,7 @@ export class StatefulLimitersDurableObject {
       case 'attempt.check': {
         const limiter = new FixedWindowAttemptLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.check(body.key, body.now));
@@ -320,7 +341,7 @@ export class StatefulLimitersDurableObject {
       case 'attempt.recordFailure': {
         const limiter = new FixedWindowAttemptLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.recordFailure(body.key, body.now));
@@ -328,7 +349,7 @@ export class StatefulLimitersDurableObject {
       case 'attempt.clear': {
         const limiter = new FixedWindowAttemptLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         await limiter.clear(body.key);
@@ -337,7 +358,7 @@ export class StatefulLimitersDurableObject {
       case 'quota.acquire': {
         const limiter = new FixedWindowQuotaLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.acquire(body.key, body.now));
@@ -345,7 +366,7 @@ export class StatefulLimitersDurableObject {
       case 'quota.release': {
         const limiter = new FixedWindowQuotaLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         await limiter.release(body.key, body.now);
@@ -354,7 +375,7 @@ export class StatefulLimitersDurableObject {
       case 'dual.acquire': {
         const limiter = new DualConcurrencyLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         return json(await limiter.acquire(body.key, body.now));
@@ -362,7 +383,7 @@ export class StatefulLimitersDurableObject {
       case 'dual.release': {
         const limiter = new DualConcurrencyLimiter({
           ...body.config,
-          bucket: body.bucket,
+          bucket: body.canonicalBucket,
           store: this.store,
         });
         await limiter.release(body.key, body.now);

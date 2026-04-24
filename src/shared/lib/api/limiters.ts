@@ -3,6 +3,7 @@ import {
   type LockedRateLimitStore,
   type RateLimitStore,
 } from '@/shared/lib/api/rate-limit-store';
+import type { LimiterBucket } from '@/shared/lib/api/limiters-config';
 
 export type DeniedLimitResult = {
   allowed: false;
@@ -17,7 +18,7 @@ export type AllowedLimitResult = {
 export type LimitResult = AllowedLimitResult | DeniedLimitResult;
 
 type RateLimitBaseConfig = {
-  bucket: string;
+  bucket: LimiterBucket;
   store?: RateLimitStore;
 };
 
@@ -383,7 +384,7 @@ export class DualConcurrencyLimiter {
 const GLOBAL_SCOPE_KEY = '__global__';
 
 function createConcurrencyState(
-  bucket: string,
+  bucket: LimiterBucket,
   scopeKey: string,
   now: number,
   leaseMs: number
@@ -406,7 +407,7 @@ async function releaseConcurrencyState({
 }: {
   store: LockedRateLimitStore;
   state: {
-    bucket: string;
+    bucket: LimiterBucket;
     scopeKey: string;
     lastActionAt: number | null;
     windowStartedAt: number | null;

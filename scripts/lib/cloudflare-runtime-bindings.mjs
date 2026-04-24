@@ -60,7 +60,7 @@ function createRequirementMap() {
 
 function buildDeploySecretRequirementMap(contract) {
   const requirements = createRequirementMap();
-  const { secrets, vars } = contract.bindingRequirements;
+  const { secrets, vars, payment } = contract.bindingRequirements;
 
   if (vars.storagePublicBaseUrl) {
     for (const worker of ['router', ...SERVER_RUNTIME_WORKER_KEYS]) {
@@ -111,7 +111,7 @@ function buildDeploySecretRequirementMap(contract) {
     }
   }
 
-  if (secrets.stripe) {
+  if (payment.provider === 'stripe') {
     for (const worker of ['payment', 'member']) {
       for (const name of [
         'STRIPE_PUBLISHABLE_KEY',
@@ -122,28 +122,28 @@ function buildDeploySecretRequirementMap(contract) {
           kind: 'runtime-secret',
           worker,
           name,
-          requirement: 'stripe',
+          requirement: 'payment',
           capability: 'Stripe payment provider',
         });
       }
     }
   }
 
-  if (secrets.creem) {
+  if (payment.provider === 'creem') {
     for (const worker of ['payment', 'member']) {
       for (const name of ['CREEM_API_KEY', 'CREEM_SIGNING_SECRET']) {
         pushRequirement(requirements.get(worker), {
           kind: 'runtime-secret',
           worker,
           name,
-          requirement: 'creem',
+          requirement: 'payment',
           capability: 'Creem payment provider',
         });
       }
     }
   }
 
-  if (secrets.paypal) {
+  if (payment.provider === 'paypal') {
     for (const worker of ['payment', 'member']) {
       for (const name of [
         'PAYPAL_CLIENT_ID',
@@ -154,7 +154,7 @@ function buildDeploySecretRequirementMap(contract) {
           kind: 'runtime-secret',
           worker,
           name,
-          requirement: 'paypal',
+          requirement: 'payment',
           capability: 'PayPal payment provider',
         });
       }

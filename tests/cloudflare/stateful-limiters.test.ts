@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildSiteScopedLimiterBucket,
   buildStatefulLimiterObjectName,
   CloudflareDualConcurrencyLimiter,
   CloudflareQuotaLimiter,
 } from '@/shared/platform/cloudflare/stateful-limiters';
+import { site } from '@/site';
 
 import { StatefulLimitersDurableObject } from '../../cloudflare/workers/stateful-limiters';
 
@@ -101,11 +103,18 @@ function createNamespaceBackedByStateWorker() {
 test('buildStatefulLimiterObjectName 为单 key 与 bucket 级 limiter 生成不同 DO 名称', () => {
   assert.equal(
     buildStatefulLimiterObjectName('api.send-email', 'user-1'),
-    'scope:api.send-email:user-1'
+    `scope:${site.key}:api.send-email:user-1`
   );
   assert.equal(
     buildStatefulLimiterObjectName('api.storage-upload'),
-    'bucket:api.storage-upload'
+    `bucket:${site.key}:api.storage-upload`
+  );
+});
+
+test('buildSiteScopedLimiterBucket 自动附加 site.key 作用域', () => {
+  assert.equal(
+    buildSiteScopedLimiterBucket('api.send-email'),
+    `${site.key}:api.send-email`
   );
 });
 
@@ -142,9 +151,11 @@ test('STATEFUL_LIMITERS 单 key 路径只对当前 key 做惰性过期，不再�
     createRequest({
       action: 'quota.acquire',
       bucket: 'api.email-test',
+      canonicalBucket: 'api.email-test',
       key: 'user-1',
       now: 2_000,
       config: {
+        bucket: 'api.email-test',
         windowMs: 5 * 60 * 1000,
         maxAttempts: 3,
         maxConcurrent: 1,
@@ -205,9 +216,11 @@ test('STATEFUL_LIMITERS dual concurrency 只访问 __global__ 与当前 key，�
     createRequest({
       action: 'dual.release',
       bucket: 'api.storage-upload',
+      canonicalBucket: 'api.storage-upload',
       key: 'user-1',
       now: 2_000,
       config: {
+        bucket: 'api.storage-upload',
         maxGlobal: 4,
         maxPerKey: 2,
         leaseMs: 15 * 60 * 1000,

@@ -31,9 +31,6 @@ export const CLOUDFLARE_SECRET_REQUIREMENT_KEYS = Object.freeze([
   'authSharedSecret',
   'googleOauth',
   'githubOauth',
-  'stripe',
-  'creem',
-  'paypal',
   'openrouter',
 ]);
 
@@ -215,30 +212,13 @@ function assertCrossContractConsistency(siteConfig, deploySettings) {
   const paymentCapability = siteConfig.capabilities.payment;
   const secrets = deploySettings.bindingRequirements.secrets;
 
-  if (paymentCapability === 'none') {
-    if (secrets.stripe || secrets.creem || secrets.paypal) {
-      throw new Error(
-        'site.config.json and deploy.settings.json are inconsistent: payment=none forbids Stripe/Creem/PayPal deploy requirements'
-      );
-    }
-  } else if (paymentCapability === 'stripe') {
-    if (!secrets.stripe || secrets.creem || secrets.paypal) {
-      throw new Error(
-        'site.config.json and deploy.settings.json are inconsistent: payment=stripe requires only Stripe deploy requirements'
-      );
-    }
-  } else if (paymentCapability === 'creem') {
-    if (!secrets.creem || secrets.stripe || secrets.paypal) {
-      throw new Error(
-        'site.config.json and deploy.settings.json are inconsistent: payment=creem requires only Creem deploy requirements'
-      );
-    }
-  } else if (paymentCapability === 'paypal') {
-    if (!secrets.paypal || secrets.stripe || secrets.creem) {
-      throw new Error(
-        'site.config.json and deploy.settings.json are inconsistent: payment=paypal requires only PayPal deploy requirements'
-      );
-    }
+  if (
+    paymentCapability !== 'none' &&
+    !['stripe', 'creem', 'paypal'].includes(paymentCapability)
+  ) {
+    throw new Error(
+      `site.config.json has unsupported payment capability: ${String(paymentCapability)}`
+    );
   }
 
   if (siteConfig.capabilities.ai && !secrets.openrouter) {

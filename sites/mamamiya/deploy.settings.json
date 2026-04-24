@@ -5,9 +5,6 @@
       "authSharedSecret": true,
       "googleOauth": false,
       "githubOauth": false,
-      "stripe": false,
-      "creem": false,
-      "paypal": false,
       "openrouter": false
     },
     "vars": {

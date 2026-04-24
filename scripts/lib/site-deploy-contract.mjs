@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 
 import cloudflareWorkerTopology from '../../src/shared/config/cloudflare-worker-topology.ts';
+import * as paymentCapabilityNamespace from '../../src/config/payment-capability.ts';
 import {
   readCurrentSiteConfig,
   resolveRequiredSiteKey,
@@ -26,6 +27,10 @@ const {
 const CLOUDFLARE_ROUTER_SLOT = 'router';
 const CLOUDFLARE_STATE_SLOT = 'state';
 const ROUTE_CUSTOM_DOMAIN = true;
+const paymentCapabilityModule =
+  paymentCapabilityNamespace.default ?? paymentCapabilityNamespace;
+const { assertPaymentCapabilityContract, resolvePaymentHealth } =
+  paymentCapabilityModule;
 
 function sortObject(value) {
   if (Array.isArray(value)) {
@@ -72,6 +77,52 @@ function buildCanonicalBindingShape(contract) {
     workers: Object.fromEntries(
       CLOUDFLARE_WORKER_SLOT_KEYS.map((key) => [key, 'string'])
     ),
+  };
+}
+
+function buildDerivedBindingRequirements(site) {
+  const paymentCapability = site.capabilities.payment;
+  const paymentHealth = resolvePaymentHealth({
+    capability: paymentCapability,
+    settings: {},
+    bindings: {},
+  });
+
+  const requiresPaymentSecrets = paymentHealth.provider !== null;
+
+  return {
+    payment: {
+      capability: paymentCapability,
+      provider: paymentHealth.provider,
+      requiredSecrets:
+        paymentHealth.provider === null
+          ? []
+          : [
+              ...assertPaymentCapabilityContract({
+                capability: paymentHealth.provider,
+                settings: {},
+                bindings: {
+                  ...(paymentHealth.provider === 'stripe'
+                    ? {
+                        stripePublishableKey: '__contract__',
+                        stripeSecretKey: '__contract__',
+                        stripeSigningSecret: '__contract__',
+                      }
+                    : paymentHealth.provider === 'creem'
+                      ? {
+                          creemApiKey: '__contract__',
+                          creemSigningSecret: '__contract__',
+                        }
+                      : {
+                          paypalClientId: '__contract__',
+                          paypalClientSecret: '__contract__',
+                          paypalWebhookId: '__contract__',
+                        }),
+                },
+              }).requiredSecrets,
+            ],
+      requiresSecrets: requiresPaymentSecrets,
+    },
   };
 }
 
@@ -136,6 +187,7 @@ export function resolveSiteDeployContractFromSources({
   siteKey,
   deploySettings,
 }) {
+  const derivedBindingRequirements = buildDerivedBindingRequirements(site);
   const serverWorkers = buildServerWorkers(deploySettings);
   const stateMigrationTag = `${deploySettings.workers.state}-v${deploySettings.state.schemaVersion}`;
   const appUrl = site.brand.appUrl;
@@ -150,7 +202,10 @@ export function resolveSiteDeployContractFromSources({
       pattern: site.domain,
       customDomain: ROUTE_CUSTOM_DOMAIN,
     },
-    bindingRequirements: deploySettings.bindingRequirements,
+    bindingRequirements: {
+      ...deploySettings.bindingRequirements,
+      ...derivedBindingRequirements,
+    },
     workers: deploySettings.workers,
     resources: deploySettings.resources,
     state: deploySettings.state,

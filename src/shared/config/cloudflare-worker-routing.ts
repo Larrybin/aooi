@@ -29,7 +29,7 @@ const SPLIT_WORKERS: Record<
     routeTemplates: [
       'app/api/payment/callback/route',
       'app/api/payment/checkout/route',
-      'app/api/payment/notify/[provider]/route',
+      'app/api/payment/notify/route',
       'app/[locale]/(landing)/settings/billing/retrieve/page',
       'app/[locale]/(landing)/settings/invoices/retrieve/page',
     ],
