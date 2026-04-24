@@ -33,19 +33,19 @@
 
 ## 单一事实来源（优先查这里）
 
-| 主题                                   | 单一事实来源                                | 说明                                                                                         |
-| -------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 架构结构守卫 manifest                  | `src/testing/architecture-rules.ts`         | 机器可读的结构规则源；文档、测试、review checklist 必须与它对齐。                           |
-| Server/Client 边界、依赖方向           | `eslint.config.mjs`                         | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。                             |
-| `src/shared` 分层约定                  | `docs/architecture/shared-layering.md`      | 规定 shared 只保留纯 UI、工具、HTTP schema、types、constants，禁止业务能力回流。             |
-| Code Review 基线                       | `docs/CODE_REVIEW.md`                       | PR 审查顺序与常见坑，含大量场景化示例。                                                      |
-| 架构审计与关键约束说明                 | `docs/ARCHITECTURE_REVIEW.md`               | 解释为什么这么分层/这么约束（便于理解“为什么”）。                                            |
-| Logging 约定                           | `sites/<site-key>/content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                                      |
-| PR Checklist                           | `sites/<site-key>/content/docs/code-review-checklist.zh.mdx` | 面向 PR 的快速清单。                                                                         |
-| 认证                                   | `docs/guides/auth.md`                       | Better Auth 使用方式与边界。                                                                 |
-| RBAC                                   | `docs/guides/rbac.md`                       | 角色/权限建模与初始化脚本。                                                                  |
-| 支付                                   | `docs/guides/payment.md`                    | 支付接入、回调、幂等等关键路径。                                                             |
-| 数据库                                 | `docs/guides/database.md`                   | Drizzle schema 与迁移流程。                                                                  |
+| 主题                         | 单一事实来源                                                 | 说明                                                                             |
+| ---------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| 架构结构守卫 manifest        | `src/testing/architecture-rules.ts`                          | 机器可读的结构规则源；文档、测试、review checklist 必须与它对齐。                |
+| Server/Client 边界、依赖方向 | `eslint.config.mjs`                                          | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。                 |
+| `src/shared` 分层约定        | `docs/architecture/shared-layering.md`                       | 规定 shared 只保留纯 UI、工具、HTTP schema、types、constants，禁止业务能力回流。 |
+| Code Review 基线             | `docs/CODE_REVIEW.md`                                        | PR 审查顺序与常见坑，含大量场景化示例。                                          |
+| 架构审计与关键约束说明       | `docs/ARCHITECTURE_REVIEW.md`                                | 解释为什么这么分层/这么约束（便于理解“为什么”）。                                |
+| Logging 约定                 | `sites/<site-key>/content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                          |
+| PR Checklist                 | `sites/<site-key>/content/docs/code-review-checklist.zh.mdx` | 面向 PR 的快速清单。                                                             |
+| 认证                         | `docs/guides/auth.md`                                        | Better Auth 使用方式与边界。                                                     |
+| RBAC                         | `docs/guides/rbac.md`                                        | 角色/权限建模与初始化脚本。                                                      |
+| 支付                         | `docs/guides/payment.md`                                     | 支付接入、回调、幂等等关键路径。                                                 |
+| 数据库                       | `docs/guides/database.md`                                    | Drizzle schema 与迁移流程。                                                      |
 
 ## 模式样本索引（按主题找入口）
 
@@ -110,7 +110,7 @@
 ### Email / Storage 集成（extensions）
 
 - Email：统一接口与类型 `src/extensions/email/index.ts`；Providers server-only 入口 `src/extensions/email/providers.ts`
-- Storage：统一接口与类型 `src/extensions/storage/index.ts`；Providers server-only 入口 `src/extensions/storage/providers.ts`
+- Storage：统一接口与类型 `src/extensions/storage/index.ts`；server-only runtime 入口 `src/infra/adapters/storage/service.ts`
 
 ### 数据库与迁移（Drizzle）
 

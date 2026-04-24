@@ -75,4 +75,4 @@ export interface StorageProvider {
   ): Promise<StorageUploadResult>;
 }
 
-// Providers are exported via `./providers` (server-only)
+// Server-only runtime entry lives in `@/infra/adapters/storage/service`

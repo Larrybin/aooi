@@ -1,13 +1,11 @@
 import React from 'react';
+import { site } from '@/site';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Heading } from 'fumadocs-ui/components/heading';
 import type { MDXComponents } from 'mdx/types';
 
-import {
-  getDomainFromOrigin,
-} from '@/shared/lib/support-email';
-import { site } from '@/site';
+import { getDomainFromOrigin } from '@/shared/lib/support-email';
 
 // Custom link component with nofollow for external links
 const CustomLink = ({
@@ -158,14 +156,14 @@ function LightPre(props: React.HTMLAttributes<HTMLPreElement>) {
   return (
     <pre
       {...props}
-      className={`my-4 overflow-x-auto rounded-xl border bg-muted/40 px-4 py-3 text-sm ${props.className || ''}`}
+      className={`bg-muted/40 my-4 overflow-x-auto rounded-xl border px-4 py-3 text-sm ${props.className || ''}`}
     />
   );
 }
 
 function Table(props: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="relative my-6 overflow-auto prose-no-margin">
+    <div className="prose-no-margin relative my-6 overflow-auto">
       <table {...props} />
     </div>
   );
@@ -173,8 +171,10 @@ function Table(props: React.TableHTMLAttributes<HTMLTableElement>) {
 
 function Image(props: React.ImgHTMLAttributes<HTMLImageElement>) {
   // MDX content may not provide stable dimensions, so keep native img with safe alt fallback.
+  const className = `rounded-lg ${props.className || ''}`;
+
   // eslint-disable-next-line @next/next/no-img-element
-  return <img {...props} alt={props.alt || ''} className={`rounded-lg ${props.className || ''}`} />;
+  return <img {...props} alt={props.alt || ''} className={className} />;
 }
 
 export function createRelativeLink(
