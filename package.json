@@ -42,7 +42,7 @@
     "auth:generate": "node scripts/run-with-site.mjs pnpm exec @better-auth/cli generate --config=src/infra/platform/auth/index.ts",
     "rbac:init": "npx tsx scripts/init-rbac.ts",
     "rbac:assign": "npx tsx scripts/assign-role.ts",
-    "postinstall": "SITE=dev-local node scripts/generate-content-source-module.mjs",
+    "postinstall": "node scripts/postinstall.mjs",
     "cf:check": "node scripts/run-with-site.mjs node --import tsx scripts/check-cloudflare-config.mjs",
     "cf:build": "node scripts/run-with-site.mjs node --import tsx scripts/run-cf-build.mjs",
     "cf:deploy": "pnpm cf:deploy:app",
