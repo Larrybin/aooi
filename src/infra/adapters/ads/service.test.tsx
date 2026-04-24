@@ -155,7 +155,8 @@ test('resolveAdsRuntime: malformed Adsterra snippet 会记录日志并禁用 run
       ads_enabled: 'true',
       ads_provider: 'adsterra',
       adsterra_mode: 'popunder',
-      adsterra_global_snippet: '<script src="https://cdn.example.com/broken.js"',
+      adsterra_global_snippet:
+        '<script src="https://cdn.example.com/broken.js"',
     });
 
     assert.equal(runtime.enabled, false);

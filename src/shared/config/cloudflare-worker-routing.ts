@@ -1,5 +1,4 @@
 import { locales } from '../../config/locale/index';
-
 import {
   getServerWorkerMetadata,
   type CloudflareServerWorkerTarget,
@@ -15,7 +14,10 @@ type WorkerRouteDefinition = ReturnType<typeof getServerWorkerMetadata> & {
   readonly exactPathnames?: readonly string[];
 };
 
-const SPLIT_WORKERS: Record<CloudflareSplitWorkerTarget, WorkerRouteDefinition> = {
+const SPLIT_WORKERS: Record<
+  CloudflareSplitWorkerTarget,
+  WorkerRouteDefinition
+> = {
   auth: {
     ...getServerWorkerMetadata('auth'),
     routeTemplates: ['app/api/auth/[...all]/route'],

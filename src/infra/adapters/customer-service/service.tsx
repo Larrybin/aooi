@@ -1,14 +1,14 @@
 import 'server-only';
 
+import type { Configs } from '@/domains/settings/application/settings-store';
+import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+
 import {
   CrispCustomerServiceProvider,
   CustomerServiceManager,
   TawkCustomerServiceProvider,
 } from '@/extensions/customer-service';
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { Configs } from '@/domains/settings/application/settings-store';
-
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
 
 /**
  * get affiliate manager with configs
@@ -46,9 +46,11 @@ export function getCustomerServiceWithConfigs(configs: Configs) {
 /**
  * global customer service
  */
-export async function getCustomerService(options: {
-  mode?: ConfigConsistencyMode;
-} = {}): Promise<CustomerServiceManager> {
+export async function getCustomerService(
+  options: {
+    mode?: ConfigConsistencyMode;
+  } = {}
+): Promise<CustomerServiceManager> {
   return await buildServiceFromLatestConfigs(
     getCustomerServiceWithConfigs,
     options

@@ -1,9 +1,9 @@
 import Image from 'next/image';
+import { Link } from '@/infra/platform/i18n/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { Calendar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Link } from '@/infra/platform/i18n/navigation';
 import { Tabs } from '@/shared/blocks/common/tabs';
 import { cn } from '@/shared/lib/utils';
 import type {

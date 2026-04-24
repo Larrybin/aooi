@@ -1,22 +1,22 @@
 // data: signed-in user (better-auth) + subscription (db) + Server Action cancels via provider then updates db
 // cache: no-store (request-bound auth)
 // reason: user-specific billing mutation flow
-import moment from 'moment';
-import { getTranslations } from 'next-intl/server';
-import { z } from 'zod';
-
 import { requireActionUser } from '@/app/access-control/action-guard';
 import {
   cancelMemberSubscription,
   readMemberCancelableSubscription,
 } from '@/domains/billing/application/member-billing.actions';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import moment from 'moment';
+import { getTranslations } from 'next-intl/server';
+import { z } from 'zod';
+
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form } from '@/shared/types/blocks/form';
 
@@ -87,12 +87,10 @@ export default async function CancelBillingPage({
         throw new ActionError('invalid subscription no');
       }
 
-      const result = await cancelMemberSubscription(
-        {
-          subscriptionNo: subscription_no,
-          actorUserId: user.id,
-        }
-      );
+      const result = await cancelMemberSubscription({
+        subscriptionNo: subscription_no,
+        actorUserId: user.id,
+      });
 
       if (result.status === 'not_found') {
         throw new ActionError('invalid subscription');

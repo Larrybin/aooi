@@ -1,18 +1,18 @@
 // data: admin session (RBAC) + user/roles/permissions (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: role assignment is sensitive and permission-gated; avoid caching across admins
+import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { readAdminUserRoleOptionsUseCase } from '@/domains/access-control/application/checker';
+import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
 import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
-import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
-import { readAdminUserRoleOptionsUseCase } from '@/domains/access-control/application/checker';
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserRolesAction } from '../../actions';

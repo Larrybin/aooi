@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url';
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 test('instrumentation 只保留 auth secret 校验，不再执行数据库启动检查', async () => {
-  const content = await readFile(path.resolve(currentDir, './instrumentation.ts'), 'utf8');
+  const content = await readFile(
+    path.resolve(currentDir, './instrumentation.ts'),
+    'utf8'
+  );
 
   assert.equal(content.includes('BETTER_AUTH_SECRET'), true);
   assert.equal(content.includes('DATABASE_URL'), false);

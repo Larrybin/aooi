@@ -1,7 +1,4 @@
-import {
-  getTrimmedEnvValue,
-  isProductionEnv,
-} from '@/config/env-contract';
+import { getTrimmedEnvValue, isProductionEnv } from '@/config/env-contract';
 
 export const locales = [
   'en',

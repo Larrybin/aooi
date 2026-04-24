@@ -1,13 +1,11 @@
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { subscription } from '@/config/db/schema';
-import {
-  appendBillingUserToResult,
-  type BillingUser,
-} from './user-read';
+
+import { appendBillingUserToResult, type BillingUser } from './user-read';
 
 export type Subscription = typeof subscription.$inferSelect & {
   user?: BillingUser;

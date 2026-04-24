@@ -12,9 +12,7 @@ export function getLocaleSlugStaticParams(
 ) {
   const uniqueSlugs = Array.from(
     new Set(
-      params
-        .map((param) => param.slug.trim())
-        .filter((slug) => slug.length > 0)
+      params.map((param) => param.slug.trim()).filter((slug) => slug.length > 0)
     )
   );
 

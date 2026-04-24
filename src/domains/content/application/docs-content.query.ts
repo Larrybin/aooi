@@ -1,18 +1,17 @@
 import { createElement } from 'react';
-import type { I18nConfig } from 'fumadocs-core/i18n';
-import { loader } from 'fumadocs-core/source';
-import { icons } from 'lucide-react';
-
-import {
-  docsI18n,
-  docsSource,
-  toLoaderSource,
-} from '@/domains/content/infra/source';
 import { docs } from '@/content-source';
 import {
   normalizeDocsSlug,
   resolveDocsLocale,
 } from '@/domains/content/domain/docs-route';
+import {
+  docsI18n,
+  docsSource,
+  toLoaderSource,
+} from '@/domains/content/infra/source';
+import type { I18nConfig } from 'fumadocs-core/i18n';
+import { loader } from 'fumadocs-core/source';
+import { icons } from 'lucide-react';
 
 export { docsI18n, normalizeDocsSlug, resolveDocsLocale };
 export { docsSource };

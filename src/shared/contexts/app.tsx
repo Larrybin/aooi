@@ -9,13 +9,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-
-import { getAuthClient } from '@/infra/platform/auth/client';
 import type {
   AuthUiRuntimeSettings,
   BillingRuntimeSettings,
   PublicUiConfig,
 } from '@/domains/settings/application/settings-runtime.contracts';
+import { getAuthClient } from '@/infra/platform/auth/client';
+
 import { isPlainObject } from '@/shared/lib/api/client';
 import { toastFetchError } from '@/shared/lib/api/fetch-json';
 
@@ -157,7 +157,9 @@ export const PublicAppProvider = ({
   const [isShowSignModal, setIsShowSignModal] = useState(false);
   const [isShowPaymentModal, setIsShowPaymentModal] = useState(false);
 
-  const showOneTap = useCallback(async function (settings: AuthUiRuntimeSettings) {
+  const showOneTap = useCallback(async function (
+    settings: AuthUiRuntimeSettings
+  ) {
     try {
       const client = getAuthClient(settings);
       if (!isOneTapCapable(client)) {

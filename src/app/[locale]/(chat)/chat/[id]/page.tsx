@@ -2,14 +2,14 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: user-specific chat content; must not cache across users/roles
 import { redirect } from 'next/navigation';
-import { ChatThreadShell } from '@/domains/chat/ui/thread-shell';
-import type { UIMessage } from 'ai';
-
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
+import { readMemberChatThreadQuery } from '@/domains/chat/application/member-chats.query';
+import { ChatThreadShell } from '@/domains/chat/ui/thread-shell';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import { readMemberChatThreadQuery } from '@/domains/chat/application/member-chats.query';
+import type { UIMessage } from 'ai';
+
+import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({

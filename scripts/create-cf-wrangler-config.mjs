@@ -3,8 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 
 const rootDir = process.cwd();
 const REQUIRED_INCREMENTAL_CACHE_BINDING = 'NEXT_INC_CACHE_R2_BUCKET';
@@ -177,8 +177,7 @@ function assertTemplateContract(content, templatePath) {
   const r2Buckets = readArrayTables(content, 'r2_buckets');
   const doBindings = readArrayTables(content, 'durable_objects.bindings');
   const imagesSection = readSection(content, 'images');
-  const isStateTemplate =
-    path.basename(templatePath) === STATE_TEMPLATE_NAME;
+  const isStateTemplate = path.basename(templatePath) === STATE_TEMPLATE_NAME;
 
   if (!isStateTemplate) {
     if (
@@ -236,11 +235,7 @@ function assertTemplateContract(content, templatePath) {
 
   if (imagesSection) {
     if (
-      !hasQuotedValue(
-        imagesSection,
-        /^\s*binding\s*=\s*"([^"\n]+)"/m,
-        'IMAGES'
-      )
+      !hasQuotedValue(imagesSection, /^\s*binding\s*=\s*"([^"\n]+)"/m, 'IMAGES')
     ) {
       throw new Error(`${label} must declare [images] binding = "IMAGES"`);
     }
@@ -406,7 +401,12 @@ export function buildCloudflareWranglerConfig({
   nextContent = replaceVars(nextContent, effectiveVars);
 
   if (devHost !== undefined) {
-    nextContent = upsertTomlTableStringValue(nextContent, 'dev', 'host', devHost);
+    nextContent = upsertTomlTableStringValue(
+      nextContent,
+      'dev',
+      'host',
+      devHost
+    );
   }
 
   if (devUpstreamProtocol !== undefined) {
@@ -440,10 +440,9 @@ export function buildCloudflareWranglerConfig({
 }
 
 function inferWorkerSlotFromTemplate(templatePath) {
-  const relativeTemplatePath = path.relative(rootDir, templatePath).replaceAll(
-    path.sep,
-    '/'
-  );
+  const relativeTemplatePath = path
+    .relative(rootDir, templatePath)
+    .replaceAll(path.sep, '/');
 
   if (relativeTemplatePath === 'wrangler.cloudflare.toml') {
     return 'router';
@@ -460,7 +459,9 @@ function inferWorkerSlotFromTemplate(templatePath) {
     return serverMatch[1];
   }
 
-  throw new Error(`cannot infer worker slot from template: ${relativeTemplatePath}`);
+  throw new Error(
+    `cannot infer worker slot from template: ${relativeTemplatePath}`
+  );
 }
 
 function parseArgs(argv) {

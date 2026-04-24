@@ -1,23 +1,31 @@
-import { and, eq, exists, gt, inArray, isNull, or, sql } from 'drizzle-orm';
-import type { SQL } from 'drizzle-orm';
-import type postgres from 'postgres';
-
+import { getPermissionMatchCandidates } from '@/domains/access-control/domain/policy';
 import { db } from '@/infra/adapters/db';
 import {
   buildPublicPermissionMisconfigurationError,
   buildRoleDeletedAtMissingHint,
   isMissingRoleDeletedAtColumnError,
 } from '@/infra/adapters/db/schema-check';
-import { permission, role, rolePermission, userRole } from '@/config/db/schema';
-import { BusinessError } from '@/shared/lib/errors';
-import { isProductionEnv } from '@/shared/lib/env';
-import { getUuid } from '@/shared/lib/hash';
 import {
   createUseCaseLogger,
   logger,
 } from '@/infra/platform/logging/logger.server';
+import {
+  and,
+  eq,
+  exists,
+  gt,
+  inArray,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
+import type postgres from 'postgres';
 
-import { getPermissionMatchCandidates } from '@/domains/access-control/domain/policy';
+import { permission, role, rolePermission, userRole } from '@/config/db/schema';
+import { isProductionEnv } from '@/shared/lib/env';
+import { BusinessError } from '@/shared/lib/errors';
+import { getUuid } from '@/shared/lib/hash';
 
 const log = createUseCaseLogger({
   domain: 'access-control',
@@ -165,12 +173,18 @@ export async function listRoles(): Promise<RoleRecord[]> {
     .select()
     .from(role)
     .where(
-      and(eq(role.status, AccessControlRoleStatus.ACTIVE), isNull(role.deletedAt))
+      and(
+        eq(role.status, AccessControlRoleStatus.ACTIVE),
+        isNull(role.deletedAt)
+      )
     );
 }
 
 export async function listRolesIncludingDeleted(): Promise<RoleRecord[]> {
-  return await db().select().from(role).orderBy(sql`${role.createdAt} desc`);
+  return await db()
+    .select()
+    .from(role)
+    .orderBy(sql`${role.createdAt} desc`);
 }
 
 export async function findRoleById(
@@ -186,10 +200,7 @@ export async function findRoleById(
 export async function findRoleByIdIncludingDeleted(
   roleId: string
 ): Promise<RoleRecord | undefined> {
-  const [result] = await db()
-    .select()
-    .from(role)
-    .where(eq(role.id, roleId));
+  const [result] = await db().select().from(role).where(eq(role.id, roleId));
   return result;
 }
 
@@ -263,10 +274,7 @@ export async function softDeleteRole(
 export async function restoreRoleRecord(
   roleId: string,
   audit?: AccessControlAuditContext
-): Promise<
-  | { status: 'restored' }
-  | { status: 'name_conflict' }
-> {
+): Promise<{ status: 'restored' } | { status: 'name_conflict' }> {
   try {
     await db()
       .update(role)
@@ -475,7 +483,9 @@ export async function listUserPermissions(
     .where(buildActiveUserRoleWhereClause(userId, now));
 }
 
-export async function readUserPermissionCodes(userId: string): Promise<string[]> {
+export async function readUserPermissionCodes(
+  userId: string
+): Promise<string[]> {
   const now = new Date();
   try {
     const result = await db()
@@ -510,10 +520,13 @@ export async function addRoleToUser(
   if (!result) {
     throw new Error('failed to assign role to user');
   }
-  getAccessControlAuditLogger(audit).info('[access-control] user role assigned', {
-    userId,
-    roleId,
-  });
+  getAccessControlAuditLogger(audit).info(
+    '[access-control] user role assigned',
+    {
+      userId,
+      roleId,
+    }
+  );
   return result;
 }
 
@@ -525,10 +538,13 @@ export async function removeRoleFromUser(
   await db()
     .delete(userRole)
     .where(and(eq(userRole.userId, userId), eq(userRole.roleId, roleId)));
-  getAccessControlAuditLogger(audit).info('[access-control] user role removed', {
-    userId,
-    roleId,
-  });
+  getAccessControlAuditLogger(audit).info(
+    '[access-control] user role removed',
+    {
+      userId,
+      roleId,
+    }
+  );
 }
 
 export async function replaceUserRoles(

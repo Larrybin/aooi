@@ -88,8 +88,5 @@ test('router 在本地多 worker topology 下会把请求 URL 指向目标 worke
     forwardedRequest.headers.get('x-forwarded-host'),
     '127.0.0.1:8787'
   );
-  assert.equal(
-    forwardedRequest.headers.get('origin'),
-    'http://127.0.0.1:8787'
-  );
+  assert.equal(forwardedRequest.headers.get('origin'), 'http://127.0.0.1:8787');
 });

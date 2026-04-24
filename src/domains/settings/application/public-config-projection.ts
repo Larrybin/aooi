@@ -1,6 +1,7 @@
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { PublicUiConfig } from './settings-runtime.contracts';
+
 import { buildPublicUiConfig } from './settings-runtime.builders';
+import type { PublicUiConfig } from './settings-runtime.contracts';
 import type { Configs } from './settings-store';
 
 export function buildPublicUiProjection(configs: Configs): PublicUiConfig {

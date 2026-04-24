@@ -1,15 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import {
-  PaymentEventType,
-  SubscriptionCycleType,
-} from '@/domains/billing/domain/payment';
-
 import {
   PAYMENT_NOTIFY_EVENT_HANDLERS,
   processPaymentNotifyEvent,
 } from '@/domains/billing/application/process-payment-notify';
+import {
+  PaymentEventType,
+  SubscriptionCycleType,
+} from '@/domains/billing/domain/payment';
 
 function createLog() {
   return {
@@ -69,15 +67,20 @@ test('processPaymentNotifyEvent 在首次 checkout webhook 时处理成功', asy
 });
 
 test('processPaymentNotifyEvent handler-map 覆盖所有已支持 canonical event，未支持事件走 fallback', () => {
-  const supportedEventTypes = new Set(Object.keys(PAYMENT_NOTIFY_EVENT_HANDLERS));
+  const supportedEventTypes = new Set(
+    Object.keys(PAYMENT_NOTIFY_EVENT_HANDLERS)
+  );
 
-  assert.deepEqual(supportedEventTypes, new Set([
-    PaymentEventType.UNKNOWN,
-    PaymentEventType.CHECKOUT_SUCCESS,
-    PaymentEventType.PAYMENT_SUCCESS,
-    PaymentEventType.SUBSCRIBE_UPDATED,
-    PaymentEventType.SUBSCRIBE_CANCELED,
-  ]));
+  assert.deepEqual(
+    supportedEventTypes,
+    new Set([
+      PaymentEventType.UNKNOWN,
+      PaymentEventType.CHECKOUT_SUCCESS,
+      PaymentEventType.PAYMENT_SUCCESS,
+      PaymentEventType.SUBSCRIBE_UPDATED,
+      PaymentEventType.SUBSCRIBE_CANCELED,
+    ])
+  );
 
   assert.equal(
     PaymentEventType.PAYMENT_FAILED in PAYMENT_NOTIFY_EVENT_HANDLERS,
@@ -200,7 +203,11 @@ test('processPaymentNotifyEvent 在缺少 transaction/invoice id 时回退 renew
         subscriptionNo: 'sub_no_1',
         status: 'active',
       }),
-      handleSubscriptionRenewal: async ({ session }: { session: { paymentInfo?: { transactionId?: string } } }) => {
+      handleSubscriptionRenewal: async ({
+        session,
+      }: {
+        session: { paymentInfo?: { transactionId?: string } };
+      }) => {
         dedupeTransactionId = session.paymentInfo?.transactionId || '';
       },
     }) as never,

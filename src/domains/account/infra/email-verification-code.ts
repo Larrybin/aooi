@@ -1,14 +1,14 @@
 import 'server-only';
 
 import { createHash, timingSafeEqual } from 'crypto';
+import { db } from '@/infra/adapters/db';
+import { getServerRuntimeEnv } from '@/infra/runtime/env.server';
 import { and, desc, eq, ne } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { verification } from '@/config/db/schema';
 import { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 import { normalizeEmail } from '@/shared/lib/email';
 import { getUuid } from '@/shared/lib/hash';
-import { getServerRuntimeEnv } from '@/infra/runtime/env.server';
 
 export { SETTINGS_EMAIL_VERIFICATION_CODE_TTL_MS } from '@/shared/constants/email';
 

@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Link } from '@/infra/platform/i18n/navigation';
 import { IconDots, IconMessageCircle } from '@tabler/icons-react';
 import { useTranslations } from 'next-intl';
 
-import { Link } from '@/infra/platform/i18n/navigation';
 import {
   SidebarGroup,
   SidebarGroupLabel,

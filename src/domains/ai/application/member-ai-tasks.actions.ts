@@ -1,10 +1,11 @@
-import { AITaskStatus, type AIProvider } from '@/extensions/ai';
 import type {
   AITask,
-  UpdateAITask,
   findAITaskById,
+  UpdateAITask,
   updateAITaskById,
 } from '@/domains/ai/infra/ai-task';
+
+import { AITaskStatus, type AIProvider } from '@/extensions/ai';
 
 type RefreshMemberAiTaskDeps = {
   findAITaskById: typeof findAITaskById;

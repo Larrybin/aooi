@@ -29,5 +29,8 @@ test('ai/capabilities 路由返回 no-store 能力列表', async () => {
   const body = (await response.json()) as {
     data: { capabilities: Array<{ model: string }> };
   };
-  assert.equal(body.data.capabilities[0]?.model, 'black-forest-labs/flux-schnell');
+  assert.equal(
+    body.data.capabilities[0]?.model,
+    'black-forest-labs/flux-schnell'
+  );
 });

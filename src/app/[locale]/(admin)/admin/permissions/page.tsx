@@ -1,17 +1,17 @@
 // data: admin session (RBAC) + permissions list (db)
 // cache: no-store (request-bound auth/RBAC)
 // reason: permission catalog is admin-only; avoid caching across users/roles
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import {
+  listAdminPermissionsQuery,
+  type AdminPermissionRow,
+} from '@/domains/access-control/application/admin-roles.query';
 import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminPermissionsListQuerySchema,
   type AdminPermissionsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import {
-  listAdminPermissionsQuery,
-  type AdminPermissionRow,
-} from '@/domains/access-control/application/admin-roles.query';
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
 export default createAdminTablePage<

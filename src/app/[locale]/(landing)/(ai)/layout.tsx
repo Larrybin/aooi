@@ -3,22 +3,22 @@
 // reason: share the landing shell for AI demo pages; gate access via config
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
-import { PublicAppProvider } from '@/shared/contexts/app';
-import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
-import {
-  buildBrandPlaceholderValues,
-  replaceBrandPlaceholdersDeep,
-} from '@/infra/platform/brand/placeholders.server';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import {
   readAuthUiRuntimeSettingsCached,
   readBillingRuntimeSettingsCached,
   readPublicUiConfigCached,
 } from '@/domains/settings/application/settings-runtime.query';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/infra/platform/brand/placeholders.server';
+import { getTranslations } from 'next-intl/server';
+
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type {
   Footer as FooterType,
   Header as HeaderType,

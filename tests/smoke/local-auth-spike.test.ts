@@ -29,10 +29,7 @@ id = "id_123"
 localConnectionString = "postgresql://demo:demo@127.0.0.1:5432/demo"
 `);
 
-  assert.equal(
-    connectionString,
-    'postgresql://demo:demo@127.0.0.1:5432/demo'
-  );
+  assert.equal(connectionString, 'postgresql://demo:demo@127.0.0.1:5432/demo');
 });
 
 test('buildNodeAuthSpikeEnv 为本地 Node 面注入 auth/database 关键环境变量', () => {

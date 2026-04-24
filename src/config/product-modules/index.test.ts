@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import {
   ALL_SETTINGS,
   type KnownSettingKey,
@@ -11,11 +10,11 @@ import {
 } from '@/domains/settings/tab-names';
 
 import {
+  getProductModuleItemsByTab,
   MODULE_GUIDE_SLUGS,
-  PRODUCT_MODULES,
   PRODUCT_MODULE_TIERS,
   PRODUCT_MODULE_VERIFICATIONS,
-  getProductModuleItemsByTab,
+  PRODUCT_MODULES,
 } from './index';
 
 test('PRODUCT_MODULES: module id 唯一', () => {

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 import {
   readSiteDeploySettings,
   validateSiteDeploySettings,
 } from '../../scripts/lib/site-deploy-settings.mjs';
-import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 
 test('site deploy settings 读取当前闭合 manifest', () => {
   const settings = readSiteDeploySettings({

@@ -65,6 +65,7 @@ Use the checker in `src/domains/access-control/application/checker.ts`.
 
 ```typescript
 import { checkUserPermission } from '@/domains/access-control/application/checker';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
 const result = await checkUserPermission(userId, PERMISSIONS.USERS_READ);

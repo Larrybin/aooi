@@ -22,6 +22,7 @@ import {
   userRole,
 } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
+
 import { createCliDb } from './lib/cli-db';
 
 // Default permissions
@@ -406,9 +407,7 @@ async function initializeRBAC() {
       createdRoles[roleData.name] = roleId;
 
       // Clear existing permissions for this role
-      await db
-        .delete(rolePermission)
-        .where(eq(rolePermission.roleId, roleId));
+      await db.delete(rolePermission).where(eq(rolePermission.roleId, roleId));
 
       // Assign permissions to role
       for (const permCode of roleData.permissions) {

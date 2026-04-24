@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { NextRequest } from 'next/server';
 
 test('/api 请求会保留原始 request headers，并额外注入 x-request-id', async () => {
@@ -9,12 +8,15 @@ test('/api 请求会保留原始 request headers，并额外注入 x-request-id'
 
   assert.equal(typeof middleware, 'function');
 
-  const request = new NextRequest('https://example.com/api/auth/sign-up/email', {
-    headers: {
-      'content-type': 'application/json',
-      'x-auth-smoke': '1',
-    },
-  });
+  const request = new NextRequest(
+    'https://example.com/api/auth/sign-up/email',
+    {
+      headers: {
+        'content-type': 'application/json',
+        'x-auth-smoke': '1',
+      },
+    }
+  );
 
   const response = await middleware(request);
   const overrideHeaders = (

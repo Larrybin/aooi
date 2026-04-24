@@ -40,7 +40,9 @@ interface UploadItem extends ImageUploaderValue {
   file?: File;
 }
 
-type ItemsAction = UploadItem[] | ((currentItems: UploadItem[]) => UploadItem[]);
+type ItemsAction =
+  | UploadItem[]
+  | ((currentItems: UploadItem[]) => UploadItem[]);
 
 const formatBytes = (bytes?: number) => {
   if (!bytes) return '';
@@ -105,14 +107,10 @@ export function ImageUploader({
           isPlainObject(value) &&
           Array.isArray((value as { results?: unknown }).results) &&
           isPlainObject((value as { results: unknown[] }).results[0]) &&
-          typeof (
-            (value as { results: Array<{ key?: unknown; url?: unknown }> })
-              .results[0]?.key
-          ) === 'string' &&
-          typeof (
-            (value as { results: Array<{ key?: unknown; url?: unknown }> })
-              .results[0]?.url
-          ) === 'string',
+          typeof (value as { results: Array<{ key?: unknown; url?: unknown }> })
+            .results[0]?.key === 'string' &&
+          typeof (value as { results: Array<{ key?: unknown; url?: unknown }> })
+            .results[0]?.url === 'string',
         invalidDataMessage: t('invalid_upload_response'),
       }
     );

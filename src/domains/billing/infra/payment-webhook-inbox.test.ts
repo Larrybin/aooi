@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import {
   PaymentEventType,
   SubscriptionCycleType,
@@ -39,10 +38,16 @@ test('deserializePaymentWebhookCanonicalEvent 会恢复嵌套时间字段为 Dat
   const event = deserializePaymentWebhookCanonicalEvent(serialized);
 
   assert.ok(event.paymentSession.paymentInfo?.paidAt instanceof Date);
-  assert.ok(event.paymentSession.subscriptionInfo?.currentPeriodStart instanceof Date);
-  assert.ok(event.paymentSession.subscriptionInfo?.currentPeriodEnd instanceof Date);
+  assert.ok(
+    event.paymentSession.subscriptionInfo?.currentPeriodStart instanceof Date
+  );
+  assert.ok(
+    event.paymentSession.subscriptionInfo?.currentPeriodEnd instanceof Date
+  );
   assert.ok(event.paymentSession.subscriptionInfo?.canceledAt instanceof Date);
-  assert.ok(event.paymentSession.subscriptionInfo?.canceledEndAt instanceof Date);
+  assert.ok(
+    event.paymentSession.subscriptionInfo?.canceledEndAt instanceof Date
+  );
   assert.equal(
     event.paymentSession.paymentInfo?.paidAt?.toISOString(),
     '2026-04-17T10:00:00.000Z'

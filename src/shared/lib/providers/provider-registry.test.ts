@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  ProviderRegistry,
-  trimmedProviderNameKey,
-} from './provider-registry';
+import { ProviderRegistry, trimmedProviderNameKey } from './provider-registry';
 
 type TestProvider = {
   readonly name: string;
@@ -20,7 +17,10 @@ test('ProviderRegistry resolves default provider and memoizes fallback', () => {
   const provider = { name: ' alpha ', value: 'a' };
   registry.add(provider);
 
-  assert.equal(registry.getDefaultRequired(() => new Error('missing')), provider);
+  assert.equal(
+    registry.getDefaultRequired(() => new Error('missing')),
+    provider
+  );
 });
 
 test('ProviderRegistry resolves named provider through normalized key', () => {
@@ -43,7 +43,8 @@ test('ProviderRegistry throws caller-provided error for missing default provider
   });
 
   assert.throws(
-    () => registry.getDefaultRequired(() => new Error('No provider configured')),
+    () =>
+      registry.getDefaultRequired(() => new Error('No provider configured')),
     /No provider configured/
   );
 });

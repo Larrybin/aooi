@@ -3,13 +3,11 @@
 // reason: admin area is user-specific; avoid caching across users/roles
 import type { ReactNode } from 'react';
 import { SignModal } from '@/domains/account/ui/auth/sign-modal';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
-import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
-import { PublicAppProvider } from '@/shared/contexts/app';
-import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import { toAuthSessionUserSnapshot } from '@/infra/platform/auth/user-snapshot';
 import { applyBrandToSidebar } from '@/infra/platform/brand/identity';
 import {
@@ -17,13 +15,16 @@ import {
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
-import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
-import { requireAdminPageAccess } from './_guards/page-access';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
+import { WorkspaceLayout } from '@/shared/blocks/workspace/layout';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
+
+import { requireAdminPageAccess } from './_guards/page-access';
 
 /**
  * Admin layout to manage datas
@@ -77,7 +78,10 @@ export default async function AdminLayout({
     bottom_nav: sidebar.bottom_nav
       ? {
           ...sidebar.bottom_nav,
-          items: filterLandingNavItems(sidebar.bottom_nav.items, publicUiConfig),
+          items: filterLandingNavItems(
+            sidebar.bottom_nav.items,
+            publicUiConfig
+          ),
         }
       : sidebar.bottom_nav,
     user: sidebar.user?.nav
@@ -85,7 +89,10 @@ export default async function AdminLayout({
           ...sidebar.user,
           nav: {
             ...sidebar.user.nav,
-            items: filterLandingNavItems(sidebar.user.nav.items, publicUiConfig),
+            items: filterLandingNavItems(
+              sidebar.user.nav.items,
+              publicUiConfig
+            ),
           },
         }
       : sidebar.user,
@@ -124,7 +131,9 @@ export default async function AdminLayout({
             <LocaleDetector />
             {children}
           </WorkspaceLayout>
-          <SignModal callbackUrl={filteredSidebar.user?.signin_callback || '/'} />
+          <SignModal
+            callbackUrl={filteredSidebar.user?.signin_callback || '/'}
+          />
         </AuthSnapshotProvider>
       </PublicAppProvider>
     </ScopedIntlProvider>

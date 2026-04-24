@@ -1,3 +1,11 @@
+import { isCloudflareWorkersRuntime } from '@/infra/runtime/env.server';
+
+import {
+  CooldownLimiter,
+  DualConcurrencyLimiter,
+  FixedWindowAttemptLimiter,
+  FixedWindowQuotaLimiter,
+} from '@/shared/lib/api/limiters';
 import {
   AI_QUERY_RATE_LIMIT_CONFIG,
   EMAIL_TEST_QUOTA_LIMIT_CONFIG,
@@ -6,16 +14,9 @@ import {
   VERIFY_CODE_ATTEMPT_LIMIT_CONFIG,
 } from '@/shared/lib/api/limiters-config';
 import {
-  CooldownLimiter,
-  DualConcurrencyLimiter,
-  FixedWindowAttemptLimiter,
-  FixedWindowQuotaLimiter,
-} from '@/shared/lib/api/limiters';
-import {
   createMemoryRateLimitStore,
   type RateLimitStore,
 } from '@/shared/lib/api/rate-limit-store';
-import { isCloudflareWorkersRuntime } from '@/infra/runtime/env.server';
 import {
   CloudflareAttemptLimiter,
   CloudflareCooldownLimiter,
@@ -106,7 +107,10 @@ function createCloudflareFactory(
       return new CloudflareCooldownLimiter(AI_QUERY_RATE_LIMIT_CONFIG, now);
     },
     createVerifyCodeAttemptLimiter() {
-      return new CloudflareAttemptLimiter(VERIFY_CODE_ATTEMPT_LIMIT_CONFIG, now);
+      return new CloudflareAttemptLimiter(
+        VERIFY_CODE_ATTEMPT_LIMIT_CONFIG,
+        now
+      );
     },
     createEmailTestQuotaLimiter() {
       return new CloudflareQuotaLimiter(EMAIL_TEST_QUOTA_LIMIT_CONFIG, now);
@@ -129,7 +133,11 @@ export function createLimiterFactory(options: LimiterFactoryOptions = {}) {
     options.resetPasswordQuotaConfig ?? DEFAULT_RESET_PASSWORD_QUOTA_CONFIG;
 
   if (options.store) {
-    return createStoreBackedFactory(options.store, now, resetPasswordQuotaConfig);
+    return createStoreBackedFactory(
+      options.store,
+      now,
+      resetPasswordQuotaConfig
+    );
   }
 
   if (isCloudflareWorkersRuntime()) {

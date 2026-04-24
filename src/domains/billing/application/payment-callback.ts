@@ -1,19 +1,23 @@
+import type { handleCheckoutSuccess } from '@/domains/billing/application/flows';
+import {
+  PaymentType,
+  type PaymentSession,
+} from '@/domains/billing/domain/payment';
+import type { findOrderByOrderNo, Order } from '@/domains/billing/infra/order';
+import type { PaymentRuntimeBindings } from '@/domains/settings/application/settings-runtime.contracts';
+import type {
+  readBillingRuntimeSettingsCached,
+  readBillingRuntimeSettingsFresh,
+} from '@/domains/settings/application/settings-runtime.query';
+import type { getPaymentService } from '@/infra/adapters/payment/service';
+import { site } from '@/site';
+
 import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
   UnauthorizedError,
 } from '@/shared/lib/api/errors';
-import { site } from '@/site';
-import { PaymentType, type PaymentSession } from '@/domains/billing/domain/payment';
-import type { Order, findOrderByOrderNo } from '@/domains/billing/infra/order';
-import type {
-  readBillingRuntimeSettingsCached,
-  readBillingRuntimeSettingsFresh,
-} from '@/domains/settings/application/settings-runtime.query';
-import type { getPaymentService } from '@/infra/adapters/payment/service';
-import type { handleCheckoutSuccess } from '@/domains/billing/application/flows';
-import type { PaymentRuntimeBindings } from '@/domains/settings/application/settings-runtime.contracts';
 
 type BillingCallbackLog = {
   debug(message: string, meta?: unknown): void;
@@ -47,9 +51,14 @@ export async function resolvePaymentCallbackRedirectQuery(
 
   try {
     const order = await resolvedDeps.findOrderByOrderNo(input.orderNo);
-    assertOrderVisibleToActor(order, input.actorUserId, 'order and user not match');
+    assertOrderVisibleToActor(
+      order,
+      input.actorUserId,
+      'order and user not match'
+    );
 
-    const base = order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl);
+    const base =
+      order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl);
     return appendOrderNoToUrl(base, input.orderNo, appUrl);
   } catch (error: unknown) {
     input.log.error('payment: checkout callback failed', { error });
@@ -90,7 +99,8 @@ async function getPaymentCallbackReadDeps(): Promise<
 async function getPaymentCallbackPricingDeps(): Promise<
   Pick<PaymentCallbackDeps, 'readBillingRuntimeSettingsCached'>
 > {
-  const settingsModule = await import('@/domains/settings/application/settings-runtime.query');
+  const settingsModule =
+    await import('@/domains/settings/application/settings-runtime.query');
 
   return {
     readBillingRuntimeSettingsCached:
@@ -144,7 +154,8 @@ export async function confirmPaymentCallbackUseCase(
 
   return {
     orderNo: input.orderNo,
-    redirectUrl: order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl),
+    redirectUrl:
+      order.callbackUrl || toPaymentFallbackUrl(order.paymentType, appUrl),
   };
 }
 
@@ -154,7 +165,11 @@ async function resolveAppUrl(
   return site.brand.appUrl;
 }
 
-function appendOrderNoToUrl(url: string, orderNo: string, appUrl: string): string {
+function appendOrderNoToUrl(
+  url: string,
+  orderNo: string,
+  appUrl: string
+): string {
   try {
     const full = new URL(url, appUrl);
     full.searchParams.set('order_no', orderNo);
@@ -164,7 +179,10 @@ function appendOrderNoToUrl(url: string, orderNo: string, appUrl: string): strin
   }
 }
 
-function toPaymentFallbackUrl(type: string | null | undefined, appUrl: string): string {
+function toPaymentFallbackUrl(
+  type: string | null | undefined,
+  appUrl: string
+): string {
   return type === PaymentType.SUBSCRIPTION
     ? `${appUrl}/settings/billing`
     : `${appUrl}/settings/payments`;
@@ -195,9 +213,8 @@ async function getPaymentCallbackDeps(): Promise<PaymentCallbackDeps> {
       import('@/infra/adapters/payment/service'),
       import('@/domains/billing/application/flows'),
     ]);
-  const { getPaymentRuntimeBindings } = await import(
-    '@/infra/adapters/payment/runtime-bindings'
-  );
+  const { getPaymentRuntimeBindings } =
+    await import('@/infra/adapters/payment/runtime-bindings');
 
   return {
     readBillingRuntimeSettingsCached:

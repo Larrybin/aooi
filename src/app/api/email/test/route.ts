@@ -1,8 +1,9 @@
 import { randomInt } from 'crypto';
+import type { createApiContext } from '@/app/api/_lib/context';
+import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
-import type { createApiContext } from '@/app/api/_lib/context';
 import {
   BadRequestError,
   TooManyRequestsError,
@@ -12,7 +13,6 @@ import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 const MAX_EMAIL_RECIPIENTS = 10;
 
@@ -32,7 +32,10 @@ type EmailTestRouteDeps = {
     input: Parameters<BuildVerificationCodeEmailPayload>[0]
   ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
   quotaLimiter: {
-    acquire: (key: string, now?: number) => Promise<{
+    acquire: (
+      key: string,
+      now?: number
+    ) => Promise<{
       allowed: boolean;
       reason?: string;
     }>;
@@ -66,9 +69,7 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function buildEmailTestPostLogic(
-  overrides: Partial<EmailTestRouteDeps> = {}
-) {
+function buildEmailTestPostLogic(overrides: Partial<EmailTestRouteDeps> = {}) {
   const deps = { ...getDefaultEmailTestRouteDeps(), ...overrides };
 
   return async (req: Request) => {

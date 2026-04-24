@@ -1,9 +1,10 @@
+import type { getStorageService } from '@/infra/adapters/storage/service';
+
 import {
   BadRequestError,
   ServiceUnavailableError,
   UpstreamError,
 } from '@/shared/lib/api/errors';
-import type { getStorageService } from '@/infra/adapters/storage/service';
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per file

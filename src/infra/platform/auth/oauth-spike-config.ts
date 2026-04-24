@@ -5,9 +5,7 @@ export const AUTH_SPIKE_OAUTH_CONFIG_SEED_CONFIGS = Object.freeze({
   github_auth_enabled: 'true',
 });
 
-export function isAuthSpikeOAuthConfigSeedEnabled(
-  env?: NodeJS.ProcessEnv
-) {
+export function isAuthSpikeOAuthConfigSeedEnabled(env?: NodeJS.ProcessEnv) {
   if (env) {
     return env.AUTH_SPIKE_OAUTH_CONFIG_SEED === 'true';
   }
@@ -15,9 +13,7 @@ export function isAuthSpikeOAuthConfigSeedEnabled(
   return isRuntimeEnvEnabled('AUTH_SPIKE_OAUTH_CONFIG_SEED');
 }
 
-export function isAuthSpikeOAuthUpstreamMockEnabled(
-  env?: NodeJS.ProcessEnv
-) {
+export function isAuthSpikeOAuthUpstreamMockEnabled(env?: NodeJS.ProcessEnv) {
   if (env) {
     return env.AUTH_SPIKE_OAUTH_UPSTREAM_MOCK === 'true';
   }
@@ -25,9 +21,7 @@ export function isAuthSpikeOAuthUpstreamMockEnabled(
   return isRuntimeEnvEnabled('AUTH_SPIKE_OAUTH_UPSTREAM_MOCK');
 }
 
-export function getAuthSpikeOAuthConfigSeedConfigs(
-  env?: NodeJS.ProcessEnv
-) {
+export function getAuthSpikeOAuthConfigSeedConfigs(env?: NodeJS.ProcessEnv) {
   if (!isAuthSpikeOAuthConfigSeedEnabled(env)) {
     return {};
   }

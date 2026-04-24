@@ -15,9 +15,9 @@ import {
   hasNoStoreHeader,
   hasSecureCookieFlags,
   summarizeFailureKinds,
-  type SessionObservation,
   type ResponseCookieSummary,
   type ResponseSummary,
+  type SessionObservation,
   type SurfaceName,
 } from './auth-spike.shared';
 
@@ -137,7 +137,10 @@ function isTransientLocalDbFailure(
     return false;
   }
 
-  if (observation.bodySnippet === 'n/a' || observation.bodySnippet.trim() === '') {
+  if (
+    observation.bodySnippet === 'n/a' ||
+    observation.bodySnippet.trim() === ''
+  ) {
     return true;
   }
 
@@ -200,7 +203,10 @@ export function splitSetCookieHeader(header: string): string[] {
   });
 }
 
-function parseCookieHeader(setCookieHeader: string, baseUrl: string): ParsedCookie {
+function parseCookieHeader(
+  setCookieHeader: string,
+  baseUrl: string
+): ParsedCookie {
   const [pair, ...attributeParts] = setCookieHeader
     .split(';')
     .map((item) => item.trim())
@@ -382,14 +388,17 @@ export async function getSessionViaAuthApi(
   const maxAttempts = isInsecureLocalPreviewOrigin(baseUrl) ? 3 : 1;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const response = await context.request.get(`${baseUrl}/api/auth/get-session`, {
-      failOnStatusCode: false,
-      maxRedirects: 0,
-      headers: {
-        origin,
-        referer: `${origin}/`,
-      },
-    });
+    const response = await context.request.get(
+      `${baseUrl}/api/auth/get-session`,
+      {
+        failOnStatusCode: false,
+        maxRedirects: 0,
+        headers: {
+          origin,
+          referer: `${origin}/`,
+        },
+      }
+    );
     let bodyText = '';
 
     try {
@@ -543,10 +552,7 @@ export async function waitForTerminalAuthErrorPage(page: Page) {
   });
 }
 
-async function waitForProtectedOrSignInPage(
-  page: Page,
-  expectedPath: string
-) {
+async function waitForProtectedOrSignInPage(page: Page, expectedPath: string) {
   await page.waitForURL(
     (url) => {
       const pathname = stripOrigin(url.toString());
@@ -576,8 +582,9 @@ async function waitForLocalNodeFormHydration(
   if (readyState !== null) {
     await page.waitForFunction(
       ({ selector }) =>
-        document.querySelector(selector)?.getAttribute('data-auth-client-ready') ===
-        'true',
+        document
+          .querySelector(selector)
+          ?.getAttribute('data-auth-client-ready') === 'true',
       {
         selector: `[data-testid="${formTestId}"]`,
       },
@@ -731,7 +738,10 @@ export async function bridgeSessionCookieIfNeeded(params: {
     return;
   }
 
-  const cookiesToBridge = parseSetCookieHeaders(setCookieHeaders, baseUrl).filter(
+  const cookiesToBridge = parseSetCookieHeaders(
+    setCookieHeaders,
+    baseUrl
+  ).filter(
     (item) =>
       item.name.startsWith('__Secure-better-auth.') && !item.clearsCookie
   );
@@ -784,13 +794,11 @@ export async function bridgeClearedSessionCookieIfNeeded(params: {
 
   const clearCookieResponse = [...responses]
     .reverse()
-    .find(
-      (response) =>
-        response.cookies.some(
-          (cookie) =>
-            cookie.clearsCookie &&
-            cookie.name.startsWith('__Secure-better-auth.')
-        )
+    .find((response) =>
+      response.cookies.some(
+        (cookie) =>
+          cookie.clearsCookie && cookie.name.startsWith('__Secure-better-auth.')
+      )
     );
 
   if (!clearCookieResponse) {
@@ -798,8 +806,7 @@ export async function bridgeClearedSessionCookieIfNeeded(params: {
   }
 
   const cookie = clearCookieResponse.cookies.find(
-    (item) =>
-      item.clearsCookie && item.name.startsWith('__Secure-better-auth.')
+    (item) => item.clearsCookie && item.name.startsWith('__Secure-better-auth.')
   );
 
   if (!cookie) {

@@ -6,13 +6,16 @@ import {
   resolveStoredAssetUrl,
 } from '@/shared/lib/storage-public-url';
 
+import { buildStorageService } from './service-builder';
 import {
   buildStorageSpikeUploadMockResult,
   isStorageSpikeUploadMockEnabled,
 } from './upload-mock';
-import { buildStorageService } from './service-builder';
 
-function withStoragePublicBaseUrl<T>(value: string | undefined, run: () => T): T {
+function withStoragePublicBaseUrl<T>(
+  value: string | undefined,
+  run: () => T
+): T {
   const previous = process.env.STORAGE_PUBLIC_BASE_URL;
   if (value === undefined) {
     delete process.env.STORAGE_PUBLIC_BASE_URL;

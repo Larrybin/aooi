@@ -1,20 +1,23 @@
 // data: admin session (RBAC) + users list (db) + roles/credits (db) + pagination/search
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin data is user/role-specific; avoid caching across users
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { listAdminUsersQuery } from '@/domains/account/application/admin-users.query';
+import type { AccountAdminUserRecord } from '@/domains/account/application/use-cases';
 import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminUsersListQuerySchema,
   type AdminUsersListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import { accountRuntimeDeps } from '@/app/account/runtime-deps';
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
-import { listAdminUsersQuery } from '@/domains/account/application/admin-users.query';
-import type { AccountAdminUserRecord } from '@/domains/account/application/use-cases';
 import { Badge } from '@/shared/components/ui/badge';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
-export default createAdminTablePage<AccountAdminUserRecord, AdminUsersListQuery>({
+export default createAdminTablePage<
+  AccountAdminUserRecord,
+  AdminUsersListQuery
+>({
   namespace: 'admin.users',
   permission: PERMISSIONS.USERS_READ,
   crumbs: [

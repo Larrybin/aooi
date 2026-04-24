@@ -1,6 +1,5 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { createMDX } from 'fumadocs-mdx/next';
 import createNextIntlPlugin from 'next-intl/plugin';

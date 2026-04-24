@@ -3,9 +3,9 @@
 // reason: public markdown pages; no user-specific data
 import { notFound } from 'next/navigation';
 import { getDocsPage } from '@/domains/content/application/public-content.query';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-import { buildCanonicalUrl } from '@/infra/url/canonical';
 import PageDetailPageView from '@/themes/default/pages/page-detail';
 
 export async function generateMetadata({

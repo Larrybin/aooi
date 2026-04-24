@@ -1,10 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 
 import type { Tab } from '@/shared/types/blocks/common';
-import {
-  SETTING_TAB_NAMES,
-  type SettingTabName,
-} from './tab-names';
+
+import { SETTING_TAB_NAMES, type SettingTabName } from './tab-names';
 
 export async function getSettingTabs(tab: SettingTabName) {
   const t = await getTranslations('admin.settings');

@@ -52,7 +52,13 @@ const md = new MarkdownIt({
   breaks: true,
 });
 
-md.renderer.rules.heading_open = function (tokens, idx, options, env, renderer) {
+md.renderer.rules.heading_open = function (
+  tokens,
+  idx,
+  options,
+  env,
+  renderer
+) {
   const nextToken = tokens[idx + 1];
 
   if (nextToken && nextToken.type === 'inline') {

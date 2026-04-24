@@ -3,13 +3,14 @@
 // reason: keep the root html shell statically analyzable; locale-specific state lives under app/[locale]
 import '@/config/style/global.css';
 
-import { defaultLocale, isRtlLocale } from '@/config/locale';
 import { readSettingsSafe } from '@/domains/settings/application/settings-store';
-import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 import { getAdsRuntimeForRequest } from '@/infra/adapters/ads/service';
 import { getAffiliateManagerWithConfigs } from '@/infra/adapters/affiliate/service';
 import { getAnalyticsManagerWithConfigs } from '@/infra/adapters/analytics/service';
 import { getCustomerServiceWithConfigs } from '@/infra/adapters/customer-service/service';
+
+import { defaultLocale, isRtlLocale } from '@/config/locale';
+import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 export default async function RootLayout({
   children,

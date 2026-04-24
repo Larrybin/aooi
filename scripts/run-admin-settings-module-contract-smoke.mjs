@@ -3,7 +3,10 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import * as authSpikeBrowserModule from '../src/testing/auth-spike.browser.ts';
 import * as adminSettingsSmokeModule from './lib/admin-settings-smoke.ts';
+import { runNodeScript, stopChild } from './lib/harness/runtime.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import {
   buildNodeAuthSpikeEnv,
   createNodeDevManager,
@@ -11,12 +14,6 @@ import {
   readWranglerLocalConnectionString,
   waitForNodeReady,
 } from './run-local-auth-spike.mjs';
-import * as authSpikeBrowserModule from '../src/testing/auth-spike.browser.ts';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
-import {
-  runNodeScript,
-  stopChild,
-} from './lib/harness/runtime.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -34,7 +31,8 @@ const {
   getAdminSettingsModuleContractChecks,
   validateAdminSettingsModuleContractSnapshot,
 } = adminSettingsSmoke;
-const authSpikeBrowser = authSpikeBrowserModule.default ?? authSpikeBrowserModule;
+const authSpikeBrowser =
+  authSpikeBrowserModule.default ?? authSpikeBrowserModule;
 const {
   closeAuthBrowserHarness,
   createAuthBrowserHarness,
@@ -106,11 +104,16 @@ export async function main() {
   const lockedNodeBaseUrl = lockedNodeInfo?.appUrl ?? null;
   const wranglerConfigPath =
     process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(rootDir, resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath);
+    path.resolve(
+      rootDir,
+      resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath
+    );
   const databaseUrl =
     process.env.AUTH_SPIKE_DATABASE_URL?.trim() ||
     process.env.DATABASE_URL?.trim() ||
-    readWranglerLocalConnectionString(await readFile(wranglerConfigPath, 'utf8'));
+    readWranglerLocalConnectionString(
+      await readFile(wranglerConfigPath, 'utf8')
+    );
   const preferredBaseUrl =
     process.env.ADMIN_SETTINGS_MODULE_CONTRACT_BASE_URL?.trim() ||
     lockedNodeBaseUrl ||

@@ -1,15 +1,14 @@
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import {
-  type AccountAdminUserRecord,
   ACCOUNT_APIKEY_STATUS,
   ACCOUNT_CREDIT_STATUS,
+  type AccountAdminUserRecord,
   type AccountApikeyRecord,
   type AccountApikeyStatus,
   type AccountCreditRecord,
   type AccountCreditStatus,
   type AccountCreditTransactionType,
 } from '@/domains/account/application/use-cases';
-import { getNonceStr, getUuid } from '@/shared/lib/hash';
 import {
   ApikeyStatus,
   createApikey,
@@ -26,13 +25,15 @@ import {
   getRemainingCredits,
   getRemainingCreditsSummary,
 } from '@/domains/account/infra/credit';
-import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
 import {
   findUserById,
   getUsers,
   getUsersCount,
   updateUser,
 } from '@/domains/account/infra/user';
+import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
+
+import { getNonceStr, getUuid } from '@/shared/lib/hash';
 
 function toCreditStatus(status: AccountCreditStatus): CreditStatus {
   switch (status) {
@@ -69,7 +70,9 @@ function toApikeyStatus(status: AccountApikeyStatus): ApikeyStatus {
   }
 }
 
-function mapApikeyRecord(record: Awaited<ReturnType<typeof findApikeyById>>): AccountApikeyRecord | undefined {
+function mapApikeyRecord(
+  record: Awaited<ReturnType<typeof findApikeyById>>
+): AccountApikeyRecord | undefined {
   if (!record) {
     return undefined;
   }
@@ -85,7 +88,9 @@ function mapApikeyRecord(record: Awaited<ReturnType<typeof findApikeyById>>): Ac
   };
 }
 
-function mapCreditRecord(record: Awaited<ReturnType<typeof getCredits>>[number]): AccountCreditRecord {
+function mapCreditRecord(
+  record: Awaited<ReturnType<typeof getCredits>>[number]
+): AccountCreditRecord {
   return {
     id: record.id,
     userId: record.userId,
@@ -179,7 +184,8 @@ export const accountRuntimeDeps = {
     limit: number;
   }) => (await getUsers({ email, page, limit })).map(mapAdminUserRecord),
   getUsersCount: ({ email }: { email?: string }) => getUsersCount({ email }),
-  findUserById: async (userId: string) => mapUserRecord(await findUserById(userId)),
+  findUserById: async (userId: string) =>
+    mapUserRecord(await findUserById(userId)),
   getCurrentSubscription,
   updateUser,
   getApikeys: async ({
@@ -212,7 +218,8 @@ export const accountRuntimeDeps = {
       userId,
       status: toApikeyStatus(status),
     }),
-  findApikeyById: async (id: string) => mapApikeyRecord(await findApikeyById(id)),
+  findApikeyById: async (id: string) =>
+    mapApikeyRecord(await findApikeyById(id)),
   createApikey: async (record: {
     id: string;
     userId: string;

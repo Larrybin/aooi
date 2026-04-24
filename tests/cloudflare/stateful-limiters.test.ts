@@ -6,6 +6,7 @@ import {
   CloudflareDualConcurrencyLimiter,
   CloudflareQuotaLimiter,
 } from '@/shared/platform/cloudflare/stateful-limiters';
+
 import { StatefulLimitersDurableObject } from '../../cloudflare/workers/stateful-limiters';
 
 type FakeStorage = {
@@ -86,7 +87,10 @@ function createNamespaceBackedByStateWorker() {
       const durableObject = createDurableObject(storage);
       return {
         fetch: async (_input: RequestInfo | URL, init?: RequestInit) => {
-          const request = new Request('https://stateful-limiters.internal', init);
+          const request = new Request(
+            'https://stateful-limiters.internal',
+            init
+          );
           return await durableObject.fetch(request);
         },
       };

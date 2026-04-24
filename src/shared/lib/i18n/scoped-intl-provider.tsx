@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
+import {
+  getScopedMessages,
+  normalizeLocale,
+} from '@/infra/platform/i18n/messages';
 import { NextIntlClientProvider } from 'next-intl';
 
 import type { Locale } from '@/config/locale';
-import { getScopedMessages, normalizeLocale } from '@/infra/platform/i18n/messages';
 
 export async function ScopedIntlProvider({
   children,

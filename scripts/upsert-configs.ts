@@ -3,6 +3,7 @@ import '@/config/load-dotenv';
 import { sql } from 'drizzle-orm';
 
 import { config } from '@/config/db/schema';
+
 import { createCliDb } from './lib/cli-db';
 
 function parseConfigArgs(args: string[]) {

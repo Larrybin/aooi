@@ -1,11 +1,11 @@
-import { z } from 'zod';
-
 import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
   type PaymentConfigs,
 } from '@/domains/billing/domain/payment';
+import { z } from 'zod';
+
 import { UpstreamError } from '@/shared/lib/api/errors';
 import { safeJsonParse } from '@/shared/lib/json';
 
@@ -69,7 +69,12 @@ type PayPalFetchJson = <TSchema extends z.ZodTypeAny>(
   options: Record<string, unknown>
 ) => Promise<z.infer<TSchema>>;
 
-const defaultFetchJson: PayPalFetchJson = async (url, init, schema, options) => {
+const defaultFetchJson: PayPalFetchJson = async (
+  url,
+  init,
+  schema,
+  options
+) => {
   const { safeFetchJsonWithSchema } = await import('@/shared/lib/fetch/server');
   return await safeFetchJsonWithSchema(url, init, schema, options as never);
 };

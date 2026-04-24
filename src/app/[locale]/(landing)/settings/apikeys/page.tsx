@@ -1,16 +1,16 @@
 // data: signed-in user (better-auth) + apikeys list (db) + pagination
 // cache: no-store (request-bound auth)
 // reason: user-specific settings page
-import { getTranslations } from 'next-intl/server';
-
 import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import {
   listOwnApikeysUseCase,
   type AccountApikeyRecord,
 } from '@/domains/account/application/use-cases';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { getTranslations } from 'next-intl/server';
+
 import { Empty } from '@/shared/blocks/common/empty';
 import { TableCard } from '@/shared/blocks/table';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

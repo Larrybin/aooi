@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from '@/infra/platform/i18n/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 
-import { useRouter } from '@/infra/platform/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -69,8 +69,11 @@ export function Form<
   async function onSubmit(submittedValues: z.infer<typeof FormSchema>) {
     const fieldsByName = new Map(
       resolvedFields
-        .filter((field): field is (typeof resolvedFields)[number] & { name: string } =>
-          Boolean(field.name)
+        .filter(
+          (
+            field
+          ): field is (typeof resolvedFields)[number] & { name: string } =>
+            Boolean(field.name)
         )
         .map((field) => [field.name, field])
     );
@@ -127,9 +130,7 @@ export function Form<
         <div className="mb-6 space-y-6">
           {resolvedFields.map((item, index) => {
             if (!item.name) {
-              throw new Error(
-                `Form field name is required at index ${index}.`
-              );
+              throw new Error(`Form field name is required at index ${index}.`);
             }
 
             return (
@@ -146,7 +147,11 @@ export function Form<
                       )}
                     </FormLabel>
                     <FormControl>
-                      {renderFormFieldControl({ field: item, formField: field, data })}
+                      {renderFormFieldControl({
+                        field: item,
+                        formField: field,
+                        data,
+                      })}
                     </FormControl>
                     {item.tip && (
                       <FormDescription

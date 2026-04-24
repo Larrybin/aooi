@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { resetPassword } from '@/infra/platform/auth/client';
+import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { resetPassword } from '@/infra/platform/auth/client';
-import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,
@@ -19,7 +20,6 @@ import {
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { toErrorMessage } from '@/shared/lib/errors';
-import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function ResetPassword({
   token,

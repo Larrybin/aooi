@@ -1,4 +1,4 @@
-import type { Form as FormType, FormField } from '@/shared/types/blocks/form';
+import type { FormField, Form as FormType } from '@/shared/types/blocks/form';
 
 import type { SettingDefinition, SettingGroup } from './types';
 

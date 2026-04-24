@@ -6,12 +6,10 @@ import {
 
 export type AdminApikeyRow = Apikey;
 
-export async function listAdminApikeysQuery(
-  input: {
-    page: number;
-    limit: number;
-  }
-) {
+export async function listAdminApikeysQuery(input: {
+  page: number;
+  limit: number;
+}) {
   const [rows, total] = await Promise.all([
     getApikeys({
       getUser: true,

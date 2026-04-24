@@ -1,10 +1,10 @@
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import type { z } from 'zod';
 
 import { checkOutboundUrl } from '@/shared/lib/fetch/outbound-url';
 import { sanitizeUrlForLog } from '@/shared/lib/fetch/sanitize-url';
 import { fetchWithTimeout } from '@/shared/lib/fetch/timeout';
 import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 
 const log = createUseCaseLogger({
   domain: 'platform',

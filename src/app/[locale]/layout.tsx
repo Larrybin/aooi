@@ -3,14 +3,14 @@
 // reason: keep the locale shell cache-friendly; avoid request headers/cookies here
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
+import { routing } from '@/infra/platform/i18n/config';
+import { HtmlLangProvider } from '@/infra/platform/i18n/html-lang-provider';
+import { buildMetadataBaseUrl } from '@/infra/url/canonical';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 
-import { routing } from '@/infra/platform/i18n/config';
-import { HtmlLangProvider } from '@/infra/platform/i18n/html-lang-provider';
 import { Toaster } from '@/shared/components/ui/sonner';
-import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { buildMetadataBaseUrl } from '@/infra/url/canonical';
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = buildBrandPlaceholderValues();

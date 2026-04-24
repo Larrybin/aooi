@@ -2,10 +2,9 @@
 // cache: dynamic (request-based searchParams); configs cached via unstable_cache
 // reason: public auth entry; support callback redirects without cross-request caching
 import { SignIn } from '@/domains/account/ui/auth/sign-in';
-import { getTranslations } from 'next-intl/server';
-
-import { buildCanonicalUrl } from '@/infra/url/canonical';
 import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
+import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata({
   params,
@@ -33,5 +32,7 @@ export default async function SignInPage({
 
   const authSettings = await readAuthUiRuntimeSettingsCached();
 
-  return <SignIn authSettings={authSettings} callbackUrl={callbackUrl || '/'} />;
+  return (
+    <SignIn authSettings={authSettings} callbackUrl={callbackUrl || '/'} />
+  );
 }

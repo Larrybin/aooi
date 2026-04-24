@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
-
 import {
   confirmPaymentCallbackUseCase,
   resolvePaymentCallbackPricingFallbackUrl,
   resolvePaymentCallbackRedirectQuery,
 } from '@/domains/billing/application/payment-callback';
+
 import { jsonOk } from '@/shared/lib/api/response';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
@@ -78,7 +78,9 @@ export function buildPaymentCallbackPostAction(deps: {
   return async (req: Request) => {
     const api = deps.createApiContext(req);
     const { log } = api;
-    const { order_no: orderNo } = await api.parseJson(PaymentCallbackBodySchema);
+    const { order_no: orderNo } = await api.parseJson(
+      PaymentCallbackBodySchema
+    );
     const user = await api.requireUser();
 
     const mode = resolveMode(req);

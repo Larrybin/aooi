@@ -1,16 +1,16 @@
 // data: admin session (RBAC) + api keys list (db) + pagination
 // cache: no-store (request-bound auth/RBAC)
 // reason: api keys are sensitive; avoid caching across users/roles
+import {
+  listAdminApikeysQuery,
+  type AdminApikeyRow,
+} from '@/domains/account/application/admin-apikeys.query';
 import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminApikeysListQuerySchema,
   type AdminApikeysListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import {
-  listAdminApikeysQuery,
-  type AdminApikeyRow,
-} from '@/domains/account/application/admin-apikeys.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
 export default createAdminTablePage<AdminApikeyRow, AdminApikeysListQuery>({

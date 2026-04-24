@@ -1,3 +1,14 @@
+import type { resolveConfiguredAICapability } from '@/domains/ai/application/capabilities';
+import type { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
+import type { getAIService } from '@/domains/ai/application/service';
+import type {
+  createAITask,
+  NewAITask,
+  updateAITaskById,
+} from '@/domains/ai/infra/ai-task';
+import type { AiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { site } from '@/site';
+
 import { AITaskStatus, type AIGenerateParams } from '@/extensions/ai';
 import {
   BadRequestError,
@@ -7,20 +18,10 @@ import {
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import type { getUuid } from '@/shared/lib/hash';
-import type {
-  createAITask,
-  NewAITask,
-  updateAITaskById,
-} from '@/domains/ai/infra/ai-task';
-import { site } from '@/site';
 import {
   AiGenerateBodySchema,
   type AiGenerateBody,
 } from '@/shared/schemas/api/ai/generate';
-import type { AiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
-import type { getAIService } from '@/domains/ai/application/service';
-import type { resolveConfiguredAICapability } from '@/domains/ai/application/capabilities';
-import type { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
 
 type AiGenerateApiContext = {
   log: {

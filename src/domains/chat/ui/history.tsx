@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Link, usePathname, useRouter } from '@/infra/platform/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Link, usePathname, useRouter } from '@/infra/platform/i18n/navigation';
 import { Empty } from '@/shared/blocks/common/empty';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { Pagination } from '@/shared/blocks/common/pagination';
@@ -15,11 +15,11 @@ import { SidebarTrigger } from '@/shared/components/ui/sidebar';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { useAuthSnapshot } from '@/shared/contexts/auth-snapshot';
 import { fetchApiData } from '@/shared/lib/api/client';
-import { formatRelativeTime } from '@/shared/lib/date/format';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
 } from '@/shared/lib/api/request-id';
+import { formatRelativeTime } from '@/shared/lib/date/format';
 
 type ChatListItem = {
   id: string;
@@ -135,7 +135,15 @@ export function ChatHistory() {
     ) {
       handlePageChange(totalPages);
     }
-  }, [chats.length, handlePageChange, loading, page, snapshot, total, totalPages]);
+  }, [
+    chats.length,
+    handlePageChange,
+    loading,
+    page,
+    snapshot,
+    total,
+    totalPages,
+  ]);
 
   const handleRetry = () => {
     void fetchChats();
@@ -225,12 +233,7 @@ export function ChatHistory() {
         </div>
         <div className="flex-1">{renderContent()}</div>
         <div className="pt-6">
-          <Pagination
-            total={total}
-            page={page}
-            limit={limit}
-            url={pathname}
-          />
+          <Pagination total={total} page={page} limit={limit} url={pathname} />
         </div>
       </div>
     </div>

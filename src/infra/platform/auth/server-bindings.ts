@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 import type { AuthServerBindings } from '@/domains/settings/application/settings-runtime.contracts';
+import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 
 function readAuthServerBindings(): AuthServerBindings {
   return {

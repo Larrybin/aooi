@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { site } from '@/site';
 
 import {
-  type BillingRuntimeSettings,
-  type PaymentRuntimeBindings,
   confirmPaymentCallbackUseCase,
   resolvePaymentCallbackPricingFallbackUrl,
   resolvePaymentCallbackRedirectQuery,
+  type BillingRuntimeSettings,
+  type PaymentRuntimeBindings,
 } from './payment-callback';
-import { site } from '@/site';
 
 function createLog() {
   return {

@@ -96,7 +96,9 @@ export function renderLandingPageSections(
 
     if (!hasInsertedLandingAd && landingInlinePrimaryAd) {
       sections.push(
-        <Fragment key="landing_inline_primary">{landingInlinePrimaryAd}</Fragment>
+        <Fragment key="landing_inline_primary">
+          {landingInlinePrimaryAd}
+        </Fragment>
       );
       hasInsertedLandingAd = true;
     }

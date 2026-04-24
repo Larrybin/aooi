@@ -72,7 +72,10 @@ export function buildStorageObjectPublicUrl(
     throw new Error('storage object key must not be empty');
   }
 
-  return new URL(normalizedKey, normalizeBaseUrl(storagePublicBaseUrl)).toString();
+  return new URL(
+    normalizedKey,
+    normalizeBaseUrl(storagePublicBaseUrl)
+  ).toString();
 }
 
 export function resolveStoredAssetUrl({

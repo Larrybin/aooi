@@ -1,10 +1,10 @@
 'use client';
 
-import { safeJsonParse } from '@/shared/lib/json';
 import {
   getRequestIdFromResponse,
   RequestIdError,
 } from '@/shared/lib/api/request-id';
+import { safeJsonParse } from '@/shared/lib/json';
 
 type ApiEnvelope<T> = {
   code: number;

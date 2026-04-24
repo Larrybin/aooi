@@ -54,7 +54,8 @@ test('sanitizeOAuthSpikeReport 会脱敏报告中的敏感值', () => {
     url: 'http://localhost:8787/api/auth/get-session',
     status: 200,
     headers: {},
-    bodySnippet: '{"session":{"token":"session-secret"},"user":{"email":"demo@example.com"}}',
+    bodySnippet:
+      '{"session":{"token":"session-secret"},"user":{"email":"demo@example.com"}}',
     sessionPresent: true,
     userPresent: true,
   };
@@ -64,13 +65,15 @@ test('sanitizeOAuthSpikeReport 会脱敏报告中的敏感值', () => {
 
   assert.notStrictEqual(sanitized, report);
   assert.equal(
-    sanitized.providers[0]?.callbackSetCookieHeaders[0]?.includes('secret-cookie'),
+    sanitized.providers[0]?.callbackSetCookieHeaders[0]?.includes(
+      'secret-cookie'
+    ),
     false
   );
   assert.equal(
-    sanitized.providers[0]?.callbackResponses[0]?.headers['set-cookie']?.includes(
-      'secret-cookie'
-    ),
+    sanitized.providers[0]?.callbackResponses[0]?.headers[
+      'set-cookie'
+    ]?.includes('secret-cookie'),
     false
   );
   assert.equal(

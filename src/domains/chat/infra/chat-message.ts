@@ -1,12 +1,12 @@
 import 'server-only';
 
+import { appendUserToResult, type User } from '@/domains/account/infra/user';
+import { db } from '@/infra/adapters/db';
 import { and, asc, count, desc, eq } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { chatMessage } from '@/config/db/schema';
 
 import type { Chat } from './chat';
-import { appendUserToResult, type User } from '@/domains/account/infra/user';
 
 export enum ChatMessageStatus {
   CREATED = 'created',

@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { readCurrentSiteConfig, resolveRequiredSiteKey } from './site-config.mjs';
+import {
+  readCurrentSiteConfig,
+  resolveRequiredSiteKey,
+} from './site-config.mjs';
 
 export const DEPLOY_SETTINGS_CONFIG_VERSION = 1;
 
@@ -124,10 +127,11 @@ function assertNoForbiddenTopLevelKeys(config) {
 }
 
 function assertBindingRequirements(bindingRequirements) {
-  assertClosedObject(bindingRequirements, 'site deploy settings.bindingRequirements', [
-    'secrets',
-    'vars',
-  ]);
+  assertClosedObject(
+    bindingRequirements,
+    'site deploy settings.bindingRequirements',
+    ['secrets', 'vars']
+  );
 
   assertClosedObject(
     bindingRequirements.secrets,
@@ -189,7 +193,11 @@ function assertResources(resources) {
 }
 
 function assertState(state) {
-  assertClosedObject(state, 'site deploy settings.state', CLOUDFLARE_STATE_SLOT_KEYS);
+  assertClosedObject(
+    state,
+    'site deploy settings.state',
+    CLOUDFLARE_STATE_SLOT_KEYS
+  );
   assertSchemaVersion(
     state.schemaVersion,
     'site deploy settings.state.schemaVersion'
@@ -197,7 +205,10 @@ function assertState(state) {
 }
 
 function assertCrossContractConsistency(siteConfig, deploySettings) {
-  if (siteConfig.key !== undefined && siteConfig.key !== siteConfig.key?.trim()) {
+  if (
+    siteConfig.key !== undefined &&
+    siteConfig.key !== siteConfig.key?.trim()
+  ) {
     throw new Error('site.key must be normalized');
   }
 
@@ -243,10 +254,7 @@ function assertCrossContractConsistency(siteConfig, deploySettings) {
   }
 }
 
-export function validateSiteDeploySettings(
-  config,
-  { siteConfig = null } = {}
-) {
+export function validateSiteDeploySettings(config, { siteConfig = null } = {}) {
   assertClosedObject(config, 'site deploy settings', [
     'bindingRequirements',
     'configVersion',

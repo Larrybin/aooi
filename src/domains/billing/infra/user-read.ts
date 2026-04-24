@@ -1,9 +1,9 @@
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import { eq, inArray } from 'drizzle-orm';
 
 import { user } from '@/config/db/schema';
-import { db } from '@/infra/adapters/db';
 
 export type BillingUser = typeof user.$inferSelect;
 export type WithUserId = {
@@ -23,7 +23,12 @@ export async function appendBillingUserToResult<T extends WithUserId>(
   const users = await db()
     .select()
     .from(user)
-    .where(inArray(user.id, rows.map((item) => item.userId)));
+    .where(
+      inArray(
+        user.id,
+        rows.map((item) => item.userId)
+      )
+    );
 
   return rows.map((item) => ({
     ...item,

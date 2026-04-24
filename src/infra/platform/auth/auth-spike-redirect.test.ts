@@ -8,11 +8,14 @@ import {
 } from './auth-spike-redirect';
 
 test('resolveAuthSpikeRedirectRequestUrl 用请求头 host 还原本地 preview 真实 origin', () => {
-  const request = new Request('http://localhost/api/auth/callback/google?code=1', {
-    headers: {
-      host: 'localhost:8787',
-    },
-  });
+  const request = new Request(
+    'http://localhost/api/auth/callback/google?code=1',
+    {
+      headers: {
+        host: 'localhost:8787',
+      },
+    }
+  );
 
   assert.equal(
     resolveAuthSpikeRedirectRequestUrl(request),
@@ -21,13 +24,16 @@ test('resolveAuthSpikeRedirectRequestUrl 用请求头 host 还原本地 preview 
 });
 
 test('resolveAuthSpikeRedirectRequestUrl 在 split worker 丢失端口时回退到 runtime preview origin', () => {
-  const request = new Request('http://localhost/api/auth/callback/google?code=1', {
-    headers: {
-      host: 'localhost',
-      'x-forwarded-host': 'localhost',
-      'x-forwarded-proto': 'http',
-    },
-  });
+  const request = new Request(
+    'http://localhost/api/auth/callback/google?code=1',
+    {
+      headers: {
+        host: 'localhost',
+        'x-forwarded-host': 'localhost',
+        'x-forwarded-proto': 'http',
+      },
+    }
+  );
 
   assert.equal(
     resolveAuthSpikeRedirectRequestUrl(request, {

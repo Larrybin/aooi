@@ -1,15 +1,13 @@
-import { z } from 'zod';
-
-import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
-import {
-  normalizeStoragePublicBaseUrl,
-} from '@/shared/lib/storage-public-url';
-import { tryJsonParse } from '@/shared/lib/json';
 import { normalizeAssetSettingValue } from '@/domains/settings/validators/general';
 import {
   parseCreemProductIdsMappingConfig,
   parseStripePaymentMethodsConfig,
 } from '@/domains/settings/validators/payment';
+import { z } from 'zod';
+
+import { generalSocialLinksSchema } from '@/shared/lib/general-ui.schema';
+import { tryJsonParse } from '@/shared/lib/json';
+import { normalizeStoragePublicBaseUrl } from '@/shared/lib/storage-public-url';
 
 import type { NormalizedSettingValueResult } from './types';
 
@@ -34,9 +32,7 @@ export function normalizeAppName(value: string) {
   return normalizeRequiredText(value, 'App Name');
 }
 
-export function normalizeAppUrl(
-  value: string
-): NormalizedSettingValueResult {
+export function normalizeAppUrl(value: string): NormalizedSettingValueResult {
   const trimmed = normalizeRequiredText(value, 'App URL');
   if (!trimmed.ok) {
     return trimmed;

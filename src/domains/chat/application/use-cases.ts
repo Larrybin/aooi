@@ -16,14 +16,12 @@ import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
 import {
   CHAT_MESSAGE_STATUS,
   CHAT_STATUS,
-} from './types';
-import type {
-  ChatApplicationDeps,
-  ChatLog,
-  ChatMessageRecord,
-  ChatRecord,
-  ChatUser,
-  NewChatMessageRecord,
+  type ChatApplicationDeps,
+  type ChatLog,
+  type ChatMessageRecord,
+  type ChatRecord,
+  type ChatUser,
+  type NewChatMessageRecord,
 } from './types';
 
 const CHAT_STATUS_CREATED = CHAT_STATUS.CREATED;

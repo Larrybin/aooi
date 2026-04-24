@@ -2,10 +2,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
 
 export function createTimestamp() {
-  return new Date()
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\..+/, '');
+  return new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
 }
 
 export function readCommitShaSafely(cwd) {
@@ -65,11 +62,7 @@ export async function stopChild(child) {
   }
 }
 
-export async function waitForManagerReady({
-  label,
-  manager,
-  ready,
-}) {
+export async function waitForManagerReady({ label, manager, ready }) {
   const readyPromise = ready();
   const exitPromise = once(manager.child, 'exit').then(([code, signal]) => {
     const recentLogs = Array.isArray(manager.recentLogs)

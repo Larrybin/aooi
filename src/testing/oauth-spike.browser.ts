@@ -22,15 +22,15 @@ import {
   ensureProtectedPageNavigation,
   getSessionViaAuthApi,
   isTerminalAuthErrorUrl,
-  splitSetCookieHeader,
   signOutViaAuthApi,
+  splitSetCookieHeader,
   stripOrigin,
   waitForTerminalAuthErrorPage,
 } from './auth-spike.browser';
 import {
-  type BrowserContextCookieSummary,
   hasNoStoreHeader,
   hasSecureCookieFlags,
+  type BrowserContextCookieSummary,
   type PreflightCheck,
   type ResponseSummary,
 } from './auth-spike.shared';
@@ -39,8 +39,8 @@ import {
   summarizeOAuthFailureKinds,
   type OAuthCaseName,
   type OAuthProviderName,
-  type ProtectedRequestObservation,
   type OAuthProviderResult,
+  type ProtectedRequestObservation,
 } from './oauth-spike.shared';
 
 const PROVIDERS: Array<{
@@ -220,12 +220,16 @@ async function summarizeResponse(response: Response): Promise<ResponseSummary> {
   });
 }
 
-async function getApiSetCookieHeaders(response: APIResponse): Promise<string[]> {
+async function getApiSetCookieHeaders(
+  response: APIResponse
+): Promise<string[]> {
   const setCookieHeader = response.headers()['set-cookie'];
   return setCookieHeader ? splitSetCookieHeader(setCookieHeader) : [];
 }
 
-async function summarizeApiResponse(response: APIResponse): Promise<ResponseSummary> {
+async function summarizeApiResponse(
+  response: APIResponse
+): Promise<ResponseSummary> {
   return buildResponseSummary({
     url: response.url(),
     status: response.status(),
@@ -388,28 +392,23 @@ async function clickSocialProviderAndCaptureAuthorizationUrl(params: {
   const providerConfig = PROVIDERS.find((item) => item.id === params.provider);
   assert(providerConfig, `unknown provider: ${params.provider}`);
 
-  const authorizationRequestPromise: Promise<Request | Error> =
-    params.page.waitForEvent(
-    'request',
-    {
+  const authorizationRequestPromise: Promise<Request | Error> = params.page
+    .waitForEvent('request', {
       predicate: (request: Request) =>
-        request
-          .url()
-          .startsWith(providerConfig.authorizeUrlPrefix),
+        request.url().startsWith(providerConfig.authorizeUrlPrefix),
       timeout: 20_000,
-    }
-    ).catch((error: unknown) =>
+    })
+    .catch((error: unknown) =>
       error instanceof Error ? error : new Error(String(error))
     );
-  const signInResponsePromise: Promise<Response | Error> =
-    params.page
-      .waitForResponse(
-        (response) => response.url().includes('/api/auth/sign-in/social'),
-        { timeout: 20_000 }
-      )
-      .catch((error: unknown) =>
-        error instanceof Error ? error : new Error(String(error))
-      );
+  const signInResponsePromise: Promise<Response | Error> = params.page
+    .waitForResponse(
+      (response) => response.url().includes('/api/auth/sign-in/social'),
+      { timeout: 20_000 }
+    )
+    .catch((error: unknown) =>
+      error instanceof Error ? error : new Error(String(error))
+    );
 
   await params.page
     .locator(`[data-testid="${providerConfig.buttonTestId}"]`)
@@ -429,7 +428,10 @@ async function clickSocialProviderAndCaptureAuthorizationUrl(params: {
     throw new Error(
       `[${params.provider}] sign-in/social ${signInResponse.status()}: ${(
         await signInResponse.text()
-      ).slice(0, 500)} request-origin=${headers.origin || 'n/a'} request-referer=${headers.referer || 'n/a'} request-body=${request.postData() || 'n/a'} auth-debug=${debugHeader}`
+      ).slice(
+        0,
+        500
+      )} request-origin=${headers.origin || 'n/a'} request-referer=${headers.referer || 'n/a'} request-body=${request.postData() || 'n/a'} auth-debug=${debugHeader}`
     );
   }
 
@@ -570,7 +572,9 @@ async function runProviderCases(params: {
   page: Page;
   providerResult: OAuthProviderResult;
   recorder: ReturnType<typeof createAuthResponseRecorder>;
-  cdpSession: Awaited<ReturnType<typeof createAuthBrowserHarness>>['cdpSession'];
+  cdpSession: Awaited<
+    ReturnType<typeof createAuthBrowserHarness>
+  >['cdpSession'];
   context: Awaited<ReturnType<typeof createAuthBrowserHarness>>['context'];
 }) {
   const {
@@ -592,16 +596,13 @@ async function runProviderCases(params: {
     action: async () => {
       await context.clearCookies();
       recorder.start();
-      const callbackResponsePromise: Promise<Response | Error> =
-        page
-          .waitForResponse((response) =>
-            response
-              .url()
-              .includes(createProviderPath(providerResult.provider))
-          )
-          .catch((error: unknown) =>
-            error instanceof Error ? error : new Error(String(error))
-          );
+      const callbackResponsePromise: Promise<Response | Error> = page
+        .waitForResponse((response) =>
+          response.url().includes(createProviderPath(providerResult.provider))
+        )
+        .catch((error: unknown) =>
+          error instanceof Error ? error : new Error(String(error))
+        );
 
       const signInResult = await startProviderFlowFromSignIn({
         baseUrl,
@@ -682,18 +683,15 @@ async function runProviderCases(params: {
         context,
         baseUrl
       );
-      providerResult.protectedRequestAfterBridge = await inspectProtectedRequest(
-        {
+      providerResult.protectedRequestAfterBridge =
+        await inspectProtectedRequest({
           callbackPath,
           context,
           baseUrl,
-        }
-      );
+        });
       await ensureProtectedPageNavigation(page, baseUrl, callbackPath);
-      providerResult.sessionObservationAfterCallback = await getSessionViaAuthApi(
-        context,
-        baseUrl
-      );
+      providerResult.sessionObservationAfterCallback =
+        await getSessionViaAuthApi(context, baseUrl);
 
       providerResult.callbackResponses = await recorder.stop();
       providerResult.finalUrlAfterSuccess = stripOrigin(page.url());
@@ -712,9 +710,9 @@ async function runProviderCases(params: {
         `[${providerResult.provider}] OAuth callback auth 响应必须带 no-store`
       );
       assert.equal(
-          hasSecureCookieFlags(providerResult.callbackResponses),
-          true,
-          `[${providerResult.provider}] OAuth callback auth 响应必须包含完整 cookie 安全属性`
+        hasSecureCookieFlags(providerResult.callbackResponses),
+        true,
+        `[${providerResult.provider}] OAuth callback auth 响应必须包含完整 cookie 安全属性`
       );
       assert(providerResult.sessionObservationAfterCallback);
       assertSignedInSession(
@@ -785,10 +783,8 @@ async function runProviderCases(params: {
         baseUrl,
         responses: providerResult.signOutResponses,
       });
-      providerResult.sessionObservationAfterSignOut = await getSessionViaAuthApi(
-        context,
-        baseUrl
-      );
+      providerResult.sessionObservationAfterSignOut =
+        await getSessionViaAuthApi(context, baseUrl);
 
       assert.equal(
         hasNoStoreHeader(providerResult.signOutResponses),
@@ -804,8 +800,8 @@ async function runProviderCases(params: {
         providerResult.signOutResponses.some(
           (response) => response.clearsCookie
         ),
-          true,
-          `[${providerResult.provider}] sign-out auth 响应必须清除 session cookie`
+        true,
+        `[${providerResult.provider}] sign-out auth 响应必须清除 session cookie`
       );
       assert(providerResult.sessionObservationAfterSignOut);
       assertSignedOutSession(

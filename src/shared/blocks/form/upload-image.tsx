@@ -72,9 +72,7 @@ export function UploadImage({
         .filter(Boolean);
 
       if (uploadedValues.length > 0) {
-        formField.onChange(
-          allowMultiple ? uploadedValues : uploadedValues[0]
-        );
+        formField.onChange(allowMultiple ? uploadedValues : uploadedValues[0]);
       } else {
         formField.onChange(allowMultiple ? [] : '');
       }

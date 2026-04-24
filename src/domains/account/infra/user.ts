@@ -1,8 +1,8 @@
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import { count, desc, eq, inArray } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { user } from '@/config/db/schema';
 
 export type User = typeof user.$inferSelect;

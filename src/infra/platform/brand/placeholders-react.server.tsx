@@ -1,7 +1,6 @@
 import 'server-only';
 
 import React from 'react';
-
 import {
   replaceBrandPlaceholders,
   type BrandPlaceholderValues,

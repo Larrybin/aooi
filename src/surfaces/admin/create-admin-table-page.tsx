@@ -1,10 +1,10 @@
 import 'server-only';
 
+import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
+import type { PermissionCode } from '@/app/access-control/action-guard';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { z } from 'zod';
 
-import type { PermissionCode } from '@/app/access-control/action-guard';
-import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
 import { TableCard } from '@/shared/blocks/table';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import type { Button, Filter, Search, Tab } from '@/shared/types/blocks/common';

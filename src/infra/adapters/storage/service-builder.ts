@@ -3,6 +3,7 @@ import type {
   StorageUploadResult,
 } from '@/extensions/storage';
 import { uploadFileToCloudflareR2 } from '@/shared/platform/cloudflare/storage';
+
 import {
   buildStorageSpikeUploadMockResult,
   isStorageSpikeUploadMockEnabled,
@@ -23,7 +24,9 @@ type StorageBuilderInput = {
   };
 };
 
-function assertBindingOnlyInput(input: unknown): asserts input is StorageBuilderInput {
+function assertBindingOnlyInput(
+  input: unknown
+): asserts input is StorageBuilderInput {
   if (
     typeof input !== 'object' ||
     input === null ||
@@ -34,7 +37,9 @@ function assertBindingOnlyInput(input: unknown): asserts input is StorageBuilder
   }
 }
 
-export function buildStorageService(input: StorageBuilderInput): StorageService {
+export function buildStorageService(
+  input: StorageBuilderInput
+): StorageService {
   assertBindingOnlyInput(input);
 
   const uploadMockEnabled =

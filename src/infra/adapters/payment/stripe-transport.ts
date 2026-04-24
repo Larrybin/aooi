@@ -1,10 +1,9 @@
-import Stripe from 'stripe';
-
 import {
   WebhookConfigError,
   WebhookVerificationError,
   type PaymentConfigs,
 } from '@/domains/billing/domain/payment';
+import Stripe from 'stripe';
 
 export interface StripeConfigs extends PaymentConfigs {
   secretKey: string;
@@ -14,7 +13,15 @@ export interface StripeConfigs extends PaymentConfigs {
   allowedPaymentMethods?: string[];
 }
 
-type StripeClientLike = Pick<Stripe, 'checkout' | 'customers' | 'invoices' | 'billingPortal' | 'subscriptions' | 'webhooks'>;
+type StripeClientLike = Pick<
+  Stripe,
+  | 'checkout'
+  | 'customers'
+  | 'invoices'
+  | 'billingPortal'
+  | 'subscriptions'
+  | 'webhooks'
+>;
 type StripeCheckoutSessionParams = NonNullable<
   Parameters<StripeClientLike['checkout']['sessions']['create']>[0]
 >;

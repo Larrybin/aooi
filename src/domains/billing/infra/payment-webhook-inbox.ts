@@ -1,37 +1,31 @@
 import 'server-only';
 
 import { createHash } from 'crypto';
-
-import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
-
-import { db } from '@/infra/adapters/db';
-import { paymentWebhookInbox } from '@/config/db/schema';
-import { getUuid } from '@/shared/lib/hash';
 import {
   PaymentEventType,
   type PaymentEvent,
 } from '@/domains/billing/domain/payment';
+import { serializePaymentWebhookCanonicalEvent } from '@/domains/billing/infra/payment-webhook-canonical-event';
 import {
   PAYMENT_WEBHOOK_INBOX_STATUS,
-  type PaymentWebhookInboxStatus,
   PAYMENT_WEBHOOK_OPERATION_KIND,
+  type PaymentWebhookInboxStatus,
   type PaymentWebhookOperationKind,
 } from '@/domains/billing/infra/payment-webhook-inbox.shared';
-import {
-  serializePaymentWebhookCanonicalEvent,
-} from '@/domains/billing/infra/payment-webhook-canonical-event';
-export {
-  PAYMENT_WEBHOOK_INBOX_STATUS,
-  PAYMENT_WEBHOOK_OPERATION_KIND,
-};
-export type {
-  PaymentWebhookInboxStatus,
-  PaymentWebhookOperationKind,
-};
+import { db } from '@/infra/adapters/db';
+import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+
+import { paymentWebhookInbox } from '@/config/db/schema';
+import { getUuid } from '@/shared/lib/hash';
+
+export { PAYMENT_WEBHOOK_INBOX_STATUS, PAYMENT_WEBHOOK_OPERATION_KIND };
+export type { PaymentWebhookInboxStatus, PaymentWebhookOperationKind };
 
 export type PaymentWebhookInboxRecord = typeof paymentWebhookInbox.$inferSelect;
 
-function normalizeOptionalText(value: string | null | undefined): string | null {
+function normalizeOptionalText(
+  value: string | null | undefined
+): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized || null;
@@ -214,7 +208,9 @@ export async function markPaymentWebhookInboxProcessed(input: {
 }
 
 export async function findPaymentWebhookInboxByIds(ids: string[]) {
-  const normalizedIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  const normalizedIds = [
+    ...new Set(ids.map((id) => id.trim()).filter(Boolean)),
+  ];
   if (normalizedIds.length === 0) {
     return [] as PaymentWebhookInboxRecord[];
   }

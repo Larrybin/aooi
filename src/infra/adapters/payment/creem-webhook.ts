@@ -1,13 +1,13 @@
-import { z } from 'zod';
-
-import { ServiceUnavailableError } from '@/shared/lib/api/errors';
-import { tryJsonParse } from '@/shared/lib/json';
-import { signHmacSha256Hex } from '@/shared/lib/runtime/crypto';
 import {
   WebhookConfigError,
   WebhookPayloadError,
   WebhookVerificationError,
 } from '@/domains/billing/domain/payment';
+import { z } from 'zod';
+
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import { tryJsonParse } from '@/shared/lib/json';
+import { signHmacSha256Hex } from '@/shared/lib/runtime/crypto';
 
 const creemSignaturePattern = /^[0-9a-f]{64}$/;
 
@@ -91,7 +91,9 @@ export async function verifyAndParseCreemWebhookEvent({
     throw new WebhookPayloadError('invalid webhook payload');
   }
 
-  const parsedWebhookEvent = creemWebhookEventSchema.safeParse(parsedEvent.value);
+  const parsedWebhookEvent = creemWebhookEventSchema.safeParse(
+    parsedEvent.value
+  );
   if (!parsedWebhookEvent.success) {
     throw new WebhookPayloadError('invalid webhook payload');
   }

@@ -1,16 +1,16 @@
 import { createHash } from 'crypto';
-
 import {
   PaymentEventType,
   SubscriptionCycleType,
   type PaymentEvent,
   type PaymentSession,
 } from '@/domains/billing/domain/payment';
+import type { Order } from '@/domains/billing/infra/order';
+import type { Subscription } from '@/domains/billing/infra/subscription';
+
 import { BadRequestError, NotFoundError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { toJsonValue } from '@/shared/lib/json';
-import type { Order } from '@/domains/billing/infra/order';
-import type { Subscription } from '@/domains/billing/infra/subscription';
 
 type PaymentNotifyLog = {
   debug: (message: string, meta?: Record<string, unknown>) => void;
@@ -221,10 +221,11 @@ async function requireExistingSubscription({
   subscriptionId: string;
   deps: Pick<PaymentNotifyDeps, 'findSubscriptionByProviderSubscriptionId'>;
 }) {
-  const existingSubscription = await deps.findSubscriptionByProviderSubscriptionId({
-    provider,
-    subscriptionId,
-  });
+  const existingSubscription =
+    await deps.findSubscriptionByProviderSubscriptionId({
+      provider,
+      subscriptionId,
+    });
   if (!existingSubscription) {
     throw new NotFoundError('subscription not found');
   }
@@ -596,8 +597,9 @@ export async function processPaymentNotifyEvent({
     deps,
   };
   const handler =
-    PAYMENT_NOTIFY_EVENT_HANDLERS[eventType as SupportedPaymentNotifyEventType] ??
-    handleUnsupportedEvent;
+    PAYMENT_NOTIFY_EVENT_HANDLERS[
+      eventType as SupportedPaymentNotifyEventType
+    ] ?? handleUnsupportedEvent;
 
   return await handler(context);
 }

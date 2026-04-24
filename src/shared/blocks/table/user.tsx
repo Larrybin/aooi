@@ -1,4 +1,5 @@
 import { Link } from '@/infra/platform/i18n/navigation';
+
 import {
   Avatar,
   AvatarFallback,

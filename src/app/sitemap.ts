@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next';
-
-import { locales } from '@/config/locale';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { getSite } from '@/infra/platform/site';
 import { buildCanonicalUrl } from '@/infra/url/canonical';
+
+import { locales } from '@/config/locale';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = getSite();

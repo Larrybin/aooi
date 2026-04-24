@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-
 import { ARCHITECTURE_RULES } from '@/testing/architecture-rules';
 
 const repoRoot = process.cwd();
@@ -33,7 +32,9 @@ async function collectSourceFiles(currentDir: string): Promise<string[]> {
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (DIRS_TO_SKIP.has(entry.name)) continue;
-      files.push(...(await collectSourceFiles(path.join(currentDir, entry.name))));
+      files.push(
+        ...(await collectSourceFiles(path.join(currentDir, entry.name)))
+      );
       continue;
     }
 
@@ -62,7 +63,14 @@ async function readSourceFiles() {
 }
 
 function countMatches(content: string, pattern: RegExp) {
-  return [...content.matchAll(new RegExp(pattern, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`))].length;
+  return [
+    ...content.matchAll(
+      new RegExp(
+        pattern,
+        pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`
+      )
+    ),
+  ].length;
 }
 
 function isTestFile(repoPath: string) {
@@ -74,8 +82,7 @@ const importPatterns = {
     /(?:from\s+['"]@\/shared\/models(?:\/[^'"]*)?['"]|import\s*\(\s*['"]@\/shared\/models(?:\/[^'"]*)?['"]\s*\))/g,
   sharedServices:
     /(?:from\s+['"]@\/shared\/services(?:\/[^'"]*)?['"]|import\s*\(\s*['"]@\/shared\/services(?:\/[^'"]*)?['"]\s*\))/g,
-  core:
-    /(?:from\s+['"]@\/core(?:\/[^'"]*)?['"]|import\s*\(\s*['"]@\/core(?:\/[^'"]*)?['"]\s*\))/g,
+  core: /(?:from\s+['"]@\/core(?:\/[^'"]*)?['"]|import\s*\(\s*['"]@\/core(?:\/[^'"]*)?['"]\s*\))/g,
   features:
     /(?:from\s+['"]@\/features(?:\/[^'"]*)?['"]|import\s*\(\s*['"]@\/features(?:\/[^'"]*)?['"]\s*\))/g,
 };
@@ -109,12 +116,14 @@ const applicationAllowedPlatformImportPatterns =
   ARCHITECTURE_RULES.applicationAllowedPlatformImports.map(
     (pattern) => new RegExp(pattern)
   );
-const appOnlyFacadeImportPatterns = ARCHITECTURE_RULES.appOnlyFacadeImportPatterns.map(
-  (pattern) => new RegExp(pattern)
-);
-const appAdminForbiddenImportPatterns = ARCHITECTURE_RULES.appAdminForbiddenImports.map(
-  (pattern) => new RegExp(pattern)
-);
+const appOnlyFacadeImportPatterns =
+  ARCHITECTURE_RULES.appOnlyFacadeImportPatterns.map(
+    (pattern) => new RegExp(pattern)
+  );
+const appAdminForbiddenImportPatterns =
+  ARCHITECTURE_RULES.appAdminForbiddenImports.map(
+    (pattern) => new RegExp(pattern)
+  );
 const memberSettingsForbiddenImportPatterns =
   ARCHITECTURE_RULES.memberSettingsForbiddenImports.map(
     (pattern) => new RegExp(pattern)
@@ -155,7 +164,9 @@ const orchestrationPathPattern = new RegExp(
 );
 
 function isPublicCompositionFile(repoPath: string) {
-  return publicCompositionPathPatterns.some((pattern) => pattern.test(repoPath));
+  return publicCompositionPathPatterns.some((pattern) =>
+    pattern.test(repoPath)
+  );
 }
 
 function readImportSpecifiers(source: string) {
@@ -197,11 +208,7 @@ function isOrchestrationFile(repoPath: string) {
   return orchestrationPathPattern.test(repoPath);
 }
 
-function assertHasMarker(
-  content: string,
-  marker: string,
-  repoPath: string
-) {
+function assertHasMarker(content: string, marker: string, repoPath: string) {
   assert.equal(
     content.includes(marker),
     true,
@@ -215,7 +222,11 @@ function assertHasPattern(
   repoPath: string,
   message: string
 ) {
-  assert.equal(new RegExp(pattern).test(content), true, `${repoPath} ${message}`);
+  assert.equal(
+    new RegExp(pattern).test(content),
+    true,
+    `${repoPath} ${message}`
+  );
 }
 
 function countByDomain(files: Array<{ repoPath: string }>) {
@@ -368,9 +379,7 @@ test('architecture: canonical base 只能在 canonical helper 内构造', async 
       `${file.repoPath} 不应直接构造 metadataBase；请使用 buildMetadataBaseUrl`
     );
     assert.equal(
-      /new URL\([^)]*(?:site\.brand\.appUrl|brand\.appUrl)/.test(
-        file.content
-      ),
+      /new URL\([^)]*(?:site\.brand\.appUrl|brand\.appUrl)/.test(file.content),
       false,
       `${file.repoPath} 不应直接用 site brand URL 构造 canonical；请使用 canonical helper`
     );
@@ -459,8 +468,10 @@ test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP sc
 });
 
 test('architecture: 新目标目录不回引旧架构入口', async () => {
-  const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/(?:domains|surfaces|infra)\//.test(repoPath) && !isTestFile(repoPath)
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) =>
+      /^src\/(?:domains|surfaces|infra)\//.test(repoPath) &&
+      !isTestFile(repoPath)
   );
   const forbiddenLegacyImportPattern =
     /@\/(?:core|features|shared\/models|shared\/services)(?:\/|['"])/;
@@ -533,9 +544,7 @@ test('architecture: Public Composition Layer 只导入只读 domain 入口', asy
         `${file.repoPath} 不应导入 infra/adapters`
       );
 
-      const match = specifier.match(
-        /^@\/domains\/[^/]+\/application\/(.+)$/
-      );
+      const match = specifier.match(/^@\/domains\/[^/]+\/application\/(.+)$/);
       if (!match) continue;
 
       assert.equal(
@@ -575,8 +584,7 @@ test('architecture: settings-store 拥有 settings cache invalidation', async ()
   );
   const adminSettingsPage = files.find(
     ({ repoPath }) =>
-      repoPath ===
-      'src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx'
+      repoPath === 'src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx'
   );
 
   assert.ok(settingsStore, 'settings-store.ts 应存在');
@@ -762,9 +770,7 @@ test('architecture: 跨域 application 依赖只能指向只读入口', async ()
     assert.ok(source, `${file.repoPath} 应属于明确的 domain application`);
 
     for (const specifier of readImportSpecifiers(file.content)) {
-      const match = specifier.match(
-        /^@\/domains\/([^/]+)\/application\/(.+)$/
-      );
+      const match = specifier.match(/^@\/domains\/([^/]+)\/application\/(.+)$/);
       if (!match) continue;
 
       const [, targetDomain, targetPath] = match;

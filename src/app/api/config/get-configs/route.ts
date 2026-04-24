@@ -1,9 +1,11 @@
-import { withApi } from '@/shared/lib/api/route';
-import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   readPublicUiConfigCached,
   readPublicUiConfigFresh,
 } from '@/domains/settings/application/settings-runtime.query';
+
+import { withApi } from '@/shared/lib/api/route';
+import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
+
 import { buildGetConfigsLogic } from './route-logic';
 
 const defaultGetConfigsLogic = buildGetConfigsLogic({

@@ -163,7 +163,10 @@ export function normalizeRevisionSiteConfig(siteConfig, { siteKey }) {
     siteConfig.capabilities && typeof siteConfig.capabilities === 'object'
       ? siteConfig.capabilities
       : {};
-  const brand = siteConfig.brand && typeof siteConfig.brand === 'object' ? siteConfig.brand : {};
+  const brand =
+    siteConfig.brand && typeof siteConfig.brand === 'object'
+      ? siteConfig.brand
+      : {};
 
   return {
     key:
@@ -177,16 +180,17 @@ export function normalizeRevisionSiteConfig(siteConfig, { siteKey }) {
           : null,
     },
     capabilities: {
-      ai:
-        typeof capabilities.ai === 'boolean'
-          ? capabilities.ai
-          : false,
+      ai: typeof capabilities.ai === 'boolean' ? capabilities.ai : false,
     },
   };
 }
 
 export function normalizeRevisionDeploySettings(deploySettings) {
-  if (!deploySettings || typeof deploySettings !== 'object' || Array.isArray(deploySettings)) {
+  if (
+    !deploySettings ||
+    typeof deploySettings !== 'object' ||
+    Array.isArray(deploySettings)
+  ) {
     return {};
   }
 
@@ -247,7 +251,8 @@ export function buildRevisionStateDeployInput({
   siteKey,
 }) {
   const normalizedSite = normalizeRevisionSiteConfig(siteConfig, { siteKey });
-  const normalizedDeploySettings = normalizeRevisionDeploySettings(deploySettings);
+  const normalizedDeploySettings =
+    normalizeRevisionDeploySettings(deploySettings);
   const normalizedMigrations = parseStateTemplateMigrations(stateTemplate);
 
   if (!normalizedSite) {

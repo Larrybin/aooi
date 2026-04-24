@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import { AIMediaType } from '@/extensions/ai';
+import { resolveAICapabilitySelection } from '@/domains/ai/domain/capability-selection';
 import type {
   AiProviderBindings,
   AiRuntimeSettings,
 } from '@/domains/settings/application/settings-runtime.contracts';
-import { resolveAICapabilitySelection } from '@/domains/ai/domain/capability-selection';
+
+import { AIMediaType } from '@/extensions/ai';
 
 import {
   listConfiguredAICapabilities,
@@ -84,32 +84,24 @@ test('resolveConfiguredAICapability: 返回 canonical scene 和 costCredits', ()
 
 test('resolveConfiguredAICapability: 非法组合抛错', () => {
   assert.throws(() =>
-    resolveConfiguredAICapability(
-      AI_SETTINGS,
-      REPLICATE_BINDINGS,
-      {
-        mediaType: AIMediaType.MUSIC,
-        scene: 'text-to-music',
-        provider: 'kie',
-        model: 'V5',
-      }
-    )
+    resolveConfiguredAICapability(AI_SETTINGS, REPLICATE_BINDINGS, {
+      mediaType: AIMediaType.MUSIC,
+      scene: 'text-to-music',
+      provider: 'kie',
+      model: 'V5',
+    })
   );
 });
 
 test('resolveConfiguredAICapability: ai disabled 时返回 capability unavailable', () => {
   assert.throws(
     () =>
-      resolveConfiguredAICapability(
-        AI_DISABLED_SETTINGS,
-        REPLICATE_BINDINGS,
-        {
-          mediaType: AIMediaType.IMAGE,
-          scene: 'image-to-image',
-          provider: 'replicate',
-          model: 'google/nano-banana',
-        }
-      ),
+      resolveConfiguredAICapability(AI_DISABLED_SETTINGS, REPLICATE_BINDINGS, {
+        mediaType: AIMediaType.IMAGE,
+        scene: 'image-to-image',
+        provider: 'replicate',
+        model: 'google/nano-banana',
+      }),
     /ai capability not available/
   );
 });

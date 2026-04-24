@@ -28,7 +28,10 @@ Your Worker has access to the following bindings:
 });
 
 test('parseDryRunUploadSize 在缺少体积行时失败', () => {
-  assert.throws(() => parseDryRunUploadSize('no size info'), /parse dry-run upload size/i);
+  assert.throws(
+    () => parseDryRunUploadSize('no size info'),
+    /parse dry-run upload size/i
+  );
 });
 
 test('buildVersionUploadDryRunArgs 为 app worker 固定使用 wrangler versions upload --dry-run', () => {

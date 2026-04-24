@@ -1,3 +1,5 @@
+import type { Configs } from '@/domains/settings/application/settings-store';
+
 import { AdsenseProvider } from '@/extensions/ads/adsense';
 import { AdsterraProvider } from '@/extensions/ads/adsterra';
 import {
@@ -6,7 +8,6 @@ import {
   type AdsZoneName,
 } from '@/extensions/ads/types';
 import { ADS_ZONE_NAMES } from '@/extensions/ads/zones';
-import type { Configs } from '@/domains/settings/application/settings-store';
 
 export type ResolvedAdsRuntime =
   | { enabled: false }

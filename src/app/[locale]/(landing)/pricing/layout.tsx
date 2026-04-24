@@ -2,21 +2,21 @@
 // cache: default (no explicit fetch)
 // reason: shared landing shell; keep data loading in leaf pages
 import type { ReactNode } from 'react';
-import { getTranslations } from 'next-intl/server';
-
-import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
-import { PublicAppProvider } from '@/shared/contexts/app';
-import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
-import {
-  buildBrandPlaceholderValues,
-  replaceBrandPlaceholdersDeep,
-} from '@/infra/platform/brand/placeholders.server';
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import {
   readAuthUiRuntimeSettingsCached,
   readBillingRuntimeSettingsCached,
   readPublicUiConfigCached,
 } from '@/domains/settings/application/settings-runtime.query';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/infra/platform/brand/placeholders.server';
+import { getTranslations } from 'next-intl/server';
+
+import { LocaleDetectorLazy } from '@/shared/blocks/common/locale-detector-lazy';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type {
   Footer as FooterType,
   Header as HeaderType,

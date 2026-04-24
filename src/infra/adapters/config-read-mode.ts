@@ -1,5 +1,6 @@
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import type { Configs } from '@/domains/settings/application/settings-store';
+
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 
 export async function readServiceConfigsByMode(
   mode: ConfigConsistencyMode = 'cached',

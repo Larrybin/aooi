@@ -1,12 +1,13 @@
 import 'server-only';
 
-import { type ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   readSettingsCached,
   readSettingsFresh,
   type Configs,
 } from '@/domains/settings/application/settings-store';
 import { readServiceConfigsByMode } from '@/infra/adapters/config-read-mode';
+
+import { type ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 
 export type ConfigRefreshPolicy = 'cached';
 

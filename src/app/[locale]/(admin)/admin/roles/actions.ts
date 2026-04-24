@@ -1,12 +1,5 @@
 'use server';
 
-import { AdminRoleUpdateFormSchema } from '@/surfaces/admin/schemas/role';
-import {
-  validateAndParseForm,
-  validatePermission,
-} from '@/surfaces/admin/server/action-utils';
-import { z } from 'zod';
-
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import {
   deleteRoleUseCase,
@@ -14,6 +7,13 @@ import {
   restoreRoleUseCase,
   updateRoleMetadataUseCase,
 } from '@/domains/access-control/application/checker';
+import { AdminRoleUpdateFormSchema } from '@/surfaces/admin/schemas/role';
+import {
+  validateAndParseForm,
+  validatePermission,
+} from '@/surfaces/admin/server/action-utils';
+import { z } from 'zod';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
@@ -32,13 +32,16 @@ export async function updateRoleAction(id: string, formData: FormData) {
       errorMessage: 'title and description are required',
     });
 
-    const result = await updateRoleMetadataUseCase({
-      roleId: id,
-      title: data.title,
-      description: data.description,
-      actorUserId: user.id,
-      source: 'admin.roles.updateRoleAction',
-    }, accessControlRuntimeDeps);
+    const result = await updateRoleMetadataUseCase(
+      {
+        roleId: id,
+        title: data.title,
+        description: data.description,
+        actorUserId: user.id,
+        source: 'admin.roles.updateRoleAction',
+      },
+      accessControlRuntimeDeps
+    );
     if (!result) {
       throw new ActionError('update role failed');
     }
@@ -87,11 +90,14 @@ export async function deleteRoleAction(id: string) {
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_DELETE);
 
-    const roleRow = await deleteRoleUseCase({
-      roleId: id,
-      actorUserId: user.id,
-      source: 'admin.roles.deleteRoleAction',
-    }, accessControlRuntimeDeps);
+    const roleRow = await deleteRoleUseCase(
+      {
+        roleId: id,
+        actorUserId: user.id,
+        source: 'admin.roles.deleteRoleAction',
+      },
+      accessControlRuntimeDeps
+    );
     if (!roleRow) {
       throw new ActionError('Role not found');
     }
@@ -107,11 +113,14 @@ export async function restoreRoleAction(id: string) {
   return withAction(async () => {
     const user = await validatePermission(PERMISSIONS.ROLES_WRITE);
 
-    const result = await restoreRoleUseCase({
-      roleId: id,
-      actorUserId: user.id,
-      source: 'admin.roles.restoreRoleAction',
-    }, accessControlRuntimeDeps);
+    const result = await restoreRoleUseCase(
+      {
+        roleId: id,
+        actorUserId: user.id,
+        source: 'admin.roles.restoreRoleAction',
+      },
+      accessControlRuntimeDeps
+    );
     if (result.status === 'not_found') {
       throw new ActionError('Role not found');
     }

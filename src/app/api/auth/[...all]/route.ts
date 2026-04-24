@@ -1,15 +1,15 @@
-import { toNextJsHandler } from 'better-auth/next-js';
-
 import { getAuth } from '@/infra/platform/auth';
 import {
   normalizeAuthSpikeRedirectLocationValue,
   resolveAuthSpikeRedirectRequestUrl,
   toRelativeSameOriginAuthSpikeRedirectLocationValue,
 } from '@/infra/platform/auth/auth-spike-redirect';
-import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 import { getAuthOriginDebug } from '@/infra/platform/auth/config';
-import { setResponseHeader } from '@/shared/lib/api/response-headers';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
 import { getRuntimeEnvString } from '@/infra/runtime/env.server';
+import { toNextJsHandler } from 'better-auth/next-js';
+
+import { setResponseHeader } from '@/shared/lib/api/response-headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,9 +31,12 @@ function normalizeAuthSpikeRedirectLocation(
   }
 
   const runtimeBaseUrl = getAuthOriginDebug(request).runtimeBaseUrl;
-  const requestUrlForNormalization = resolveAuthSpikeRedirectRequestUrl(request, {
-    runtimeBaseUrl,
-  });
+  const requestUrlForNormalization = resolveAuthSpikeRedirectRequestUrl(
+    request,
+    {
+      runtimeBaseUrl,
+    }
+  );
   const normalizedLocation = normalizeAuthSpikeRedirectLocationValue(
     location,
     requestUrlForNormalization

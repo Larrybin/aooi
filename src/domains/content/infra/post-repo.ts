@@ -1,8 +1,8 @@
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import { and, count, desc, eq, like, or } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { post } from '@/config/db/schema';
 
 export type PostRow = typeof post.$inferSelect;

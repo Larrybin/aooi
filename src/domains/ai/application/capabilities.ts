@@ -1,16 +1,17 @@
 import {
-  BadRequestError,
-  ServiceUnavailableError,
-} from '@/shared/lib/api/errors';
-import type {
-  AiProviderBindings,
-  AiRuntimeSettings,
-} from '@/domains/settings/application/settings-runtime.contracts';
-import {
   listAvailableAICapabilities,
   resolveAICapability,
   type AIProviderAvailability,
 } from '@/domains/ai/domain/capabilities';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
+
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/shared/lib/api/errors';
 import type {
   AICapability,
   AICapabilitySelection,
@@ -69,7 +70,9 @@ export async function listPublicAICapabilities() {
   return listConfiguredAICapabilities(settings, bindings);
 }
 
-export async function resolvePublicAICapability(selection: AICapabilitySelection) {
+export async function resolvePublicAICapability(
+  selection: AICapabilitySelection
+) {
   const [{ readAiRuntimeSettingsCached }, { getAiProviderBindings }] =
     await Promise.all([
       import('@/domains/settings/application/settings-runtime.query'),

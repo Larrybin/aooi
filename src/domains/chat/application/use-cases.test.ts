@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import type { UIMessage } from 'ai';
 import type {
   AiProviderBindings,
   AiRuntimeSettings,
 } from '@/domains/settings/application/settings-runtime.contracts';
+import type { UIMessage } from 'ai';
 
 import {
   createChatUseCase,
@@ -256,7 +255,10 @@ test('streamChatUseCase 在 provider failure 时退款', async () => {
     }
   );
 
-  assert.equal(response.headers.get('content-type'), 'text/plain;charset=UTF-8');
+  assert.equal(
+    response.headers.get('content-type'),
+    'text/plain;charset=UTF-8'
+  );
   assert.deepEqual(persisted, ['user']);
 
   onError?.(new Error('provider failed'));
@@ -269,7 +271,10 @@ test('streamChatUseCase 在 provider failure 时退款', async () => {
 test('streamChatUseCase 在 assistant message 持久化失败时退款', async () => {
   const refunds: string[] = [];
   let finish:
-    | ((event: { messages: UIMessage[]; finishReason?: string | null }) => Promise<void>)
+    | ((event: {
+        messages: UIMessage[];
+        finishReason?: string | null;
+      }) => Promise<void>)
     | null = null;
 
   await streamChatUseCase(

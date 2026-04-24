@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-
 import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+
 import type {
   Footer as FooterType,
   Header as HeaderType,

@@ -3,14 +3,6 @@
 // reason: public docs pages; unknown slugs should return notFound()
 import { createElement, type ElementType, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { getMDXComponents } from '@/mdx-components';
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from 'fumadocs-ui/page';
-
 import {
   docsSource,
   listDocsStaticParams,
@@ -21,7 +13,13 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/infra/platform/brand/placeholders.server';
-import { createRelativeLink } from '@/mdx-components';
+import { createRelativeLink, getMDXComponents } from '@/mdx-components';
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from 'fumadocs-ui/page';
 
 export default async function DocsContentPage(props: {
   params: Promise<{ slug?: string[]; locale?: string }>;

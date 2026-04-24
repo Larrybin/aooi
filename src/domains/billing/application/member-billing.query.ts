@@ -1,23 +1,22 @@
-import { OrderStatus } from '@/domains/billing/infra/order';
 import { type PaymentType } from '@/domains/billing/domain/payment';
 import {
-  SubscriptionStatus,
-} from '@/domains/billing/infra/subscription';
+  getOrders,
+  getOrdersCount,
+  OrderStatus,
+} from '@/domains/billing/infra/order';
 import {
   getCurrentSubscription,
   getSubscriptions,
   getSubscriptionsCount,
+  SubscriptionStatus,
 } from '@/domains/billing/infra/subscription';
-import { getOrders, getOrdersCount } from '@/domains/billing/infra/order';
 
-export async function readMemberBillingOverviewQuery(
-  input: {
-    userId: string;
-    page: number;
-    limit: number;
-    status?: string;
-  }
-) {
+export async function readMemberBillingOverviewQuery(input: {
+  userId: string;
+  page: number;
+  limit: number;
+  status?: string;
+}) {
   const [currentSubscription, subscriptions, total] = await Promise.all([
     getCurrentSubscription(input.userId),
     getSubscriptions({
@@ -59,14 +58,12 @@ export const ADMIN_PAYMENT_FILTER_STATUSES = [
   OrderStatus.FAILED,
 ] as const;
 
-export async function listMemberPaymentsQuery(
-  input: {
-    userId: string;
-    page: number;
-    limit: number;
-    paymentType?: PaymentType;
-  }
-) {
+export async function listMemberPaymentsQuery(input: {
+  userId: string;
+  page: number;
+  limit: number;
+  paymentType?: PaymentType;
+}) {
   const [orders, total] = await Promise.all([
     getOrders({
       userId: input.userId,
@@ -88,16 +85,14 @@ export async function listMemberPaymentsQuery(
   };
 }
 
-export async function listAdminPaymentsQuery(
-  input: {
-    page: number;
-    limit: number;
-    orderNo?: string;
-    paymentType?: PaymentType;
-    paymentProvider?: string;
-    status?: AdminPaymentRow['status'];
-  }
-) {
+export async function listAdminPaymentsQuery(input: {
+  page: number;
+  limit: number;
+  orderNo?: string;
+  paymentType?: PaymentType;
+  paymentProvider?: string;
+  status?: AdminPaymentRow['status'];
+}) {
   const [rows, total] = await Promise.all([
     getOrders({
       orderNo: input.orderNo,
@@ -119,13 +114,11 @@ export async function listAdminPaymentsQuery(
   return { rows, total };
 }
 
-export async function listAdminSubscriptionsQuery(
-  input: {
-    page: number;
-    limit: number;
-    interval?: string;
-  }
-) {
+export async function listAdminSubscriptionsQuery(input: {
+  page: number;
+  limit: number;
+  interval?: string;
+}) {
   const [rows, total] = await Promise.all([
     getSubscriptions({
       interval: input.interval,
@@ -141,8 +134,11 @@ export async function listAdminSubscriptionsQuery(
   return { rows, total };
 }
 
-export function isCancelableSubscriptionStatus(status: string | null | undefined) {
+export function isCancelableSubscriptionStatus(
+  status: string | null | undefined
+) {
   return (
-    status === SubscriptionStatus.ACTIVE || status === SubscriptionStatus.TRIALING
+    status === SubscriptionStatus.ACTIVE ||
+    status === SubscriptionStatus.TRIALING
   );
 }

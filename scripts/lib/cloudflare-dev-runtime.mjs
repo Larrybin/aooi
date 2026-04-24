@@ -7,8 +7,7 @@ import { fileURLToPath } from 'node:url';
 import * as envContractNamespace from '../../src/config/env-contract.ts';
 import { withIpv4FirstNodeOptions } from './node-process-env.mjs';
 
-const envContractModule =
-  envContractNamespace.default ?? envContractNamespace;
+const envContractModule = envContractNamespace.default ?? envContractNamespace;
 const { assertAllowedEnvKeys, DEV_VARS_ALLOWED_KEYS, parseEnvAssignments } =
   envContractModule;
 

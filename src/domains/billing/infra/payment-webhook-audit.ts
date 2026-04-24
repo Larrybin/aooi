@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { db } from '@/infra/adapters/db';
+
 import { paymentWebhookAudit } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
 
@@ -14,7 +15,9 @@ export type RecordPaymentWebhookAuditInput = {
   receivedAt: Date;
 };
 
-function normalizeOptionalText(value: string | null | undefined): string | null {
+function normalizeOptionalText(
+  value: string | null | undefined
+): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized || null;

@@ -4,27 +4,27 @@
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { SignModal } from '@/domains/account/ui/auth/sign-modal';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import { ChatLibrary } from '@/domains/chat/ui/library';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
-import { WorkspaceLayout } from '@/shared/blocks/workspace';
-import { PublicAppProvider } from '@/shared/contexts/app';
-import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
-import { ChatContextProvider } from '@/shared/contexts/chat';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import { getSignedInUserSnapshot } from '@/infra/platform/auth/session.server';
 import { applyBrandToSidebar } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
-import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
+import { WorkspaceLayout } from '@/shared/blocks/workspace';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
+import { ChatContextProvider } from '@/shared/contexts/chat';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type { Sidebar as SidebarType } from '@/shared/types/blocks/workspace';
 
 export default async function ChatLayout({

@@ -1,11 +1,11 @@
 // data: admin session (RBAC) + role record (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: role metadata is permission-gated; avoid caching across admins
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
+import { readAdminRoleQuery } from '@/domains/access-control/application/admin-roles.query';
 import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
-import { readAdminRoleQuery } from '@/domains/access-control/application/admin-roles.query';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';

@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PaymentModal } from '@/domains/billing/ui/payment-modal';
 import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
-import { PaymentModal } from '@/domains/billing/ui/payment-modal';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -30,12 +30,12 @@ import {
 } from '@/shared/hooks/use-self-user-details';
 import { isPlainObject } from '@/shared/lib/api/client';
 import { fetchJson, toastFetchError } from '@/shared/lib/api/fetch-json';
-import { getCookie } from '@/shared/lib/cookie';
 import {
   formatMessageWithRequestId,
   getRequestIdFromError,
   RequestIdError,
 } from '@/shared/lib/api/request-id';
+import { getCookie } from '@/shared/lib/cookie';
 import { cn } from '@/shared/lib/utils';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 import type {
@@ -85,8 +85,7 @@ export function Pricing({
     setIsShowPaymentModal,
     billingSettings,
     uiConfig,
-  } =
-    usePublicAppContext();
+  } = usePublicAppContext();
   const {
     data: details,
     error: detailsError,
@@ -210,7 +209,9 @@ export function Pricing({
     const displayedItem =
       itemCurrencies[item.product_id]?.displayedItem || item;
 
-    if (accountDetails.currentSubscriptionProductId === displayedItem.product_id) {
+    if (
+      accountDetails.currentSubscriptionProductId === displayedItem.product_id
+    ) {
       setProductId(null);
       return;
     }
@@ -530,8 +531,8 @@ export function Pricing({
                         'bg-primary text-primary-foreground hover:bg-primary/90 border-[0.5px] border-white/25 shadow-md shadow-black/20'
                       )}
                     >
-                      {((isLoading && item.product_id === productId) ||
-                        (isLoadingDetails && item.product_id === productId)) ? (
+                      {(isLoading && item.product_id === productId) ||
+                      (isLoadingDetails && item.product_id === productId) ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
                           <span className="block">{t('processing')}</span>

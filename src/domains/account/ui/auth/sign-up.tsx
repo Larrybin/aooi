@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import type {
+  AuthUiRuntimeSettings,
+  PublicUiConfig,
+} from '@/domains/settings/application/settings-runtime.contracts';
+import { signUp, withAuthJsonRequest } from '@/infra/platform/auth/client';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import {
-  signUp,
-  withAuthJsonRequest,
-} from '@/infra/platform/auth/client';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -20,16 +21,10 @@ import {
 } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
-import {
-  normalizeCallbackUrl,
-} from '@/shared/lib/callback-url';
+import { normalizeCallbackUrl } from '@/shared/lib/callback-url';
 import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
-import type {
-  AuthUiRuntimeSettings,
-  PublicUiConfig,
-} from '@/domains/settings/application/settings-runtime.contracts';
 
 import { reportSignUpAffiliate } from './report-sign-up-affiliate';
 import { SocialProviders } from './social-providers';

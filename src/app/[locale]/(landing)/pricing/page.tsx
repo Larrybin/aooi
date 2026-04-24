@@ -1,16 +1,16 @@
 // data: pricing translations + public configs + theme page
 // cache: static (generateStaticParams) + cached public configs
 // reason: marketing pricing page should stay statically prerenderable
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
-import { locales } from '@/config/locale';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
+import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import { getMetadata } from '@/surfaces/public/seo/metadata';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { locales } from '@/config/locale';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type {
   FAQ as FAQType,
   Testimonials as TestimonialsType,

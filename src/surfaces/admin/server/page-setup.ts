@@ -1,9 +1,8 @@
 import 'server-only';
 
-import { setRequestLocale } from 'next-intl/server';
-
-import type { PermissionCode } from '@/app/access-control/action-guard';
 import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
+import type { PermissionCode } from '@/app/access-control/action-guard';
+import { setRequestLocale } from 'next-intl/server';
 
 export async function setupAdminPage({
   locale,

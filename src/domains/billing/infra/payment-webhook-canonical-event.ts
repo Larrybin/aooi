@@ -1,5 +1,6 @@
-import { toJsonValue } from '@/shared/lib/json';
 import { type PaymentEvent } from '@/domains/billing/domain/payment';
+
+import { toJsonValue } from '@/shared/lib/json';
 
 function toJsonString(value: unknown): string {
   return JSON.stringify(toJsonValue(value));
@@ -19,7 +20,9 @@ function toDateOrNull(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function serializePaymentWebhookCanonicalEvent(event: PaymentEvent): string {
+export function serializePaymentWebhookCanonicalEvent(
+  event: PaymentEvent
+): string {
   return toJsonString(event);
 }
 

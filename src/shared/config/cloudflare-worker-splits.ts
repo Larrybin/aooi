@@ -1,3 +1,11 @@
+import {
+  getAllSplitWorkers,
+  getSplitWorker,
+  resolveWorkerTarget,
+  stripLocalePrefix,
+} from './cloudflare-worker-routing';
+import topology from './cloudflare-worker-topology';
+
 export {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
   CLOUDFLARE_DURABLE_OBJECT_BINDINGS,
@@ -13,14 +21,6 @@ export {
   type CloudflareSplitWorkerTarget,
 } from './cloudflare-worker-topology';
 export {
-  getAllSplitWorkers,
-  getSplitWorker,
-  resolveWorkerTarget,
-  stripLocalePrefix,
-} from './cloudflare-worker-routing';
-
-import topology from './cloudflare-worker-topology';
-import {
   getAllSplitWorkers,
   getSplitWorker,
   resolveWorkerTarget,

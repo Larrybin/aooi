@@ -2,11 +2,11 @@
 // cache: no-store (request-bound auth)
 // reason: user-specific invoice retrieval; do not cache redirects
 import { redirect } from 'next/navigation';
+import { retrieveMemberInvoiceUrl } from '@/domains/billing/application/member-billing.actions';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { retrieveMemberInvoiceUrl } from '@/domains/billing/application/member-billing.actions';
 
 export default async function RetrieveInvoicePage({
   params,
@@ -27,9 +27,7 @@ export default async function RetrieveInvoicePage({
     return <Empty message="no auth, please sign in" />;
   }
 
-  let result:
-    | Awaited<ReturnType<typeof retrieveMemberInvoiceUrl>>
-    | undefined;
+  let result: Awaited<ReturnType<typeof retrieveMemberInvoiceUrl>> | undefined;
   let errorMessage: string | undefined;
   try {
     result = await retrieveMemberInvoiceUrl({

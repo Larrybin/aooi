@@ -1,6 +1,8 @@
 // data: admin session (RBAC) + user record (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: user edit form is permission-gated and user-specific
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
 import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
@@ -8,8 +10,6 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
-import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateUserAction } from '../../actions';

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  buildRevisionStateDeployInput,
   buildReleaseMetadata,
+  buildRevisionStateDeployInput,
   detectStateReleaseChange,
   hasStateMigrationChange,
   normalizeRevisionDeploySettings,
@@ -269,16 +269,14 @@ test('历史 site.config 缺少 ai capability 时仍可归一化', () => {
 });
 
 test('旧平铺 deploy.settings 仍可提取 state migration 输入', () => {
-  const normalized = normalizeRevisionDeploySettings(
-    {
-      google_auth_enabled: false,
-      github_auth_enabled: false,
-      stripe_enabled: false,
-      creem_enabled: false,
-      paypal_enabled: false,
-      general_ai_enabled: false,
-    }
-  );
+  const normalized = normalizeRevisionDeploySettings({
+    google_auth_enabled: false,
+    github_auth_enabled: false,
+    stripe_enabled: false,
+    creem_enabled: false,
+    paypal_enabled: false,
+    general_ai_enabled: false,
+  });
 
   assert.deepEqual(normalized, {});
 });

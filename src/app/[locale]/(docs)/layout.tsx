@@ -3,16 +3,15 @@
 // reason: docs are public; site capability is the authoritative gate
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import type { Translations } from 'fumadocs-ui/i18n';
-import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
-import { RootProvider } from 'fumadocs-ui/provider';
-
 import {
   readDocsPageTree,
   resolveDocsLocale,
 } from '@/domains/content/application/docs-content.query';
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { getSite } from '@/infra/platform/site';
+import type { Translations } from 'fumadocs-ui/i18n';
+import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
+import { RootProvider } from 'fumadocs-ui/provider';
 
 import { baseOptions } from './layout.config';
 

@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  hasTaskTimedOut,
-  shouldSkipTaskPoll,
-} from './use-ai-generation-task';
+import { hasTaskTimedOut, shouldSkipTaskPoll } from './use-ai-generation-task';
 
 test('hasTaskTimedOut: 超时阈值到达后返回 true', () => {
   assert.equal(

@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 const rootDir = process.cwd();
 
 export function buildOpenNextBuildArgs() {
-  return ['exec', 'opennextjs-cloudflare', 'build', '--skipWranglerConfigCheck'];
+  return [
+    'exec',
+    'opennextjs-cloudflare',
+    'build',
+    '--skipWranglerConfigCheck',
+  ];
 }
 
 function runCommand(command, args) {
@@ -20,7 +25,9 @@ function runCommand(command, args) {
     child.once('exit', (code) => {
       if (code !== 0) {
         reject(
-          new Error(`${command} ${args.join(' ')} exited with code ${code ?? 1}`)
+          new Error(
+            `${command} ${args.join(' ')} exited with code ${code ?? 1}`
+          )
         );
         return;
       }
@@ -32,8 +39,16 @@ function runCommand(command, args) {
 
 async function main() {
   await runCommand('pnpm', buildOpenNextBuildArgs());
-  await runCommand('node', ['--import', 'tsx', 'scripts/bundle-cf-server-functions.mjs']);
-  await runCommand('node', ['--import', 'tsx', 'scripts/run-cf-multi-build-check.mjs']);
+  await runCommand('node', [
+    '--import',
+    'tsx',
+    'scripts/bundle-cf-server-functions.mjs',
+  ]);
+  await runCommand('node', [
+    '--import',
+    'tsx',
+    'scripts/run-cf-multi-build-check.mjs',
+  ]);
 }
 
 if (

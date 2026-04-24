@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import type {
   BillingRuntimeSettings,
   PaymentRuntimeBindings,
 } from '@/domains/settings/application/settings-runtime.contracts';
+
 import {
   cancelSubscriptionUseCase,
   readCancelableSubscriptionPageUseCase,

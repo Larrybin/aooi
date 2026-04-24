@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { runAuthSurface } from '../../src/testing/auth-spike.browser';
 import {
   AUTH_SPIKE_REQUIRED_ENV_NAMES,
   buildSurfaceRunEmails,
@@ -12,7 +13,6 @@ import {
   deriveParityResult,
   normalizeCallbackPath,
 } from '../../src/testing/auth-spike.shared';
-import { runAuthSurface } from '../../src/testing/auth-spike.browser';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const reportJsonPath =

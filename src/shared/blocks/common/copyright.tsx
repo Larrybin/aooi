@@ -1,6 +1,7 @@
 'use client';
 
 import { site } from '@/site';
+
 import type { Brand as BrandType } from '@/shared/types/blocks/common';
 
 export function Copyright({ brand }: { brand: BrandType }) {

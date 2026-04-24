@@ -8,7 +8,9 @@ type AuthSnapshotContextValue = {
   snapshot: AuthSessionUserSnapshot | null;
 };
 
-const AuthSnapshotContext = createContext<AuthSnapshotContextValue | null>(null);
+const AuthSnapshotContext = createContext<AuthSnapshotContextValue | null>(
+  null
+);
 
 export function AuthSnapshotProvider({
   children,

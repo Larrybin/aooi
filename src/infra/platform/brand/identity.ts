@@ -1,4 +1,5 @@
 import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
+
 import type { Footer, Header } from '@/shared/types/blocks/landing';
 import type { Sidebar } from '@/shared/types/blocks/workspace';
 
@@ -62,9 +63,7 @@ export function applyBrandToLandingHeaderFooter(params: {
   return { header, footer };
 }
 
-export function applyBrandToSidebar(
-  sidebar: Sidebar
-): Sidebar {
+export function applyBrandToSidebar(sidebar: Sidebar): Sidebar {
   const brand = getBrandIdentity();
 
   const header = sidebar.header?.brand

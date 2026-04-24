@@ -60,12 +60,12 @@ The spike is a `PASS` only when every in-scope provider:
 
 Use the same raw-conclusion vocabulary as Phase 1, but apply it to OAuth-only evidence:
 
-| Raw conclusion | Use when |
-| --- | --- |
-| `PASS` | OAuth redirect flow works on Cloudflare preview for the governed providers and failure paths. |
+| Raw conclusion | Use when                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `PASS`         | OAuth redirect flow works on Cloudflare preview for the governed providers and failure paths.                 |
 | `需要 adapter` | OAuth works, but callback/failure semantics need bounded contract normalization on the current provider path. |
-| `需要替代路线` | Cloudflare cannot reliably complete the OAuth flow for a governed provider on the current path. |
-| `BLOCKED` | The run cannot isolate OAuth feasibility because env/provider/test setup is not trustworthy. |
+| `需要替代路线` | Cloudflare cannot reliably complete the OAuth flow for a governed provider on the current path.               |
+| `BLOCKED`      | The run cannot isolate OAuth feasibility because env/provider/test setup is not trustworthy.                  |
 
 ## Proposed test surface
 

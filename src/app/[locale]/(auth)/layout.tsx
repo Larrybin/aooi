@@ -1,13 +1,13 @@
 // data: server public env configs (app name) + auth shell UI (locale toggle)
 // cache: default (no request-bound data; no explicit fetch)
 // reason: keep auth pages lightweight; user-specific data starts after sign-in
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 import { setRequestLocale } from 'next-intl/server';
 
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
-import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 
 export default async function AuthLayout({
   children,

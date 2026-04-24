@@ -1,14 +1,14 @@
 import 'server-only';
 
+import type { Configs } from '@/domains/settings/application/settings-store';
+import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+
 import {
   AffiliateManager,
   AffonsoAffiliateProvider,
   PromoteKitAffiliateProvider,
 } from '@/extensions/affiliate';
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { Configs } from '@/domains/settings/application/settings-store';
-
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
 
 /**
  * get affiliate manager with configs
@@ -39,9 +39,11 @@ export function getAffiliateManagerWithConfigs(configs: Configs) {
 /**
  * global affiliate service
  */
-export async function getAffiliateService(options: {
-  mode?: ConfigConsistencyMode;
-} = {}): Promise<AffiliateManager> {
+export async function getAffiliateService(
+  options: {
+    mode?: ConfigConsistencyMode;
+  } = {}
+): Promise<AffiliateManager> {
   return await buildServiceFromLatestConfigs(
     getAffiliateManagerWithConfigs,
     options

@@ -6,13 +6,11 @@
 
 import 'server-only';
 
-import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+
 import { assertCsrf } from '@/shared/lib/api/csrf.server';
-import {
-  ForbiddenError,
-  UnauthorizedError,
-} from '@/shared/lib/api/errors';
+import { ForbiddenError, UnauthorizedError } from '@/shared/lib/api/errors';
+import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
 
 import { accessControlRuntimeDeps } from './runtime-deps';
 

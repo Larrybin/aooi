@@ -2,15 +2,12 @@
 
 import { Fragment } from 'react/jsx-runtime';
 import { useSearchParams } from 'next/navigation';
+import { signOut } from '@/infra/platform/auth/client';
+import { Link, usePathname, useRouter } from '@/infra/platform/i18n/navigation';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { signOut } from '@/infra/platform/auth/client';
-import {
-  Link,
-  usePathname,
-  useRouter,
-} from '@/infra/platform/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Avatar,
@@ -31,7 +28,6 @@ import {
   normalizeCallbackUrl,
   withCallbackUrl,
 } from '@/shared/lib/callback-url';
-import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem, UserNav } from '@/shared/types/blocks/common';
 
@@ -76,7 +72,9 @@ export function SignUser({
                   src={snapshot.image || ''}
                   alt={snapshot.name || ''}
                 />
-                <AvatarFallback>{snapshot.name?.charAt(0) || 'U'}</AvatarFallback>
+                <AvatarFallback>
+                  {snapshot.name?.charAt(0) || 'U'}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

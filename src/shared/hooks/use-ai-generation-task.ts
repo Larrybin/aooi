@@ -11,7 +11,10 @@ export type AIGenerationTaskPhase =
 
 export type AIGenerationTaskTickResult = {
   done: boolean;
-  terminalState?: Exclude<AIGenerationTaskPhase, 'idle' | 'polling' | 'timeout'>;
+  terminalState?: Exclude<
+    AIGenerationTaskPhase,
+    'idle' | 'polling' | 'timeout'
+  >;
 };
 
 export function hasTaskTimedOut({

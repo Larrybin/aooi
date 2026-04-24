@@ -1,12 +1,12 @@
 // data: request locale (next-intl) + landing translations (FAQ/CTA) + image generator widget (client)
 // cache: default (no request-bound auth; no explicit fetch)
 // reason: public interactive page; keep server output cache-friendly
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { PageHeader } from '@/shared/blocks/common/page-header';
 import { ImageGenerator } from '@/domains/ai/ui';
 import { getMetadata } from '@/surfaces/public/seo/metadata';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { PageHeader } from '@/shared/blocks/common/page-header';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import { CTA, FAQ } from '@/themes/default/blocks';
 
 export const generateMetadata = getMetadata({

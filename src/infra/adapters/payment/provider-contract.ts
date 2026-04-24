@@ -16,7 +16,9 @@ export function assertSuccessfulPaymentSessionContract(
     session.paymentInfo.paymentAmount === undefined ||
     session.paymentInfo.paymentAmount === null
   ) {
-    throw new WebhookPayloadError('missing payment amount for successful event');
+    throw new WebhookPayloadError(
+      'missing payment amount for successful event'
+    );
   }
   if (!session.paymentInfo.paymentCurrency) {
     throw new WebhookPayloadError(
@@ -25,7 +27,9 @@ export function assertSuccessfulPaymentSessionContract(
   }
 }
 
-export function mapStripeEventTypeToCanonical(eventType: string): PaymentEventType {
+export function mapStripeEventTypeToCanonical(
+  eventType: string
+): PaymentEventType {
   switch (eventType) {
     case 'checkout.session.completed':
       return PaymentEventType.CHECKOUT_SUCCESS;
@@ -42,7 +46,9 @@ export function mapStripeEventTypeToCanonical(eventType: string): PaymentEventTy
   }
 }
 
-export function mapCreemEventTypeToCanonical(eventType: string): PaymentEventType {
+export function mapCreemEventTypeToCanonical(
+  eventType: string
+): PaymentEventType {
   switch (eventType) {
     case 'checkout.completed':
       return PaymentEventType.CHECKOUT_SUCCESS;
@@ -61,7 +67,9 @@ export function mapCreemEventTypeToCanonical(eventType: string): PaymentEventTyp
   }
 }
 
-export function mapPayPalEventTypeToCanonical(eventType: string): PaymentEventType {
+export function mapPayPalEventTypeToCanonical(
+  eventType: string
+): PaymentEventType {
   switch (eventType) {
     case 'CHECKOUT.ORDER.APPROVED':
     case 'CHECKOUT.ORDER.COMPLETED':

@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
-  SMOKE_SCENARIOS,
   getSmokeScenarioCommand,
+  SMOKE_SCENARIOS,
 } from '../../scripts/smoke.mjs';
 
 test('smoke runner: public scenarios map to existing runner scripts', () => {
@@ -15,8 +15,14 @@ test('smoke runner: public scenarios map to existing runner scripts', () => {
     'cf-local',
   ]);
 
-  assert.equal(SMOKE_SCENARIOS['auth-spike'].script, 'scripts/run-auth-spike.mjs');
-  assert.equal(SMOKE_SCENARIOS['cf-app'].script, 'scripts/run-cf-app-smoke.mjs');
+  assert.equal(
+    SMOKE_SCENARIOS['auth-spike'].script,
+    'scripts/run-auth-spike.mjs'
+  );
+  assert.equal(
+    SMOKE_SCENARIOS['cf-app'].script,
+    'scripts/run-cf-app-smoke.mjs'
+  );
   assert.equal(
     SMOKE_SCENARIOS['cf-admin-settings'].script,
     'scripts/run-cf-admin-settings-smoke.mjs'
@@ -34,7 +40,10 @@ test('smoke runner: scenario command keeps tsx loader for TS imports', () => {
 
   assert.equal(command.command, '/usr/local/bin/node');
   assert.deepEqual(command.args.slice(0, 2), ['--import', 'tsx']);
-  assert.equal(command.args.at(-1)?.endsWith('scripts/run-cf-app-smoke.mjs'), true);
+  assert.equal(
+    command.args.at(-1)?.endsWith('scripts/run-cf-app-smoke.mjs'),
+    true
+  );
 });
 
 test('package scripts: public smoke command names stay stable', async () => {

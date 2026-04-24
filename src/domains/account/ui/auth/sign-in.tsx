@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { signIn, withAuthJsonRequest } from '@/infra/platform/auth/client';
+import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import {
-  signIn,
-  withAuthJsonRequest,
-} from '@/infra/platform/auth/client';
-import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -29,7 +27,6 @@ import {
 import { toErrorMessage } from '@/shared/lib/errors';
 import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
-import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 import { SocialProviders } from './social-providers';
 

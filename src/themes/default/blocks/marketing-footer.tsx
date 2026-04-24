@@ -1,12 +1,12 @@
 import Link from 'next/link';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 
 import { defaultLocale } from '@/config/locale';
 import { AppImage } from '@/shared/blocks/common/app-image';
-import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
-import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 function withLocale(href: string, locale: string) {
   if (!href) return href;

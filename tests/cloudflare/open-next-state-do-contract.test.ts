@@ -18,9 +18,12 @@ function withCloudflareContext<T>(
   },
   run: () => Promise<T>
 ) {
-  const previous = (globalThis as Record<symbol, unknown>)[cloudflareContextSymbol];
+  const previous = (globalThis as Record<symbol, unknown>)[
+    cloudflareContextSymbol
+  ];
   (globalThis as Record<symbol, unknown>)[cloudflareContextSymbol] = context;
-  const previousOpenNextConfig = (globalThis as Record<string, unknown>).openNextConfig;
+  const previousOpenNextConfig = (globalThis as Record<string, unknown>)
+    .openNextConfig;
   (globalThis as Record<string, unknown>).openNextConfig = {
     dangerous: {},
   };
@@ -29,14 +32,16 @@ function withCloudflareContext<T>(
     if (previous === undefined) {
       delete (globalThis as Record<symbol, unknown>)[cloudflareContextSymbol];
     } else {
-      (globalThis as Record<symbol, unknown>)[cloudflareContextSymbol] = previous;
+      (globalThis as Record<symbol, unknown>)[cloudflareContextSymbol] =
+        previous;
     }
 
     if (previousOpenNextConfig === undefined) {
       delete (globalThis as Record<string, unknown>).openNextConfig;
       return;
     }
-    (globalThis as Record<string, unknown>).openNextConfig = previousOpenNextConfig;
+    (globalThis as Record<string, unknown>).openNextConfig =
+      previousOpenNextConfig;
   });
 }
 
@@ -98,9 +103,12 @@ test('OpenNext tag cache override 继续通过 NEXT_TAG_CACHE_DO_SHARDED 的 get
     regionalCache: false,
   });
   const waitUntilCalls: Promise<unknown>[] = [];
-  const getCalls: Array<{ id: string; options?: { locationHint?: string } }> = [];
+  const getCalls: Array<{ id: string; options?: { locationHint?: string } }> =
+    [];
   const getTagDataCalls: string[][] = [];
-  const writeTagsCalls: Array<Array<{ tag: string; stale?: number; expire?: number }>> = [];
+  const writeTagsCalls: Array<
+    Array<{ tag: string; stale?: number; expire?: number }>
+  > = [];
   const tagDataByTag = {
     'plan:pro': {
       revalidatedAt: 1_500,
@@ -119,10 +127,15 @@ test('OpenNext tag cache override 继续通过 NEXT_TAG_CACHE_DO_SHARDED 的 get
         async getTagData(tags: string[]) {
           getTagDataCalls.push(tags);
           return Object.fromEntries(
-            tags.map((tag) => [tag, tagDataByTag[tag as keyof typeof tagDataByTag] ?? null])
+            tags.map((tag) => [
+              tag,
+              tagDataByTag[tag as keyof typeof tagDataByTag] ?? null,
+            ])
           );
         },
-        async writeTags(tags: Array<{ tag: string; stale?: number; expire?: number }>) {
+        async writeTags(
+          tags: Array<{ tag: string; stale?: number; expire?: number }>
+        ) {
           writeTagsCalls.push(tags);
         },
       };
@@ -145,7 +158,10 @@ test('OpenNext tag cache override 继续通过 NEXT_TAG_CACHE_DO_SHARDED 的 get
     },
     async () => {
       const lastRevalidated = await tagCache.getLastRevalidated(['plan:pro']);
-      const hasBeenRevalidated = await tagCache.hasBeenRevalidated(['plan:pro'], 1_000);
+      const hasBeenRevalidated = await tagCache.hasBeenRevalidated(
+        ['plan:pro'],
+        1_000
+      );
       await tagCache.writeTags(['plan:pro']);
 
       assert.equal(lastRevalidated, 1_500);

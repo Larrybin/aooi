@@ -42,7 +42,11 @@ export function validateSiteConfig(config) {
   assertNonEmptyString(config.key, 'site.key');
   assertNonEmptyString(config.domain, 'site.domain');
 
-  if (!config.brand || typeof config.brand !== 'object' || Array.isArray(config.brand)) {
+  if (
+    !config.brand ||
+    typeof config.brand !== 'object' ||
+    Array.isArray(config.brand)
+  ) {
     throw new Error('site.brand is required');
   }
 

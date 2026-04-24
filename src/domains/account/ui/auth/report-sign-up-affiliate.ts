@@ -1,5 +1,6 @@
-type AffiliateWindow = Pick<Window, 'Affonso' | 'promotekit'>;
 import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+
+type AffiliateWindow = Pick<Window, 'Affonso' | 'promotekit'>;
 
 export function reportSignUpAffiliate({
   uiConfig,

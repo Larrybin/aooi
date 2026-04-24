@@ -1,9 +1,6 @@
-import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 import { readSettingsCached } from '@/domains/settings/application/settings-store';
-import {
-  getAdsTxtBody,
-  resolveAdsRuntime,
-} from '@/infra/adapters/ads/runtime';
+import { getAdsTxtBody, resolveAdsRuntime } from '@/infra/adapters/ads/runtime';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 
 import { buildAdsTxtResponse } from './response';
 

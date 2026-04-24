@@ -1,6 +1,6 @@
 import {
-  CLOUDFLARE_LOCAL_WORKER_URL_VARS,
   buildVersionOverridesHeader,
+  CLOUDFLARE_LOCAL_WORKER_URL_VARS,
   type CloudflareServerWorkerTarget,
 } from '../../src/shared/config/cloudflare-worker-splits';
 
@@ -84,7 +84,11 @@ export function buildForwardedWorkerRequest(
     workerTarget
   );
   const normalizedRequest = new Request(forwardedUrl, middlewareRequest);
-  const headers = buildForwardedHeaders(originalRequest, middlewareRequest, env);
+  const headers = buildForwardedHeaders(
+    originalRequest,
+    middlewareRequest,
+    env
+  );
 
   return new Request(normalizedRequest, { headers });
 }

@@ -1,14 +1,16 @@
 import { existsSync, readdirSync } from 'node:fs';
 
-import { readCurrentSiteConfig, resolveRequiredSiteKey } from './site-config.mjs';
+import cloudflareWorkerTopology from '../../src/shared/config/cloudflare-worker-topology.ts';
+import {
+  readCurrentSiteConfig,
+  resolveRequiredSiteKey,
+} from './site-config.mjs';
 import {
   CLOUDFLARE_RESOURCE_SLOT_KEYS,
   CLOUDFLARE_STATE_SLOT_KEYS,
   CLOUDFLARE_WORKER_SLOT_KEYS,
   readSiteDeploySettings,
 } from './site-deploy-settings.mjs';
-
-import cloudflareWorkerTopology from '../../src/shared/config/cloudflare-worker-topology.ts';
 
 const {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
@@ -62,7 +64,10 @@ function buildCanonicalBindingShape(contract) {
       CLOUDFLARE_RESOURCE_SLOT_KEYS.map((key) => [key, 'string'])
     ),
     state: Object.fromEntries(
-      CLOUDFLARE_STATE_SLOT_KEYS.map((key) => [key, key === 'schemaVersion' ? 'integer' : 'unknown'])
+      CLOUDFLARE_STATE_SLOT_KEYS.map((key) => [
+        key,
+        key === 'schemaVersion' ? 'integer' : 'unknown',
+      ])
     ),
     workers: Object.fromEntries(
       CLOUDFLARE_WORKER_SLOT_KEYS.map((key) => [key, 'string'])
@@ -153,7 +158,8 @@ export function resolveSiteDeployContractFromSources({
       slot: CLOUDFLARE_ROUTER_SLOT,
       workerName: deploySettings.workers.router,
       workerEntryRelativePath: CLOUDFLARE_ROUTER_WORKER.workerEntryRelativePath,
-      wranglerConfigRelativePath: CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath,
+      wranglerConfigRelativePath:
+        CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath,
       serviceBindings: {
         WORKER_SELF_REFERENCE: deploySettings.workers.router,
         ...Object.fromEntries(
@@ -191,7 +197,8 @@ export function resolveSiteDeployContractFromSources({
       slot: CLOUDFLARE_STATE_SLOT,
       workerName: deploySettings.workers.state,
       workerEntryRelativePath: CLOUDFLARE_STATE_WORKER.workerEntryRelativePath,
-      wranglerConfigRelativePath: CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath,
+      wranglerConfigRelativePath:
+        CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath,
       selfReferenceService: deploySettings.workers.router,
       durableObjects: Object.fromEntries(
         Object.entries(CLOUDFLARE_DURABLE_OBJECT_BINDINGS).map(
@@ -232,10 +239,16 @@ export function resolveSiteDeployContract({
 } = {}) {
   const site = readCurrentSiteConfig({ rootDir, siteKey });
   const deploySettings = readSiteDeploySettings({ rootDir, siteKey });
-  return resolveSiteDeployContractFromSources({ site, siteKey, deploySettings });
+  return resolveSiteDeployContractFromSources({
+    site,
+    siteKey,
+    deploySettings,
+  });
 }
 
-export function resolveAllSiteDeployContracts({ rootDir = process.cwd() } = {}) {
+export function resolveAllSiteDeployContracts({
+  rootDir = process.cwd(),
+} = {}) {
   const siteKeys = listSiteKeys({ rootDir });
   return siteKeys.map((siteKey) =>
     resolveSiteDeployContract({

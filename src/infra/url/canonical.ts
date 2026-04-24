@@ -1,7 +1,8 @@
 import 'server-only';
 
-import { defaultLocale, locales } from '@/config/locale';
 import { site } from '@/site';
+
+import { defaultLocale, locales } from '@/config/locale';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;
@@ -24,8 +25,7 @@ export function buildCanonicalUrl(pathOrUrl: string, locale?: string) {
 
   const baseUrl = stripTrailingSlash(site.brand.appUrl);
   const relativePath = normalizeRelativePath(pathOrUrl);
-  const localePrefix =
-    !locale || locale === defaultLocale ? '' : `/${locale}`;
+  const localePrefix = !locale || locale === defaultLocale ? '' : `/${locale}`;
 
   if (relativePath === '/') {
     return localePrefix ? `${baseUrl}${localePrefix}` : `${baseUrl}/`;
@@ -39,7 +39,10 @@ export function buildMetadataBaseUrl() {
 }
 
 export function buildLanguageAlternates(relativePath: string) {
-  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+  if (
+    relativePath.startsWith('http://') ||
+    relativePath.startsWith('https://')
+  ) {
     return undefined;
   }
 

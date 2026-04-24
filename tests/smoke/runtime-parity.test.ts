@@ -77,8 +77,7 @@ test('compareRuntimeResponseContracts 忽略 whitelist 头差异', () => {
         headers: {
           'cache-control': 'no-store',
           'content-type': 'application/json',
-          location:
-            'https://cloudflare.example.com/settings/profile?from=auth',
+          location: 'https://cloudflare.example.com/settings/profile?from=auth',
           'content-encoding': 'identity',
           date: 'Mon, 07 Apr 2026 10:00:09 GMT',
           'x-request-id': 'req-cloudflare',

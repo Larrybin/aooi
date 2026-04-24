@@ -1,8 +1,8 @@
 import 'server-only';
 
 import { createElement, type ElementType, type ReactNode } from 'react';
-import { getMDXComponents } from '@/mdx-components';
-
+import { formatPostDate } from '@/domains/content/domain/post-date';
+import { generateTOC } from '@/domains/content/domain/toc';
 import {
   pagesI18n,
   pagesSource,
@@ -14,12 +14,11 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholders,
 } from '@/infra/platform/brand/placeholders.server';
-import { createRelativeLink } from '@/mdx-components';
+import { createRelativeLink, getMDXComponents } from '@/mdx-components';
+
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 import { toSortTimestamp, type BlogPostEntry } from './blog-feed';
-import { generateTOC } from '@/domains/content/domain/toc';
-import { formatPostDate } from '@/domains/content/domain/post-date';
 
 function resolveContentLocale(locale: string, languages: string[]) {
   return languages.includes(locale) ? locale : 'en';

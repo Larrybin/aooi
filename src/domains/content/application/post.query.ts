@@ -1,18 +1,16 @@
 import 'server-only';
 
-import type { post } from '@/config/db/schema';
-import { generateTOC } from '@/domains/content/domain/toc';
 import { formatPostDate } from '@/domains/content/domain/post-date';
-import {
-  PostStatus,
-  type PostType,
-} from '@/domains/content/domain/post-types';
+import { PostStatus, type PostType } from '@/domains/content/domain/post-types';
+import { generateTOC } from '@/domains/content/domain/toc';
 import {
   findPostRow,
   getPostRows,
   getPostRowsCount,
 } from '@/domains/content/infra/post-repo';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+
+import type { post } from '@/config/db/schema';
 import type { Post as BlogPostType } from '@/shared/types/blocks/blog';
 
 const log = createUseCaseLogger({

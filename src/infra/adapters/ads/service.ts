@@ -1,16 +1,16 @@
 import 'server-only';
 
 import { cache } from 'react';
-
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import {
   readSettingsSafe,
   type Configs,
 } from '@/domains/settings/application/settings-store';
+import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+
+import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 import { resolveAdsRuntime, type ResolvedAdsRuntime } from './runtime';
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
 
 export {
   getAdsTxtBody,
@@ -26,9 +26,11 @@ export function getAdsRuntimeWithConfigs(configs: Configs): ResolvedAdsRuntime {
   return resolveAdsRuntime(configs);
 }
 
-export async function getAdsRuntime(options: {
-  mode?: ConfigConsistencyMode;
-} = {}): Promise<ResolvedAdsRuntime> {
+export async function getAdsRuntime(
+  options: {
+    mode?: ConfigConsistencyMode;
+  } = {}
+): Promise<ResolvedAdsRuntime> {
   return await buildServiceFromLatestConfigs(getAdsRuntimeWithConfigs, options);
 }
 

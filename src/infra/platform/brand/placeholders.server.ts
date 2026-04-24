@@ -1,7 +1,8 @@
 import 'server-only';
 
-import { getDomainFromOrigin } from '@/shared/lib/support-email';
 import { site } from '@/site';
+
+import { getDomainFromOrigin } from '@/shared/lib/support-email';
 
 export type BrandPlaceholderValues = {
   appName: string;

@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/infra/platform/i18n/navigation';
+
 import { ScrollArea, ScrollBar } from '@/shared/components/ui/scroll-area';
 import {
   Tabs as TabsComponent,

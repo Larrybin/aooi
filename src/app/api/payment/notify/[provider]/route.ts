@@ -1,29 +1,5 @@
 import { createApiContext } from '@/app/api/_lib/context';
 import {
-  readBillingRuntimeSettingsCached,
-  readBillingRuntimeSettingsFresh,
-} from '@/domains/settings/application/settings-runtime.query';
-import { withApi } from '@/shared/lib/api/route';
-import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import {
-  createPaymentWebhookInboxReceipt,
-  markPaymentWebhookInboxAttempt,
-  markPaymentWebhookInboxProcessFailed,
-  markPaymentWebhookInboxProcessed,
-  recordPaymentWebhookInboxCanonicalEvent,
-  serializePaymentWebhookHeaders,
-} from '@/domains/billing/infra/payment-webhook-inbox';
-import {
-  findOrderByInvoiceId,
-  findOrderByOrderNo,
-  findOrderByTransactionId,
-} from '@/domains/billing/infra/order';
-import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
-import {
-  findSubscriptionByProviderSubscriptionId,
-} from '@/domains/billing/infra/subscription';
-import { PaymentNotifyParamsSchema } from '@/shared/schemas/api/payment/notify';
-import {
   handleCheckoutSuccess,
   handleSubscriptionCanceled,
   handleSubscriptionRenewal,
@@ -34,9 +10,32 @@ import {
   type PaymentNotifyFlowDeps,
 } from '@/domains/billing/application/payment-notify-flow';
 import type { PaymentNotifyDeps } from '@/domains/billing/application/process-payment-notify';
-import { getPaymentService } from '@/infra/adapters/payment/service';
-import { getPaymentRuntimeBindings } from '@/infra/adapters/payment/runtime-bindings';
+import {
+  findOrderByInvoiceId,
+  findOrderByOrderNo,
+  findOrderByTransactionId,
+} from '@/domains/billing/infra/order';
+import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
+import {
+  createPaymentWebhookInboxReceipt,
+  markPaymentWebhookInboxAttempt,
+  markPaymentWebhookInboxProcessed,
+  markPaymentWebhookInboxProcessFailed,
+  recordPaymentWebhookInboxCanonicalEvent,
+  serializePaymentWebhookHeaders,
+} from '@/domains/billing/infra/payment-webhook-inbox';
+import { findSubscriptionByProviderSubscriptionId } from '@/domains/billing/infra/subscription';
 import type { PaymentRuntimeBindings } from '@/domains/settings/application/settings-runtime.contracts';
+import {
+  readBillingRuntimeSettingsCached,
+  readBillingRuntimeSettingsFresh,
+} from '@/domains/settings/application/settings-runtime.query';
+import { getPaymentRuntimeBindings } from '@/infra/adapters/payment/runtime-bindings';
+import { getPaymentService } from '@/infra/adapters/payment/service';
+
+import { withApi } from '@/shared/lib/api/route';
+import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
+import { PaymentNotifyParamsSchema } from '@/shared/schemas/api/payment/notify';
 
 type PaymentNotifyRouteDeps = PaymentNotifyDeps & {
   createPaymentWebhookInboxReceipt: typeof createPaymentWebhookInboxReceipt;
@@ -84,7 +83,10 @@ function buildPaymentNotifyPostLogic(
   ) => {
     const api = createApiContext(req);
     const { log } = api;
-    const { provider } = await api.parseParams(params, PaymentNotifyParamsSchema);
+    const { provider } = await api.parseParams(
+      params,
+      PaymentNotifyParamsSchema
+    );
     const mode = resolveConfigConsistencyMode(req);
     const settings =
       mode === 'fresh'

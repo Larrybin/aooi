@@ -7,18 +7,18 @@ import {
   getBlogCategoryPostsAndCategories,
   getPublicBlogCategoryStaticSlugs,
 } from '@/domains/content/application/public-content.query';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { locales } from '@/config/locale';
-import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
+import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildCanonicalUrl,
   buildLanguageAlternates,
 } from '@/infra/url/canonical';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { locales } from '@/config/locale';
 import type {
   Blog as BlogType,
   Category as CategoryType,

@@ -364,10 +364,8 @@ export function buildPayPalSubscriptionInfo({
     subscriptionInfo.canceledAt = canceledAt;
 
     const canceledEndAt =
-      readDateTimePath(subscription, [
-        'billing_info',
-        'final_payment_time',
-      ]) ?? readDateTimePath(subscription, ['billing_info', 'next_billing_time']);
+      readDateTimePath(subscription, ['billing_info', 'final_payment_time']) ??
+      readDateTimePath(subscription, ['billing_info', 'next_billing_time']);
 
     if (canceledEndAt) {
       subscriptionInfo.canceledEndAt = canceledEndAt;

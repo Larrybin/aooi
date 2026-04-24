@@ -1,12 +1,9 @@
 import 'server-only';
 
-import type { post } from '@/config/db/schema';
-
-import {
-  addPostRow,
-  updatePostRow,
-} from '@/domains/content/infra/post-repo';
 import { PostStatus } from '@/domains/content/domain/post-types';
+import { addPostRow, updatePostRow } from '@/domains/content/infra/post-repo';
+
+import type { post } from '@/config/db/schema';
 
 export type NewPost = typeof post.$inferInsert;
 export type UpdatePost = Partial<Omit<NewPost, 'id' | 'createdAt'>>;

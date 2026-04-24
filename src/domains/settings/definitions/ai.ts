@@ -25,4 +25,6 @@ const aiModuleSettings = defineSettingsGroup(
   ] as const
 );
 
-export const aiSettings = [...aiModuleSettings] as const satisfies readonly SettingDefinition[];
+export const aiSettings = [
+  ...aiModuleSettings,
+] as const satisfies readonly SettingDefinition[];

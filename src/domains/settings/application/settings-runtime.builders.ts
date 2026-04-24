@@ -1,11 +1,12 @@
-import { parseGeneralSocialLinks } from '@/shared/lib/general-ui.client';
 import {
   AI_RUNTIME_SETTING_KEYS,
   AUTH_RUNTIME_SETTING_KEYS,
   BILLING_RUNTIME_SETTING_KEYS,
   PUBLIC_UI_SETTING_KEYS,
 } from '@/domains/settings/registry';
-import type { Configs } from './settings-store';
+
+import { parseGeneralSocialLinks } from '@/shared/lib/general-ui.client';
+
 import type {
   AiRuntimeSettings,
   AuthServerBindings,
@@ -13,6 +14,7 @@ import type {
   BillingRuntimeSettings,
   PublicUiConfig,
 } from './settings-runtime.contracts';
+import type { Configs } from './settings-store';
 
 function isEnabled(value: string | undefined, fallback = false): boolean {
   if (value === undefined) {
@@ -26,7 +28,9 @@ function readString(value: string | undefined): string {
 }
 
 export function buildPublicUiConfig(configs: Configs): PublicUiConfig {
-  const socialLinksJson = readString(configs[PUBLIC_UI_SETTING_KEYS.socialLinks]);
+  const socialLinksJson = readString(
+    configs[PUBLIC_UI_SETTING_KEYS.socialLinks]
+  );
 
   return {
     aiEnabled: isEnabled(configs[PUBLIC_UI_SETTING_KEYS.aiEnabled]),
@@ -51,8 +55,12 @@ export function buildAuthUiRuntimeSettings(
   configs: Configs,
   bindings: AuthServerBindings
 ): AuthUiRuntimeSettings {
-  const googleRequested = isEnabled(configs[AUTH_RUNTIME_SETTING_KEYS.googleAuthEnabled]);
-  const githubRequested = isEnabled(configs[AUTH_RUNTIME_SETTING_KEYS.githubAuthEnabled]);
+  const googleRequested = isEnabled(
+    configs[AUTH_RUNTIME_SETTING_KEYS.googleAuthEnabled]
+  );
+  const githubRequested = isEnabled(
+    configs[AUTH_RUNTIME_SETTING_KEYS.githubAuthEnabled]
+  );
   const googleBindingsReady = !!(
     bindings.googleClientId.trim() && bindings.googleClientSecret.trim()
   );
@@ -61,7 +69,9 @@ export function buildAuthUiRuntimeSettings(
   );
   const googleAuthEnabled = googleRequested && googleBindingsReady;
   const githubAuthEnabled = githubRequested && githubBindingsReady;
-  const googleClientId = googleAuthEnabled ? readString(bindings.googleClientId) : '';
+  const googleClientId = googleAuthEnabled
+    ? readString(bindings.googleClientId)
+    : '';
 
   return {
     emailAuthEnabled:
@@ -91,7 +101,9 @@ export function buildBillingRuntimeSettings(
     defaultPaymentProvider: readString(
       configs[BILLING_RUNTIME_SETTING_KEYS.defaultPaymentProvider]
     ),
-    stripeEnabled: isEnabled(configs[BILLING_RUNTIME_SETTING_KEYS.stripeEnabled]),
+    stripeEnabled: isEnabled(
+      configs[BILLING_RUNTIME_SETTING_KEYS.stripeEnabled]
+    ),
     stripePaymentMethods: readString(
       configs[BILLING_RUNTIME_SETTING_KEYS.stripePaymentMethods]
     ),
@@ -103,7 +115,9 @@ export function buildBillingRuntimeSettings(
     creemProductIds: readString(
       configs[BILLING_RUNTIME_SETTING_KEYS.creemProductIds]
     ),
-    paypalEnabled: isEnabled(configs[BILLING_RUNTIME_SETTING_KEYS.paypalEnabled]),
+    paypalEnabled: isEnabled(
+      configs[BILLING_RUNTIME_SETTING_KEYS.paypalEnabled]
+    ),
     paypalEnvironment:
       configs[BILLING_RUNTIME_SETTING_KEYS.paypalEnvironment] === 'production'
         ? 'production'

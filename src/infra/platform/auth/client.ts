@@ -1,9 +1,9 @@
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 import {
   oneTapClient,
   type GoogleOneTapOptions,
 } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
-import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 type OneTapPlugin = NonNullable<
   Exclude<Parameters<typeof createAuthClient>[0], undefined>['plugins']
@@ -16,7 +16,9 @@ function getRuntimeAuthClientBaseURL(): string | undefined {
   return typeof window === 'undefined' ? undefined : window.location.origin;
 }
 
-function shouldSerializeAuthBody(body: unknown): body is Record<string, unknown> {
+function shouldSerializeAuthBody(
+  body: unknown
+): body is Record<string, unknown> {
   return (
     typeof body === 'object' &&
     body !== null &&

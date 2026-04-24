@@ -104,13 +104,18 @@ ADMIN_WORKER_NAME = ""
     /localConnectionString = "postgresql:\/\/postgres:postgres@127\.0\.0\.1:5432\/aooi"/
   );
   assert.match(config, /NEXT_PUBLIC_APP_URL = "http:\/\/127\.0\.0\.1:8787"/);
-  assert.match(config, /STORAGE_PUBLIC_BASE_URL = "http:\/\/127\.0\.0\.1:8787\/assets\/"/);
+  assert.match(
+    config,
+    /STORAGE_PUBLIC_BASE_URL = "http:\/\/127\.0\.0\.1:8787\/assets\/"/
+  );
   assert.match(config, /DEPLOY_TARGET = "cloudflare"/);
   assert.match(config, /PUBLIC_WEB_WORKER_VERSION_ID = "v-public-web"/);
   assert.match(config, /AUTH_WORKER_VERSION_ID = "v-auth"/);
   assert.match(
     config,
-    new RegExp(`PUBLIC_WEB_WORKER_NAME = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`)
+    new RegExp(
+      `PUBLIC_WEB_WORKER_NAME = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`
+    )
   );
   assert.match(config, /\[dev\][\s\S]*host = "127\.0\.0\.1"/);
   assert.match(config, /\[dev\][\s\S]*upstream_protocol = "http"/);
@@ -179,7 +184,9 @@ STORAGE_PUBLIC_BASE_URL = ""
   assert.match(config, /localConnectionString = ""/);
   assert.match(
     config,
-    new RegExp(`name = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`)
+    new RegExp(
+      `name = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`
+    )
   );
 });
 

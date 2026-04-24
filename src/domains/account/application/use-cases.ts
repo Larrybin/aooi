@@ -1,8 +1,8 @@
+import type { ActionResult } from '@/shared/lib/action/result';
 import type {
   SelfUserDetails,
   UserCreditsSummary,
 } from '@/shared/types/auth-session';
-import type { ActionResult } from '@/shared/lib/action/result';
 
 type AccountActionResult = ActionResult;
 
@@ -31,18 +31,14 @@ export const ACCOUNT_CREDIT_TRANSACTION_TYPE = {
 export type AccountCreditTransactionType =
   (typeof ACCOUNT_CREDIT_TRANSACTION_TYPE)[keyof typeof ACCOUNT_CREDIT_TRANSACTION_TYPE];
 
-type AccountCreditsSummary =
-  | {
-      remainingCredits: number;
-      expiresAt: string | null;
-    }
-  | null;
+type AccountCreditsSummary = {
+  remainingCredits: number;
+  expiresAt: string | null;
+} | null;
 
-type AccountSubscriptionSummary =
-  | {
-      productId?: string | null;
-    }
-  | null;
+type AccountSubscriptionSummary = {
+  productId?: string | null;
+} | null;
 
 type AccountPermissionDeps = {
   hasPermission: (userId: string, permission: string) => Promise<boolean>;
@@ -171,10 +167,7 @@ const ACCOUNT_APIKEY_ACTIVE_ENUM = ACCOUNT_APIKEY_STATUS.ACTIVE;
 const ACCOUNT_APIKEY_DELETED_ENUM = ACCOUNT_APIKEY_STATUS.DELETED;
 const ACCOUNT_CREDIT_ACTIVE_ENUM = ACCOUNT_CREDIT_STATUS.ACTIVE;
 
-function actionOk(
-  message: string,
-  redirectUrl?: string
-): AccountActionResult {
+function actionOk(message: string, redirectUrl?: string): AccountActionResult {
   return {
     status: 'success',
     message,
@@ -329,7 +322,10 @@ export async function createOwnApikeyUseCase(
     userId: string;
     title: string;
   },
-  deps: Pick<AccountApikeyDeps, 'createApikey' | 'createId' | 'createSecretKey'>,
+  deps: Pick<
+    AccountApikeyDeps,
+    'createApikey' | 'createId' | 'createSecretKey'
+  >,
   successMessage: string,
   redirectUrl: string
 ): Promise<AccountActionResult> {

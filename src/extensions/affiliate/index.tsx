@@ -1,4 +1,5 @@
 import { HeadInjectionManager } from '@/extensions/lib/head-injection-manager';
+
 import type { AffiliateProvider } from './types';
 
 /**

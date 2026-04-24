@@ -27,7 +27,9 @@ test('acquireCfOAuthSpikeLock 在重复获取时失败，并在释放后允许�
 });
 
 test('acquireCfOAuthSpikeLock 会自动回收 stale lock', async () => {
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'cf-oauth-spike-stale-'));
+  const tempDir = await mkdtemp(
+    path.join(os.tmpdir(), 'cf-oauth-spike-stale-')
+  );
   const lockFilePath = path.join(tempDir, 'cf-oauth-spike.lock');
 
   await writeFile(lockFilePath, '999999\n', 'utf8');

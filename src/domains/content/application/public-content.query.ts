@@ -1,7 +1,5 @@
 import 'server-only';
 
-import { postsI18n } from '@/domains/content/infra/source';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   getPosts,
   getPostsCount,
@@ -14,19 +12,22 @@ import {
   getTaxonomiesCount,
   type Taxonomy,
 } from '@/domains/content/application/taxonomy.query';
+import { formatPostDate } from '@/domains/content/domain/post-date';
 import {
-  PostStatus,
   PostType as DbPostType,
+  PostStatus,
 } from '@/domains/content/domain/post-types';
 import {
   TaxonomyStatus,
   TaxonomyType,
 } from '@/domains/content/domain/taxonomy-types';
+import { postsI18n } from '@/domains/content/infra/source';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+
 import type {
   Category as BlogCategoryType,
   Post as BlogPostType,
 } from '@/shared/types/blocks/blog';
-import { formatPostDate } from '@/domains/content/domain/post-date';
 
 import {
   getDefaultBlogPageSize,
@@ -291,7 +292,9 @@ async function getPublishedBlogCategories({
       limit: categoriesCount,
     });
 
-    return categories.map((category) => toBlogCategory(category, categoryPrefix));
+    return categories.map((category) =>
+      toBlogCategory(category, categoryPrefix)
+    );
   } catch (error) {
     log.warn('blog: get categories failed', {
       operation: 'get-blog-categories',

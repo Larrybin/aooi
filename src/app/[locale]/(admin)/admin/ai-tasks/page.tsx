@@ -2,20 +2,20 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: task logs are sensitive; avoid caching across users/roles
 import { notFound } from 'next/navigation';
+import {
+  listAdminAiTasksQuery,
+  type AdminAiTaskRow,
+} from '@/domains/ai/application/admin-ai-tasks.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminAiTasksListQuerySchema,
   type AdminAiTasksListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import {
-  listAdminAiTasksQuery,
-  type AdminAiTaskRow,
-} from '@/domains/ai/application/admin-ai-tasks.query';
 import { AIMediaType } from '@/extensions/ai';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default createAdminTablePage<AdminAiTaskRow, AdminAiTasksListQuery>({
   namespace: 'admin.ai-tasks',

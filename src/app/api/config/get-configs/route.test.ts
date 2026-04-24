@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+
 import { buildGetConfigsLogic } from './route-logic';
 
 const CACHED_CONFIG: PublicUiConfig = {

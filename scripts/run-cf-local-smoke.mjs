@@ -10,17 +10,16 @@ import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
 import { runPhaseSequence } from './lib/harness/scenario.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..'
 );
-const envContractModule =
-  envContractNamespace.default ?? envContractNamespace;
+const envContractModule = envContractNamespace.default ?? envContractNamespace;
 const { assertAllowedEnvKeys, DEV_VARS_ALLOWED_KEYS } = envContractModule;
 const defaultDevVarsPath = path.resolve(rootDir, '.dev.vars');
 const defaultBaseUrl = 'http://localhost:8787';

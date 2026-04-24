@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 import { reportSignUpAffiliate } from './report-sign-up-affiliate';
-import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 const ENABLED_UI_CONFIG: PublicUiConfig = {
   aiEnabled: false,

@@ -22,7 +22,10 @@ const rootDir = path.resolve(
   '..'
 );
 
-export function getSmokeScenarioCommand(scenario, { nodePath = process.execPath } = {}) {
+export function getSmokeScenarioCommand(
+  scenario,
+  { nodePath = process.execPath } = {}
+) {
   const config = SMOKE_SCENARIOS[scenario];
   if (!config) {
     throw new Error(

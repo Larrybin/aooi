@@ -398,11 +398,9 @@ test('cf:check 仅对已启用 auth provider 要求对应 bindings', async () =>
       bindingRequirements: {
         ...(current.bindingRequirements as Record<string, unknown>),
         secrets: {
-          ...(
-            (
-              current.bindingRequirements as DeployBindingRequirements | undefined
-            )?.secrets ?? {}
-          ),
+          ...((
+            current.bindingRequirements as DeployBindingRequirements | undefined
+          )?.secrets ?? {}),
           googleOauth: true,
           githubOauth: true,
         },
@@ -436,16 +434,17 @@ test('cf:check 在 chat worker 场景只要求 OPENROUTER_API_KEY', async () => 
       bindingRequirements: {
         ...(current.bindingRequirements as Record<string, unknown>),
         secrets: {
-          ...(
-            (
-              current.bindingRequirements as DeployBindingRequirements | undefined
-            )?.secrets ?? {}
-          ),
+          ...((
+            current.bindingRequirements as DeployBindingRequirements | undefined
+          )?.secrets ?? {}),
           openrouter: true,
         },
       },
     }));
-    const siteConfigPath = path.join(fixtureDir, 'sites/mamamiya/site.config.json');
+    const siteConfigPath = path.join(
+      fixtureDir,
+      'sites/mamamiya/site.config.json'
+    );
     const siteConfig = JSON.parse(await readFile(siteConfigPath, 'utf8'));
     await writeFile(
       siteConfigPath,
@@ -487,16 +486,17 @@ test('cf:check 已启用能力缺 bindings 时给出 setting -> binding 错误',
       bindingRequirements: {
         ...(current.bindingRequirements as Record<string, unknown>),
         secrets: {
-          ...(
-            (
-              current.bindingRequirements as DeployBindingRequirements | undefined
-            )?.secrets ?? {}
-          ),
+          ...((
+            current.bindingRequirements as DeployBindingRequirements | undefined
+          )?.secrets ?? {}),
           openrouter: true,
         },
       },
     }));
-    const siteConfigPath = path.join(fixtureDir, 'sites/mamamiya/site.config.json');
+    const siteConfigPath = path.join(
+      fixtureDir,
+      'sites/mamamiya/site.config.json'
+    );
     const siteConfig = JSON.parse(await readFile(siteConfigPath, 'utf8'));
     await writeFile(
       siteConfigPath,

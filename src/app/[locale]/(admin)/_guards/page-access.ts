@@ -1,9 +1,9 @@
 import 'server-only';
 
+import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { redirect } from '@/infra/platform/i18n/navigation';
 
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 
 type RedirectContext = {
@@ -88,7 +88,9 @@ export async function requireAnyPagePermission({
 export async function requireAdminPageAccess({
   redirectUrl,
   locale,
-}: RedirectContext): Promise<NonNullable<Awaited<ReturnType<typeof getSignedInUserIdentity>>>> {
+}: RedirectContext): Promise<
+  NonNullable<Awaited<ReturnType<typeof getSignedInUserIdentity>>>
+> {
   const user = await getSignedInUserIdentity();
   if (!user) {
     redirectTo('/sign-in', locale);

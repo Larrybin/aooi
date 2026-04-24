@@ -1,16 +1,5 @@
 import 'server-only';
 
-import {
-  BadRequestError,
-  ServiceUnavailableError,
-} from '@/shared/lib/api/errors';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import {
-  ProviderRegistry,
-  trimmedProviderNameKey,
-} from '@/shared/lib/providers/provider-registry';
-import { isProductionEnv } from '@/shared/lib/env';
-import { parseStripePaymentMethodsConfig } from '@/domains/billing/domain/payment-config';
 import type {
   CheckoutSession,
   PaymentEvent,
@@ -18,10 +7,22 @@ import type {
   PaymentProvider,
   PaymentSession,
 } from '@/domains/billing/domain/payment';
+import { parseStripePaymentMethodsConfig } from '@/domains/billing/domain/payment-config';
 import type {
   BillingRuntimeSettings,
   PaymentRuntimeBindings,
 } from '@/domains/settings/application/settings-runtime.contracts';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/shared/lib/api/errors';
+import { isProductionEnv } from '@/shared/lib/env';
+import {
+  ProviderRegistry,
+  trimmedProviderNameKey,
+} from '@/shared/lib/providers/provider-registry';
 
 const log = createUseCaseLogger({
   domain: 'billing',

@@ -2,13 +2,13 @@
 // cache: no-store (request-bound auth)
 // reason: user-specific provider portal entry; do not cache redirects
 import { redirect } from 'next/navigation';
+import { retrieveMemberBillingPortalUrl } from '@/domains/billing/application/member-billing.actions';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { toErrorMessage } from '@/shared/lib/errors';
-import { retrieveMemberBillingPortalUrl } from '@/domains/billing/application/member-billing.actions';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { buildCanonicalUrl } from '@/infra/url/canonical';
 
 export default async function RetrieveBillingPage({
   params,

@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
-  PRODUCT_MODULES,
-  PRODUCT_MODULE_GUIDE_REPO_BASE_URL,
   getProductModuleGuideHref,
+  PRODUCT_MODULE_GUIDE_REPO_BASE_URL,
+  PRODUCT_MODULES,
 } from './index';
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const rootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../..'
+);
 
 function resolveGuidePathFromSlug(docSlug: string) {
   if (docSlug.startsWith('module-contract#')) {
@@ -47,7 +50,12 @@ test('getProductModuleGuideHref: returns GitHub docs URLs', () => {
   for (const productModule of PRODUCT_MODULES) {
     const href = getProductModuleGuideHref(productModule);
 
-    assert.match(href, new RegExp(`^${PRODUCT_MODULE_GUIDE_REPO_BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    assert.match(
+      href,
+      new RegExp(
+        `^${PRODUCT_MODULE_GUIDE_REPO_BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
+      )
+    );
     assert.match(href, /\.md($|#)/);
   }
 });
@@ -64,7 +72,10 @@ test('Settings guide: points back to module contract source of truth', async () 
 
 test('Deploy governance: documents rawConclusion decision table', async () => {
   const content = await readFile(
-    path.resolve(rootDir, 'docs/architecture/cloudflare-deployment-governance.md'),
+    path.resolve(
+      rootDir,
+      'docs/architecture/cloudflare-deployment-governance.md'
+    ),
     'utf8'
   );
 

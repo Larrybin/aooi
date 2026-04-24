@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import {
   PaymentEventType,
   PaymentStatus,
@@ -9,6 +8,7 @@ import {
 import { CreemProvider } from '@/infra/adapters/payment/creem';
 import { PayPalProvider } from '@/infra/adapters/payment/paypal';
 import { StripeProvider } from '@/infra/adapters/payment/stripe';
+
 import { UpstreamError } from '@/shared/lib/api/errors';
 
 test('StripeProvider façade 通过 transport + mapper 组装 renewal session', async () => {

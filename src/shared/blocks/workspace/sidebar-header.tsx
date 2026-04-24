@@ -1,4 +1,5 @@
 import { Link } from '@/infra/platform/i18n/navigation';
+
 import { AppImage } from '@/shared/blocks/common/app-image';
 import {
   SidebarHeader as SidebarHeaderComponent,

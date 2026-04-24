@@ -1,6 +1,4 @@
-import {
-  readPublicEnvConfigs,
-} from './public-env';
+import { readPublicEnvConfigs } from './public-env';
 
 export type ConfigMap = Record<string, string>;
 

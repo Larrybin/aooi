@@ -3,25 +3,25 @@
 // reason: keep shared shell stable; user-specific data stays in leaf pages
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
-import { ConsoleLayout } from '@/shared/blocks/console/layout';
-import { PublicAppProvider } from '@/shared/contexts/app';
-import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
-import { getSignedInUserSnapshot } from '@/infra/platform/auth/session.server';
-import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
-import {
-  buildBrandPlaceholderValues,
-  replaceBrandPlaceholdersDeep,
-} from '@/infra/platform/brand/placeholders.server';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import {
   readAuthUiRuntimeSettingsCached,
   readBillingRuntimeSettingsCached,
   readPublicUiConfigCached,
 } from '@/domains/settings/application/settings-runtime.query';
+import { getSignedInUserSnapshot } from '@/infra/platform/auth/session.server';
+import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
+import {
+  buildBrandPlaceholderValues,
+  replaceBrandPlaceholdersDeep,
+} from '@/infra/platform/brand/placeholders.server';
+import { getTranslations } from 'next-intl/server';
+
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
+import { ConsoleLayout } from '@/shared/blocks/console/layout';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { AuthSnapshotProvider } from '@/shared/contexts/auth-snapshot';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type {
   Footer as FooterType,
   Header as HeaderType,

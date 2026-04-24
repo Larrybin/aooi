@@ -2,14 +2,28 @@
 // cache: no-store (request-bound auth); configs cached via unstable_cache (tag=db-configs, 60s) / (tag=public-configs, 3600s)
 // reason: admin settings are user-specific; settings-store owns cache invalidation
 import { notFound } from 'next/navigation';
-import { getSettingsModuleContractRows } from '@/surfaces/admin/settings/module-contract';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { z } from 'zod';
-
+import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
 import {
   requireActionPermissions,
   requireActionUser,
 } from '@/app/access-control/action-guard';
+import {
+  getSettingGroups,
+  getSettings,
+  getSettingTabs,
+} from '@/domains/settings';
+import {
+  readSettingsSafe,
+  saveSettings,
+} from '@/domains/settings/application/settings-store';
+import { mapSettingsToForms } from '@/domains/settings/settings-form-mapper';
+import { normalizeSettingOverrides } from '@/domains/settings/settings-normalizers';
+import { mergeRegisteredSettingValues } from '@/domains/settings/settings-submit-merge';
+import { isSettingTabName } from '@/domains/settings/tab-names';
+import { getSettingsModuleContractRows } from '@/surfaces/admin/settings/module-contract';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { z } from 'zod';
+
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { Badge } from '@/shared/components/ui/badge';
@@ -17,21 +31,7 @@ import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { parseFormData } from '@/shared/lib/action/form';
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
-import {
-  readSettingsSafe,
-  saveSettings,
-} from '@/domains/settings/application/settings-store';
-import {
-  getSettingGroups,
-  getSettings,
-  getSettingTabs,
-} from '@/domains/settings';
-import { mapSettingsToForms } from '@/domains/settings/settings-form-mapper';
-import { mergeRegisteredSettingValues } from '@/domains/settings/settings-submit-merge';
-import { isSettingTabName } from '@/domains/settings/tab-names';
 import type { Crumb } from '@/shared/types/blocks/common';
-import { requireAllPagePermissions } from '@/app/[locale]/(admin)/_guards/page-access';
-import { normalizeSettingOverrides } from '@/domains/settings/settings-normalizers';
 
 const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
 

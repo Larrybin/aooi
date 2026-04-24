@@ -245,9 +245,7 @@ function pushFailureKind(surface: SurfaceResult, failureKind: FailureKind) {
 export function summarizeFailureKinds(surface: SurfaceResult) {
   const failedCases = surface.cases.filter((item) => item.status === 'failed');
 
-  if (
-    failedCases.some((item) => ['sign-up', 'sign-in'].includes(item.name))
-  ) {
+  if (failedCases.some((item) => ['sign-up', 'sign-in'].includes(item.name))) {
     pushFailureKind(surface, 'auth_flow_unavailable');
   }
 
@@ -269,7 +267,9 @@ export function deriveParityResult(report: Report): ParityResult | null {
     return null;
   }
 
-  const vercel = report.surfaces.find((surface) => surface.surface === 'vercel');
+  const vercel = report.surfaces.find(
+    (surface) => surface.surface === 'vercel'
+  );
   const cloudflare = report.surfaces.find(
     (surface) => surface.surface === 'cloudflare'
   );
@@ -302,7 +302,9 @@ export function deriveParityResult(report: Report): ParityResult | null {
     }),
   ];
 
-  const failedChecks = parityChecks.filter((check) => check.status === 'failed');
+  const failedChecks = parityChecks.filter(
+    (check) => check.status === 'failed'
+  );
   if (failedChecks.length === 0) {
     return {
       status: 'passed',

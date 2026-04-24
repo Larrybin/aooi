@@ -141,7 +141,7 @@ export function Table<T extends object>({
                     cellContent = (
                       <User
                         placeholder={column.placeholder}
-                      value={value as TableUserValue}
+                        value={value as TableUserValue}
                         metadata={column.metadata as Record<string, unknown>}
                         className={column.className}
                       />

@@ -128,7 +128,11 @@ type AdsSettings = {
   adsense_slot_blog_post_inline?: string;
   adsense_slot_blog_post_footer?: string;
 
-  adsterra_mode?: 'social_bar' | 'popunder' | 'native_banner' | 'display_banner';
+  adsterra_mode?:
+    | 'social_bar'
+    | 'popunder'
+    | 'native_banner'
+    | 'display_banner';
   adsterra_script_key?: string;
   adsterra_zone_landing_inline_primary?: string;
   adsterra_zone_blog_post_inline?: string;

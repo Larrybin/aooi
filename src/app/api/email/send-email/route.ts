@@ -1,9 +1,10 @@
 import { randomInt } from 'crypto';
+import type { createApiContext } from '@/app/api/_lib/context';
+import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 import type { EmailSendResult } from '@/extensions/email';
-import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import type { createApiContext } from '@/app/api/_lib/context';
+import type { buildVerificationCodeEmailPayload as buildVerificationCodeEmailPayloadFn } from '@/shared/content/email/verification-code';
 import {
   BadRequestError,
   TooManyRequestsError,
@@ -14,7 +15,6 @@ import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { maskEmail, normalizeEmail } from '@/shared/lib/email';
 import { EmailSendBodySchema } from '@/shared/schemas/api/email/send-email';
-import type { getEmailService as getEmailServiceFn } from '@/infra/adapters/email/service';
 
 const MAX_EMAIL_RECIPIENTS = 10;
 
@@ -44,7 +44,10 @@ type SendEmailRouteDeps = {
     input: Parameters<BuildVerificationCodeEmailPayload>[0]
   ) => MaybePromise<ReturnType<BuildVerificationCodeEmailPayload>>;
   rateLimiter: {
-    check: (key: string, now?: number) => Promise<{
+    check: (
+      key: string,
+      now?: number
+    ) => Promise<{
       allowed: boolean;
       retryAfterSeconds?: number;
     }>;
@@ -66,15 +69,18 @@ function getDefaultSendEmailRouteDeps(): SendEmailRouteDeps {
       return await mod.getEmailService();
     },
     persistSettingsEmailVerificationCode: async (input) => {
-      const mod = await import('@/domains/account/infra/email-verification-code');
+      const mod =
+        await import('@/domains/account/infra/email-verification-code');
       return await mod.persistSettingsEmailVerificationCode(input);
     },
     deleteEmailVerificationCodeById: async (id) => {
-      const mod = await import('@/domains/account/infra/email-verification-code');
+      const mod =
+        await import('@/domains/account/infra/email-verification-code');
       await mod.deleteEmailVerificationCodeById(id);
     },
     deleteEmailVerificationCodesByIdentifierExceptId: async (input) => {
-      const mod = await import('@/domains/account/infra/email-verification-code');
+      const mod =
+        await import('@/domains/account/infra/email-verification-code');
       await mod.deleteEmailVerificationCodesByIdentifierExceptId(input);
     },
     buildVerificationCodeEmailPayload: async (input) => {
@@ -99,9 +105,7 @@ function uniqueNormalizedEmails(emails: string[]): string[] {
   return unique;
 }
 
-function buildSendEmailPostLogic(
-  overrides: Partial<SendEmailRouteDeps> = {}
-) {
+function buildSendEmailPostLogic(overrides: Partial<SendEmailRouteDeps> = {}) {
   const deps = { ...getDefaultSendEmailRouteDeps(), ...overrides };
 
   return async (req: Request) => {
@@ -122,24 +126,23 @@ function buildSendEmailPostLogic(
 
     const now = deps.now();
 
-    const throttled = recipients
-      .map(async (email) => {
-        const key = `${user.id}|${email}`;
-        const throttleCheck = await deps.rateLimiter.check(key, now);
-        if (throttleCheck.allowed) {
-          return null;
-        }
-        return { email, retryAfterSeconds: throttleCheck.retryAfterSeconds ?? 1 };
-      })
+    const throttled = recipients.map(async (email) => {
+      const key = `${user.id}|${email}`;
+      const throttleCheck = await deps.rateLimiter.check(key, now);
+      if (throttleCheck.allowed) {
+        return null;
+      }
+      return { email, retryAfterSeconds: throttleCheck.retryAfterSeconds ?? 1 };
+    });
     const throttledResults = await Promise.all(throttled);
     const throttledEmails = throttledResults.filter(
-        (
-          x
-        ): x is {
-          email: string;
-          retryAfterSeconds: number;
-        } => x !== null
-      );
+      (
+        x
+      ): x is {
+        email: string;
+        retryAfterSeconds: number;
+      } => x !== null
+    );
 
     if (throttledEmails.length > 0) {
       const retryAfterSeconds = Math.max(
@@ -149,7 +152,9 @@ function buildSendEmailPostLogic(
         userId: user.id,
         retryAfterSeconds,
       });
-      throw new TooManyRequestsError('too many requests', { retryAfterSeconds });
+      throw new TooManyRequestsError('too many requests', {
+        retryAfterSeconds,
+      });
     }
 
     const emailService = await deps
@@ -209,13 +214,13 @@ function buildSendEmailPostLogic(
         });
       } catch (error: unknown) {
         await rollbackRateLimit();
-        void deps.deleteEmailVerificationCodeById(verification.id).catch(
-          (cleanupError: unknown) => {
+        void deps
+          .deleteEmailVerificationCodeById(verification.id)
+          .catch((cleanupError: unknown) => {
             log.error('[API] rollback verification code failed', {
               cleanupError,
             });
-          }
-        );
+          });
         log.error('[API] sendEmail threw', {
           error,
           userId: user.id,
@@ -237,13 +242,13 @@ function buildSendEmailPostLogic(
 
       if (!sendResult.success) {
         await rollbackRateLimit();
-        void deps.deleteEmailVerificationCodeById(verification.id).catch(
-          (cleanupError: unknown) => {
+        void deps
+          .deleteEmailVerificationCodeById(verification.id)
+          .catch((cleanupError: unknown) => {
             log.error('[API] rollback verification code failed', {
               cleanupError,
             });
-          }
-        );
+          });
         log.error('[API] sendEmail failed', {
           provider: sendResult.provider,
           error: sendResult.error,

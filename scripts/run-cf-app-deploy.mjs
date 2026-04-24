@@ -5,11 +5,11 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import topology from '../src/shared/config/cloudflare-worker-topology.ts';
+import { createCanonicalTypegenWranglerConfig } from './check-cf-typegen.mjs';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
-import { createCanonicalTypegenWranglerConfig } from './check-cf-typegen.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 
 const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
   topology;
@@ -43,7 +43,10 @@ function resolveServerConfigPaths(contract, rootPath = rootDir) {
   return Object.fromEntries(
     uploadOrder.map((target) => [
       target,
-      path.resolve(rootPath, contract.serverWorkers[target].wranglerConfigRelativePath),
+      path.resolve(
+        rootPath,
+        contract.serverWorkers[target].wranglerConfigRelativePath
+      ),
     ])
   );
 }
@@ -253,7 +256,10 @@ export async function buildRouterDeployConfigContent({
   rootPath = rootDir,
 }) {
   const routerConfigPath = resolveRouterConfigPath(contract, rootPath);
-  const outputPath = path.resolve(rootPath, '.tmp/wrangler.cloudflare.router.deploy.toml');
+  const outputPath = path.resolve(
+    rootPath,
+    '.tmp/wrangler.cloudflare.router.deploy.toml'
+  );
   const template = await readFile(routerConfigPath, 'utf8');
 
   return buildCloudflareWranglerConfig({
@@ -334,7 +340,9 @@ export async function createTempDeployArtifacts({
 }) {
   const workerSlot = workerKeys.length === 1 ? workerKeys[0] : null;
   if (!workerSlot) {
-    throw new Error('createTempDeployArtifacts requires exactly one worker slot');
+    throw new Error(
+      'createTempDeployArtifacts requires exactly one worker slot'
+    );
   }
 
   const tempDir = await mkdtemp(path.join(os.tmpdir(), `cf-${name}-`));

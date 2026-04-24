@@ -1,13 +1,14 @@
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 import { Link } from '@/infra/platform/i18n/navigation';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
+
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { Copyright } from '@/shared/blocks/common/copyright';
 import { GeneralSocialLinks } from '@/shared/blocks/common/general-social-links';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
-import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
-import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function Footer({
   footer,

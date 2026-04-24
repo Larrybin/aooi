@@ -2,14 +2,14 @@
 // cache: no-store
 // reason: refresh endpoint mutates state and redirects; do not cache
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { redirect } from '@/infra/platform/i18n/navigation';
-import { Empty } from '@/shared/blocks/common/empty';
+import { refreshMemberAiTaskUseCase } from '@/domains/ai/application/member-ai-tasks.actions';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { refreshMemberAiTaskUseCase } from '@/domains/ai/application/member-ai-tasks.actions';
+import { redirect } from '@/infra/platform/i18n/navigation';
+import { getTranslations } from 'next-intl/server';
+
+import { Empty } from '@/shared/blocks/common/empty';
 
 export default async function RefreshAITaskPage({
   params,

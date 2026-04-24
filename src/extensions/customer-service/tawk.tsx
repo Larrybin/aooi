@@ -1,10 +1,7 @@
 import type { ReactNode } from 'react';
 import Script from 'next/script';
 
-import type {
-  CustomerServiceConfigs,
-  CustomerServiceProvider,
-} from './types';
+import type { CustomerServiceConfigs, CustomerServiceProvider } from './types';
 
 /**
  * Tawk customer service configs

@@ -192,9 +192,9 @@
   - [src/themes/default/layouts/landing.tsx](/Users/bin/Desktop/project/aooi/src/themes/default/layouts/landing.tsx)
   - [src/themes/default/layouts/landing-marketing.tsx](/Users/bin/Desktop/project/aooi/src/themes/default/layouts/landing-marketing.tsx)
   - [src/app/api/config/get-configs/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/config/get-configs/route.ts)
-  - [src/app/[locale]/(docs)/layout.tsx](/Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(docs)/layout.tsx)
-  - [src/app/[locale]/(auth)/layout.tsx](/Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(auth)/layout.tsx)
-  - [src/app/[locale]/(chat)/layout.tsx](/Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(chat)/layout.tsx)
+  - [src/app/[locale]/(docs)/layout.tsx](</Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(docs)/layout.tsx>)
+  - [src/app/[locale]/(auth)/layout.tsx](</Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(auth)/layout.tsx>)
+  - [src/app/[locale]/(chat)/layout.tsx](</Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(chat)/layout.tsx>)
 - Auth UI / auth server config
   - [src/infra/platform/auth/config.ts](/Users/bin/Desktop/project/aooi/src/infra/platform/auth/config.ts)
   - [src/infra/platform/auth/client.ts](/Users/bin/Desktop/project/aooi/src/infra/platform/auth/client.ts)
@@ -225,7 +225,7 @@
   - [src/infra/adapters/ads/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/ads/service.ts)
   - [src/app/ads.txt/route.ts](/Users/bin/Desktop/project/aooi/src/app/ads.txt/route.ts)
 - Admin settings 页面本身
-  - [src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx](/Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(admin)/admin/settings/%5Btab%5D/page.tsx)
+  - [src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx](</Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(admin)/admin/settings/%5Btab%5D/page.tsx>)
 
 #### Remaining risks
 
@@ -301,8 +301,8 @@
 - [.generated/content-source.ts](/Users/bin/Desktop/project/aooi/.generated/content-source.ts)
 - `sites/<site-key>/content/docs/**`
 - `sites/<site-key>/content/pages/**`
-- [sites/mamamiya/content/docs/**](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/docs)
-- [sites/mamamiya/content/pages/**](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/pages)
+- [sites/mamamiya/content/docs/\*\*](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/docs)
+- [sites/mamamiya/content/pages/\*\*](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/pages)
 
 ### Batch 5: Payment / Cloudflare Site Instance Contract
 

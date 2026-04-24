@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { readServiceConfigsByMode } from '@/infra/adapters/config-read-mode';
 
 test('readServiceConfigsByMode 默认读取 cached 配置', async () => {

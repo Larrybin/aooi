@@ -1,14 +1,11 @@
 import 'server-only';
 
+import { requirePermission, requireUser } from '@/app/access-control/api-guard';
+import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 import type { z } from 'zod';
 
-import {
-  requirePermission,
-  requireUser,
-} from '@/app/access-control/api-guard';
-import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
-import { getRequestLogger } from '@/infra/platform/logging/request-logger.server';
 import { parseJson, parseParams, parseQuery } from '@/shared/lib/api/parse';
+import type { AuthSessionUserIdentity } from '@/shared/types/auth-session';
 
 export type ApiContext = {
   req: Request;

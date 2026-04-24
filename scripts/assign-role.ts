@@ -15,6 +15,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { role, user, userRole } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
+
 import { createCliDb } from './lib/cli-db';
 
 async function assignRole() {

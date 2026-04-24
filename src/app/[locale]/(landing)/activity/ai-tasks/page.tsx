@@ -2,21 +2,21 @@
 // cache: no-store (request-bound auth)
 // reason: user-specific activity history
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { AITaskStatus } from '@/extensions/ai';
-import { AudioPlayer } from '@/shared/blocks/common/audio-player';
-import { AppImage } from '@/shared/blocks/common/app-image';
-import { Empty } from '@/shared/blocks/common/empty';
-import { TableCard } from '@/shared/blocks/table';
-import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { safeJsonParse } from '@/shared/lib/json';
 import {
   listMemberAiTasksQuery,
   type MemberAiTaskRow,
 } from '@/domains/ai/application/member-ai-tasks.query';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { getTranslations } from 'next-intl/server';
+
+import { AITaskStatus } from '@/extensions/ai';
+import { AppImage } from '@/shared/blocks/common/app-image';
+import { AudioPlayer } from '@/shared/blocks/common/audio-player';
+import { Empty } from '@/shared/blocks/common/empty';
+import { TableCard } from '@/shared/blocks/table';
+import { safeJsonParse } from '@/shared/lib/json';
 import type { Button, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

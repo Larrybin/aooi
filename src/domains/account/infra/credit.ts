@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import {
   and,
   asc,
@@ -13,7 +14,6 @@ import {
   sum,
 } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { credit } from '@/config/db/schema';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
 import { safeJsonParse } from '@/shared/lib/json';

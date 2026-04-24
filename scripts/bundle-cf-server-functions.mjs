@@ -20,7 +20,9 @@ const cloudflarePackageDir = fs.realpathSync(
 const cloudflareScopedDir = path.dirname(cloudflarePackageDir);
 const cloudflareDistDir = path.join(cloudflarePackageDir, 'dist');
 const awsHelperModule = await import(
-  pathToFileURL(path.join(cloudflareScopedDir, 'aws', 'dist', 'build', 'helper.js')).href
+  pathToFileURL(
+    path.join(cloudflareScopedDir, 'aws', 'dist', 'build', 'helper.js')
+  ).href
 );
 const cloudflareBundleModule = await import(
   pathToFileURL(
@@ -95,7 +97,10 @@ async function bundleSplitTarget(target) {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), `cf-split-${target}-`));
   const tempOutputDir = path.join(tempDir, '.open-next');
   const tempDefaultDir = resolveTargetDir(tempOutputDir, 'default');
-  const tempDefaultPackageDir = resolveTargetPackageDir(tempOutputDir, 'default');
+  const tempDefaultPackageDir = resolveTargetPackageDir(
+    tempOutputDir,
+    'default'
+  );
 
   try {
     await cp(sourceTargetDir, tempDefaultDir, {
@@ -144,7 +149,9 @@ async function bundleSplitTarget(target) {
       }
     }
 
-    const handlerSize = fs.statSync(path.join(sourcePackageDir, 'handler.mjs')).size;
+    const handlerSize = fs.statSync(
+      path.join(sourcePackageDir, 'handler.mjs')
+    ).size;
     log(
       `${target} handler ready: ${handlerSize} bytes (${(handlerSize / 1024 / 1024).toFixed(2)} MiB)`
     );

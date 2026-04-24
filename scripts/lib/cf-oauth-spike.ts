@@ -6,7 +6,10 @@ export async function acquireCfOAuthSpikeLock(options?: {
 }) {
   const lockFilePath =
     options?.lockFilePath ||
-    path.resolve(process.cwd(), '.gstack/projects/Larrybin-aooi/cf-oauth-spike.lock');
+    path.resolve(
+      process.cwd(),
+      '.gstack/projects/Larrybin-aooi/cf-oauth-spike.lock'
+    );
   await mkdir(path.dirname(lockFilePath), { recursive: true });
 
   const openLockFile = async () => await open(lockFilePath, 'wx');

@@ -1,9 +1,9 @@
-import { getProductModuleItemsByTab } from '@/config/product-modules';
-import type {
-  ProductModuleId,
-  ProductModuleTabRelationship,
-  ProductModuleTier,
-  ProductModuleVerification,
+import {
+  getProductModuleItemsByTab,
+  type ProductModuleId,
+  type ProductModuleTabRelationship,
+  type ProductModuleTier,
+  type ProductModuleVerification,
 } from '@/config/product-modules';
 
 export interface SettingsModuleContractRow {

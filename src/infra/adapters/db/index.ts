@@ -1,17 +1,17 @@
 import 'server-only';
 
 import { cache } from 'react';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-
-import { ServiceUnavailableError } from '@/shared/lib/api/errors';
-import { isProductionEnv } from '@/shared/lib/env';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   getCloudflareBindings,
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
 } from '@/infra/runtime/env.server';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+import { isProductionEnv } from '@/shared/lib/env';
 
 import { assertRoleDeletedAtColumnExists } from './schema-check';
 
@@ -265,8 +265,7 @@ export function db() {
     if (!hyperdriveConnectionString) {
       log.error('db: missing Hyperdrive binding "HYPERDRIVE"', {
         operation: 'resolve-hyperdrive-binding',
-        hint:
-          'configure [[hyperdrive]] binding = "HYPERDRIVE" in the tracked Wrangler template rendered by the current site deploy contract',
+        hint: 'configure [[hyperdrive]] binding = "HYPERDRIVE" in the tracked Wrangler template rendered by the current site deploy contract',
       });
       throw new ServiceUnavailableError(
         'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure [[hyperdrive]] binding = "HYPERDRIVE" in the tracked Wrangler template used by the current site deploy contract.',

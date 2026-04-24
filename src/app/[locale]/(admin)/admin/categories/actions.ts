@@ -1,5 +1,15 @@
 'use server';
 
+import {
+  addTaxonomy,
+  updateTaxonomy,
+  type NewTaxonomy,
+} from '@/domains/content/application/taxonomy-management';
+import { findTaxonomy } from '@/domains/content/application/taxonomy.query';
+import {
+  TaxonomyStatus,
+  TaxonomyType,
+} from '@/domains/content/domain/taxonomy-types';
 import { AdminCategoryFormSchema } from '@/surfaces/admin/schemas/category';
 import { validateAndParseForm } from '@/surfaces/admin/server/action-utils';
 
@@ -8,16 +18,6 @@ import { ActionError } from '@/shared/lib/action/errors';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import { getUuid } from '@/shared/lib/hash';
-import { findTaxonomy } from '@/domains/content/application/taxonomy.query';
-import {
-  addTaxonomy,
-  updateTaxonomy,
-  type NewTaxonomy,
-} from '@/domains/content/application/taxonomy-management';
-import {
-  TaxonomyStatus,
-  TaxonomyType,
-} from '@/domains/content/domain/taxonomy-types';
 
 /**
  * Create a new category

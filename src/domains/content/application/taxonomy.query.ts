@@ -1,6 +1,5 @@
 import 'server-only';
 
-import type { taxonomy } from '@/config/db/schema';
 import type {
   TaxonomyStatus,
   TaxonomyType,
@@ -10,6 +9,8 @@ import {
   getTaxonomyRows,
   getTaxonomyRowsCount,
 } from '@/domains/content/infra/taxonomy-repo';
+
+import type { taxonomy } from '@/config/db/schema';
 
 export type Taxonomy = typeof taxonomy.$inferSelect;
 

@@ -1,9 +1,9 @@
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 
 import { taxonomy } from '@/config/db/schema';
-import { db } from '@/infra/adapters/db';
 
 export type TaxonomyRow = typeof taxonomy.$inferSelect;
 export type NewTaxonomyRow = typeof taxonomy.$inferInsert;

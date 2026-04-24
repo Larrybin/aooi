@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 
 import { fetchBlobWithTimeout } from '@/shared/lib/fetch/client';
 
-export function useBlobDownload({ timeoutMs = 20000 }: { timeoutMs?: number } = {}) {
+export function useBlobDownload({
+  timeoutMs = 20000,
+}: { timeoutMs?: number } = {}) {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const downloadBlob = useCallback(

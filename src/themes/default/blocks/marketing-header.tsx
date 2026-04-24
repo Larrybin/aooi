@@ -1,14 +1,14 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { SignUser } from '@/domains/account/ui/auth/sign-user';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { ChevronDown, Menu } from 'lucide-react';
 
 import { defaultLocale } from '@/config/locale';
 import { AppImage } from '@/shared/blocks/common/app-image';
-import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
-import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 function withLocale(href: string, locale: string) {
   if (!href) return href;

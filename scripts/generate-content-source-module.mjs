@@ -1,6 +1,12 @@
-import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
-
 import { postInstall } from 'fumadocs-mdx/next';
 
 import { readCurrentSiteConfig } from './lib/site-config.mjs';
@@ -14,10 +20,7 @@ import {
   validateSiteContentCompleteness,
 } from './lib/site-content-config.mjs';
 
-function toModuleSource({
-  siteKey,
-  versionId,
-}) {
+function toModuleSource({ siteKey, versionId }) {
   return `export * from '${toContentSourceModuleSpecifier({ siteKey, versionId })}';\n`;
 }
 
@@ -34,8 +37,12 @@ async function removeLegacyContentArtifacts({ rootDir }) {
   await Promise.all([
     rm(path.resolve(rootDir, '.source', 'index.ts'), { force: true }),
     rm(path.resolve(rootDir, '.source', 'source.config.mjs'), { force: true }),
-    rm(path.resolve(rootDir, '.source', 'dev-local', 'index.ts'), { force: true }),
-    rm(path.resolve(rootDir, '.source', 'mamamiya', 'index.ts'), { force: true }),
+    rm(path.resolve(rootDir, '.source', 'dev-local', 'index.ts'), {
+      force: true,
+    }),
+    rm(path.resolve(rootDir, '.source', 'mamamiya', 'index.ts'), {
+      force: true,
+    }),
   ]);
 }
 
@@ -66,15 +73,13 @@ function compareVersionIds(left, right) {
   return leftKey.pid - rightKey.pid;
 }
 
-async function pruneOlderSiteVersions({
-  rootDir,
-  siteKey,
-  keepCount = 2,
-}) {
+async function pruneOlderSiteVersions({ rootDir, siteKey, keepCount = 2 }) {
   const siteOutDir = resolveContentOutDir({ rootDir, siteKey });
   await mkdir(siteOutDir, { recursive: true });
 
-  const publishedVersionIds = (await readdir(siteOutDir, { withFileTypes: true }))
+  const publishedVersionIds = (
+    await readdir(siteOutDir, { withFileTypes: true })
+  )
     .filter((entry) => entry.isDirectory() && !entry.name.endsWith('.tmp'))
     .map((entry) => entry.name)
     .sort(compareVersionIds);
@@ -87,7 +92,7 @@ async function pruneOlderSiteVersions({
   await Promise.all(
     versionIdsToRemove.map((versionId) =>
       rm(path.resolve(siteOutDir, versionId), { recursive: true, force: true })
-      )
+    )
   );
 }
 
@@ -112,12 +117,17 @@ async function generateSiteContentArtifacts({
   await mkdir(path.dirname(tempOutDir), { recursive: true });
   await mkdir(path.dirname(fumadocsCacheOutDir), { recursive: true });
 
-  await postInstall(path.resolve(rootDir, 'source.config.ts'), fumadocsCacheOutDir);
+  await postInstall(
+    path.resolve(rootDir, 'source.config.ts'),
+    fumadocsCacheOutDir
+  );
   await postInstall(path.resolve(rootDir, 'source.config.ts'), tempOutDir);
 
   const generatedIndexPath = path.resolve(tempOutDir, 'index.ts');
   if (!(await fileExists(generatedIndexPath))) {
-    throw new Error(`content artifact generation failed: missing ${generatedIndexPath}`);
+    throw new Error(
+      `content artifact generation failed: missing ${generatedIndexPath}`
+    );
   }
 
   await mkdir(path.dirname(generatedSourcePath), { recursive: true });

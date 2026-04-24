@@ -269,5 +269,8 @@ export function collectRequiredSecretNames(
 ) {
   return collectRequiredRuntimeBindings(workerKeys, bindingRequirements)
     .filter((requirement) => requirement.kind === 'runtime-secret')
-    .flatMap((requirement) => requirement.outputNames ?? requirement.names ?? [requirement.name]);
+    .flatMap(
+      (requirement) =>
+        requirement.outputNames ?? requirement.names ?? [requirement.name]
+    );
 }

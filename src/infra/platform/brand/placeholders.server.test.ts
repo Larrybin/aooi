@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { site } from '@/site';
 
 import { buildBrandPlaceholderValues } from './placeholders.server';

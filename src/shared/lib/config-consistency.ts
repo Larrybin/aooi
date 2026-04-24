@@ -1,5 +1,5 @@
-import { isCloudflareLocalWorkersDevRuntime } from '@/infra/runtime/runtime-mode';
 import { isRuntimeEnvEnabled } from '@/infra/runtime/env.server';
+import { isCloudflareLocalWorkersDevRuntime } from '@/infra/runtime/runtime-mode';
 
 export const CONFIG_CONSISTENCY_HEADER = 'x-aooi-config-consistency';
 export const CONFIG_CONSISTENCY_FRESH_VALUE = 'fresh';
@@ -18,8 +18,10 @@ export function resolveConfigConsistencyMode(
     return 'cached';
   }
 
-  return request.headers.get(CONFIG_CONSISTENCY_HEADER)?.trim().toLowerCase() ===
-    CONFIG_CONSISTENCY_FRESH_VALUE
+  return request.headers
+    .get(CONFIG_CONSISTENCY_HEADER)
+    ?.trim()
+    .toLowerCase() === CONFIG_CONSISTENCY_FRESH_VALUE
     ? 'fresh'
     : 'cached';
 }

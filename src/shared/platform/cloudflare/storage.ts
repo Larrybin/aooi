@@ -1,7 +1,8 @@
+import { getCloudflareBindings } from '@/infra/runtime/env.server';
+
 import { toUint8Array, type StorageUploadOptions } from '@/extensions/storage';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { buildStorageObjectPublicUrl } from '@/shared/lib/storage-public-url';
-import { getCloudflareBindings } from '@/infra/runtime/env.server';
 
 export function getCloudflareStorageBucket(): R2Bucket | null {
   const bindings = getCloudflareBindings();
@@ -17,12 +18,16 @@ export async function uploadFileToCloudflareR2({
   storagePublicBaseUrl: string;
 }) {
   if (!storagePublicBaseUrl.trim()) {
-    throw new ServiceUnavailableError('STORAGE_PUBLIC_BASE_URL is not configured');
+    throw new ServiceUnavailableError(
+      'STORAGE_PUBLIC_BASE_URL is not configured'
+    );
   }
 
   const bucket = getCloudflareStorageBucket();
   if (!bucket) {
-    throw new ServiceUnavailableError('APP_STORAGE_R2_BUCKET binding is missing');
+    throw new ServiceUnavailableError(
+      'APP_STORAGE_R2_BUCKET binding is missing'
+    );
   }
 
   const key = options.key.replace(/^\/+/, '').trim();

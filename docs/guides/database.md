@@ -156,9 +156,9 @@ Data access functions live with their owning domain under `src/domains/*/infra/`
 // src/domains/account/infra/user.ts
 import 'server-only';
 
+import { db } from '@/infra/adapters/db';
 import { eq } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { user } from '@/config/db/schema';
 
 export async function getUserById(id: string) {
@@ -192,9 +192,9 @@ type UpdateUser = Partial<Omit<NewUser, 'id' | 'createdAt'>>;
 ### Basic Select
 
 ```typescript
+import { db } from '@/infra/adapters/db';
 import { and, desc, eq, like } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { user } from '@/config/db/schema';
 
 // Get by ID

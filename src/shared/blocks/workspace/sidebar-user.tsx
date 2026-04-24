@@ -1,11 +1,11 @@
 'use client';
 
 import { Fragment } from 'react';
+import { signOut } from '@/infra/platform/auth/client';
+import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { ChevronsUpDown, LogOut, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { signOut } from '@/infra/platform/auth/client';
-import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import {
   Avatar,
@@ -52,7 +52,8 @@ export function SidebarUser({ user, initialUser }: SidebarUserProps) {
     router.push(user.signout_callback || '/sign-in');
   };
 
-  const authUser: AuthSessionUserSnapshot | null = snapshot ?? initialUser ?? null;
+  const authUser: AuthSessionUserSnapshot | null =
+    snapshot ?? initialUser ?? null;
 
   if (authUser) {
     return (

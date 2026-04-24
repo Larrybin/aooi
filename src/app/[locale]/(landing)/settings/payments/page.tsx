@@ -1,19 +1,19 @@
 // data: signed-in user (better-auth) + paid orders (db) + payment callback state (query) + pagination/filter
 // cache: no-store (request-bound auth)
 // reason: user-specific payment history and invoices
-import { getTranslations } from 'next-intl/server';
-
-import { Empty } from '@/shared/blocks/common/empty';
 import {
   listMemberPaymentsQuery,
   type MemberPaymentRow,
 } from '@/domains/billing/application/member-billing.query';
+import type { PaymentType } from '@/domains/billing/domain/payment';
 import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
-import { TableCard } from '@/shared/blocks/table';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { getTranslations } from 'next-intl/server';
+
+import { Empty } from '@/shared/blocks/common/empty';
+import { TableCard } from '@/shared/blocks/table';
 import type { Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
-import type { PaymentType } from '@/domains/billing/domain/payment';
 
 export default async function PaymentsPage({
   searchParams,

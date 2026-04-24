@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+import { resolveAICapabilitySelection } from '@/domains/ai/domain/capability-selection';
 import { toast } from 'sonner';
 
 import { AITaskStatus, type AIMediaType } from '@/extensions/ai';
@@ -25,7 +26,6 @@ import {
   getRequestIdFromError,
   RequestIdError,
 } from '@/shared/lib/api/request-id';
-import { resolveAICapabilitySelection } from '@/domains/ai/domain/capability-selection';
 import type { AICapability } from '@/shared/types/ai-capability';
 import type { SelfUserDetails } from '@/shared/types/auth-session';
 

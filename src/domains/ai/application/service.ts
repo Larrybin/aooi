@@ -1,5 +1,10 @@
 import 'server-only';
 
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
+
 import { AIMediaType, type AIProvider } from '@/extensions/ai';
 import { KieProvider, ReplicateProvider } from '@/extensions/ai/providers';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
@@ -7,10 +12,7 @@ import {
   ProviderRegistry,
   trimmedProviderNameKey,
 } from '@/shared/lib/providers/provider-registry';
-import type {
-  AiProviderBindings,
-  AiRuntimeSettings,
-} from '@/domains/settings/application/settings-runtime.contracts';
+
 import { getAiProviderBindings } from './provider-bindings';
 
 export type AIService = {
@@ -42,7 +44,9 @@ export function getAIService({
         invalidNameError: () =>
           new ServiceUnavailableError('AI provider name is required'),
         duplicateNameError: (name) =>
-          new ServiceUnavailableError(`AI provider '${name}' is already registered`),
+          new ServiceUnavailableError(
+            `AI provider '${name}' is already registered`
+          ),
       }
     );
   }
@@ -56,7 +60,9 @@ export function getAIService({
         invalidNameError: () =>
           new ServiceUnavailableError('AI provider name is required'),
         duplicateNameError: (name) =>
-          new ServiceUnavailableError(`AI provider '${name}' is already registered`),
+          new ServiceUnavailableError(
+            `AI provider '${name}' is already registered`
+          ),
       }
     );
   }
@@ -69,9 +75,8 @@ export function getAIService({
 }
 
 export async function getConfiguredAIService(): Promise<AIService> {
-  const { readAiRuntimeSettingsCached } = await import(
-    '@/domains/settings/application/settings-runtime.query'
-  );
+  const { readAiRuntimeSettingsCached } =
+    await import('@/domains/settings/application/settings-runtime.query');
   return getAIService({
     settings: await readAiRuntimeSettingsCached(),
     bindings: getAiProviderBindings(),

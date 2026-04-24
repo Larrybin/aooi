@@ -87,10 +87,7 @@ export type AccessControlAdminMutationDeps = {
   restoreRoleRecord: (
     roleId: string,
     audit?: AccessControlAuditInput
-  ) => Promise<
-    | { status: 'restored' }
-    | { status: 'name_conflict' }
-  >;
+  ) => Promise<{ status: 'restored' } | { status: 'name_conflict' }>;
 };
 
 export function createAccessControlChecker(
@@ -127,7 +124,9 @@ export function createAccessControlChecker(
 export function createPermissionCheckerCache(
   repository: Pick<AccessControlRepository, 'readUserPermissionCodes'>
 ) {
-  return cache((userId: string) => createAccessControlChecker(userId, repository));
+  return cache((userId: string) =>
+    createAccessControlChecker(userId, repository)
+  );
 }
 
 export async function checkUserPermission(
@@ -248,10 +247,7 @@ export async function updateRoleMetadataUseCase(
     actorUserId: string;
     source: string;
   },
-  deps: Pick<
-    AccessControlAdminReadDeps,
-    'findRoleById'
-  > &
+  deps: Pick<AccessControlAdminReadDeps, 'findRoleById'> &
     Pick<AccessControlAdminMutationDeps, 'updateRoleRecord'>
 ) {
   const role = await deps.findRoleById(input.roleId);
@@ -279,10 +275,7 @@ export async function replaceRolePermissionsUseCase(
     actorUserId: string;
     source: string;
   },
-  deps: Pick<
-    AccessControlAdminReadDeps,
-    'findRoleById'
-  > &
+  deps: Pick<AccessControlAdminReadDeps, 'findRoleById'> &
     Pick<AccessControlAdminMutationDeps, 'replaceRolePermissions'>
 ) {
   const role = await deps.findRoleById(input.roleId);
@@ -304,10 +297,7 @@ export async function deleteRoleUseCase(
     actorUserId: string;
     source: string;
   },
-  deps: Pick<
-    AccessControlAdminReadDeps,
-    'findRoleById'
-  > &
+  deps: Pick<AccessControlAdminReadDeps, 'findRoleById'> &
     Pick<AccessControlAdminMutationDeps, 'softDeleteRole'>
 ) {
   const role = await deps.findRoleById(input.roleId);
@@ -329,10 +319,7 @@ export async function restoreRoleUseCase(
     actorUserId: string;
     source: string;
   },
-  deps: Pick<
-    AccessControlAdminReadDeps,
-    'findRoleById'
-  > &
+  deps: Pick<AccessControlAdminReadDeps, 'findRoleById'> &
     Pick<AccessControlAdminMutationDeps, 'restoreRoleRecord'>
 ) {
   const role = await deps.findRoleById(input.roleId, { includeDeleted: true });

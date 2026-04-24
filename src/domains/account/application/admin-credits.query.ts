@@ -1,6 +1,3 @@
-import type {
-  AccountCreditTransactionType,
-} from './use-cases';
 import {
   CreditStatus,
   CreditTransactionType,
@@ -8,6 +5,8 @@ import {
   getCreditsCount,
   type Credit,
 } from '@/domains/account/infra/credit';
+
+import type { AccountCreditTransactionType } from './use-cases';
 
 export type AdminCreditRow = Credit;
 
@@ -29,13 +28,11 @@ function toCreditTransactionType(
   return undefined;
 }
 
-export async function listAdminCreditsQuery(
-  input: {
-    page: number;
-    limit: number;
-    transactionType?: AccountCreditTransactionType;
-  }
-) {
+export async function listAdminCreditsQuery(input: {
+  page: number;
+  limit: number;
+  transactionType?: AccountCreditTransactionType;
+}) {
   const [rows, total] = await Promise.all([
     getCredits({
       status: CreditStatus.ACTIVE,

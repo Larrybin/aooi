@@ -1,11 +1,10 @@
 import 'server-only';
 
+import { appendUserToResult, type User } from '@/domains/account/infra/user';
+import { db } from '@/infra/adapters/db';
 import { and, count, desc, eq, or, type SQL } from 'drizzle-orm';
 
-import { db } from '@/infra/adapters/db';
 import { chat } from '@/config/db/schema';
-
-import { appendUserToResult, type User } from '@/domains/account/infra/user';
 
 export type Chat = typeof chat.$inferSelect & {
   user?: User;

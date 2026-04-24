@@ -61,7 +61,11 @@ export function buildAdminQueryUrl(
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(currentSearchParams)) {
-    if (isEmptyQueryValue(value) || key === 'page' || keysToClear.includes(key)) {
+    if (
+      isEmptyQueryValue(value) ||
+      key === 'page' ||
+      keysToClear.includes(key)
+    ) {
       continue;
     }
 
@@ -86,8 +90,9 @@ function getTabMatchKeys<TQuery extends Record<string, unknown>>(
 ) {
   return Array.from(
     new Set(
-      tabs.flatMap((tab) =>
-        Object.keys(tab.queryPatch ?? {}) as Array<keyof TQuery & string>
+      tabs.flatMap(
+        (tab) =>
+          Object.keys(tab.queryPatch ?? {}) as Array<keyof TQuery & string>
       )
     )
   );

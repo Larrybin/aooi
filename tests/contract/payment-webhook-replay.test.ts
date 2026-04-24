@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import {
-  PaymentEventType,
-  type PaymentEvent,
-} from '@/domains/billing/domain/payment';
 import {
   runPaymentWebhookReplay,
   type PaymentWebhookReplayRow,
 } from '@/domains/billing/application/replay';
+import {
+  PaymentEventType,
+  type PaymentEvent,
+} from '@/domains/billing/domain/payment';
 import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/domains/billing/infra/payment-webhook-inbox.shared';
 
-function createInboxRow(overrides: Partial<PaymentWebhookReplayRow> = {}): PaymentWebhookReplayRow {
+function createInboxRow(
+  overrides: Partial<PaymentWebhookReplayRow> = {}
+): PaymentWebhookReplayRow {
   return {
     id: 'inbox_1',
     provider: 'creem',
@@ -120,7 +121,8 @@ test('runPaymentWebhookReplay 在处理失败时标记 failed', async () => {
     deps: {
       replayDeps: createReplayDeps(),
       createLog: () => createLog(),
-      markPaymentWebhookInboxAttempt: async ({ inboxId }) => createInboxRow({ id: inboxId }),
+      markPaymentWebhookInboxAttempt: async ({ inboxId }) =>
+        createInboxRow({ id: inboxId }),
       deserializePaymentWebhookCanonicalEvent: () => ({
         eventType: PaymentEventType.UNKNOWN,
         eventResult: {},

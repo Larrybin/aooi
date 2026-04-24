@@ -2,17 +2,17 @@
 // cache: no-store (request-bound auth)
 // reason: user-specific activity history
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { Empty } from '@/shared/blocks/common/empty';
-import { TableCard } from '@/shared/blocks/table';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import {
   listMemberChatsQuery,
   type MemberChatRow,
 } from '@/domains/chat/application/member-chats.query';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { getTranslations } from 'next-intl/server';
+
+import { Empty } from '@/shared/blocks/common/empty';
+import { TableCard } from '@/shared/blocks/table';
 import type { Button } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 

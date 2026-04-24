@@ -1,5 +1,10 @@
 import 'server-only';
 
+import {
+  readSettingsCached,
+  type Configs,
+} from '@/domains/settings/application/settings-store';
+
 import type {
   EmailMessage,
   EmailProvider,
@@ -14,10 +19,6 @@ import {
   exactProviderNameKey,
   ProviderRegistry,
 } from '@/shared/lib/providers/provider-registry';
-import {
-  readSettingsCached,
-  type Configs,
-} from '@/domains/settings/application/settings-store';
 
 export type EmailService = {
   sendEmail(email: EmailMessage): Promise<EmailSendResult>;

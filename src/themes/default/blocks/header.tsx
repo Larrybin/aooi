@@ -2,9 +2,11 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { SignUser } from '@/domains/account/ui/auth/sign-user';
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+import { Link, usePathname } from '@/infra/platform/i18n/navigation';
+import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { Menu, X } from 'lucide-react';
 
-import { Link, usePathname } from '@/infra/platform/i18n/navigation';
 import { BrandLogo } from '@/shared/blocks/common/brand-logo';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
@@ -23,11 +25,9 @@ import {
   NavigationMenuTrigger as RawNavigationMenuTrigger,
 } from '@/shared/components/ui/navigation-menu';
 import { listenEvent } from '@/shared/lib/dom/event-listener';
-import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visibility';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Header as HeaderType } from '@/shared/types/blocks/landing';
-import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 function NavigationMenuTrigger(
   props: React.ComponentProps<typeof RawNavigationMenuTrigger>

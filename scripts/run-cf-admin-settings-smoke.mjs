@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 import * as localeModule from '../src/config/locale/index.ts';
-import * as storagePublicUrlModule from '../src/shared/lib/storage-public-url.ts';
 import * as configConsistencyModule from '../src/shared/lib/config-consistency.ts';
+import * as storagePublicUrlModule from '../src/shared/lib/storage-public-url.ts';
 import {
   renderCloudflareLocalTopologyLogs,
   resolveCloudflareLocalDatabaseUrl,
@@ -42,9 +42,7 @@ const REQUEST_TIMEOUT_MS = Number.parseInt(
 );
 const STORAGE_PUBLIC_BASE_URL = 'https://storage-spike.example.com/assets/';
 const SESSION_COOKIE_NAME = 'better-auth.session_token';
-const SMOKE_CONFIG_NAMES = [
-  'general_ai_enabled',
-];
+const SMOKE_CONFIG_NAMES = ['general_ai_enabled'];
 const STORAGE_UPLOAD_FILES = Object.freeze({
   appLogo: {
     fileName: 'cf-admin-settings-logo.png',

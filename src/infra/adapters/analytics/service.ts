@@ -1,5 +1,8 @@
 import 'server-only';
 
+import type { Configs } from '@/domains/settings/application/settings-store';
+import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+
 import {
   AnalyticsManager,
   ClarityAnalyticsProvider,
@@ -8,9 +11,6 @@ import {
   PlausibleAnalyticsProvider,
 } from '@/extensions/analytics';
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { Configs } from '@/domains/settings/application/settings-store';
-
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
 
 /**
  * get analytics manager with configs
@@ -57,9 +57,11 @@ export function getAnalyticsManagerWithConfigs(configs: Configs) {
 /**
  * global analytics service
  */
-export async function getAnalyticsService(options: {
-  mode?: ConfigConsistencyMode;
-} = {}): Promise<AnalyticsManager> {
+export async function getAnalyticsService(
+  options: {
+    mode?: ConfigConsistencyMode;
+  } = {}
+): Promise<AnalyticsManager> {
   return await buildServiceFromLatestConfigs(
     getAnalyticsManagerWithConfigs,
     options

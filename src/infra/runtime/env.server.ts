@@ -1,3 +1,4 @@
+import { assertPostgresOnlyDatabaseProvider } from '@/infra/runtime/database-provider';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import {
@@ -5,7 +6,6 @@ import {
   type PublicEnvConfigs,
 } from '@/config/public-env';
 import { resolveServerAuthBaseUrl } from '@/config/server-auth-base-url';
-import { assertPostgresOnlyDatabaseProvider } from '@/infra/runtime/database-provider';
 import { isCloudflareWorker } from '@/shared/lib/env';
 
 export type RuntimePlatform = 'node' | 'cloudflare-workers';
@@ -126,10 +126,10 @@ export function getServerPublicEnvConfigs(
       ...options,
       bindings,
     }),
-    nextPublicDefaultLocale: getRuntimeEnvString(
-      'NEXT_PUBLIC_DEFAULT_LOCALE',
-      { ...options, bindings }
-    ),
+    nextPublicDefaultLocale: getRuntimeEnvString('NEXT_PUBLIC_DEFAULT_LOCALE', {
+      ...options,
+      bindings,
+    }),
   });
 }
 

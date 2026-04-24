@@ -2,13 +2,12 @@
 // cache: dynamic (request-based searchParams); configs cached via unstable_cache
 // reason: public auth entry; support callback redirects without cross-request caching
 import { SignUp } from '@/domains/account/ui/auth/sign-up';
-import { getTranslations } from 'next-intl/server';
-
-import { buildCanonicalUrl } from '@/infra/url/canonical';
 import {
   readAuthUiRuntimeSettingsCached,
   readPublicUiConfigCached,
 } from '@/domains/settings/application/settings-runtime.query';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
+import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata({
   params,

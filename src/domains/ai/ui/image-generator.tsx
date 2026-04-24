@@ -2,6 +2,11 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import {
+  useAiGenerationController,
+  type AIGenerationTaskAdapter,
+} from '@/domains/ai/ui/use-ai-generation-controller';
+import { Link } from '@/infra/platform/i18n/navigation';
+import {
   CreditCard,
   Download,
   ImageIcon,
@@ -11,13 +16,12 @@ import {
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Link } from '@/infra/platform/i18n/navigation';
 import { AIMediaType, AITaskStatus } from '@/extensions/ai';
+import { AppImage } from '@/shared/blocks/common/app-image';
 import {
   ImageUploader,
   type ImageUploaderValue,
 } from '@/shared/blocks/common/image-uploader';
-import { AppImage } from '@/shared/blocks/common/app-image';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,
@@ -36,10 +40,6 @@ import {
 } from '@/shared/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Textarea } from '@/shared/components/ui/textarea';
-import {
-  type AIGenerationTaskAdapter,
-  useAiGenerationController,
-} from '@/domains/ai/ui/use-ai-generation-controller';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
 
 interface ImageGeneratorProps {
@@ -112,7 +112,9 @@ export function ImageGenerator({
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const { downloadingId: downloadingImageId, downloadBlob } = useBlobDownload();
 
-  const imageTaskAdapter = useMemo<AIGenerationTaskAdapter<BackendTaskInfo | null>>(
+  const imageTaskAdapter = useMemo<
+    AIGenerationTaskAdapter<BackendTaskInfo | null>
+  >(
     () => ({
       initialProgress: 15,
       pollIntervalMs: 5000,
@@ -266,12 +268,17 @@ export function ImageGenerator({
   }, [capabilities, provider, scene]);
 
   const sceneOptions = useMemo(() => {
-    return Array.from(new Set(capabilities.map((capability) => capability.scene)));
+    return Array.from(
+      new Set(capabilities.map((capability) => capability.scene))
+    );
   }, [capabilities]);
 
-  const handleTabChange = useCallback((value: string) => {
-    setScene(value);
-  }, [setScene]);
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setScene(value);
+    },
+    [setScene]
+  );
 
   const taskStatusLabel = useMemo(() => {
     if (!taskStatus) {
@@ -450,7 +457,8 @@ export function ImageGenerator({
                 </div>
 
                 {((isLoadingDetails && !details && !isGenerating) ||
-                  isLoadingCapabilities) && !effectiveCapabilityErrorMessage ? (
+                  isLoadingCapabilities) &&
+                !effectiveCapabilityErrorMessage ? (
                   <Button className="w-full" disabled size="lg">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {t('checking_account')}
@@ -485,16 +493,20 @@ export function ImageGenerator({
                 )}
 
                 {accountErrorMessage ? (
-                  <div className="space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                  <div className="border-destructive/30 space-y-2 rounded-lg border p-4 text-sm">
                     <p className="text-destructive">{accountErrorMessage}</p>
-                    <p className="text-muted-foreground">{t('checking_account')}</p>
+                    <p className="text-muted-foreground">
+                      {t('checking_account')}
+                    </p>
                   </div>
                 ) : effectiveCapabilityErrorMessage ? (
-                  <div className="space-y-2 rounded-lg border border-destructive/30 p-4 text-sm">
+                  <div className="border-destructive/30 space-y-2 rounded-lg border p-4 text-sm">
                     <p className="text-destructive">
                       {effectiveCapabilityErrorMessage}
                     </p>
-                    <p className="text-muted-foreground">{t('checking_account')}</p>
+                    <p className="text-muted-foreground">
+                      {t('checking_account')}
+                    </p>
                   </div>
                 ) : details && remainingCredits > 0 ? (
                   <div className="flex items-center justify-between text-sm">

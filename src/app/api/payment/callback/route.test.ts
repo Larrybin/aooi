@@ -32,7 +32,10 @@ function createApiContextStub(options?: {
         if (options?.requireUserError) {
           throw options.requireUserError;
         }
-        return (options?.user ?? { id: 'user_1', email: 'user@example.com' }) as never;
+        return (options?.user ?? {
+          id: 'user_1',
+          email: 'user@example.com',
+        }) as never;
       },
     }) as never;
 }
@@ -60,7 +63,10 @@ test('payment/callback GET 未登录时回退到 /pricing', async () => {
   });
 
   await assert.rejects(
-    () => handler(new Request('http://localhost/api/payment/callback?order_no=order_1')),
+    () =>
+      handler(
+        new Request('http://localhost/api/payment/callback?order_no=order_1')
+      ),
     (error: unknown) => {
       assertRedirectDigest(error, 'https://app.example.com/pricing');
       return true;
@@ -99,7 +105,10 @@ test('payment/callback GET 在 fallback helper 返回相对 /pricing 时仍重�
   });
 
   await assert.rejects(
-    () => handler(new Request('http://localhost/api/payment/callback?order_no=order_1')),
+    () =>
+      handler(
+        new Request('http://localhost/api/payment/callback?order_no=order_1')
+      ),
     (error: unknown) => {
       assertRedirectDigest(error, '/pricing');
       return true;
@@ -113,16 +122,23 @@ test('payment/callback GET 正常时跳到 application 解析的 redirect url', 
       orderNo: 'order_1',
       user: { id: 'user_1', email: 'user@example.com' },
     }),
-    resolveRedirectQuery: async () => 'https://app.example.com/return?order_no=order_1',
+    resolveRedirectQuery: async () =>
+      'https://app.example.com/return?order_no=order_1',
     resolvePricingFallbackUrl: async () => {
       throw new Error('should not resolve pricing fallback');
     },
   });
 
   await assert.rejects(
-    () => handler(new Request('http://localhost/api/payment/callback?order_no=order_1')),
+    () =>
+      handler(
+        new Request('http://localhost/api/payment/callback?order_no=order_1')
+      ),
     (error: unknown) => {
-      assertRedirectDigest(error, 'https://app.example.com/return?order_no=order_1');
+      assertRedirectDigest(
+        error,
+        'https://app.example.com/return?order_no=order_1'
+      );
       return true;
     }
   );

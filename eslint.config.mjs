@@ -44,10 +44,8 @@ const noRuntimeLoadDotenvImportPattern = {
 };
 
 const noRuntimeSiteConfigImportPattern = {
-  regex:
-    '(^@/sites/)|(^sites/)|(^\\.{1,2}/.*?/sites/)',
-  message:
-    "运行时代码禁止直接导入 'sites/**'；请统一走 '@/site'。",
+  regex: '(^@/sites/)|(^sites/)|(^\\.{1,2}/.*?/sites/)',
+  message: "运行时代码禁止直接导入 'sites/**'；请统一走 '@/site'。",
 };
 
 const baseNoRestrictedImports = {

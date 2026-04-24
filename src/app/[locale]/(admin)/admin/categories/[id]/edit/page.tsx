@@ -1,6 +1,7 @@
 // data: admin session (RBAC) + category record (db) + Server Action write
 // cache: no-store (request-bound auth/RBAC)
 // reason: admin write flow; avoid caching across users/roles
+import { findTaxonomy } from '@/domains/content/application/taxonomy.query';
 import { buildAdminCrumbs, setupAdminPage } from '@/surfaces/admin/server';
 import { getTranslations } from 'next-intl/server';
 
@@ -8,7 +9,6 @@ import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { Header, Main, MainHeader } from '@/shared/blocks/workspace';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { findTaxonomy } from '@/domains/content/application/taxonomy.query';
 import type { Form } from '@/shared/types/blocks/form';
 
 import { updateCategoryAction } from '../../actions';

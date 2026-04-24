@@ -1,8 +1,10 @@
-import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import type {
   BillingRuntimeSettings,
   PaymentRuntimeBindings,
 } from '@/domains/settings/application/settings-runtime.contracts';
+
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
+
 import type { MemberSubscriptionRow } from './member-billing.query';
 
 function isCancelableSubscriptionStatus(status: string | null | undefined) {
@@ -15,23 +17,26 @@ export async function retrieveInvoiceUseCase(
     actorUserId: string;
   },
   deps: {
-    findOrderByOrderNo: (orderNo: string) => Promise<{
-      orderNo: string;
-      userId: string;
-      paymentProvider?: string | null;
-      invoiceId?: string | null;
-    } | undefined>;
+    findOrderByOrderNo: (orderNo: string) => Promise<
+      | {
+          orderNo: string;
+          userId: string;
+          paymentProvider?: string | null;
+          invoiceId?: string | null;
+        }
+      | undefined
+    >;
     getPaymentService: (input: {
       settings: BillingRuntimeSettings;
       bindings: PaymentRuntimeBindings;
     }) => Promise<{
-      getProvider: (
-        provider: string
-      ) => {
-        getPaymentInvoice?: (input: {
-          invoiceId: string;
-        }) => Promise<{ invoiceUrl?: string | null } | undefined>;
-      } | undefined;
+      getProvider: (provider: string) =>
+        | {
+            getPaymentInvoice?: (input: {
+              invoiceId: string;
+            }) => Promise<{ invoiceUrl?: string | null } | undefined>;
+          }
+        | undefined;
     }>;
     readBillingRuntimeSettingsCached: () => Promise<BillingRuntimeSettings>;
     readPaymentRuntimeBindings: () => Promise<PaymentRuntimeBindings>;
@@ -91,24 +96,27 @@ export async function retrieveBillingPortalUseCase(
     returnUrl: string;
   },
   deps: {
-    findSubscriptionBySubscriptionNo: (subscriptionNo: string) => Promise<{
-      subscriptionNo: string;
-      userId: string;
-      paymentProvider?: string | null;
-      paymentUserId?: string | null;
-    } | undefined>;
+    findSubscriptionBySubscriptionNo: (subscriptionNo: string) => Promise<
+      | {
+          subscriptionNo: string;
+          userId: string;
+          paymentProvider?: string | null;
+          paymentUserId?: string | null;
+        }
+      | undefined
+    >;
     getPaymentService: (input: {
       settings: BillingRuntimeSettings;
       bindings: PaymentRuntimeBindings;
     }) => Promise<{
-      getProvider: (
-        provider: string
-      ) => {
-        getPaymentBilling?: (input: {
-          customerId: string;
-          returnUrl: string;
-        }) => Promise<{ billingUrl?: string | null } | undefined>;
-      } | undefined;
+      getProvider: (provider: string) =>
+        | {
+            getPaymentBilling?: (input: {
+              customerId: string;
+              returnUrl: string;
+            }) => Promise<{ billingUrl?: string | null } | undefined>;
+          }
+        | undefined;
     }>;
     readBillingRuntimeSettingsCached: () => Promise<BillingRuntimeSettings>;
     readPaymentRuntimeBindings: () => Promise<PaymentRuntimeBindings>;
@@ -141,7 +149,9 @@ export async function retrieveBillingPortalUseCase(
     settings,
     bindings,
   });
-  const paymentProvider = paymentService.getProvider(subscription.paymentProvider);
+  const paymentProvider = paymentService.getProvider(
+    subscription.paymentProvider
+  );
   if (!paymentProvider?.getPaymentBilling) {
     throw new ServiceUnavailableError('payment provider not found');
   }
@@ -170,24 +180,27 @@ export async function cancelSubscriptionUseCase(
     actorUserId: string;
   },
   deps: {
-    findSubscriptionBySubscriptionNo: (subscriptionNo: string) => Promise<{
-      subscriptionNo: string;
-      userId: string;
-      subscriptionId?: string | null;
-      paymentProvider?: string | null;
-      status?: string | null;
-    } | undefined>;
+    findSubscriptionBySubscriptionNo: (subscriptionNo: string) => Promise<
+      | {
+          subscriptionNo: string;
+          userId: string;
+          subscriptionId?: string | null;
+          paymentProvider?: string | null;
+          status?: string | null;
+        }
+      | undefined
+    >;
     getPaymentService: (input: {
       settings: BillingRuntimeSettings;
       bindings: PaymentRuntimeBindings;
     }) => Promise<{
-      getProvider: (
-        provider: string
-      ) => {
-        cancelSubscription?: (input: {
-          subscriptionId: string;
-        }) => Promise<unknown>;
-      } | undefined;
+      getProvider: (provider: string) =>
+        | {
+            cancelSubscription?: (input: {
+              subscriptionId: string;
+            }) => Promise<unknown>;
+          }
+        | undefined;
     }>;
     readBillingRuntimeSettingsCached: () => Promise<BillingRuntimeSettings>;
     readPaymentRuntimeBindings: () => Promise<PaymentRuntimeBindings>;
@@ -223,7 +236,9 @@ export async function cancelSubscriptionUseCase(
     settings,
     bindings,
   });
-  const paymentProvider = paymentService.getProvider(subscription.paymentProvider);
+  const paymentProvider = paymentService.getProvider(
+    subscription.paymentProvider
+  );
   if (!paymentProvider?.cancelSubscription) {
     throw new ServiceUnavailableError('payment provider not found');
   }
@@ -255,9 +270,8 @@ export async function retrieveMemberInvoiceUrl(input: {
     import('@/domains/billing/infra/order'),
     import('@/domains/settings/application/settings-runtime.query'),
   ]);
-  const { getPaymentRuntimeBindings } = await import(
-    '@/infra/adapters/payment/runtime-bindings'
-  );
+  const { getPaymentRuntimeBindings } =
+    await import('@/infra/adapters/payment/runtime-bindings');
 
   return retrieveInvoiceUseCase(input, {
     findOrderByOrderNo,
@@ -282,9 +296,8 @@ export async function retrieveMemberBillingPortalUrl(input: {
     import('@/domains/billing/infra/subscription'),
     import('@/domains/settings/application/settings-runtime.query'),
   ]);
-  const { getPaymentRuntimeBindings } = await import(
-    '@/infra/adapters/payment/runtime-bindings'
-  );
+  const { getPaymentRuntimeBindings } =
+    await import('@/infra/adapters/payment/runtime-bindings');
 
   return retrieveBillingPortalUseCase(input, {
     findSubscriptionBySubscriptionNo,
@@ -308,9 +321,8 @@ export async function cancelMemberSubscription(input: {
     import('@/domains/billing/infra/subscription'),
     import('@/domains/settings/application/settings-runtime.query'),
   ]);
-  const { getPaymentRuntimeBindings } = await import(
-    '@/infra/adapters/payment/runtime-bindings'
-  );
+  const { getPaymentRuntimeBindings } =
+    await import('@/infra/adapters/payment/runtime-bindings');
 
   const result = await cancelSubscriptionUseCase(input, {
     findSubscriptionBySubscriptionNo,
@@ -336,18 +348,20 @@ export async function readCancelableSubscriptionPageUseCase(
     actorUserId: string;
   },
   deps: {
-    findSubscriptionBySubscriptionNo: (subscriptionNo: string) => Promise<MemberSubscriptionRow | undefined>;
+    findSubscriptionBySubscriptionNo: (
+      subscriptionNo: string
+    ) => Promise<MemberSubscriptionRow | undefined>;
     getPaymentService: (input: {
       settings: BillingRuntimeSettings;
       bindings: PaymentRuntimeBindings;
     }) => Promise<{
-      getProvider: (
-        provider: string
-      ) => {
-        cancelSubscription?: (input: {
-          subscriptionId: string;
-        }) => Promise<unknown>;
-      } | undefined;
+      getProvider: (provider: string) =>
+        | {
+            cancelSubscription?: (input: {
+              subscriptionId: string;
+            }) => Promise<unknown>;
+          }
+        | undefined;
     }>;
     readBillingRuntimeSettingsCached: () => Promise<BillingRuntimeSettings>;
     readPaymentRuntimeBindings: () => Promise<PaymentRuntimeBindings>;
@@ -362,7 +376,9 @@ export async function readCancelableSubscriptionPageUseCase(
         | 'provider_not_found';
     }
 > {
-  const subscription = await deps.findSubscriptionBySubscriptionNo(input.subscriptionNo);
+  const subscription = await deps.findSubscriptionBySubscriptionNo(
+    input.subscriptionNo
+  );
   if (!subscription) {
     return { status: 'not_found' };
   }
@@ -388,7 +404,9 @@ async function resolveCancelableSubscriptionProvider(
   providerName: string,
   deps: Pick<
     Parameters<typeof readCancelableSubscriptionPageUseCase>[1],
-    'getPaymentService' | 'readBillingRuntimeSettingsCached' | 'readPaymentRuntimeBindings'
+    | 'getPaymentService'
+    | 'readBillingRuntimeSettingsCached'
+    | 'readPaymentRuntimeBindings'
   >
 ) {
   try {
@@ -428,9 +446,8 @@ export async function readMemberCancelableSubscription(input: {
     import('@/domains/billing/infra/subscription'),
     import('@/domains/settings/application/settings-runtime.query'),
   ]);
-  const { getPaymentRuntimeBindings } = await import(
-    '@/infra/adapters/payment/runtime-bindings'
-  );
+  const { getPaymentRuntimeBindings } =
+    await import('@/infra/adapters/payment/runtime-bindings');
 
   return readCancelableSubscriptionPageUseCase(input, {
     findSubscriptionBySubscriptionNo,

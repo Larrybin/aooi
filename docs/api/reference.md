@@ -13,6 +13,7 @@ Contract exceptions exist (e.g. `/api/auth/[...all]` for Better Auth) where we i
 ```typescript
 // src/app/api/example/route.ts
 import { createApiContext } from '@/app/api/_lib/context';
+
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 

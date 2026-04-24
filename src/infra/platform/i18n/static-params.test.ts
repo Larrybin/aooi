@@ -15,12 +15,10 @@ test('getLocaleStaticParams: 为每个 locale 生成静态参数', () => {
 
 test('getLocaleSlugStaticParams: 去重并忽略空 slug', () => {
   assert.deepEqual(
-    getLocaleSlugStaticParams(['en', 'zh'], [
-      { slug: 'alpha' },
-      { slug: 'beta' },
-      { slug: 'alpha' },
-      { slug: '  ' },
-    ]),
+    getLocaleSlugStaticParams(
+      ['en', 'zh'],
+      [{ slug: 'alpha' }, { slug: 'beta' }, { slug: 'alpha' }, { slug: '  ' }]
+    ),
     [
       { locale: 'en', slug: 'alpha' },
       { locale: 'en', slug: 'beta' },

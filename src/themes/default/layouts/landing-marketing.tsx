@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { PublicAppProvider } from '@/shared/contexts/app';
 import type {
   AuthUiRuntimeSettings,
   BillingRuntimeSettings,
   PublicUiConfig,
 } from '@/domains/settings/application/settings-runtime.contracts';
+
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type {
   Footer as FooterType,
   Header as HeaderType,

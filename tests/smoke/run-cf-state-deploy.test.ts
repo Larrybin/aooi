@@ -75,11 +75,11 @@ test('deployCloudflareState 在 wrangler 失败时仍会 cleanup', async () => {
   await assert.rejects(
     deployCloudflareState({
       async createArtifacts() {
-      return {
-        workerName: 'site-state-worker',
-        configPath: '/tmp/wrangler.state.toml',
-        secretsPath: '/tmp/cloudflare.secrets.env',
-        async cleanup() {
+        return {
+          workerName: 'site-state-worker',
+          configPath: '/tmp/wrangler.state.toml',
+          secretsPath: '/tmp/cloudflare.secrets.env',
+          async cleanup() {
             cleanedUp = true;
           },
         };

@@ -7,8 +7,8 @@ import { pathToFileURL } from 'node:url';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import { CLOUDFLARE_STATE_WORKER_SCOPE } from './lib/cloudflare-runtime-bindings.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 
 const rootDir = process.cwd();
 

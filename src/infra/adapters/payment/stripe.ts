@@ -1,5 +1,3 @@
-import type Stripe from 'stripe';
-
 import {
   PaymentEventType,
   PaymentType,
@@ -13,6 +11,10 @@ import {
   type PaymentSession,
 } from '@/domains/billing/domain/payment';
 import {
+  assertSuccessfulPaymentSessionContract,
+  mapStripeEventTypeToCanonical,
+} from '@/infra/adapters/payment/provider-contract';
+import {
   buildStripeFailedPaymentSessionFromInvoice,
   buildStripePaymentSessionFromCheckoutSession,
   buildStripePaymentSessionFromInvoice,
@@ -23,10 +25,8 @@ import {
   StripeTransport,
   type StripeConfigs,
 } from '@/infra/adapters/payment/stripe-transport';
-import {
-  assertSuccessfulPaymentSessionContract,
-  mapStripeEventTypeToCanonical,
-} from '@/infra/adapters/payment/provider-contract';
+import type Stripe from 'stripe';
+
 import {
   BadRequestError,
   NotFoundError,
@@ -147,7 +147,9 @@ export class StripeProvider implements PaymentProvider {
       sessionParams.customer = customerId;
     }
     if (order.metadata) {
-      sessionParams.metadata = order.metadata as Stripe.MetadataParam | undefined;
+      sessionParams.metadata = order.metadata as
+        | Stripe.MetadataParam
+        | undefined;
     }
     if (order.successUrl) {
       sessionParams.success_url = order.successUrl;
@@ -302,7 +304,8 @@ export class StripeProvider implements PaymentProvider {
       throw new BadRequestError('subscriptionId is required');
     }
 
-    const subscription = await this.transport.cancelSubscription(subscriptionId);
+    const subscription =
+      await this.transport.cancelSubscription(subscriptionId);
     if (!subscription.canceled_at) {
       throw new UpstreamError(502, 'cancel subscription failed');
     }

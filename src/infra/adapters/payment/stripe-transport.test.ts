@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import { WebhookConfigError, WebhookVerificationError } from '@/domains/billing/domain/payment';
+import {
+  WebhookConfigError,
+  WebhookVerificationError,
+} from '@/domains/billing/domain/payment';
 import { StripeTransport } from '@/infra/adapters/payment/stripe-transport';
 
 test('Stripe transport: constructWebhookEvent 委托 Stripe client 并返回事件', () => {

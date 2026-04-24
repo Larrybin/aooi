@@ -11,9 +11,8 @@
 
 import '@/config/load-dotenv';
 
-import postgres from 'postgres';
-
 import { assertRoleDeletedAtColumnExists } from '@/infra/adapters/db/schema-check';
+import postgres from 'postgres';
 
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;

@@ -7,14 +7,14 @@ import {
   getPublicBlogPostStaticSlugs,
 } from '@/domains/content/application/public-content.query';
 import { MarkdownContent } from '@/domains/content/ui/markdown-content';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { locales } from '@/config/locale';
 import { getLocaleSlugStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildCanonicalUrl,
   buildLanguageAlternates,
 } from '@/infra/url/canonical';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { locales } from '@/config/locale';
 import BlogDetailPageView from '@/themes/default/pages/blog-detail';
 
 export async function generateMetadata({
@@ -53,7 +53,10 @@ export async function generateMetadata({
 }
 
 export async function generateStaticParams() {
-  return getLocaleSlugStaticParams(locales, await getPublicBlogPostStaticSlugs());
+  return getLocaleSlugStaticParams(
+    locales,
+    await getPublicBlogPostStaticSlugs()
+  );
 }
 
 export default async function BlogDetailPage({

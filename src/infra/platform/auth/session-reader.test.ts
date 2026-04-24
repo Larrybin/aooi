@@ -7,7 +7,9 @@ import {
 } from './session-reader';
 
 function createMemoizedCache() {
-  return <Args extends [string | null], Result>(fn: (...args: Args) => Result) => {
+  return <Args extends [string | null], Result>(
+    fn: (...args: Args) => Result
+  ) => {
     const entries = new Map<string, Result>();
 
     return (...args: Args) => {
@@ -26,18 +28,15 @@ function createMemoizedCache() {
 
 test('createRequestScopedAuthSessionReader 在同一 cookieHeader 下复用一次 identity 查询', async () => {
   const calls: string[] = [];
-  const reader = createRequestScopedAuthSessionReader(
-    async (sessionToken) => {
-      calls.push(sessionToken);
-      return {
-        id: 'user_123',
-        name: 'Roller Rabbit',
-        email: 'rabbit@example.com',
-        image: null,
-      };
-    },
-    createMemoizedCache()
-  );
+  const reader = createRequestScopedAuthSessionReader(async (sessionToken) => {
+    calls.push(sessionToken);
+    return {
+      id: 'user_123',
+      name: 'Roller Rabbit',
+      email: 'rabbit@example.com',
+      image: null,
+    };
+  }, createMemoizedCache());
 
   const cookieHeader =
     'theme=dark; better-auth.session_token=session-token-123; locale=zh';

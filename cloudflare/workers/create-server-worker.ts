@@ -25,12 +25,11 @@ let runWithCloudflareRequestContextPromise:
   | undefined;
 
 function loadRunWithCloudflareRequestContext() {
-  return (runWithCloudflareRequestContextPromise ??= import(
-    '../../.open-next/cloudflare/init.js'
-  ).then(
-    (module) =>
-      module.runWithCloudflareRequestContext as RunWithCloudflareRequestContext
-  ));
+  return (runWithCloudflareRequestContextPromise ??=
+    import('../../.open-next/cloudflare/init.js').then(
+      (module) =>
+        module.runWithCloudflareRequestContext as RunWithCloudflareRequestContext
+    ));
 }
 
 export function syncWorkerStringBindingsToProcessEnv(env: unknown) {
@@ -82,8 +81,9 @@ export function createServerWorker<Env>(
   return {
     async fetch(request: Request, env: Env, ctx: ExecutionContext) {
       syncWorkerStringBindingsToProcessEnv(env);
-      const handler =
-        (handlerPromise ??= loadModule().then(({ handler }) => handler));
+      const handler = (handlerPromise ??= loadModule().then(
+        ({ handler }) => handler
+      ));
       const runWithCloudflareRequestContext =
         await loadRunWithCloudflareRequestContext();
 

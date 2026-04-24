@@ -29,8 +29,7 @@ test('handleAuthSpikeOAuthMockRequest 返回 GitHub profile mock 响应', async 
     new Request('https://api.github.com/user', {
       method: 'GET',
       headers: {
-        authorization:
-          'Bearer oauth-spike-github-access-token-success',
+        authorization: 'Bearer oauth-spike-github-access-token-success',
       },
     })
   );

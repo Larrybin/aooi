@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import { WebhookConfigError, WebhookVerificationError } from '@/domains/billing/domain/payment';
-import { UpstreamError } from '@/shared/lib/api/errors';
+import {
+  WebhookConfigError,
+  WebhookVerificationError,
+} from '@/domains/billing/domain/payment';
 import { PayPalTransport } from '@/infra/adapters/payment/paypal-transport';
+
+import { UpstreamError } from '@/shared/lib/api/errors';
 
 test('PayPal transport: request 会先取 token 并复用缓存', async () => {
   const calls: string[] = [];
@@ -23,7 +26,9 @@ test('PayPal transport: request 会先取 token 并复用缓存', async () => {
             expires_in: 3600,
           };
         }
-        authHeaders.push(String((init?.headers as Record<string, string>).Authorization));
+        authHeaders.push(
+          String((init?.headers as Record<string, string>).Authorization)
+        );
         return {
           id: 'order_123',
           status: 'COMPLETED',
@@ -35,7 +40,10 @@ test('PayPal transport: request 会先取 token 并复用缓存', async () => {
   await transport.getOrder('order_123');
   await transport.getSubscription('sub_123');
 
-  assert.equal(calls.filter((url) => url.endsWith('/v1/oauth2/token')).length, 1);
+  assert.equal(
+    calls.filter((url) => url.endsWith('/v1/oauth2/token')).length,
+    1
+  );
   assert.deepEqual(authHeaders, ['Bearer token_123', 'Bearer token_123']);
 });
 

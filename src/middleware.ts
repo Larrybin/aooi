@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getOrCreateRequestId } from '@/infra/platform/logging/request-id.server';
 import { proxy } from '@/request-proxy';
 
 import { upsertMiddlewareRequestHeader } from '@/shared/lib/middleware-request-headers';
-import { getOrCreateRequestId } from '@/infra/platform/logging/request-id.server';
 
 export async function middleware(request: NextRequest) {
   const requestId = getOrCreateRequestId(request.headers);

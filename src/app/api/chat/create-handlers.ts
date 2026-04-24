@@ -1,6 +1,4 @@
-import type { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import type { UIMessage, convertToModelMessages, streamText } from 'ai';
-
+import type { ApiContext } from '@/app/api/_lib/context';
 import {
   createChatUseCase,
   getChatInfoUseCase,
@@ -8,18 +6,28 @@ import {
   listChatsUseCase,
   streamChatUseCase,
 } from '@/domains/chat/application/use-cases';
-import type { ApiContext } from '@/app/api/_lib/context';
+import type { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type { convertToModelMessages, streamText, UIMessage } from 'ai';
+
 import { jsonOk } from '@/shared/lib/api/response';
 import { setResponseHeader } from '@/shared/lib/api/response-headers';
-import { ChatInfoBodySchema } from '@/shared/schemas/api/chat/info';
-import type { ChatInfoBody } from '@/shared/schemas/api/chat/info';
-import { ChatListBodySchema } from '@/shared/schemas/api/chat/list';
-import type { ChatListBody } from '@/shared/schemas/api/chat/list';
-import { ChatMessagesBodySchema } from '@/shared/schemas/api/chat/messages';
-import type { ChatMessagesBody } from '@/shared/schemas/api/chat/messages';
+import {
+  ChatInfoBodySchema,
+  type ChatInfoBody,
+} from '@/shared/schemas/api/chat/info';
+import {
+  ChatListBodySchema,
+  type ChatListBody,
+} from '@/shared/schemas/api/chat/list';
+import {
+  ChatMessagesBodySchema,
+  type ChatMessagesBody,
+} from '@/shared/schemas/api/chat/messages';
 import { ChatNewBodySchema } from '@/shared/schemas/api/chat/new';
-import { ChatStreamBodySchema } from '@/shared/schemas/api/chat/stream';
-import type { ChatStreamBody } from '@/shared/schemas/api/chat/stream';
+import {
+  ChatStreamBodySchema,
+  type ChatStreamBody,
+} from '@/shared/schemas/api/chat/stream';
 
 import type {
   chatInfoDeps,
@@ -48,9 +56,7 @@ export type ChatHandlerDeps = {
   chatStreamDeps: typeof chatStreamDeps;
 };
 
-export function createChatNewPostAction(
-  deps: ChatHandlerDeps
-) {
+export function createChatNewPostAction(deps: ChatHandlerDeps) {
   return async (request: Request) => {
     await deps.requireAiEnabled();
 
@@ -75,16 +81,13 @@ export function createChatNewPostAction(
   };
 }
 
-export function createChatListPostAction(
-  deps: ChatHandlerDeps
-) {
+export function createChatListPostAction(deps: ChatHandlerDeps) {
   return async (request: Request) => {
     await deps.requireAiEnabled();
 
     const api = deps.createApiContext(request);
-    const { page, limit }: ChatListBody = await api.parseJson(
-      ChatListBodySchema
-    );
+    const { page, limit }: ChatListBody =
+      await api.parseJson(ChatListBodySchema);
     const user = await api.requireUser();
 
     const result = await listChatsUseCase(
@@ -103,9 +106,7 @@ export function createChatListPostAction(
   };
 }
 
-export function createChatInfoPostAction(
-  deps: ChatHandlerDeps
-) {
+export function createChatInfoPostAction(deps: ChatHandlerDeps) {
   return async (request: Request) => {
     await deps.requireAiEnabled();
 
@@ -127,9 +128,7 @@ export function createChatInfoPostAction(
   };
 }
 
-export function createChatMessagesPostAction(
-  deps: ChatHandlerDeps
-) {
+export function createChatMessagesPostAction(deps: ChatHandlerDeps) {
   return async (request: Request) => {
     await deps.requireAiEnabled();
 
@@ -159,9 +158,7 @@ export function createChatMessagesPostAction(
   };
 }
 
-export function createChatStreamPostAction(
-  deps: ChatHandlerDeps
-) {
+export function createChatStreamPostAction(deps: ChatHandlerDeps) {
   return async (request: Request) => {
     await deps.requireAiEnabled();
 

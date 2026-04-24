@@ -3,22 +3,22 @@
 // reason: public blog uses site capability as the authoritative gate
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
-import { PublicAppProvider } from '@/shared/contexts/app';
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { getSite } from '@/infra/platform/site';
-import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+import { getTranslations } from 'next-intl/server';
+
+import { LocaleDetector } from '@/shared/blocks/common/locale-detector';
+import { PublicAppProvider } from '@/shared/contexts/app';
+import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type {
   Footer as FooterType,
   Header as HeaderType,

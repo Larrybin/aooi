@@ -1,5 +1,3 @@
-import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
-
 import type {
   Chat,
   findChatById,
@@ -7,7 +5,12 @@ import type {
   getChats,
   getChatsCount,
 } from '@/domains/chat/infra/chat';
-import type { ChatMessage, getChatMessages } from '@/domains/chat/infra/chat-message';
+import type {
+  ChatMessage,
+  getChatMessages,
+} from '@/domains/chat/infra/chat-message';
+
+import { safeJsonParse, tryJsonParse } from '@/shared/lib/json';
 
 export type MemberChatRow = Awaited<ReturnType<typeof getChats>>[number];
 
@@ -73,8 +76,7 @@ export async function readMemberChatThreadQuery(
     'findChatById' | 'findChatByIdForViewer' | 'getChatMessages'
   >
 ): Promise<
-  | { status: 'hidden' }
-  | { status: 'ok'; thread: MemberChatThreadView }
+  { status: 'hidden' } | { status: 'ok'; thread: MemberChatThreadView }
 > {
   const resolvedDeps = deps ?? (await getMemberChatsDeps());
 

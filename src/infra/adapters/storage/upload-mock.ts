@@ -1,9 +1,7 @@
 import { isEnvEnabled } from '@/config/env-contract';
 import type { StorageUploadResult } from '@/extensions/storage';
 
-export function isStorageSpikeUploadMockEnabled(
-  env?: NodeJS.ProcessEnv
-) {
+export function isStorageSpikeUploadMockEnabled(env?: NodeJS.ProcessEnv) {
   return isEnvEnabled(env, 'STORAGE_SPIKE_UPLOAD_MOCK');
 }
 
@@ -13,8 +11,9 @@ export function buildStorageSpikeUploadMockResult(params: {
   publicDomain?: string;
 }): StorageUploadResult {
   const normalizedKey = params.key.replace(/^\/+/, '');
-  const baseUrl = (params.publicDomain || 'https://storage-spike.example.com')
-    .replace(/\/+$/, '');
+  const baseUrl = (
+    params.publicDomain || 'https://storage-spike.example.com'
+  ).replace(/\/+$/, '');
   const url = `${baseUrl}/${normalizedKey}`;
 
   return {

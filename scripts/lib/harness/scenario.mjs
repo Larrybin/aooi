@@ -7,7 +7,8 @@ export async function runPhaseSequence({ phases, cleanup }) {
       try {
         await phase.action();
       } catch (error) {
-        const phaseMessage = error instanceof Error ? error.message : String(error);
+        const phaseMessage =
+          error instanceof Error ? error.message : String(error);
         throw new Error(`[${phase.label}] ${phaseMessage}`, {
           cause: error instanceof Error ? error : undefined,
         });
@@ -20,7 +21,8 @@ export async function runPhaseSequence({ phases, cleanup }) {
       try {
         await cleanup();
       } catch (error) {
-        cleanupError = error instanceof Error ? error : new Error(String(error));
+        cleanupError =
+          error instanceof Error ? error : new Error(String(error));
       }
     }
   }

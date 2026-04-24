@@ -2,10 +2,9 @@
 // cache: dynamic (locale-aware); configs cached via unstable_cache
 // reason: password recovery flow needs locale + brand settings; avoid per-request db reads
 import { ForgotPassword } from '@/domains/account/ui/auth/forgot-password';
-import { getTranslations } from 'next-intl/server';
-
-import { buildCanonicalUrl } from '@/infra/url/canonical';
 import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { buildCanonicalUrl } from '@/infra/url/canonical';
+import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata({
   params,

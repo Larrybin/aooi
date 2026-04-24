@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
+  useAiGenerationController,
+  type AIGenerationTaskAdapter,
+} from '@/domains/ai/ui/use-ai-generation-controller';
+import { Link } from '@/infra/platform/i18n/navigation';
+import {
   CheckCircle,
   Clock,
   CreditCard,
@@ -16,7 +21,6 @@ import {
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Link } from '@/infra/platform/i18n/navigation';
 import { AIMediaType, type AISong } from '@/extensions/ai';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
@@ -38,10 +42,6 @@ import {
 } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
-import {
-  useAiGenerationController,
-  type AIGenerationTaskAdapter,
-} from '@/domains/ai/ui/use-ai-generation-controller';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
 import { cn } from '@/shared/lib/utils';
 

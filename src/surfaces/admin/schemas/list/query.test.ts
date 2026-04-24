@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { PaymentType } from '@/domains/billing/domain/payment';
 
 import { AIMediaType } from '@/extensions/ai';
-import { PaymentType } from '@/domains/billing/domain/payment';
 
 import {
   AdminAiTasksListQuerySchema,
@@ -46,15 +46,21 @@ test('AdminAiTasksListQuerySchema: 解析 canonical media type', () => {
 });
 
 test('AdminRolesListQuerySchema: 解析 includeDeleted 布尔值', () => {
-  assert.deepEqual(AdminRolesListQuerySchema.parse({ includeDeleted: 'true' }), {
-    includeDeleted: true,
-  });
+  assert.deepEqual(
+    AdminRolesListQuerySchema.parse({ includeDeleted: 'true' }),
+    {
+      includeDeleted: true,
+    }
+  );
   assert.deepEqual(AdminRolesListQuerySchema.parse({ includeDeleted: '1' }), {
     includeDeleted: true,
   });
-  assert.deepEqual(AdminRolesListQuerySchema.parse({ includeDeleted: 'false' }), {
-    includeDeleted: false,
-  });
+  assert.deepEqual(
+    AdminRolesListQuerySchema.parse({ includeDeleted: 'false' }),
+    {
+      includeDeleted: false,
+    }
+  );
 });
 
 test('AdminUsersListQuerySchema: trim email 并补默认分页', () => {

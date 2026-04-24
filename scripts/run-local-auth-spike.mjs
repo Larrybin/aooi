@@ -11,13 +11,13 @@ import {
   resolveCloudflareLocalDatabaseUrl,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
 import {
   sleep,
   stopChild,
   waitForManagerReady,
 } from './lib/harness/runtime.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 
 const rootDir = path.resolve(
@@ -240,7 +240,10 @@ async function readLockedNodeBaseUrl() {
 async function main() {
   const wranglerConfigPath =
     process.env.CF_LOCAL_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(rootDir, resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath);
+    path.resolve(
+      rootDir,
+      resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath
+    );
   const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
     processEnv: process.env,
     wranglerConfigPath,

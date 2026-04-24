@@ -1,11 +1,10 @@
 import path from 'node:path';
-
-import { z } from 'zod';
 import {
   defineConfig,
   defineDocs,
   frontmatterSchema,
 } from 'fumadocs-mdx/config';
+import { z } from 'zod';
 
 const DEFAULT_SITE_KEY = 'dev-local';
 const siteKey = process.env.SITE?.trim() || DEFAULT_SITE_KEY;
@@ -17,12 +16,18 @@ const requiredCollectionDirs = ['docs', 'pages', 'posts'];
 for (const collection of requiredCollectionDirs) {
   const collectionPath = path.resolve(contentRoot, collection);
   try {
-    const stat = await import('node:fs/promises').then((fs) => fs.stat(collectionPath));
+    const stat = await import('node:fs/promises').then((fs) =>
+      fs.stat(collectionPath)
+    );
     if (!stat.isDirectory()) {
-      throw new Error(`site content path is not a directory: sites/${siteKey}/content/${collection}`);
+      throw new Error(
+        `site content path is not a directory: sites/${siteKey}/content/${collection}`
+      );
     }
   } catch {
-    throw new Error(`site content directory is required: sites/${siteKey}/content/${collection}`);
+    throw new Error(
+      `site content directory is required: sites/${siteKey}/content/${collection}`
+    );
   }
 }
 

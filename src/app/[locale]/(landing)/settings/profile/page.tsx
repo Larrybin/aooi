@@ -1,17 +1,17 @@
 // data: signed-in user (better-auth) + profile form (Server Action writes to db)
 // cache: no-store (request-bound auth)
 // reason: user-specific settings page
+import { requireActionUser } from '@/app/access-control/action-guard';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { updateProfileUseCase } from '@/domains/account/application/use-cases';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { getTranslations } from 'next-intl/server';
 
-import { accountRuntimeDeps } from '@/app/account/runtime-deps';
-import { requireActionUser } from '@/app/access-control/action-guard';
-import { updateProfileUseCase } from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { SettingsProfileFormSchema } from '@/shared/schemas/actions/settings-profile';
 import type { Form as FormType } from '@/shared/types/blocks/form';
 

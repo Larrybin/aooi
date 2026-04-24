@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/infra/platform/i18n/navigation';
+
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import { useSidebar } from '@/shared/components/ui/sidebar';

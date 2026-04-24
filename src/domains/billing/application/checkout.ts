@@ -1,7 +1,5 @@
 import 'server-only';
 
-import { defaultLocale, locales, type Locale } from '@/config/locale';
-import { site } from '@/site';
 import {
   PaymentType,
   type CheckoutInfo,
@@ -9,7 +7,28 @@ import {
   type PaymentOrder,
   type PaymentPrice,
 } from '@/domains/billing/domain/payment';
+import { resolveCreemPaymentProductId } from '@/domains/billing/domain/payment-config';
+import {
+  assertPaymentProviderAllowedForCheckout,
+  resolveCheckoutPricingContext,
+  resolvePaymentTypeFromInterval,
+  resolvePricingPaymentInterval,
+  resolveSubscriptionPlanName,
+} from '@/domains/billing/domain/pricing';
+import {
+  createOrder,
+  OrderStatus,
+  updateOrderByOrderNo,
+  type NewOrder,
+} from '@/domains/billing/infra/order';
+import type {
+  BillingRuntimeSettings,
+  PaymentRuntimeBindings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import { getPaymentService } from '@/infra/adapters/payment/service';
+import { site } from '@/site';
+
+import { defaultLocale, locales, type Locale } from '@/config/locale';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -18,26 +37,7 @@ import {
   UpstreamError,
 } from '@/shared/lib/api/errors';
 import { getSnowId, getUuid } from '@/shared/lib/hash';
-import {
-  createOrder,
-  OrderStatus,
-  updateOrderByOrderNo,
-  type NewOrder,
-} from '@/domains/billing/infra/order';
-import { resolveCreemPaymentProductId } from '@/domains/billing/domain/payment-config';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
-
-import {
-  assertPaymentProviderAllowedForCheckout,
-  resolveCheckoutPricingContext,
-  resolvePaymentTypeFromInterval,
-  resolvePricingPaymentInterval,
-  resolveSubscriptionPlanName,
-} from '@/domains/billing/domain/pricing';
-import type {
-  BillingRuntimeSettings,
-  PaymentRuntimeBindings,
-} from '@/domains/settings/application/settings-runtime.contracts';
 
 type LogLike = {
   debug(message: string, meta?: unknown): void;
@@ -71,9 +71,12 @@ function assertAppUrlOrigin(appUrl: string): string {
     }
     origin = url.origin;
   } catch (error) {
-    throw new ServiceUnavailableError('invalid site.brand.appUrl configuration', {
-      error,
-    });
+    throw new ServiceUnavailableError(
+      'invalid site.brand.appUrl configuration',
+      {
+        error,
+      }
+    );
   }
 
   return origin;

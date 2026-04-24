@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import { CLOUDFLARE_APP_WORKER_SCOPE } from './lib/cloudflare-runtime-bindings.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 
 const rootDir = process.cwd();
 const fallbackBuildSecret = 'cf-build-dry-run-secret-0123456789abcdef';
@@ -29,7 +29,10 @@ function buildUploadTargets(contract, rootPath = rootDir) {
     {
       label: 'router',
       name: contract.router.workerName,
-      configPath: path.resolve(rootPath, contract.router.wranglerConfigRelativePath),
+      configPath: path.resolve(
+        rootPath,
+        contract.router.wranglerConfigRelativePath
+      ),
       workerSlot: 'router',
     },
     ...Object.entries(contract.serverWorkers).map(([target, worker]) => ({

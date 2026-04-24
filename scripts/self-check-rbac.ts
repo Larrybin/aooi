@@ -17,10 +17,10 @@
 
 import '@/config/load-dotenv';
 
-import { and, eq } from 'drizzle-orm';
-
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { db } from '@/infra/adapters/db';
+import { and, eq } from 'drizzle-orm';
+
 import {
   permission,
   role,

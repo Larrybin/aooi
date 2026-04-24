@@ -1,14 +1,13 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { readCurrentSiteConfig, resolveRequiredSiteKey } from './lib/site-config.mjs';
+import {
+  readCurrentSiteConfig,
+  resolveRequiredSiteKey,
+} from './lib/site-config.mjs';
 
 function toModuleSource(site) {
-  return `export const site = ${JSON.stringify(
-    site,
-    null,
-    2
-  )} as const;\n`;
+  return `export const site = ${JSON.stringify(site, null, 2)} as const;\n`;
 }
 
 async function main() {

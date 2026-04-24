@@ -62,9 +62,7 @@ export const ARCHITECTURE_RULES = {
     '^@/domains/chat/infra(?:/|$)',
     '^@/domains/ai/infra(?:/|$)',
   ],
-  memberChatForbiddenImports: [
-    '^@/domains/chat/infra(?:/|$)',
-  ],
+  memberChatForbiddenImports: ['^@/domains/chat/infra(?:/|$)'],
   paymentCallbackRouteForbiddenImports: [
     '^@/domains/billing/infra(?:/|$)',
     '^@/infra/adapters/payment(?:/|$)',

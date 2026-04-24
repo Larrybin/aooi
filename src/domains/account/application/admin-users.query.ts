@@ -1,5 +1,7 @@
-import type { AccountAdminUserRecord } from './use-cases';
-import { listAdminUsersUseCase } from './use-cases';
+import {
+  listAdminUsersUseCase,
+  type AccountAdminUserRecord,
+} from './use-cases';
 
 type AccountAdminUsersDeps = {
   getUsers: (params: {

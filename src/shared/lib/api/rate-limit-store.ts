@@ -25,7 +25,9 @@ export type RateLimitStore = {
 };
 
 function normalizeScopeKeys(scopeKeys: string[]): string[] {
-  return [...new Set(scopeKeys.map((key) => key.trim()).filter(Boolean))].sort();
+  return [
+    ...new Set(scopeKeys.map((key) => key.trim()).filter(Boolean)),
+  ].sort();
 }
 
 export function createMemoryRateLimitStore(): RateLimitStore {

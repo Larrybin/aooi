@@ -76,9 +76,13 @@ test('uploadImageFiles 在 provider 初始化失败时返回 503 语义', async 
 });
 
 test('uploadImageFiles 拒绝非法 MIME 文件', async () => {
-  const invalidFile = new File([new Uint8Array([0x01, 0x02, 0x03])], 'bad.bin', {
-    type: 'application/octet-stream',
-  });
+  const invalidFile = new File(
+    [new Uint8Array([0x01, 0x02, 0x03])],
+    'bad.bin',
+    {
+      type: 'application/octet-stream',
+    }
+  );
 
   await assert.rejects(
     uploadImageFiles({

@@ -12,7 +12,6 @@ import {
   resolveCloudflareLocalDatabaseUrl,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import {
   resolveAuthSecret,
   resolveConfiguredPreviewBaseUrl,
@@ -28,6 +27,7 @@ import {
   createTimestamp,
   readCommitShaSafely,
 } from './lib/harness/runtime.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { injectCloudflareLocalSmokeDevVars } from './run-cf-local-smoke.mjs';
 
 const oauthSpikeShared =
@@ -212,7 +212,10 @@ async function main() {
   const runId = process.env.CF_OAUTH_SPIKE_RUN_ID?.trim() || timestamp;
   const wranglerConfigPath =
     process.env.CF_LOCAL_SMOKE_WRANGLER_CONFIG_PATH?.trim() ||
-    path.resolve(rootDir, resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath);
+    path.resolve(
+      rootDir,
+      resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath
+    );
   const databaseUrl = await resolveCloudflareLocalDatabaseUrl({
     processEnv: process.env,
     wranglerConfigPath,

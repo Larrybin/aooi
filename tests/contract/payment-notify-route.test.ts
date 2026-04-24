@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { handlePaymentNotifyRequest } from '@/domains/billing/application/payment-notify-flow';
 import {
   PaymentEventType,
@@ -10,6 +9,7 @@ import {
 } from '@/domains/billing/domain/payment';
 import { PayPalProvider } from '@/infra/adapters/payment/paypal';
 import { StripeProvider } from '@/infra/adapters/payment/stripe';
+
 import { PayloadTooLargeError, UpstreamError } from '@/shared/lib/api/errors';
 
 function createInboxRecord(overrides: Record<string, unknown> = {}) {
@@ -109,7 +109,11 @@ test('payment notify flow 验签成功后写 inbox 并处理 canonical event', a
           isNew: true,
         };
       },
-      markPaymentWebhookInboxAttempt: async ({ inboxId }: { inboxId: string }) => {
+      markPaymentWebhookInboxAttempt: async ({
+        inboxId,
+      }: {
+        inboxId: string;
+      }) => {
         attempts.push(inboxId);
         return undefined;
       },
@@ -134,7 +138,10 @@ test('payment notify flow 验签成功后写 inbox 并处理 canonical event', a
     }),
   });
 
-  assert.deepEqual(steps, ['getPaymentEvent', 'createPaymentWebhookInboxReceipt']);
+  assert.deepEqual(steps, [
+    'getPaymentEvent',
+    'createPaymentWebhookInboxReceipt',
+  ]);
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     code: 0,

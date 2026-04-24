@@ -19,7 +19,8 @@ export function normalizeSettingOverrides(
     let nextValue = value;
 
     if (setting.normalizer) {
-      const result: NormalizedSettingValueResult = setting.normalizer(nextValue);
+      const result: NormalizedSettingValueResult =
+        setting.normalizer(nextValue);
       if (!result.ok) {
         return result;
       }

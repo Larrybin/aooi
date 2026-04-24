@@ -139,7 +139,10 @@ async function loadMergedMessagesForPath(
   locale: Locale,
   messagePath: string
 ): Promise<Messages> {
-  const baseMessages = await loadMessagesRequired(messagePath, baseMessagesLocale);
+  const baseMessages = await loadMessagesRequired(
+    messagePath,
+    baseMessagesLocale
+  );
 
   if (locale === baseMessagesLocale) {
     return baseMessages;

@@ -22,7 +22,10 @@ type DurableObjectStateLike = {
 
 type DurableObjectRequestBody =
   | {
-      action: 'cooldown.check' | 'cooldown.checkAndConsume' | 'cooldown.consume';
+      action:
+        | 'cooldown.check'
+        | 'cooldown.checkAndConsume'
+        | 'cooldown.consume';
       bucket: string;
       key: string;
       now: number;

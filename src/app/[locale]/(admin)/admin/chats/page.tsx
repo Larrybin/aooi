@@ -2,19 +2,19 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: chat logs are sensitive; avoid caching across users/roles
 import { notFound } from 'next/navigation';
+import { isAiEnabled } from '@/domains/ai/domain/enablement';
+import {
+  listAdminChatsQuery,
+  type AdminChatRow,
+} from '@/domains/chat/application/admin-chats.query';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 import { createAdminTablePage } from '@/surfaces/admin/create-admin-table-page';
 import {
   AdminChatsListQuerySchema,
   type AdminChatsListQuery,
 } from '@/surfaces/admin/schemas/list';
 
-import {
-  listAdminChatsQuery,
-  type AdminChatRow,
-} from '@/domains/chat/application/admin-chats.query';
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
-import { isAiEnabled } from '@/domains/ai/domain/enablement';
-import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 
 export default createAdminTablePage<AdminChatRow, AdminChatsListQuery>({
   namespace: 'admin.chats',

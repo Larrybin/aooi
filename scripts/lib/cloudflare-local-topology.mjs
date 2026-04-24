@@ -17,8 +17,8 @@ import {
   normalizePreviewBaseUrl,
   resolveAuthSecret,
 } from './cloudflare-dev-runtime.mjs';
-import { resolveSiteDeployContract } from './site-deploy-contract.mjs';
 import { resolveRequiredSiteKey } from './site-config.mjs';
+import { resolveSiteDeployContract } from './site-deploy-contract.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -218,7 +218,10 @@ export async function prepareCloudflareLocalTopologyArtifacts({
 
   const serverWorkers = [];
   for (const [target, metadata] of Object.entries(contract.serverWorkers)) {
-    const templatePath = path.resolve(rootDir, metadata.wranglerConfigRelativePath);
+    const templatePath = path.resolve(
+      rootDir,
+      metadata.wranglerConfigRelativePath
+    );
     const template = await readFile(templatePath, 'utf8');
     const configPath = path.join(tempDir, `wrangler.${target}.local.toml`);
     const config = buildCloudflareWranglerConfig({

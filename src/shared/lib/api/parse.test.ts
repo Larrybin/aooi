@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PayloadTooLargeError } from './errors';
 import {
   readRequestBodyByteCountUpTo,
   readRequestFormData,
   readRequestTextWithLimit,
 } from '../runtime/request-body';
+import { PayloadTooLargeError } from './errors';
 
 test('readRequestTextWithLimit: 正常 body 可读取', async () => {
   const req = new Request('https://example.com/api/test', {

@@ -16,7 +16,12 @@ export function createReportArtifacts({
     reportDir,
     `${reportPrefix}.latest.md`
   );
-  const artifactDir = path.resolve(rootDir, 'output/playwright', artifactSubdir, timestamp);
+  const artifactDir = path.resolve(
+    rootDir,
+    'output/playwright',
+    artifactSubdir,
+    timestamp
+  );
 
   return {
     reportDir,

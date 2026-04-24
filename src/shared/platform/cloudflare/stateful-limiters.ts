@@ -1,9 +1,10 @@
+import { getCloudflareBindings } from '@/infra/runtime/env.server';
+
 import type {
   AllowedLimitResult,
   DeniedLimitResult,
   LimitResult,
 } from '@/shared/lib/api/limiters';
-import { getCloudflareBindings } from '@/infra/runtime/env.server';
 
 type CooldownConfig = {
   bucket: string;
@@ -31,7 +32,10 @@ type DualConfig = {
   leaseMs: number;
 };
 
-type StatefulLimiterNamespace = Pick<DurableObjectNamespace, 'idFromName' | 'get'>;
+type StatefulLimiterNamespace = Pick<
+  DurableObjectNamespace,
+  'idFromName' | 'get'
+>;
 
 const BUCKET_SCOPED_OBJECT_PREFIX = 'bucket';
 const KEY_SCOPED_OBJECT_PREFIX = 'scope';

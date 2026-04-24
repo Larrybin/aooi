@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 const rootDir = process.cwd();
@@ -18,14 +18,18 @@ if (!requiredPaths.every((requiredPath) => existsSync(requiredPath))) {
   process.exit(0);
 }
 
-const result = spawnSync(process.execPath, ['scripts/generate-content-source-module.mjs'], {
-  cwd: rootDir,
-  env: {
-    ...process.env,
-    SITE: 'dev-local',
-  },
-  stdio: 'inherit',
-});
+const result = spawnSync(
+  process.execPath,
+  ['scripts/generate-content-source-module.mjs'],
+  {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      SITE: 'dev-local',
+    },
+    stdio: 'inherit',
+  }
+);
 
 if (typeof result.status === 'number') {
   process.exit(result.status);

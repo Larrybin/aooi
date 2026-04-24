@@ -45,8 +45,7 @@ test('loadSelfUserDetails 对 401 不重试', async () => {
         throw new RequestIdError('unauthorized', 'req_2', { status: 401 });
       },
     }),
-    (error: unknown) =>
-      error instanceof RequestIdError && error.status === 401
+    (error: unknown) => error instanceof RequestIdError && error.status === 401
   );
 
   assert.equal(attempts, 1);

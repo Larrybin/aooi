@@ -1,14 +1,12 @@
 'use client';
 
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { signIn, withAuthJsonRequest } from '@/infra/platform/auth/client';
+import { normalizeSocialAuthorizationUrl } from '@/infra/platform/auth/social-authorization-url';
 import { useLocale, useTranslations } from 'next-intl';
 import { RiGithubFill, RiGoogleFill } from 'react-icons/ri';
 import { toast } from 'sonner';
 
-import {
-  signIn,
-  withAuthJsonRequest,
-} from '@/infra/platform/auth/client';
-import { normalizeSocialAuthorizationUrl } from '@/infra/platform/auth/social-authorization-url';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { usePublicAppContext } from '@/shared/contexts/app';
@@ -20,7 +18,6 @@ import { localizeCallbackUrl } from '@/shared/lib/localize-callback-url';
 import { cn } from '@/shared/lib/utils';
 import type { AuthErrorContext } from '@/shared/types/auth-callback';
 import type { Button as ButtonType } from '@/shared/types/blocks/common';
-import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function SocialProviders({
   authSettings,

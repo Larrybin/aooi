@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { requestPasswordReset } from '@/infra/platform/auth/client';
+import { Link } from '@/infra/platform/i18n/navigation';
+import { site } from '@/site';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { requestPasswordReset } from '@/infra/platform/auth/client';
-import { Link } from '@/infra/platform/i18n/navigation';
-import { site } from '@/site';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -21,7 +22,6 @@ import {
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { toErrorMessage } from '@/shared/lib/errors';
-import type { AuthUiRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function ForgotPassword({
   authSettings,

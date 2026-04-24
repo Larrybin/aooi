@@ -26,7 +26,10 @@ export type PaymentWebhookReplaySummary = {
 
 export type PaymentWebhookReplayDeps = {
   replayDeps: PaymentNotifyDeps;
-  createLog: (userId: string, operationKind: PaymentWebhookOperationKind) => PaymentWebhookReplayLog;
+  createLog: (
+    userId: string,
+    operationKind: PaymentWebhookOperationKind
+  ) => PaymentWebhookReplayLog;
   markPaymentWebhookInboxAttempt: (input: {
     inboxId: string;
     operatorUserId?: string | null;
@@ -40,7 +43,9 @@ export type PaymentWebhookReplayDeps = {
     inboxId: string;
     eventType: PaymentNotifyProcessResult['eventType'];
   }) => Promise<unknown>;
-  deserializePaymentWebhookCanonicalEvent: (serializedEvent: string) => PaymentEvent;
+  deserializePaymentWebhookCanonicalEvent: (
+    serializedEvent: string
+  ) => PaymentEvent;
   processPaymentNotifyEvent: (input: {
     provider: string;
     event: PaymentEvent;

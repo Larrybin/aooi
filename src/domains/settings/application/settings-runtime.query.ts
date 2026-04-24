@@ -1,14 +1,9 @@
 import 'server-only';
 
-import { unstable_cache } from '@/shared/lib/next-cache';
 import { getRuntimeEnvString } from '@/infra/runtime/env.server';
-import {
-  CONFIGS_CACHE_TAG,
-  PUBLIC_CONFIGS_CACHE_TAG,
-  readSettingsCached,
-  readSettingsFresh,
-  readSettingsSafe,
-} from './settings-store';
+
+import { unstable_cache } from '@/shared/lib/next-cache';
+
 import {
   buildAiRuntimeSettings,
   buildAuthUiRuntimeSettings,
@@ -22,6 +17,13 @@ import type {
   BillingRuntimeSettings,
   PublicUiConfig,
 } from './settings-runtime.contracts';
+import {
+  CONFIGS_CACHE_TAG,
+  PUBLIC_CONFIGS_CACHE_TAG,
+  readSettingsCached,
+  readSettingsFresh,
+  readSettingsSafe,
+} from './settings-store';
 
 function readAuthServerBindingsFromRuntime(): AuthServerBindings {
   return {

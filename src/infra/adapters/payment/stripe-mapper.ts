@@ -1,5 +1,3 @@
-import type Stripe from 'stripe';
-
 import {
   PaymentEventType,
   PaymentStatus,
@@ -10,6 +8,8 @@ import {
   type PaymentSession,
   type SubscriptionInfo,
 } from '@/domains/billing/domain/payment';
+import type Stripe from 'stripe';
+
 import { UpstreamError } from '@/shared/lib/api/errors';
 
 export function mapStripeStatus(
@@ -116,7 +116,9 @@ export async function buildStripePaymentSessionFromCheckoutSession({
       paymentEmail:
         session.customer_email || session.customer_details?.email || undefined,
       paymentUserName: session.customer_details?.name || '',
-      paymentUserId: session.customer ? (session.customer as string) : undefined,
+      paymentUserId: session.customer
+        ? (session.customer as string)
+        : undefined,
       paidAt: session.created ? new Date(session.created * 1000) : undefined,
       invoiceId: session.invoice ? (session.invoice as string) : undefined,
       invoiceUrl: '',
@@ -129,7 +131,9 @@ export async function buildStripePaymentSessionFromCheckoutSession({
     return result;
   }
 
-  const subscription = await retrieveSubscription(session.subscription as string);
+  const subscription = await retrieveSubscription(
+    session.subscription as string
+  );
   result.subscriptionId = subscription.id;
   result.subscriptionInfo = buildStripeSubscriptionInfo(subscription);
   result.subscriptionResult = subscription;
@@ -181,7 +185,9 @@ export async function buildStripePaymentSessionFromInvoice({
       paymentCurrency: invoice.currency,
       paymentEmail: invoice.customer_email || '',
       paymentUserName: invoice.customer_name || '',
-      paymentUserId: invoice.customer ? (invoice.customer as string) : undefined,
+      paymentUserId: invoice.customer
+        ? (invoice.customer as string)
+        : undefined,
       paidAt: invoice.created ? new Date(invoice.created * 1000) : undefined,
       invoiceId: invoice.id,
       invoiceUrl: invoice.hosted_invoice_url || '',

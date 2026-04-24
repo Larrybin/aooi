@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
-
 import type { Page } from 'playwright';
 
-import {
-  defaultLocale,
-  type Locale,
-} from '../../src/config/locale/index.ts';
+import { defaultLocale, type Locale } from '../../src/config/locale/index.ts';
 import {
   getProductModuleItemsByTab,
   type ProductModuleId,
@@ -35,8 +31,7 @@ export const ADMIN_SETTINGS_MODULE_CONTRACT_GUIDE_LINK_SELECTOR =
 export const ADMIN_SETTINGS_FORM_SHELL_SELECTOR =
   '[data-testid="admin-settings-form-shell"]';
 export const NO_PERMISSION_PAGE_SELECTOR = '[data-testid="no-permission-page"]';
-export const FORM_SUBMIT_BUTTON_SELECTOR =
-  '[data-testid="form-submit-button"]';
+export const FORM_SUBMIT_BUTTON_SELECTOR = '[data-testid="form-submit-button"]';
 
 export interface AdminSettingsModuleContractRowExpectation {
   moduleId: ProductModuleId;
@@ -76,7 +71,9 @@ export function buildLocalizedAppPath(
   return locale === defaultLocale ? pathname : `/${locale}${pathname}`;
 }
 
-export function buildAdminSettingsCallbackPath(tab: AdminSettingsSmokeTab): string {
+export function buildAdminSettingsCallbackPath(
+  tab: AdminSettingsSmokeTab
+): string {
   return `/admin/settings/${tab}`;
 }
 
@@ -153,7 +150,9 @@ export async function captureAdminSettingsModuleContractSnapshot(
         verification: element.getAttribute('data-verification') || '',
         guideHref:
           element
-            .querySelector('[data-testid="admin-settings-module-contract-guide-link"]')
+            .querySelector(
+              '[data-testid="admin-settings-module-contract-guide-link"]'
+            )
             ?.getAttribute('href') || '',
       }))
   );
@@ -168,7 +167,11 @@ export function validateAdminSettingsModuleContractSnapshot(
   check: AdminSettingsModuleContractCheck,
   snapshot: AdminSettingsModuleContractSnapshot
 ): void {
-  assert.equal(snapshot.visible, true, `[${check.name}] module contract block missing`);
+  assert.equal(
+    snapshot.visible,
+    true,
+    `[${check.name}] module contract block missing`
+  );
   assert.equal(
     snapshot.rows.length,
     check.expectedRows.length,
@@ -180,7 +183,10 @@ export function validateAdminSettingsModuleContractSnapshot(
       (row) => row.moduleId === expectedRow.moduleId
     );
 
-    assert.ok(actualRow, `[${check.name}] missing row for ${expectedRow.moduleId}`);
+    assert.ok(
+      actualRow,
+      `[${check.name}] missing row for ${expectedRow.moduleId}`
+    );
     assert.equal(
       actualRow.relationship,
       expectedRow.relationship,

@@ -8,11 +8,11 @@ import {
   buildCloudflareSecretsEnv,
   resolveCloudflareAuthSecretValue,
 } from '../../scripts/create-cf-secrets-file.mjs';
+import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 import {
   readSiteDeploySettings,
   resolveSiteDeploySettingsPath,
 } from '../../scripts/lib/site-deploy-settings.mjs';
-import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 
 test('resolveCloudflareAuthSecretValue 优先 BETTER_AUTH_SECRET，其次 AUTH_SECRET', () => {
   assert.equal(
@@ -63,9 +63,7 @@ test('buildCloudflareSecretsEnv 仅提供 AUTH_SECRET 时仍双写输出 auth sh
 
   assert.equal(
     content,
-    ['BETTER_AUTH_SECRET=auth-secret', 'AUTH_SECRET=auth-secret', ''].join(
-      '\n'
-    )
+    ['BETTER_AUTH_SECRET=auth-secret', 'AUTH_SECRET=auth-secret', ''].join('\n')
   );
 });
 
@@ -169,10 +167,11 @@ test('buildCloudflareSecretsEnv 按 deploy.settings.json 与 workerKeys 限定 s
         {
           ...readSiteDeploySettings({ siteKey: 'mamamiya' }),
           bindingRequirements: {
-            ...readSiteDeploySettings({ siteKey: 'mamamiya' }).bindingRequirements,
+            ...readSiteDeploySettings({ siteKey: 'mamamiya' })
+              .bindingRequirements,
             secrets: {
-              ...readSiteDeploySettings({ siteKey: 'mamamiya' }).bindingRequirements
-                .secrets,
+              ...readSiteDeploySettings({ siteKey: 'mamamiya' })
+                .bindingRequirements.secrets,
               googleOauth: true,
             },
           },

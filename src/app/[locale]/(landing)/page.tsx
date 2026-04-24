@@ -1,19 +1,19 @@
 // data: landing translations + public configs (unstable_cache tag=public-configs, revalidate=3600s) + theme components
 // cache: cached configs + default RSC
 // reason: public marketing page; allow toggles without per-request db reads
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
+import {
+  readAuthUiRuntimeSettingsCached,
+  readBillingRuntimeSettingsCached,
+  readPublicUiConfigCached,
+} from '@/domains/settings/application/settings-runtime.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { filterLandingButtons } from '@/surfaces/public/navigation/landing-visibility';
-import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
 import {
   type Footer as FooterType,
   type Header as HeaderType,

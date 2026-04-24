@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 
 import { AppImage } from '@/shared/blocks/common/app-image';
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
-import { buildBrandPlaceholderValues } from '@/infra/platform/brand/placeholders.server';
 
 export default async function NotFoundPage() {
   const brand = buildBrandPlaceholderValues();

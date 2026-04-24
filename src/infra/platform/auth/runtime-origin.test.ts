@@ -279,11 +279,14 @@ test('resolveRuntimeAuthBaseUrl 会把同 host 的 http preview 变体收敛回 
 });
 
 test('resolveRuntimeAuthBaseUrl 在 mock 模式优先使用请求 origin', () => {
-  const request = new Request('https://localhost:8788/api/auth/sign-in/social', {
-    headers: {
-      origin: 'http://localhost:8788',
-    },
-  });
+  const request = new Request(
+    'https://localhost:8788/api/auth/sign-in/social',
+    {
+      headers: {
+        origin: 'http://localhost:8788',
+      },
+    }
+  );
 
   assert.equal(
     resolveRuntimeAuthBaseUrl({
@@ -381,11 +384,14 @@ test('resolveRuntimeAuthBaseUrl 不把第三方 referer 当成 runtime origin', 
 });
 
 test('buildTrustedAuthOrigins 拒绝非 canonical 且非本地 preview origin', () => {
-  const request = new Request('https://evil.example.com/api/auth/sign-in/social', {
-    headers: {
-      origin: 'https://evil.example.com',
-    },
-  });
+  const request = new Request(
+    'https://evil.example.com/api/auth/sign-in/social',
+    {
+      headers: {
+        origin: 'https://evil.example.com',
+      },
+    }
+  );
 
   assert.throws(
     () =>
@@ -398,11 +404,14 @@ test('buildTrustedAuthOrigins 拒绝非 canonical 且非本地 preview origin', 
 });
 
 test('resolveRuntimeAuthBaseUrl 拒绝非 canonical 且非本地 preview origin', () => {
-  const request = new Request('https://evil.example.com/api/auth/sign-in/social', {
-    headers: {
-      host: 'evil.example.com',
-    },
-  });
+  const request = new Request(
+    'https://evil.example.com/api/auth/sign-in/social',
+    {
+      headers: {
+        host: 'evil.example.com',
+      },
+    }
+  );
 
   assert.throws(
     () =>

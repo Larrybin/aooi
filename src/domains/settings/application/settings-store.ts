@@ -1,19 +1,19 @@
 import 'server-only';
 
-import { sql } from 'drizzle-orm';
 import { revalidateTag } from 'next/cache';
-
+import { type KnownSettingKey } from '@/domains/settings/registry';
 import { db } from '@/infra/adapters/db';
-import { config } from '@/config/db/schema';
 import { mergeAuthSpikeOAuthConfigSeedConfigs } from '@/infra/platform/auth/oauth-spike-config';
-import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import { unstable_cache } from '@/shared/lib/next-cache';
 import {
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
 } from '@/infra/runtime/env.server';
-import { type KnownSettingKey } from '@/domains/settings/registry';
+import { sql } from 'drizzle-orm';
+
+import { config } from '@/config/db/schema';
+import { mergeCloudflareLocalSmokeConfigSeedConfigs } from '@/shared/lib/cloudflare-local-smoke-config';
+import { unstable_cache } from '@/shared/lib/next-cache';
 
 export type Config = typeof config.$inferSelect;
 export type NewConfig = typeof config.$inferInsert;
@@ -21,10 +21,7 @@ export type UpdateConfig = Partial<Omit<NewConfig, 'name'>>;
 
 export type Configs = Record<string, string>;
 
-export type RuntimeConfigKey =
-  | 'theme'
-  | 'locale'
-  | 'default_locale'
+export type RuntimeConfigKey = 'theme' | 'locale' | 'default_locale';
 
 // Known keys help avoid cross-module typos; keep in sync with env/db usage
 export type KnownConfigKey = KnownSettingKey | RuntimeConfigKey;

@@ -21,7 +21,10 @@ function normalizeAllowedAuthOrigins(
   const origins = [normalizeAuthOrigin(canonicalAppUrl, label)];
 
   for (const origin of additionalAllowedOrigins || []) {
-    const normalizedOrigin = normalizeAuthOrigin(origin, 'additional auth origin');
+    const normalizedOrigin = normalizeAuthOrigin(
+      origin,
+      'additional auth origin'
+    );
     if (!origins.includes(normalizedOrigin)) {
       origins.push(normalizedOrigin);
     }
@@ -30,7 +33,9 @@ function normalizeAllowedAuthOrigins(
   return origins;
 }
 
-function tryNormalizeAuthOrigin(value: string | null | undefined): string | null {
+function tryNormalizeAuthOrigin(
+  value: string | null | undefined
+): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
     return null;
@@ -83,7 +88,10 @@ function printAuthOriginDebug(
   );
 }
 
-function isCanonicalHttpPreviewVariant(origin: string, canonicalOrigin: string) {
+function isCanonicalHttpPreviewVariant(
+  origin: string,
+  canonicalOrigin: string
+) {
   try {
     const runtimeUrl = new URL(origin);
     const canonicalUrl = new URL(canonicalOrigin);
@@ -99,7 +107,10 @@ function isCanonicalHttpPreviewVariant(origin: string, canonicalOrigin: string) 
   }
 }
 
-function isPortlessLocalPreviewVariant(origin: string, canonicalOrigin: string) {
+function isPortlessLocalPreviewVariant(
+  origin: string,
+  canonicalOrigin: string
+) {
   try {
     const runtimeUrl = new URL(origin);
     const canonicalUrl = new URL(canonicalOrigin);
@@ -118,7 +129,10 @@ function isPortlessLocalPreviewVariant(origin: string, canonicalOrigin: string) 
   }
 }
 
-function normalizeAllowedRuntimeOrigin(origin: string, allowedOrigins: string[]) {
+function normalizeAllowedRuntimeOrigin(
+  origin: string,
+  allowedOrigins: string[]
+) {
   for (const allowedOrigin of allowedOrigins) {
     if (
       isCanonicalHttpPreviewVariant(origin, allowedOrigin) ||
@@ -172,10 +186,12 @@ export function isLocalAuthRuntimeOrigin(origin: string): boolean {
   }
 }
 
-export function isExplicitLocalAuthRuntimeEnabled(params: {
-  env?: NodeJS.ProcessEnv;
-  preferRequestOrigin?: boolean;
-} = {}): boolean {
+export function isExplicitLocalAuthRuntimeEnabled(
+  params: {
+    env?: NodeJS.ProcessEnv;
+    preferRequestOrigin?: boolean;
+  } = {}
+): boolean {
   const env = params.env;
   return (
     (env
@@ -221,7 +237,10 @@ function readRequestOriginCandidates(request?: Request): string[] {
   }
 
   const candidates: string[] = [];
-  addOriginCandidate(candidates, tryNormalizeAuthOrigin(request.headers.get('origin')));
+  addOriginCandidate(
+    candidates,
+    tryNormalizeAuthOrigin(request.headers.get('origin'))
+  );
   addOriginCandidate(candidates, readRequestHostOrigin(request));
 
   if (candidates.length === 0) {

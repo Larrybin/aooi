@@ -1,8 +1,7 @@
 import 'server-only';
 
-import { Resend, type CreateEmailOptions } from 'resend';
-
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+import { Resend, type CreateEmailOptions } from 'resend';
 
 import type {
   EmailConfigs,

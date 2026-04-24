@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
+import { execFile as execFileCallback } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { execFile as execFileCallback } from 'node:child_process';
-import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
+import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 import { readOpenNextGeneratedModules } from '../../scripts/sync-open-next-generated-types.mjs';
 import {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
@@ -13,7 +14,6 @@ import {
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
   getServerWorkerMetadata,
 } from '../../src/shared/config/cloudflare-worker-splits';
-import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -254,18 +254,13 @@ test('只有 state worker 保留 Durable Object exports 与 migrations', async (
   assert.match(source, /DOShardedTagCache/);
   assert.match(source, /StatefulLimitersDurableObject/);
   assert.match(stateWrangler, /\[\[migrations\]\]/);
-  assert.match(
-    stateWrangler,
-    new RegExp(`name = "${contract.workers.state}"`)
-  );
+  assert.match(stateWrangler, new RegExp(`name = "${contract.workers.state}"`));
 });
 
 test('tracked wrangler 配置不允许提交真实 localConnectionString', async () => {
-  const { stdout } = await execFile(
-    'git',
-    ['ls-files', '*wrangler*.toml'],
-    { cwd: rootDir }
-  );
+  const { stdout } = await execFile('git', ['ls-files', '*wrangler*.toml'], {
+    cwd: rootDir,
+  });
   const configPaths = stdout
     .split('\n')
     .map((value) => value.trim())

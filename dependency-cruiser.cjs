@@ -87,7 +87,8 @@ module.exports = {
       from: { path: '^src/shared/(blocks|components|contexts|hooks)/' },
       to: {
         path: '^src/(domains|infra/adapters|surfaces)/',
-        pathNot: '^src/domains/settings/application/settings-runtime\\.contracts\\.ts$',
+        pathNot:
+          '^src/domains/settings/application/settings-runtime\\.contracts\\.ts$',
       },
     },
   ],

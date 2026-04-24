@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 import {
   PaymentInterval,
   PaymentStatus,
@@ -9,6 +7,8 @@ import {
   type PaymentSession,
   type SubscriptionInfo,
 } from '@/domains/billing/domain/payment';
+import { z } from 'zod';
+
 import { UpstreamError } from '@/shared/lib/api/errors';
 
 const creemOrderLikeSchema = z
@@ -85,7 +85,8 @@ function mapCreemStatus(session: unknown): PaymentStatus {
     session,
     new WebhookPayloadError('invalid creem session payload')
   );
-  const orderCandidate = checkedSession.order ?? checkedSession.last_transaction;
+  const orderCandidate =
+    checkedSession.order ?? checkedSession.last_transaction;
   const order = creemOrderLikeSchema.safeParse(orderCandidate);
   const orderStatus = order.success ? order.data.status : undefined;
 
@@ -93,7 +94,9 @@ function mapCreemStatus(session: unknown): PaymentStatus {
     return PaymentStatus.SUCCESS;
   }
 
-  throw new WebhookPayloadError(`Unknown Creem session status: ${checkedSession.status}`);
+  throw new WebhookPayloadError(
+    `Unknown Creem session status: ${checkedSession.status}`
+  );
 }
 
 function mapCreemInterval(product: { billing_period?: string } | undefined): {
@@ -181,7 +184,8 @@ export async function buildCreemPaymentSessionFromCheckoutSession({
     session,
     new WebhookPayloadError('invalid creem checkout session payload')
   );
-  const orderCandidate = checkedSession.order ?? checkedSession.last_transaction;
+  const orderCandidate =
+    checkedSession.order ?? checkedSession.last_transaction;
   const order = creemOrderLikeSchema.safeParse(orderCandidate);
   const checkedOrder = order.success ? order.data : undefined;
   const subscriptionCandidate = checkedSession.subscription;
@@ -290,7 +294,8 @@ export async function buildCreemPaymentSessionFromInvoice({
     invoice,
     new WebhookPayloadError('invalid creem invoice payload')
   );
-  const orderCandidate = checkedInvoice.order ?? checkedInvoice.last_transaction;
+  const orderCandidate =
+    checkedInvoice.order ?? checkedInvoice.last_transaction;
   const order = creemOrderLikeSchema.safeParse(orderCandidate);
   const checkedOrder = order.success ? order.data : undefined;
   const subscription = parseOrThrow(
@@ -302,9 +307,7 @@ export async function buildCreemPaymentSessionFromInvoice({
   const subscriptionCreatedAt = subscription.created_at
     ? new Date(subscription.created_at)
     : new Date(0);
-  const currentPeriodStartAt = new Date(
-    subscription.current_period_start_date
-  );
+  const currentPeriodStartAt = new Date(subscription.current_period_start_date);
   const cycleType =
     currentPeriodStartAt.getTime() - subscriptionCreatedAt.getTime() < 5000
       ? SubscriptionCycleType.CREATE

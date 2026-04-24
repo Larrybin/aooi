@@ -1,17 +1,16 @@
 import 'server-only';
 
-import { and, count, desc, eq } from 'drizzle-orm';
-
-import { db } from '@/infra/adapters/db';
-import { aiTask } from '@/config/db/schema';
-import { AITaskStatus } from '@/extensions/ai';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import { appendUserToResult, type User } from '@/domains/account/infra/user';
-
 import {
   consumeCredits,
   refundConsumedCreditById,
 } from '@/domains/account/infra/credit';
+import { appendUserToResult, type User } from '@/domains/account/infra/user';
+import { db } from '@/infra/adapters/db';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
+import { and, count, desc, eq } from 'drizzle-orm';
+
+import { aiTask } from '@/config/db/schema';
+import { AITaskStatus } from '@/extensions/ai';
 
 const log = createUseCaseLogger({
   domain: 'ai',

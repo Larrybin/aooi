@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildAuthUiRuntimeSettings, buildPublicUiConfig } from './settings-runtime.builders';
+import {
+  buildAuthUiRuntimeSettings,
+  buildPublicUiConfig,
+} from './settings-runtime.builders';
 
 test('buildPublicUiConfig 在 fail-open 空洞输入下仍返回 closed object', () => {
   const config = buildPublicUiConfig({
@@ -25,7 +28,10 @@ test('buildPublicUiConfig 返回 closed PublicUiConfig，不暴露 raw keys', ()
   });
 
   assert.equal(config.aiEnabled, true);
-  assert.equal('general_ai_enabled' in (config as Record<string, unknown>), false);
+  assert.equal(
+    'general_ai_enabled' in (config as Record<string, unknown>),
+    false
+  );
   assert.equal('docsEnabled' in (config as Record<string, unknown>), false);
   assert.equal('blogEnabled' in (config as Record<string, unknown>), false);
   assert.equal(config.socialLinksEnabled, true);

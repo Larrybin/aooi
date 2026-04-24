@@ -1,15 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { signIn, withAuthJsonRequest } from '@/infra/platform/auth/client';
+import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import {
-  signIn,
-  withAuthJsonRequest,
-} from '@/infra/platform/auth/client';
-import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { defaultLocale } from '@/config/locale';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';

@@ -59,7 +59,9 @@ export function readSessionTokenFromCookieHeader(
   const cookies = parseCookieHeader(cookieHeader);
   const baseName = `${SESSION_COOKIE_PREFIX}${SESSION_COOKIE_NAME}`;
   const sessionToken =
-    cookies.get(baseName) ?? cookies.get(`${SECURE_COOKIE_PREFIX}${baseName}`) ?? null;
+    cookies.get(baseName) ??
+    cookies.get(`${SECURE_COOKIE_PREFIX}${baseName}`) ??
+    null;
 
   if (!sessionToken) {
     return null;

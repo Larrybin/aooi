@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
-import test from 'node:test';
 import path from 'node:path';
+import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -30,11 +30,20 @@ test('ADMIN_SETTINGS_SMOKE_TABS: 第一阶段覆盖 6 个代表 tab，包含 sto
 });
 
 test('buildAdminSettingsPath/buildLocalizedSignInPath/buildLocalizedAdminNoPermissionPath: 默认 locale 无前缀，非默认 locale 带前缀', () => {
-  assert.equal(buildAdminSettingsPath('general', 'en'), '/admin/settings/general');
-  assert.equal(buildAdminSettingsPath('general', 'zh'), '/zh/admin/settings/general');
+  assert.equal(
+    buildAdminSettingsPath('general', 'en'),
+    '/admin/settings/general'
+  );
+  assert.equal(
+    buildAdminSettingsPath('general', 'zh'),
+    '/zh/admin/settings/general'
+  );
   assert.equal(buildLocalizedSignInPath('en'), '/sign-in');
   assert.equal(buildLocalizedSignInPath('zh'), '/zh/sign-in');
-  assert.equal(buildLocalizedAdminNoPermissionPath('en'), '/admin/no-permission');
+  assert.equal(
+    buildLocalizedAdminNoPermissionPath('en'),
+    '/admin/no-permission'
+  );
   assert.equal(
     buildLocalizedAdminNoPermissionPath('zh-TW'),
     '/zh-TW/admin/no-permission'
@@ -51,7 +60,10 @@ test('getAdminSettingsModuleContractChecks: 覆盖 6 个代表性 settings tab',
 });
 
 test('AdminLayout: 非管理员拒绝跳转统一收敛到 /admin/no-permission', async () => {
-  const layoutPath = path.resolve(rootDir, 'src/app/[locale]/(admin)/layout.tsx');
+  const layoutPath = path.resolve(
+    rootDir,
+    'src/app/[locale]/(admin)/layout.tsx'
+  );
   const content = await readFile(layoutPath, 'utf8');
 
   assert.match(content, /redirectUrl:\s*`\/admin\/no-permission`/);
@@ -139,8 +151,7 @@ test('validateAdminSettingsModuleContractSnapshot: 错行会失败', () => {
   assert(generalCheck);
   const mutatedRows = generalCheck.expectedRows.map((row) => ({
     ...row,
-    relationship:
-      row.moduleId === 'core_shell' ? 'provider' : row.relationship,
+    relationship: row.moduleId === 'core_shell' ? 'provider' : row.relationship,
   }));
 
   assert.throws(
@@ -162,7 +173,9 @@ test('validateAdminSettingsModuleContractSnapshot: guide href 漂移会失败', 
   const mutatedRows = generalCheck.expectedRows.map((row) => ({
     ...row,
     guideHref:
-      row.moduleId === 'core_shell' ? `${row.guideHref}-unexpected` : row.guideHref,
+      row.moduleId === 'core_shell'
+        ? `${row.guideHref}-unexpected`
+        : row.guideHref,
   }));
 
   assert.throws(

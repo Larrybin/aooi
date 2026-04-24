@@ -3,15 +3,15 @@ import test from 'node:test';
 
 import { PRODUCT_MODULE_IDS } from '@/config/product-modules/types';
 
+import { defineSettingsGroup } from './definitions/builder';
 import {
   ALL_SETTINGS,
+  deriveSettingsRegistry,
+  getSettingGroupsFromRegistry,
   KNOWN_SETTING_KEYS,
   PUBLIC_SETTING_NAMES,
   SETTING_GROUP_REGISTRY,
-  deriveSettingsRegistry,
-  getSettingGroupsFromRegistry,
 } from './registry';
-import { defineSettingsGroup } from './definitions/builder';
 import { SETTING_TAB_NAMES } from './tab-names';
 
 test('settings registry: name 唯一且 known keys 完整', () => {

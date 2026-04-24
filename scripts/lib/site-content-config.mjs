@@ -1,9 +1,13 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { TEST_SITE_KEY, resolveRequiredSiteKey } from './site-config.mjs';
+import { resolveRequiredSiteKey, TEST_SITE_KEY } from './site-config.mjs';
 
-export const CONTENT_COLLECTION_KEYS = Object.freeze(['docs', 'pages', 'posts']);
+export const CONTENT_COLLECTION_KEYS = Object.freeze([
+  'docs',
+  'pages',
+  'posts',
+]);
 export const DEFAULT_DOCS_ENTRY = 'index.mdx';
 export const FUMADOCS_CACHE_DIR = '.cache/fumadocs';
 
@@ -66,12 +70,11 @@ export function createContentArtifactVersionId() {
   return `build-${Date.now()}-${process.pid}`;
 }
 
-export function toContentSourceModuleSpecifier({
-  siteKey,
-  versionId,
-}) {
+export function toContentSourceModuleSpecifier({ siteKey, versionId }) {
   if (!siteKey || !versionId) {
-    throw new Error('siteKey and versionId are required for content source module specifier');
+    throw new Error(
+      'siteKey and versionId are required for content source module specifier'
+    );
   }
 
   return `../.source/${siteKey}/${versionId}/index`;

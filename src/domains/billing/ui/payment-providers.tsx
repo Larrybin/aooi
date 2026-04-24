@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import type { BillingRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -10,7 +11,6 @@ import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import type { Button as ButtonType } from '@/shared/types/blocks/common';
 import type { PricingItem } from '@/shared/types/blocks/pricing';
-import type { BillingRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 export function PaymentProviders({
   billingSettings,

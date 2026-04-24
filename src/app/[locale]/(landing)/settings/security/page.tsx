@@ -1,11 +1,11 @@
 // data: signed-in user (better-auth)
 // cache: no-store (request-bound auth)
 // reason: user-specific security entry page
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { getTranslations } from 'next-intl/server';
 
 import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 
 export default async function SecurityPage() {
   const user = await getSignedInUserIdentity();

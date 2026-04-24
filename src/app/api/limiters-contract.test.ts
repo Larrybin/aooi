@@ -25,10 +25,7 @@ function createLog() {
   };
 }
 
-function createApiContextStub(input: {
-  body: unknown;
-  userId?: string;
-}) {
+function createApiContextStub(input: { body: unknown; userId?: string }) {
   return {
     req: new Request('http://localhost'),
     log: createLog(),
@@ -327,7 +324,9 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
     now: () => 1_000,
   });
 
-  const req = new Request('http://localhost/api/email/test', { method: 'POST' });
+  const req = new Request('http://localhost/api/email/test', {
+    method: 'POST',
+  });
 
   const firstPending = handler(req);
   await waitForCondition(

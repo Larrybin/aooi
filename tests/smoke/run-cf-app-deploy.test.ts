@@ -3,13 +3,12 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
-import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 import {
   buildPostDeploySmokeEnv,
   buildRouterAppVersionIds,
-  buildRouterDirectDeployArgs,
   buildRouterDeployConfigContent,
+  buildRouterDirectDeployArgs,
   buildVersionDeploySpecs,
   createTempDeployArtifacts,
   deployCloudflareApp,
@@ -17,6 +16,7 @@ import {
   parseWranglerJsonPayload,
   resolvePostDeploySmokeUrl,
 } from '../../scripts/run-cf-app-deploy.mjs';
+import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 
 const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
   cloudflareWorkerSplits;
@@ -105,7 +105,10 @@ test('buildPostDeploySmokeEnv 为 smoke 透传当前 SITE 与显式 smoke url', 
 
 test('determineDeployMode 在 router 或任一 server 缺 deployment 时标记为 missing-deployments', () => {
   const servers = Object.fromEntries(
-    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [target, `v-${target}`])
+    CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+      target,
+      `v-${target}`,
+    ])
   );
 
   assert.equal(
@@ -235,9 +238,11 @@ test('createTempDeployArtifacts 对 server worker 使用单 worker secrets scope
       const secrets = await readFile(artifacts.secretsPath, 'utf8');
       assert.equal(
         secrets,
-        ['BETTER_AUTH_SECRET=better-secret', 'AUTH_SECRET=better-secret', ''].join(
-          '\n'
-        )
+        [
+          'BETTER_AUTH_SECRET=better-secret',
+          'AUTH_SECRET=better-secret',
+          '',
+        ].join('\n')
       );
     } finally {
       await artifacts.cleanup();
@@ -348,7 +353,10 @@ test('deployCloudflareApp 在缺少部署版本时直接失败并要求先跑 st
           return {
             router: null,
             servers: Object.fromEntries(
-              CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [target, null])
+              CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+                target,
+                null,
+              ])
             ),
           };
         },

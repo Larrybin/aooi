@@ -1,9 +1,5 @@
 'use server';
 
-import { AdminUserUpdateFormSchema } from '@/surfaces/admin/schemas/user';
-import { validateAndParseForm } from '@/surfaces/admin/server/action-utils';
-import { z } from 'zod';
-
 import {
   requireActionPermissions,
   requireActionUser,
@@ -11,6 +7,10 @@ import {
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { accountRuntimeDeps } from '@/app/account/runtime-deps';
 import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
+import { AdminUserUpdateFormSchema } from '@/surfaces/admin/schemas/user';
+import { validateAndParseForm } from '@/surfaces/admin/server/action-utils';
+import { z } from 'zod';
+
 import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import { ActionError } from '@/shared/lib/action/errors';
 import { jsonStringArraySchema } from '@/shared/lib/action/form';
@@ -74,10 +74,14 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
       throw new ActionError('invalid roles');
     }
 
-    await accessControlRuntimeDeps.replaceUserRoles(user.id as string, parsed.data.roles, {
-      actorUserId: admin.id,
-      source: 'admin.users.updateUserRolesAction',
-    });
+    await accessControlRuntimeDeps.replaceUserRoles(
+      user.id as string,
+      parsed.data.roles,
+      {
+        actorUserId: admin.id,
+        source: 'admin.users.updateUserRolesAction',
+      }
+    );
 
     return actionOk('roles updated', '/admin/users');
   });

@@ -7,8 +7,8 @@ import {
   getRequiredRuntimeBindingsByWorker,
   resolveCloudflareWorkerKeys,
 } from './lib/cloudflare-runtime-bindings.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 
 const {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
@@ -145,7 +145,9 @@ function assertRequiredRuntimeBindings(
   const requirements = requiredBindingsByWorker.get(workerKey) || [];
   for (const requirement of requirements) {
     const names = requirement.names ?? [requirement.name];
-    const value = names.find((name) => (process.env[name]?.trim() || '').length > 0);
+    const value = names.find(
+      (name) => (process.env[name]?.trim() || '').length > 0
+    );
     if (!value) {
       const displayName = names.join(' or ');
       fail(
@@ -591,7 +593,9 @@ function assertStateConfig(content, contract, requiredBindingsByWorker) {
     /^\s*tag\s*=\s*"([^"\n]+)"/m
   );
   if (migrationTag !== contract.stateWorker.migrations.tag) {
-    fail(`state.migrations.tag must equal ${contract.stateWorker.migrations.tag}`);
+    fail(
+      `state.migrations.tag must equal ${contract.stateWorker.migrations.tag}`
+    );
   }
 }
 
@@ -606,11 +610,7 @@ function assertServerConfig(
     expectedIncrementalCacheBucket: contract.resources.incrementalCacheBucket,
     expectedAppStorageBucket: contract.resources.appStorageBucket,
   });
-  assertRequiredRuntimeBindings(
-    `${target}`,
-    target,
-    requiredBindingsByWorker
-  );
+  assertRequiredRuntimeBindings(`${target}`, target, requiredBindingsByWorker);
 
   const workerName = readQuotedValue(
     content,
@@ -623,12 +623,17 @@ function assertServerConfig(
     /^\s*main\s*=\s*"([^"\n]+)"/m
   );
   const expectedMain = readExpectedRebasedMain(
-    path.resolve(rootDir, contract.serverWorkers[target].wranglerConfigRelativePath),
+    path.resolve(
+      rootDir,
+      contract.serverWorkers[target].wranglerConfigRelativePath
+    ),
     getServerWorkerMetadata(target).workerEntryRelativePath
   );
 
   if (workerName !== contract.serverWorkers[target].workerName) {
-    fail(`${target}.name must equal ${contract.serverWorkers[target].workerName}`);
+    fail(
+      `${target}.name must equal ${contract.serverWorkers[target].workerName}`
+    );
   }
 
   if (main !== expectedMain) {

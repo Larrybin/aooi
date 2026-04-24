@@ -43,9 +43,5 @@ type R2PutOptions = {
 };
 
 interface R2Bucket {
-  put(
-    key: string,
-    value: R2PutValue,
-    options?: R2PutOptions
-  ): Promise<unknown>;
+  put(key: string, value: R2PutValue, options?: R2PutOptions): Promise<unknown>;
 }

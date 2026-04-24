@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from '@/infra/platform/i18n/navigation';
 import type { UIMessage, UseChatHelpers } from '@ai-sdk/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { useRouter } from '@/infra/platform/i18n/navigation';
 import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import type { PromptInputMessage } from '@/shared/components/ai-elements/prompt-input';
 import { SidebarTrigger } from '@/shared/components/ui/sidebar';

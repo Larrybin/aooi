@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import test from 'node:test';
+import { CreemTransport } from '@/infra/adapters/payment/creem-transport';
 
 import { UpstreamError } from '@/shared/lib/api/errors';
-import { CreemTransport } from '@/infra/adapters/payment/creem-transport';
 
 test('Creem transport: request 失败时抛出 UpstreamError', async () => {
   const transport = new CreemTransport(

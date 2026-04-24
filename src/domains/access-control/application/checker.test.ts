@@ -28,7 +28,10 @@ test('createAccessControlChecker 支持 has/hasAny/hasAll', async () => {
 
   assert.equal(await checker.has('admin.users.read'), true);
   assert.equal(await checker.hasAny(['billing.read', 'content.read']), true);
-  assert.equal(await checker.hasAll(['admin.users.read', 'content.read']), true);
+  assert.equal(
+    await checker.hasAll(['admin.users.read', 'content.read']),
+    true
+  );
 });
 
 test('checkUserPermission 家族读取 repository 并返回纯授权结果', async () => {
@@ -40,7 +43,11 @@ test('checkUserPermission 家族读取 repository 并返回纯授权结果', asy
   };
 
   assert.equal(
-    await checkUserPermission('user_1', 'admin.users.write', permissionRepository),
+    await checkUserPermission(
+      'user_1',
+      'admin.users.write',
+      permissionRepository
+    ),
     true
   );
   assert.equal(

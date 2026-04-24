@@ -61,7 +61,10 @@ export class CooldownLimiter {
     });
   }
 
-  async checkAndConsume(key: string, now = this.getNow()): Promise<LimitResult> {
+  async checkAndConsume(
+    key: string,
+    now = this.getNow()
+  ): Promise<LimitResult> {
     return this.store.withLock(this.config.bucket, [key], async (store) => {
       await store.deleteExpired(now);
       const state = await store.get(key);
@@ -170,7 +173,8 @@ export class FixedWindowAttemptLimiter {
       const state = await store.get(key);
 
       const nextState =
-        !state?.windowStartedAt || now - state.windowStartedAt > this.config.windowMs
+        !state?.windowStartedAt ||
+        now - state.windowStartedAt > this.config.windowMs
           ? {
               bucket: this.config.bucket,
               scopeKey: key,
@@ -194,9 +198,7 @@ export class FixedWindowAttemptLimiter {
 
       return {
         attempts: nextState.count,
-        retryAfterSeconds: maxRetryAfterSeconds(
-          nextState.expiresAt - now
-        ),
+        retryAfterSeconds: maxRetryAfterSeconds(nextState.expiresAt - now),
       };
     });
   }
@@ -234,7 +236,8 @@ export class FixedWindowQuotaLimiter {
       await store.deleteExpired(now);
       const state = await store.get(key);
       const nextState =
-        !state?.windowStartedAt || now - state.windowStartedAt > this.config.windowMs
+        !state?.windowStartedAt ||
+        now - state.windowStartedAt > this.config.windowMs
           ? {
               bucket: this.config.bucket,
               scopeKey: key,
@@ -311,9 +314,21 @@ export class DualConcurrencyLimiter {
         const states = await store.getMany([GLOBAL_SCOPE_KEY, key]);
 
         const globalState =
-          states.get(GLOBAL_SCOPE_KEY) || createConcurrencyState(this.config.bucket, GLOBAL_SCOPE_KEY, now, this.config.leaseMs);
+          states.get(GLOBAL_SCOPE_KEY) ||
+          createConcurrencyState(
+            this.config.bucket,
+            GLOBAL_SCOPE_KEY,
+            now,
+            this.config.leaseMs
+          );
         const perKeyState =
-          states.get(key) || createConcurrencyState(this.config.bucket, key, now, this.config.leaseMs);
+          states.get(key) ||
+          createConcurrencyState(
+            this.config.bucket,
+            key,
+            now,
+            this.config.leaseMs
+          );
 
         if (globalState.inflight >= this.config.maxGlobal) {
           return false;

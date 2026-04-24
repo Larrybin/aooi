@@ -67,7 +67,9 @@ test('LandingPageView: 有 hero 和 logos 时广告位只出现一次且位于 h
   const heroIndex = markup.indexOf('id="hero-section"');
   const adIndex = markup.indexOf('data-ad-zone="landing_inline_primary"');
   const logosIndex = markup.indexOf('id="logos-section"');
-  const adCount = markup.match(/data-ad-zone="landing_inline_primary"/g)?.length;
+  const adCount = markup.match(
+    /data-ad-zone="landing_inline_primary"/g
+  )?.length;
 
   assert.notEqual(heroIndex, -1);
   assert.notEqual(adIndex, -1);

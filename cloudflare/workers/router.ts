@@ -1,11 +1,14 @@
 import {
+  handleCdnCgiImageRequest,
+  handleImageRequest,
+} from '../../.open-next/cloudflare/images.js';
+import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
+import { handler as middlewareHandler } from '../../.open-next/middleware/handler.mjs';
+import {
   CLOUDFLARE_SERVICE_BINDINGS,
   resolveWorkerTarget,
 } from '../../src/shared/config/cloudflare-worker-splits';
 import { buildForwardedWorkerRequest } from './router-forwarding';
-import { handleCdnCgiImageRequest, handleImageRequest } from '../../.open-next/cloudflare/images.js';
-import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
-import { handler as middlewareHandler } from '../../.open-next/middleware/handler.mjs';
 
 type WorkerServiceBinding = {
   fetch(

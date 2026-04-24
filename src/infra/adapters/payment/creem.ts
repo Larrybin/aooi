@@ -23,6 +23,7 @@ import {
   assertSuccessfulPaymentSessionContract,
   mapCreemEventTypeToCanonical,
 } from '@/infra/adapters/payment/provider-contract';
+
 import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
 import {
   toJsonValue,
@@ -58,10 +59,7 @@ export class CreemProvider implements PaymentProvider {
 
   private readonly transport: CreemTransport;
 
-  constructor(
-    configs: CreemConfigs,
-    options?: { transport?: CreemTransport }
-  ) {
+  constructor(configs: CreemConfigs, options?: { transport?: CreemTransport }) {
     this.configs = configs;
     this.transport = options?.transport ?? new CreemTransport(configs);
   }
@@ -222,7 +220,8 @@ export class CreemProvider implements PaymentProvider {
   }: {
     subscriptionId: string;
   }): Promise<PaymentSession> {
-    const subscription = await this.transport.cancelSubscription(subscriptionId);
+    const subscription =
+      await this.transport.cancelSubscription(subscriptionId);
     if (!subscription.canceled_at) {
       throw new UpstreamError(502, 'cancel subscription failed');
     }

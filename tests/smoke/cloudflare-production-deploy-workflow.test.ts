@@ -51,8 +51,5 @@ test('cloudflare production workflow 总是以 app deploy 收尾', () => {
     workflowContent,
     /deploy-app:\n[\s\S]*?env:\n[\s\S]*?SITE:\s*mamamiya/
   );
-  assert.doesNotMatch(
-    workflowContent,
-    /cf:deploy:rollout|cf:deploy:migration/
-  );
+  assert.doesNotMatch(workflowContent, /cf:deploy:rollout|cf:deploy:migration/);
 });

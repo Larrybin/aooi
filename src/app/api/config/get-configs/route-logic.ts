@@ -1,6 +1,7 @@
+import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+
 import { jsonOk } from '@/shared/lib/api/response';
 import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
-import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
 
 type GetConfigsLogicDeps = {
   getPublicUiConfigCached: () => Promise<PublicUiConfig>;

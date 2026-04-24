@@ -11,8 +11,8 @@ import {
 } from '@/domains/billing/domain/payment';
 import {
   buildPayPalPaymentSession,
-  buildPayPalWebhookPaymentSession,
   buildPayPalSubscriptionSession,
+  buildPayPalWebhookPaymentSession,
   extractApprovalUrl,
   extractPayPalWebhookSubscriptionId,
   mergePayPalRenewalSubscription,
@@ -26,6 +26,7 @@ import {
   assertSuccessfulPaymentSessionContract,
   mapPayPalEventTypeToCanonical,
 } from '@/infra/adapters/payment/provider-contract';
+
 import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
 
 type PayPalSubscriptionEventType =
@@ -358,10 +359,8 @@ export class PayPalProvider implements PaymentProvider {
       });
       const subscriptionId = extractPayPalWebhookSubscriptionId(resource);
       if (subscriptionId) {
-        const {
-          subscription,
-          subscriptionId: validatedSubscriptionId,
-        } = await this.getValidatedSubscription(subscriptionId);
+        const { subscription, subscriptionId: validatedSubscriptionId } =
+          await this.getValidatedSubscription(subscriptionId);
         paymentSession = mergePayPalRenewalSubscription({
           session: paymentSession,
           subscription,
@@ -401,10 +400,8 @@ export class PayPalProvider implements PaymentProvider {
     subscriptionId: string;
     eventType: PayPalSubscriptionEventType;
   }): Promise<PaymentSession> {
-    const {
-      subscription,
-      subscriptionId: validatedSubscriptionId,
-    } = await this.getValidatedSubscription(subscriptionId);
+    const { subscription, subscriptionId: validatedSubscriptionId } =
+      await this.getValidatedSubscription(subscriptionId);
     return buildPayPalSubscriptionSession({
       provider: this.name,
       subscription,
@@ -426,7 +423,9 @@ export class PayPalProvider implements PaymentProvider {
     const resolvedSubscriptionId =
       readStringPath(subscription, ['id']) ?? subscriptionId;
 
-    if (!this.isValidSubscriptionResponse(subscription, resolvedSubscriptionId)) {
+    if (
+      !this.isValidSubscriptionResponse(subscription, resolvedSubscriptionId)
+    ) {
       throw new UpstreamError(502, 'invalid paypal subscription response');
     }
 
@@ -452,15 +451,24 @@ export class PayPalProvider implements PaymentProvider {
     }
 
     const currentPeriodStart =
-      this.readDateTimePath(subscription, ['billing_info', 'last_payment', 'time']) ??
-      this.readDateTimePath(subscription, ['start_time']);
+      this.readDateTimePath(subscription, [
+        'billing_info',
+        'last_payment',
+        'time',
+      ]) ?? this.readDateTimePath(subscription, ['start_time']);
     if (!currentPeriodStart) {
       return false;
     }
 
     const currentPeriodEnd =
-      this.readDateTimePath(subscription, ['billing_info', 'next_billing_time']) ??
-      this.readDateTimePath(subscription, ['billing_info', 'final_payment_time']);
+      this.readDateTimePath(subscription, [
+        'billing_info',
+        'next_billing_time',
+      ]) ??
+      this.readDateTimePath(subscription, [
+        'billing_info',
+        'final_payment_time',
+      ]);
 
     return Boolean(currentPeriodEnd);
   }
@@ -479,10 +487,7 @@ export class PayPalProvider implements PaymentProvider {
     }
   }
 
-  private readDateTimePath(
-    root: unknown,
-    path: string[]
-  ): string | undefined {
+  private readDateTimePath(root: unknown, path: string[]): string | undefined {
     const value = readStringPath(root, path);
     if (!value) {
       return undefined;

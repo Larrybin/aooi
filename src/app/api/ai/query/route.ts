@@ -1,5 +1,12 @@
-import { AITaskStatus } from '@/extensions/ai';
 import type { createApiContext } from '@/app/api/_lib/context';
+import type { getAIService as getAIServiceFn } from '@/domains/ai/application/service';
+import type { UpdateAITask } from '@/domains/ai/infra/ai-task';
+import type {
+  AiProviderBindings,
+  AiRuntimeSettings,
+} from '@/domains/settings/application/settings-runtime.contracts';
+
+import { AITaskStatus } from '@/extensions/ai';
 import {
   BadRequestError,
   ForbiddenError,
@@ -15,13 +22,7 @@ import {
   type ConfigConsistencyMode,
 } from '@/shared/lib/config-consistency';
 import { safeJsonParse } from '@/shared/lib/json';
-import type { UpdateAITask } from '@/domains/ai/infra/ai-task';
 import { AiQueryBodySchema } from '@/shared/schemas/api/ai/query';
-import type { getAIService as getAIServiceFn } from '@/domains/ai/application/service';
-import type {
-  AiProviderBindings,
-  AiRuntimeSettings,
-} from '@/domains/settings/application/settings-runtime.contracts';
 
 type MaybePromise<T> = T | Promise<T>;
 type AiQueryApiContext = Pick<
@@ -47,19 +48,23 @@ type AiQueryRouteDeps = {
   requireAiEnabled: () => Promise<void>;
   getApiContext: (req: Request) => MaybePromise<AiQueryApiContext>;
   findAITaskById: (id: string) => Promise<AiTaskLike | undefined>;
-  updateAITaskById: (id: string, updateAITask: UpdateAITask) => Promise<unknown>;
+  updateAITaskById: (
+    id: string,
+    updateAITask: UpdateAITask
+  ) => Promise<unknown>;
   readAiRuntimeSettings: (
     mode: ConfigConsistencyMode
   ) => Promise<AiRuntimeSettings>;
   readAiProviderBindings: () => MaybePromise<AiProviderBindings>;
-  getAIService: (
-    input: {
-      settings: AiRuntimeSettings;
-      bindings: AiProviderBindings;
-    }
-  ) => MaybePromise<Awaited<ReturnType<typeof getAIServiceFn>>>;
+  getAIService: (input: {
+    settings: AiRuntimeSettings;
+    bindings: AiProviderBindings;
+  }) => MaybePromise<Awaited<ReturnType<typeof getAIServiceFn>>>;
   rateLimiter: {
-    checkAndConsume: (key: string, now?: number) => Promise<{
+    checkAndConsume: (
+      key: string,
+      now?: number
+    ) => Promise<{
       allowed: boolean;
       retryAfterSeconds?: number;
     }>;
@@ -88,7 +93,8 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
       return await mod.updateAITaskById(id, updateAITask);
     },
     readAiRuntimeSettings: async (_mode) => {
-      const mod = await import('@/domains/settings/application/settings-runtime.query');
+      const mod =
+        await import('@/domains/settings/application/settings-runtime.query');
       return _mode === 'fresh'
         ? mod.readAiRuntimeSettingsFresh()
         : mod.readAiRuntimeSettingsCached();
@@ -132,9 +138,7 @@ function toTaskResponse(task: {
   };
 }
 
-function buildAiQueryPostLogic(
-  overrides: Partial<AiQueryRouteDeps> = {}
-) {
+function buildAiQueryPostLogic(overrides: Partial<AiQueryRouteDeps> = {}) {
   const deps = { ...getDefaultAiQueryRouteDeps(), ...overrides };
 
   return async (req: Request) => {
@@ -202,7 +206,9 @@ function buildAiQueryPostLogic(
       throw new UpstreamError(502, 'ai task query failed');
     }
 
-    const nextTaskInfo = result.taskInfo ? JSON.stringify(result.taskInfo) : null;
+    const nextTaskInfo = result.taskInfo
+      ? JSON.stringify(result.taskInfo)
+      : null;
     const nextTaskResult = result.taskResult
       ? JSON.stringify(result.taskResult)
       : null;

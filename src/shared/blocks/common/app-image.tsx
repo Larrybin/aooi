@@ -1,8 +1,8 @@
 'use client';
 
 import Image, { type ImageProps } from 'next/image';
-
 import { site } from '@/site';
+
 import { resolveImageSourceStrategy } from '@/shared/config/image-policy.mjs';
 import { cn } from '@/shared/lib/utils';
 

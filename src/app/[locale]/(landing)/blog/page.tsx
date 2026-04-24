@@ -2,16 +2,16 @@
 // cache: static (generateStaticParams) + default RSC
 // reason: public blog listing should be statically prerenderable
 import { getBlogPostsAndCategories } from '@/domains/content/application/public-content.query';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-
-import { locales } from '@/config/locale';
-import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
+import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import { getMetadata } from '@/surfaces/public/seo/metadata';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+import { locales } from '@/config/locale';
 import type {
   Blog as BlogType,
   Category as CategoryType,

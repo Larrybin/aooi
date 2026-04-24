@@ -14,4 +14,3 @@ export type AICapabilitySelection = Pick<
   AICapability,
   'mediaType' | 'scene' | 'provider' | 'model'
 >;
-

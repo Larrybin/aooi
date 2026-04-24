@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
+import { site } from '@/site';
 
 import { defaultLocale, locales } from '@/config/locale';
-import { site } from '@/site';
 
 function stripTrailingSlash(value: string) {
   return value.endsWith('/') ? value.slice(0, -1) : value;

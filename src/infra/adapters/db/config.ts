@@ -1,8 +1,8 @@
+import { assertPostgresOnlyDatabaseProvider } from '@/infra/runtime/database-provider';
 import { loadEnvConfig } from '@next/env';
 import { defineConfig } from 'drizzle-kit';
 
 import { getTrimmedEnvValue, isProductionEnv } from '@/config/env-contract';
-import { assertPostgresOnlyDatabaseProvider } from '@/infra/runtime/database-provider';
 
 function loadDotenvForDrizzleKit() {
   try {

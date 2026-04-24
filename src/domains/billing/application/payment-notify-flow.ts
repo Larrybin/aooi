@@ -4,6 +4,8 @@ import {
   WebhookVerificationError,
   type PaymentEvent,
 } from '@/domains/billing/domain/payment';
+import { PAYMENT_WEBHOOK_INBOX_STATUS } from '@/domains/billing/infra/payment-webhook-inbox.shared';
+
 import {
   BadRequestError,
   PayloadTooLargeError,
@@ -11,7 +13,6 @@ import {
 } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { readRequestTextWithLimit } from '@/shared/lib/runtime/request-body';
-import { PAYMENT_WEBHOOK_INBOX_STATUS } from '@/domains/billing/infra/payment-webhook-inbox.shared';
 
 import {
   processPaymentNotifyEvent,
@@ -78,7 +79,10 @@ function isFinalizedInboxStatus(status: string): boolean {
   );
 }
 
-export function createPaymentWebhookRequest(req: Request, rawBody: string): Request {
+export function createPaymentWebhookRequest(
+  req: Request,
+  rawBody: string
+): Request {
   return new Request(req.url, {
     method: req.method,
     headers: new Headers(req.headers),
@@ -97,7 +101,9 @@ function parseContentLengthHeader(value: string | null): number | null {
 }
 
 async function readPaymentWebhookBodyOrThrow(req: Request): Promise<string> {
-  const contentLength = parseContentLengthHeader(req.headers.get('content-length'));
+  const contentLength = parseContentLengthHeader(
+    req.headers.get('content-length')
+  );
   if (
     contentLength !== null &&
     contentLength > MAX_PAYMENT_WEBHOOK_BODY_BYTES
@@ -145,7 +151,10 @@ export async function handlePaymentNotifyRequest(input: {
   deps: PaymentNotifyFlowDeps;
 }): Promise<Response> {
   const rawBody = await readPaymentWebhookBodyOrThrow(input.req);
-  const requestForVerification = createPaymentWebhookRequest(input.req, rawBody);
+  const requestForVerification = createPaymentWebhookRequest(
+    input.req,
+    rawBody
+  );
   const receiptInput = {
     provider: input.provider,
     rawBody,
@@ -171,9 +180,8 @@ export async function handlePaymentNotifyRequest(input: {
       throw error;
     }
 
-    const inboxReceipt = await input.deps.createPaymentWebhookInboxReceipt(
-      receiptInput
-    );
+    const inboxReceipt =
+      await input.deps.createPaymentWebhookInboxReceipt(receiptInput);
     if (isFinalizedInboxStatus(inboxReceipt.record.status)) {
       input.log.debug('payment: webhook inbox deduped finalized payload', {
         provider: input.provider,
@@ -197,9 +205,8 @@ export async function handlePaymentNotifyRequest(input: {
     throw error;
   }
 
-  const inboxReceipt = await input.deps.createPaymentWebhookInboxReceipt(
-    receiptInput
-  );
+  const inboxReceipt =
+    await input.deps.createPaymentWebhookInboxReceipt(receiptInput);
 
   if (isFinalizedInboxStatus(inboxReceipt.record.status)) {
     input.log.debug('payment: webhook inbox deduped finalized payload', {

@@ -1,6 +1,7 @@
+import { getServerRuntimeEnv } from '@/infra/runtime/env.server';
+
 import { getTrimmedEnvValue } from '@/config/env-contract';
 import { isProductionEnv } from '@/shared/lib/env';
-import { getServerRuntimeEnv } from '@/infra/runtime/env.server';
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;

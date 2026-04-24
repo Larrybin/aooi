@@ -1,16 +1,16 @@
 // data: signed-in user (better-auth) + Server Action creates apikey (db)
 // cache: no-store (request-bound auth)
 // reason: user-specific write flow
+import { requireActionUser } from '@/app/access-control/action-guard';
+import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { createOwnApikeyUseCase } from '@/domains/account/application/use-cases';
+import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { getTranslations } from 'next-intl/server';
 
-import { accountRuntimeDeps } from '@/app/account/runtime-deps';
-import { requireActionUser } from '@/app/access-control/action-guard';
-import { createOwnApikeyUseCase } from '@/domains/account/application/use-cases';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { parseFormData } from '@/shared/lib/action/form';
 import { withAction } from '@/shared/lib/action/with-action';
-import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { SettingsApiKeyUpsertFormSchema } from '@/shared/schemas/actions/settings-apikey';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form as FormType } from '@/shared/types/blocks/form';

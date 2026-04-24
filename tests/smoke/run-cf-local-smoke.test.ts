@@ -18,8 +18,7 @@ AUTH_SPIKE_DATABASE_URL="postgresql://quoted"
 INVALID_LINE
     `),
     {
-      DATABASE_URL:
-        'postgresql://postgres:5jU*&RFTv&HQMYB@host:5432/postgres',
+      DATABASE_URL: 'postgresql://postgres:5jU*&RFTv&HQMYB@host:5432/postgres',
       AUTH_SPIKE_DATABASE_URL: 'postgresql://quoted',
     }
   );

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getOrCreateRequestId } from './request-id.server';
 import { getRequestContext } from './request-context.server';
+import { getOrCreateRequestId } from './request-id.server';
 
 test('getOrCreateRequestId 优先使用 x-request-id', () => {
   const headers = new Headers({

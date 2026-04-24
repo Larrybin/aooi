@@ -16,9 +16,7 @@ type ServerAuthBaseUrlEnv = Partial<
   Pick<NodeJS.ProcessEnv, 'BETTER_AUTH_URL' | 'AUTH_URL'>
 >;
 
-export function resolveServerAuthBaseUrl(
-  env?: ServerAuthBaseUrlEnv
-): string {
+export function resolveServerAuthBaseUrl(env?: ServerAuthBaseUrlEnv): string {
   const runtimeEnv = env ?? process.env;
   const rawBetterAuthUrl = runtimeEnv.BETTER_AUTH_URL?.trim() || '';
   const rawAuthUrl = runtimeEnv.AUTH_URL?.trim() || '';

@@ -1,39 +1,40 @@
 import 'server-only';
 
-import type { BetterAuthOptions } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { oneTap } from 'better-auth/plugins';
-
-import { db } from '@/infra/adapters/db';
-import * as schema from '@/config/db/schema';
-import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
-import { getUuid } from '@/shared/lib/hash';
-import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
-import { isProductionEnv } from '@/shared/lib/env';
-import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
-import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 import type {
   AuthServerBindings,
   AuthUiRuntimeSettings,
 } from '@/domains/settings/application/settings-runtime.contracts';
-import { site } from '@/site';
+import { readAuthUiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
+import { db } from '@/infra/adapters/db';
+import { getEmailService } from '@/infra/adapters/email/service';
+import { isAuthSpikeOAuthUpstreamMockEnabled } from '@/infra/platform/auth/oauth-spike-config';
+import {
+  consumeResetPasswordQuota,
+  releaseResetPasswordQuota,
+} from '@/infra/platform/auth/reset-password-throttle';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   getServerRuntimeEnv,
   isCloudflareWorkersRuntime,
   isRuntimeEnvEnabled,
 } from '@/infra/runtime/env.server';
-import {
-  consumeResetPasswordQuota,
-  releaseResetPasswordQuota,
-} from '@/infra/platform/auth/reset-password-throttle';
-import { getEmailService } from '@/infra/adapters/email/service';
+import { site } from '@/site';
+import type { BetterAuthOptions } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { oneTap } from 'better-auth/plugins';
+
+import * as schema from '@/config/db/schema';
+import { buildResetPasswordEmailPayload } from '@/shared/content/email/reset-password';
+import { isProductionEnv } from '@/shared/lib/env';
+import { getUuid } from '@/shared/lib/hash';
+
 import { installAuthSpikeOAuthFetchMock } from './oauth-spike.mock';
-import { getAuthServerBindings } from './server-bindings';
 import {
   buildTrustedAuthOrigins,
   isExplicitLocalAuthRuntimeEnabled,
   resolveRuntimeAuthBaseUrl,
 } from './runtime-origin';
+import { getAuthServerBindings } from './server-bindings';
 
 const log = createUseCaseLogger({
   domain: 'auth',
@@ -126,7 +127,8 @@ function buildAuthOptionsBase(): BetterAuthOptions {
 }
 
 export function getAuthOriginDebug(request?: Request) {
-  const { runtimeBaseUrl, runtimeTrustedOrigins } = getAuthRuntimeContext(request);
+  const { runtimeBaseUrl, runtimeTrustedOrigins } =
+    getAuthRuntimeContext(request);
 
   return {
     runtimeBaseUrl,
@@ -306,11 +308,7 @@ export async function getSocialProviders({
   const googleEnabled = authSettings.googleAuthEnabled;
   const githubEnabled = authSettings.githubAuthEnabled;
 
-  if (
-    googleEnabled &&
-    bindings.googleClientId &&
-    bindings.googleClientSecret
-  ) {
+  if (googleEnabled && bindings.googleClientId && bindings.googleClientSecret) {
     providers.google = {
       clientId: bindings.googleClientId,
       clientSecret: bindings.googleClientSecret,
@@ -318,11 +316,7 @@ export async function getSocialProviders({
     };
   }
 
-  if (
-    githubEnabled &&
-    bindings.githubClientId &&
-    bindings.githubClientSecret
-  ) {
+  if (githubEnabled && bindings.githubClientId && bindings.githubClientSecret) {
     providers.github = {
       clientId: bindings.githubClientId,
       clientSecret: bindings.githubClientSecret,

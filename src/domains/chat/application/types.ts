@@ -1,12 +1,9 @@
 import type {
-  convertToModelMessages,
-  streamText,
-} from 'ai';
-import type { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import type {
   AiProviderBindings,
   AiRuntimeSettings,
 } from '@/domains/settings/application/settings-runtime.contracts';
+import type { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type { convertToModelMessages, streamText } from 'ai';
 
 export type ChatUser = {
   id: string;

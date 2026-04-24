@@ -6,7 +6,10 @@ import test from 'node:test';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
-const generatedSiteModulePath = path.resolve(process.cwd(), '.generated/site.ts');
+const generatedSiteModulePath = path.resolve(
+  process.cwd(),
+  '.generated/site.ts'
+);
 
 async function generateSiteModule(siteKey: string) {
   await execFileAsync(process.execPath, ['scripts/generate-site-module.mjs'], {
@@ -21,8 +24,13 @@ async function generateSiteModule(siteKey: string) {
 async function importGeneratedSite(siteKey: string) {
   await generateSiteModule(siteKey);
   const source = await readFile(generatedSiteModulePath, 'utf8');
-  const siteLiteral = source.match(/export const site = ([\s\S]+?) as const;\s*$/);
-  assert.ok(siteLiteral?.[1], 'generated site module must export a site literal');
+  const siteLiteral = source.match(
+    /export const site = ([\s\S]+?) as const;\s*$/
+  );
+  assert.ok(
+    siteLiteral?.[1],
+    'generated site module must export a site literal'
+  );
 
   return Function(`return (${siteLiteral[1]});`)() as {
     key: string;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
@@ -13,13 +13,17 @@ const generatedContentSourcePath = path.resolve(
 );
 
 async function runGenerateContentSource(siteKey: string) {
-  await execFileAsync(process.execPath, ['scripts/generate-content-source-module.mjs'], {
-    cwd: rootDir,
-    env: {
-      ...process.env,
-      SITE: siteKey,
-    },
-  });
+  await execFileAsync(
+    process.execPath,
+    ['scripts/generate-content-source-module.mjs'],
+    {
+      cwd: rootDir,
+      env: {
+        ...process.env,
+        SITE: siteKey,
+      },
+    }
+  );
 }
 
 async function readGeneratedContentSource() {
@@ -161,31 +165,40 @@ test('@/content-source: cross-site publish does not collapse previous site reten
   });
 
   await runGenerateContentSource('dev-local');
-  const firstDevLocal = parseGeneratedPointer(await readGeneratedContentSource());
+  const firstDevLocal = parseGeneratedPointer(
+    await readGeneratedContentSource()
+  );
 
   await new Promise((resolve) => setTimeout(resolve, 5));
   await runGenerateContentSource('dev-local');
-  const secondDevLocal = parseGeneratedPointer(await readGeneratedContentSource());
+  const secondDevLocal = parseGeneratedPointer(
+    await readGeneratedContentSource()
+  );
 
   await new Promise((resolve) => setTimeout(resolve, 5));
   await runGenerateContentSource('mamamiya');
 
   await new Promise((resolve) => setTimeout(resolve, 5));
   await runGenerateContentSource('dev-local');
-  const thirdDevLocal = parseGeneratedPointer(await readGeneratedContentSource());
+  const thirdDevLocal = parseGeneratedPointer(
+    await readGeneratedContentSource()
+  );
   const devLocalVersions = await listArtifactVersions('dev-local');
 
   assert.equal(firstDevLocal.siteKey, 'dev-local');
   assert.equal(secondDevLocal.siteKey, 'dev-local');
   assert.equal(thirdDevLocal.siteKey, 'dev-local');
-  assert.deepEqual(devLocalVersions, [
-    secondDevLocal.versionId,
-    thirdDevLocal.versionId,
-  ].sort());
+  assert.deepEqual(
+    devLocalVersions,
+    [secondDevLocal.versionId, thirdDevLocal.versionId].sort()
+  );
 });
 
 test('@/content-source: site.config key mismatch fails fast', async () => {
-  const siteConfigPath = path.resolve(rootDir, 'sites/dev-local/site.config.json');
+  const siteConfigPath = path.resolve(
+    rootDir,
+    'sites/dev-local/site.config.json'
+  );
   const original = await readFile(siteConfigPath, 'utf8');
 
   try {

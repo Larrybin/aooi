@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import {
   PaymentEventType,
   PaymentInterval,
@@ -14,8 +13,8 @@ import {
 } from '@/infra/adapters/payment/creem-mapper';
 import {
   buildPayPalPaymentSession,
-  buildPayPalWebhookPaymentSession,
   buildPayPalSubscriptionSession,
+  buildPayPalWebhookPaymentSession,
   extractPayPalWebhookSubscriptionId,
   mergePayPalRenewalSubscription,
 } from '@/infra/adapters/payment/paypal-mapper';
@@ -110,7 +109,10 @@ test('Stripe mapper: failed invoice mapper 返回非成功 session 且保留事�
 
   assert.equal(session.provider, 'stripe');
   assert.equal(session.paymentStatus, PaymentStatus.FAILED);
-  assert.equal(session.paymentResult && (session.paymentResult as { id: string }).id, 'in_failed_123');
+  assert.equal(
+    session.paymentResult && (session.paymentResult as { id: string }).id,
+    'in_failed_123'
+  );
   assert.deepEqual(session.metadata, {
     order_no: 'order_123',
     event_type: 'invoice.payment_failed',

@@ -1,4 +1,5 @@
 import { Link } from '@/infra/platform/i18n/navigation';
+
 import { SmartIcon } from '@/shared/blocks/common/smart-icon';
 import { Button } from '@/shared/components/ui/button';
 import type { CTA as CTAType } from '@/shared/types/blocks/landing';

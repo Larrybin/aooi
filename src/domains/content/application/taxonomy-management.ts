@@ -1,11 +1,12 @@
 import 'server-only';
 
-import type { taxonomy } from '@/config/db/schema';
 import { TaxonomyStatus } from '@/domains/content/domain/taxonomy-types';
 import {
   addTaxonomyRow,
   updateTaxonomyRow,
 } from '@/domains/content/infra/taxonomy-repo';
+
+import type { taxonomy } from '@/config/db/schema';
 
 export type NewTaxonomy = typeof taxonomy.$inferInsert;
 export type UpdateTaxonomy = Partial<Omit<NewTaxonomy, 'id' | 'createdAt'>>;

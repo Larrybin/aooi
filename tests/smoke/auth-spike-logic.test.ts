@@ -207,7 +207,9 @@ test('deriveConclusion 对纯 parity 失败返回 需要 adapter', () => {
 
 test('deriveParityResult 忽略固定 whitelist 头差异', () => {
   const report = passingReport();
-  const vercel = report.surfaces.find((surface) => surface.surface === 'vercel');
+  const vercel = report.surfaces.find(
+    (surface) => surface.surface === 'vercel'
+  );
   const cloudflare = report.surfaces.find(
     (surface) => surface.surface === 'cloudflare'
   );

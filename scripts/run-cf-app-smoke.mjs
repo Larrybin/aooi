@@ -155,7 +155,9 @@ export async function runCloudflareAppSmoke({
     const bodyText = await response.text();
 
     await validateCloudflareAppSmokeResponse(check, response, bodyText);
-    logger.log(`✓ [${check.name}] ${check.method} ${normalizedBaseUrl}${check.path}`);
+    logger.log(
+      `✓ [${check.name}] ${check.method} ${normalizedBaseUrl}${check.path}`
+    );
   }
 }
 

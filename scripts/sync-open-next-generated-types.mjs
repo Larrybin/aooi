@@ -6,7 +6,10 @@ const GENERATED_DECLARATIONS_PATH = path.resolve(
   process.cwd(),
   'src/shared/types/open-next-generated.d.ts'
 );
-const CLOUDFLARE_WORKERS_DIR = path.resolve(process.cwd(), 'cloudflare/workers');
+const CLOUDFLARE_WORKERS_DIR = path.resolve(
+  process.cwd(),
+  'cloudflare/workers'
+);
 
 const DECLARATION_BLOCK_PATTERN =
   /declare module '([^']+)' \{\n([\s\S]*?)\n\}/g;
@@ -69,16 +72,15 @@ export async function syncOpenNextGeneratedTypes(rootDir = process.cwd()) {
   return modules;
 }
 
-const entryScriptPath = process.argv[1]
-  ? path.resolve(process.argv[1])
-  : null;
+const entryScriptPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
 
 if (
   entryScriptPath &&
   path.resolve(fileURLToPath(import.meta.url)) === entryScriptPath
 ) {
   syncOpenNextGeneratedTypes().catch((error) => {
-    const message = error instanceof Error ? error.stack || error.message : String(error);
+    const message =
+      error instanceof Error ? error.stack || error.message : String(error);
     process.stderr.write(`${message}\n`);
     process.exit(1);
   });

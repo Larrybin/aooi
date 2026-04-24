@@ -1,31 +1,31 @@
 import {
-  createChat,
+  consumeCredits,
+  refundConsumedCreditById,
+} from '@/domains/account/infra/credit';
+import { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
+import type {
+  ChatMessageRecord,
+  ChatRecord,
+  ChatMessageStatus as DomainChatMessageStatus,
+  ChatStatus as DomainChatStatus,
+  NewChatMessageRecord,
+  NewChatRecord,
+} from '@/domains/chat/application/types';
+import {
   ChatStatus,
+  createChat,
   findChatById,
   getChats,
   getChatsCount,
 } from '@/domains/chat/infra/chat';
 import {
-  createChatMessage,
   ChatMessageStatus,
-  getChatMessageWindow,
+  createChatMessage,
   getChatMessages,
   getChatMessagesCount,
+  getChatMessageWindow,
 } from '@/domains/chat/infra/chat-message';
 import { readAiRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
-import { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
-import {
-  consumeCredits,
-  refundConsumedCreditById,
-} from '@/domains/account/infra/credit';
-import type {
-  ChatMessageRecord,
-  ChatRecord,
-  ChatStatus as DomainChatStatus,
-  ChatMessageStatus as DomainChatMessageStatus,
-  NewChatMessageRecord,
-  NewChatRecord,
-} from '@/domains/chat/application/types';
 
 function toChatStatus(status: DomainChatStatus): ChatStatus {
   switch (status) {
@@ -49,7 +49,9 @@ function toChatMessageStatus(
   }
 }
 
-function mapChatRecord(record: Awaited<ReturnType<typeof findChatById>>): ChatRecord | undefined {
+function mapChatRecord(
+  record: Awaited<ReturnType<typeof findChatById>>
+): ChatRecord | undefined {
   if (!record) {
     return undefined;
   }
