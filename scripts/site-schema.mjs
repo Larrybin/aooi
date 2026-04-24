@@ -63,6 +63,7 @@ export function validateSiteConfig(config) {
 
   assertBoolean(config.capabilities.auth, 'site.capabilities.auth');
   assertPaymentCapability(config.capabilities.payment);
+  assertBoolean(config.capabilities.ai, 'site.capabilities.ai');
   assertBoolean(config.capabilities.docs, 'site.capabilities.docs');
   assertBoolean(config.capabilities.blog, 'site.capabilities.blog');
 

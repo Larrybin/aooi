@@ -20,6 +20,7 @@ test('package cf:deploy:state 只跑 state-scoped check 且不串完整 cf:build
 
 test('buildStateDeployWranglerArgs 固定使用 wrangler deploy 与 keep-vars', () => {
   const args = buildStateDeployWranglerArgs({
+    name: 'site-state-worker',
     configPath: '/tmp/wrangler.state.toml',
     secretsPath: '/tmp/cloudflare.secrets.env',
     message: 'state-message',
@@ -30,7 +31,7 @@ test('buildStateDeployWranglerArgs 固定使用 wrangler deploy 与 keep-vars', 
     '--config',
     '/tmp/wrangler.state.toml',
     '--name',
-    'roller-rabbit-state',
+    'site-state-worker',
     '--message',
     'state-message',
     '--experimental-autoconfig=false',
@@ -48,6 +49,7 @@ test('deployCloudflareState 只走 wrangler deploy 并在成功后 cleanup', asy
   await deployCloudflareState({
     async createArtifacts() {
       return {
+        workerName: 'site-state-worker',
         configPath: '/tmp/wrangler.state.toml',
         secretsPath: '/tmp/cloudflare.secrets.env',
         async cleanup() {
@@ -73,10 +75,11 @@ test('deployCloudflareState 在 wrangler 失败时仍会 cleanup', async () => {
   await assert.rejects(
     deployCloudflareState({
       async createArtifacts() {
-        return {
-          configPath: '/tmp/wrangler.state.toml',
-          secretsPath: '/tmp/cloudflare.secrets.env',
-          async cleanup() {
+      return {
+        workerName: 'site-state-worker',
+        configPath: '/tmp/wrangler.state.toml',
+        secretsPath: '/tmp/cloudflare.secrets.env',
+        async cleanup() {
             cleanedUp = true;
           },
         };

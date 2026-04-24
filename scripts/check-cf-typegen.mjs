@@ -1,12 +1,53 @@
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
+import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
+import {
+  createCanonicalTypegenContract,
+  resolveSiteDeployContract,
+} from './lib/site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+
 const rootDir = process.cwd();
 const trackedTypesPath = path.resolve(rootDir, 'src/shared/types/cloudflare.d.ts');
 
-function runWranglerTypes() {
+async function createCanonicalTypegenWranglerConfig({
+  rootPath = rootDir,
+  siteKey = resolveRequiredSiteKey(process.env),
+} = {}) {
+  const baseContract = resolveSiteDeployContract({
+    rootDir: rootPath,
+    siteKey,
+  });
+  const contract = createCanonicalTypegenContract(baseContract);
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'cf-typegen-'));
+  const outputPath = path.join(tempDir, 'wrangler.cloudflare.typegen.toml');
+  const templatePath = path.resolve(rootPath, contract.router.wranglerConfigRelativePath);
+  const template = await readFile(templatePath, 'utf8');
+  const content = buildCloudflareWranglerConfig({
+    template,
+    contract,
+    workerSlot: 'router',
+    templatePath,
+    outputPath,
+    validateTemplateContract: true,
+  });
+
+  await writeFile(outputPath, content, 'utf8');
+
+  return {
+    contract,
+    configPath: outputPath,
+    async cleanup() {
+      await rm(tempDir, { recursive: true, force: true });
+    },
+  };
+}
+
+function runWranglerTypes(configPath) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       'pnpm',
@@ -15,7 +56,7 @@ function runWranglerTypes() {
         'wrangler',
         'types',
         '--config',
-        'wrangler.cloudflare.toml',
+        configPath,
         '--env-interface',
         'CloudflareEnv',
         trackedTypesPath,
@@ -40,18 +81,26 @@ function runWranglerTypes() {
 }
 
 async function main() {
-  const before = await readFile(trackedTypesPath, 'utf8');
-  await runWranglerTypes();
-  const after = await readFile(trackedTypesPath, 'utf8');
+  const artifacts = await createCanonicalTypegenWranglerConfig();
 
-  if (before !== after) {
-    throw new Error(
-      'src/shared/types/cloudflare.d.ts is out of date. Run `pnpm cf:typegen` and commit the result.'
-    );
+  try {
+    const before = await readFile(trackedTypesPath, 'utf8');
+    await runWranglerTypes(artifacts.configPath);
+    const after = await readFile(trackedTypesPath, 'utf8');
+
+    if (before !== after) {
+      throw new Error(
+        'src/shared/types/cloudflare.d.ts is out of date. Run `pnpm cf:typegen` and commit the result.'
+      );
+    }
+  } finally {
+    await artifacts.cleanup();
   }
 
   console.log('[cf:typegen:check] src/shared/types/cloudflare.d.ts is up to date');
 }
+
+export { createCanonicalTypegenWranglerConfig };
 
 if (
   process.argv[1] &&

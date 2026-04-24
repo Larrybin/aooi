@@ -44,8 +44,6 @@ const STORAGE_PUBLIC_BASE_URL = 'https://storage-spike.example.com/assets/';
 const SESSION_COOKIE_NAME = 'better-auth.session_token';
 const SMOKE_CONFIG_NAMES = [
   'general_ai_enabled',
-  'general_docs_enabled',
-  'general_blog_enabled',
 ];
 const STORAGE_UPLOAD_FILES = Object.freeze({
   appLogo: {
@@ -118,11 +116,9 @@ function createSessionToken() {
   return crypto.randomUUID().replaceAll('-', '');
 }
 
-function createSeedSettings(timestamp) {
+function createSeedSettings() {
   return {
     general_ai_enabled: 'true',
-    general_docs_enabled: 'true',
-    general_blog_enabled: timestamp.length > 0 ? 'true' : 'false',
   };
 }
 
@@ -447,16 +443,6 @@ export function assertPublicSettingsProjection({ publicConfigs }) {
     'true',
     '[public-configs] general_ai_enabled should remain publicly readable'
   );
-  assert.equal(
-    publicConfigs.general_docs_enabled,
-    'true',
-    '[public-configs] general_docs_enabled should remain publicly readable'
-  );
-  assert.equal(
-    publicConfigs.general_blog_enabled,
-    'true',
-    '[public-configs] general_blog_enabled should remain publicly readable'
-  );
 }
 
 export async function main() {
@@ -480,7 +466,7 @@ export async function main() {
     .replace(/[-:]/g, '')
     .replace(/\..+/, '');
   const baseline = await captureConfigBaseline(databaseUrl, SMOKE_CONFIG_NAMES);
-  const seedSettings = createSeedSettings(timestamp);
+  const seedSettings = createSeedSettings();
   const smokeUser = {
     email: createTempEmail('storage-user'),
     userName: `CF Admin Settings ${timestamp}`,

@@ -12,6 +12,7 @@ import {
   readSiteDeploySettings,
   resolveSiteDeploySettingsPath,
 } from '../../scripts/lib/site-deploy-settings.mjs';
+import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 
 test('resolveCloudflareAuthSecretValue 优先 BETTER_AUTH_SECRET，其次 AUTH_SECRET', () => {
   assert.equal(
@@ -44,6 +45,25 @@ test('buildCloudflareSecretsEnv 只输出白名单 secret，并为缺失项补�
   assert.equal(
     content,
     ['BETTER_AUTH_SECRET=better-secret', 'AUTH_SECRET=better-secret', ''].join(
+      '\n'
+    )
+  );
+});
+
+test('buildCloudflareSecretsEnv 仅提供 AUTH_SECRET 时仍双写输出 auth shared secret', () => {
+  const content = buildCloudflareSecretsEnv(
+    {
+      AUTH_SECRET: 'auth-secret',
+      SITE: 'mamamiya',
+    },
+    {
+      workerKeys: ['auth'],
+    }
+  );
+
+  assert.equal(
+    content,
+    ['BETTER_AUTH_SECRET=auth-secret', 'AUTH_SECRET=auth-secret', ''].join(
       '\n'
     )
   );
@@ -84,7 +104,7 @@ test('buildCloudflareSecretsEnv 在 server worker 缺少 auth secret 时失败',
           workerKeys: ['auth'],
         }
       ),
-    /AUTH_SECRET/i
+    /BETTER_AUTH_SECRET or AUTH_SECRET/i
   );
 });
 
@@ -127,12 +147,35 @@ test('buildCloudflareSecretsEnv 按 deploy.settings.json 与 workerKeys 限定 s
   try {
     await mkdir(targetDir, { recursive: true });
     await writeFile(
+      path.join(targetDir, 'site.config.json'),
+      JSON.stringify(
+        {
+          ...readCurrentSiteConfig({ siteKey: 'mamamiya' }),
+          capabilities: {
+            ...readCurrentSiteConfig({ siteKey: 'mamamiya' }).capabilities,
+            auth: true,
+            ai: false,
+            payment: 'none',
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+    await writeFile(
       targetPath,
       JSON.stringify(
         {
           ...readSiteDeploySettings({ siteKey: 'mamamiya' }),
-          google_auth_enabled: true,
-          stripe_enabled: true,
+          bindingRequirements: {
+            ...readSiteDeploySettings({ siteKey: 'mamamiya' }).bindingRequirements,
+            secrets: {
+              ...readSiteDeploySettings({ siteKey: 'mamamiya' }).bindingRequirements
+                .secrets,
+              googleOauth: true,
+            },
+          },
         },
         null,
         2

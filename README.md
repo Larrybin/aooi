@@ -95,7 +95,7 @@ Visit http://localhost:3000
 - `brand.appUrl`：用于 canonical / sitemap / callback 等 URL 生成
 - `brand.supportEmail`：用于法律页面与联系入口
 - `brand.logo` / `brand.favicon` / `brand.previewImage`：用于品牌 Logo、favicon、社交分享预览图
-- 生产语义命令必须显式传 `SITE=<site-key>`；`lint` 内部仍可回退到 `dev-local`，测试默认跟随当前 `SITE`
+- 生产语义命令和 Cloudflare smoke 命令必须显式传 `SITE=<site-key>`；只有 `lint` 这类非发布语义入口允许内部回退到 `dev-local`
 
 ### Initialize RBAC (Optional)
 
@@ -181,50 +181,50 @@ Read `content/docs` to start your AI SaaS project.
 ## Deployment Notes
 
 - Docker builds now use the default `.next` output (not `.next/standalone`) and start with `next start` (see `Dockerfile`).
-- `wrangler.cloudflare.toml` and `open-next.config.ts` are the source of truth for the Cloudflare OpenNext build/deploy contract.
+- Cloudflare deploy contract is site-driven: `sites/<site>/site.config.json` defines semantic site identity, `sites/<site>/deploy.settings.json` defines the infra-only deploy manifest, and tracked `wrangler*.toml` files are static templates rendered through the shared resolver.
 - Production `next build` is explicitly pinned to Webpack through [scripts/next-build.mjs](/Users/bin/Desktop/project/aooi/scripts/next-build.mjs) to avoid the current Turbopack/OpenNext Worker runtime incompatibility (`require_turbopack_runtime(...) is not a function`) on Cloudflare.
 - `reactCompiler` is currently disabled in `next.config.mjs` because warm-build benchmarks on 2026-04-08 showed it materially hurt build time. Keep this as a single-path decision, not a long-lived dual config.
 - TypeScript build scope is intentionally split: `tsconfig.json` covers app build inputs, while `tsconfig.test.json` covers tests and test-only type errors.
 - Generated directories such as `.open-next/`, `.next/`, `dist/`, `build/`, and `output/` are build artifacts, not source dependencies. Test-reachable source files must not top-level static `import` them; only explicit runtime boundaries may consume them, and runtime-only OpenNext helpers should be loaded lazily with `import()`.
 - `DEPLOY_TARGET=cloudflare` is the only supported production deploy contract.
 - Cross-origin cookie auth topology is intentionally unsupported. `site.brand.appUrl` is the canonical app/auth origin; `AUTH_URL` and `BETTER_AUTH_URL` may only mirror that origin.
-- Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The router lives in [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml); each server Worker has its own `cloudflare/wrangler.server-*.toml`.
+- Cloudflare now targets one router Worker plus six canonical server Workers: `public-web`, `auth`, `payment`, `member`, `chat`, `admin`. The resolver derives per-site worker names, routes, buckets, Hyperdrive id, and Durable Object owner from `sites/<site>/site.config.json` + `sites/<site>/deploy.settings.json`, then renders [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml) and `cloudflare/wrangler.server-*.toml` as static templates.
 - OpenNext persistent cache is Cloudflare-only: router and all server Workers share `NEXT_INC_CACHE_R2_BUCKET`, tag cache + queue run on Durable Objects, and router image optimization is enabled through `IMAGES`.
 - Business uploads are Cloudflare-only: runtime writes directly to `APP_STORAGE_R2_BUCKET`, and public asset URLs are derived from `STORAGE_PUBLIC_BASE_URL + objectKey`.
-- `pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds public module settings directly in Postgres, injects storage public URL as a runtime binding, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus storage URL derivation.
-- Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `pnpm test:cf-local-smoke`; production verification is `pnpm test:cf-app-smoke` against the real app origin after deploy.
-- `pnpm test:cf-local-smoke` and `pnpm test:cf-admin-settings-smoke` are local/manual diagnostics, not required CI gates. They rely on Wrangler local multi-worker emulation, which can diverge from real Cloudflare behavior around Durable Objects and other stateful bindings.
-- Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical state/app topology under the authoritative dry-run upload gate. The state worker uses `wrangler deploy --dry-run`; router and server workers use `wrangler versions upload --dry-run`.
+- `SITE=<site-key> pnpm test:cf-admin-settings-smoke` is intentionally smaller than the browser-heavy admin write path. It seeds public module settings directly in Postgres, injects storage public URL as a runtime binding, uploads through the real Cloudflare runtime API inside one local Cloudflare runtime session, and then verifies public config projection plus storage URL derivation.
+- Cloudflare preview and `cf:upload` are intentionally removed as user-facing deploy commands. Local runtime verification is `SITE=<site-key> pnpm test:cf-local-smoke`; production verification is `SITE=<site-key> pnpm test:cf-app-smoke` against the real app origin after deploy.
+- `SITE=<site-key> pnpm test:cf-local-smoke` and `SITE=<site-key> pnpm test:cf-admin-settings-smoke` are local/manual diagnostics, not required CI gates. They rely on Wrangler local multi-worker emulation, which can diverge from real Cloudflare behavior around Durable Objects and other stateful bindings.
+- Current Cloudflare build status is `READY`: on April 15, 2026, `pnpm cf:build` verified the canonical app topology under the authoritative dry-run upload gate. Router and server workers use `wrangler versions upload --dry-run`; state preflight stays on `pnpm cf:check -- --workers=state` plus `pnpm cf:deploy:state`.
 - Cloudflare helper commands:
 - `pnpm cf:check`
 - `pnpm cf:build`
 - `pnpm cf:typegen`
 - `pnpm cf:typegen:check`
-- `pnpm test:cf-local-smoke`
-- `pnpm test:cf-admin-settings-smoke`
-- `pnpm test:cf-app-smoke`
+- `SITE=<site-key> pnpm test:cf-local-smoke`
+- `SITE=<site-key> pnpm test:cf-admin-settings-smoke`
+- `SITE=<site-key> pnpm test:cf-app-smoke`
 - `pnpm cf:deploy:state`
 - `pnpm cf:deploy:app`
 - `pnpm cf:deploy` (`pnpm cf:deploy:app` 的别名)
 - Smoke runner scenarios:
-  - `pnpm test:cf-local-smoke` -> `scripts/smoke.mjs cf-local`
-  - `pnpm test:cf-app-smoke` -> `scripts/smoke.mjs cf-app`
-  - `pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && scripts/smoke.mjs cf-admin-settings`
+- `SITE=<site-key> pnpm test:cf-local-smoke` -> `run-with-site.mjs` -> `scripts/smoke.mjs cf-local`
+- `SITE=<site-key> pnpm test:cf-app-smoke` -> `run-with-site.mjs` -> `scripts/smoke.mjs cf-app`
+- `SITE=<site-key> pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && run-with-site.mjs -> scripts/smoke.mjs cf-admin-settings`
 - The only authoritative production deploy channel is a hand-operated local `wrangler` session authenticated through Wrangler OAuth on the operator machine.
 - `.github/workflows/cloudflare-acceptance.yaml` remains a CI acceptance gate, but it is not a production deploy authority.
 - Any GitHub-side deploy or migrate workflow that still exists in the repo is informational or fallback-only; release authority stays with the local operator session.
 - Cloudflare-only deployment governance is documented in `docs/architecture/cloudflare-deployment-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
-- `pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
-- `pnpm test:cf-app-smoke` is now read-only. It no longer upserts site URL or module toggles, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing smoke target.
+- `SITE=<site-key> pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
+- `SITE=<site-key> pnpm test:cf-app-smoke` is now read-only. It no longer upserts site URL or module toggles, and it does not require `DATABASE_URL` / `AUTH_SPIKE_DATABASE_URL` when reusing an existing smoke target.
 - `pnpm test:creem-webhook-spike` is the contract gate for Creem webhook signature verification and duplicate-renewal idempotency.
 - `pnpm test:r2-upload-spike` is the contract gate for R2 upload success/failure semantics.
-- Cloudflare config contract: router deploy uses `wrangler.cloudflare.toml`; server deploys use `cloudflare/wrangler.server-*.toml`; all Workers share the same `compatibility_date`, `compatibility_flags`, Hyperdrive binding, and generated `NEXT_PUBLIC_APP_URL`, which must derive from the current `site.brand.appUrl`.
+- Cloudflare config contract: all `cf:*` commands, smoke scripts, typegen, and release gating resolve the current `SITE` first and must not bypass that resolver with static `--config wrangler.cloudflare.toml` paths. Templates stay static; site-specific values come only from `site.config.json` + `deploy.settings.json`.
 - Cloudflare deploy settings contract is repo-controlled and site-scoped: `sites/<site>/deploy.settings.json` is the only non-secret source for `cf:check`, secrets generation, and deploy dry-run capability requirements.
 - `pnpm cf:check` validates the repo-controlled Cloudflare deploy contract, not live admin/runtime settings.
 - `pnpm cf:check -- --workers=state|app|all|<comma-list>` scopes validation to explicit Worker targets; the default is `all`.
 - Cloudflare secrets file generation requires an explicit `--workers=state|app|all|<comma-list>` scope. There is no implicit secrets scope.
-- `BETTER_AUTH_SECRET` / `AUTH_SECRET` are server runtime secrets for the Next server workers (`public-web/auth/payment/member/chat/admin`); provider secrets remain capability-specific, and the `state` worker does not consume auth secret.
+- `BETTER_AUTH_SECRET` / `AUTH_SECRET` are one shared auth secret requirement for the Next server workers (`public-web/auth/payment/member/chat/admin`); input may provide either key, secrets generation writes both keys with the same resolved value, and the `state` worker does not consume auth secret.
 - Platform-specific runtime code is restricted to `src/shared/lib/runtime/**`; see `docs/architecture/runtime-boundary.md`.
 - The operator workstation must have a valid Wrangler OAuth login with Cloudflare Workers write access; verify with `pnpm exec wrangler whoami` before production deploy.
 - Any change to `src/config/db/schema.ts` must ship with committed files under `src/config/db/migrations/**`; acceptance must fail before deploy if they are missing.
@@ -233,7 +233,7 @@ Read `content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local build gate that dry-runs real Worker uploads, `pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session for manual diagnosis only, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local app-only build gate that dry-runs router/server Worker uploads, `SITE=<site-key> pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session for manual diagnosis only, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `SITE=<site-key> pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -249,7 +249,7 @@ If you were planning to put auth on another domain, stop. That topology is inten
 
 #### 2. Update router + server Wrangler configs
 
-Edit [wrangler.cloudflare.toml](/Users/bin/Desktop/project/aooi/wrangler.cloudflare.toml), [cloudflare/wrangler.state.toml](/Users/bin/Desktop/project/aooi/cloudflare/wrangler.state.toml), and the relevant `cloudflare/wrangler.server-*.toml` files together:
+Edit `sites/<site>/site.config.json`, `sites/<site>/deploy.settings.json`, and the tracked static templates together when the topology itself changes:
 
 ```toml
 name = "your-router-worker-name"
@@ -292,33 +292,33 @@ Rules that matter:
 
 - `NEXT_PUBLIC_APP_URL` must be a pure origin and must match the route exactly
 - `STORAGE_PUBLIC_BASE_URL` must be the public base URL for business-uploaded R2 assets; it is a runtime binding, not an admin setting
-- `service` under `WORKER_SELF_REFERENCE` must match `name`
+- `service` under `WORKER_SELF_REFERENCE` must match the resolved router worker name
 - `cloudflare/wrangler.state.toml` is the only template allowed to keep `[[migrations]]`
 - each server worker needs its own `cloudflare/wrangler.server-*.toml` with no public `[[routes]]`
-- the canonical server worker set is `public-web/auth/payment/member/chat/admin`; keep names, bindings, and split ownership aligned with `src/shared/config/cloudflare-worker-splits.ts`
-- router services and server worker names must stay in sync with `src/shared/config/cloudflare-worker-splits.ts`
-- router and all app workers must point Durable Object bindings at `roller-rabbit-state`
+- the canonical server worker set is `public-web/auth/payment/member/chat/admin`; keep slots, bindings, and split ownership aligned with `src/shared/config/cloudflare-worker-splits.ts`
+- router services and server worker names are derived from the shared deploy contract; do not hardcode instance names in scripts
+- router and all app workers must point Durable Object bindings at the resolved `workers.state`
 - every tracked Wrangler config must keep `localConnectionString = ""`; local and CI DSNs only enter generated temporary configs
 - Do not add `CF_FALLBACK_ORIGIN`; single-origin Cloudflare mode forbids it
 
 #### 3. Set production secrets in Cloudflare
 
-At minimum, set the auth signing secret:
+At minimum, make the auth signing secret available to the shared Cloudflare deploy flow. Do not point Wrangler at tracked templates directly when setting per-worker secrets, because tracked `wrangler*.toml` files are static templates rather than site-resolved deploy artifacts.
 
 ```bash
-pnpm exec wrangler secret put BETTER_AUTH_SECRET --config wrangler.cloudflare.toml
+export BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
 ```
 
 Recommended:
 
-- In multi-worker Cloudflare mode, set the same `BETTER_AUTH_SECRET` on the router worker and every `cloudflare/wrangler.server-*.toml` worker config
+- In multi-worker Cloudflare mode, keep the same `BETTER_AUTH_SECRET` available to every Next server worker via the shared secrets-file flow used by `pnpm cf:deploy:app`
 - Use `BETTER_AUTH_SECRET` and leave `AUTH_SECRET` unset unless you have a compatibility reason
 
 #### 4. Local runtime and deploy wiring
 
 Do not put a real local PostgreSQL DSN into tracked Wrangler files.
 
-- Local smoke uses an explicit `DATABASE_URL` plus `pnpm test:cf-local-smoke`; tracked `.dev.vars` must stay on the non-DB allowlist and cannot carry PostgreSQL DSNs
+- Local smoke uses an explicit `DATABASE_URL` plus `SITE=<site-key> pnpm test:cf-local-smoke`; tracked `.dev.vars` must stay on the non-DB allowlist and cannot carry PostgreSQL DSNs
 - Local manual deploy uses temporary Wrangler configs or `--secrets-file`; tracked templates stay secret-free
 - If you still run CI smoke around this path, keep the same temporary-config discipline there as well
 - Generate the secret with `openssl rand -base64 32`
@@ -364,7 +364,7 @@ For a state-only preflight, use:
 pnpm cf:check -- --workers=state
 ```
 
-`pnpm cf:build` must keep every deployable Worker bundle under the Cloudflare 3 MiB gzip limit as verified by state/app dry-run upload checks. If it fails, do not deploy.
+`pnpm cf:build` must keep every deployable app Worker bundle under the Cloudflare 3 MiB gzip limit as verified by router/server dry-run upload checks. State safety is covered separately by `pnpm cf:check -- --workers=state` and `pnpm cf:deploy:state`. If `pnpm cf:build` fails, do not deploy app workers.
 
 #### 6. Deploy
 
@@ -391,7 +391,7 @@ pnpm cf:deploy
 `pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:app`.
 `pnpm cf:deploy:app` is a pure app release command. It does not bootstrap router/server workers, and it fails fast if any app worker deployment is missing.
 For a brand-new or partially initialized production environment, the required order is always `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
-`pnpm test:cf-app-smoke` belongs after the full state-plus-app release sequence, not after a standalone state deploy.
+`SITE=<site-key> pnpm test:cf-app-smoke` belongs after the full state-plus-app release sequence, not after a standalone state deploy.
 This local authenticated path is the release authority. Do not treat GitHub Actions automation as the canonical production deploy mechanism.
 
 #### 7. Verify production immediately

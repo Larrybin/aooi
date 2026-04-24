@@ -10,6 +10,7 @@ import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
 import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import { runCloudflareAppSmoke } from './run-cf-app-smoke.mjs';
@@ -21,10 +22,16 @@ const rootDir = path.resolve(
 const envContractModule =
   envContractNamespace.default ?? envContractNamespace;
 const { assertAllowedEnvKeys, DEV_VARS_ALLOWED_KEYS } = envContractModule;
-const defaultTemplatePath = path.resolve(rootDir, 'wrangler.cloudflare.toml');
 const defaultDevVarsPath = path.resolve(rootDir, '.dev.vars');
 const defaultBaseUrl = 'http://localhost:8787';
 const defaultLocalSmokeSecret = 'local-cloudflare-smoke-secret-0123456789';
+
+function resolveDefaultTemplatePath() {
+  return path.resolve(
+    rootDir,
+    resolveSiteDeployContract({ rootDir }).router.wranglerConfigRelativePath
+  );
+}
 
 function normalizeEnvValue(rawValue) {
   const trimmed = rawValue.trim();
@@ -109,7 +116,7 @@ export function resolveLocalSmokeDatabaseUrl(processEnv = process.env) {
 
 export async function runCloudflareLocalSmoke(
   {
-    templatePath = defaultTemplatePath,
+    templatePath = resolveDefaultTemplatePath(),
     databaseUrl = resolveLocalSmokeDatabaseUrl(),
     baseUrl = defaultBaseUrl,
   } = {},
@@ -166,7 +173,8 @@ export async function runCloudflareLocalSmoke(
 
 async function main() {
   const templatePath =
-    process.env.CF_LOCAL_SMOKE_WRANGLER_TEMPLATE?.trim() || defaultTemplatePath;
+    process.env.CF_LOCAL_SMOKE_WRANGLER_TEMPLATE?.trim() ||
+    resolveDefaultTemplatePath();
   const baseUrl = process.env.CF_LOCAL_SMOKE_URL?.trim() || defaultBaseUrl;
 
   await runCloudflareLocalSmoke({

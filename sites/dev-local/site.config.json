@@ -12,6 +12,7 @@
   "capabilities": {
     "auth": true,
     "payment": "none",
+    "ai": false,
     "docs": true,
     "blog": true
   },

@@ -267,7 +267,7 @@ Notes:
 
 ### Cloudflare Workers + Hyperdrive
 
-Configure in `wrangler.cloudflare.toml`:
+Configure the tracked router template together with the current site deploy contract:
 
 ```toml
 [[hyperdrive]]
@@ -283,9 +283,9 @@ Cloudflare helper commands:
 
 - `pnpm cf:check`
 - `pnpm cf:build`
-- `pnpm test:cf-local-smoke`
-- `pnpm test:cf-admin-settings-smoke`
-- `pnpm test:cf-app-smoke`
+- `SITE=<site-key> pnpm test:cf-local-smoke`
+- `SITE=<site-key> pnpm test:cf-admin-settings-smoke`
+- `SITE=<site-key> pnpm test:cf-app-smoke`
 - `pnpm cf:typegen`
 - `pnpm cf:typegen:check`
 - `pnpm cf:deploy:state`
@@ -294,11 +294,11 @@ Cloudflare helper commands:
 
 Smoke commands keep their public package names, but they now route through `scripts/smoke.mjs <scenario>` internally. Cloudflare local runtime uses the `cf-local` scenario, admin/settings storage smoke uses `cf-admin-settings`, and production read-only app smoke uses `cf-app`.
 
-`pnpm test:cf-admin-settings-smoke` is intentionally a smaller local acceptance chain: it seeds the required settings rows directly in Postgres, uploads through the real Cloudflare runtime API, and then validates public config projection plus the missing-`STORAGE_PUBLIC_BASE_URL` failure path inside the same generated local Cloudflare runtime session.
+`SITE=<site-key> pnpm test:cf-admin-settings-smoke` is intentionally a smaller local acceptance chain: it seeds the required settings rows directly in Postgres, uploads through the real Cloudflare runtime API, and then validates public config projection plus the missing-`STORAGE_PUBLIC_BASE_URL` failure path inside the same generated local Cloudflare runtime session.
 
-`pnpm cf:build` now validates the state worker through `wrangler deploy --dry-run` and app workers through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size.
+`pnpm cf:build` now validates the router/app workers through `wrangler versions upload --dry-run` instead of trusting raw intermediate `handler.mjs` file size. State preflight is owned by `pnpm cf:check -- --workers=state` and `pnpm cf:deploy:state`.
 
-`pnpm test:cf-app-smoke` is the Cloudflare full-app smoke: landing, sign-in, sign-up, docs, public config API, sitemap, robots, and same-origin protected-route redirects back to `/sign-in`.
+`SITE=<site-key> pnpm test:cf-app-smoke` is the Cloudflare full-app smoke: landing, sign-in, sign-up, docs, public config API, sitemap, robots, and same-origin protected-route redirects back to `/sign-in`.
 
 The smoke is read-only. It must not upsert public config values or mutate the `config` table in local runtime or production.
 
@@ -371,7 +371,7 @@ Run `pnpm db:migrate` to apply pending migrations.
 Cloudflare Workers requires Hyperdrive binding
 ```
 
-Configure `HYPERDRIVE` binding in `wrangler.cloudflare.toml`.
+Configure the `HYPERDRIVE` binding in the tracked router template and keep the site-specific Hyperdrive id in `sites/<site>/deploy.settings.json`.
 
 ## Related Files
 

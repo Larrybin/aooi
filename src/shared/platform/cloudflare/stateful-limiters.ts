@@ -31,6 +31,8 @@ type DualConfig = {
   leaseMs: number;
 };
 
+type StatefulLimiterNamespace = Pick<DurableObjectNamespace, 'idFromName' | 'get'>;
+
 const BUCKET_SCOPED_OBJECT_PREFIX = 'bucket';
 const KEY_SCOPED_OBJECT_PREFIX = 'scope';
 
@@ -48,11 +50,14 @@ async function callStatefulLimiter<T>(
   body: Record<string, unknown>,
   options: {
     key?: string;
+    namespace?: StatefulLimiterNamespace;
   } = {}
 ): Promise<T> {
-  const namespace = getCloudflareBindings()?.STATEFUL_LIMITERS as
-    | DurableObjectNamespace
-    | undefined;
+  const namespace =
+    options.namespace ??
+    (getCloudflareBindings()?.STATEFUL_LIMITERS as
+      | StatefulLimiterNamespace
+      | undefined);
   if (!namespace) {
     throw new Error('STATEFUL_LIMITERS binding is missing');
   }
@@ -84,139 +89,191 @@ async function callStatefulLimiter<T>(
 export class CloudflareCooldownLimiter {
   constructor(
     private readonly config: CooldownConfig,
-    private readonly now: () => number = Date.now
+    private readonly now: () => number = Date.now,
+    private readonly namespace?: StatefulLimiterNamespace
   ) {}
 
   async check(key: string, now = this.now()): Promise<LimitResult> {
-    return await callStatefulLimiter<LimitResult>(this.config.bucket, {
-      action: 'cooldown.check',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    return await callStatefulLimiter<LimitResult>(
+      this.config.bucket,
+      {
+        action: 'cooldown.check',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async checkAndConsume(key: string, now = this.now()): Promise<LimitResult> {
-    return await callStatefulLimiter<LimitResult>(this.config.bucket, {
-      action: 'cooldown.checkAndConsume',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    return await callStatefulLimiter<LimitResult>(
+      this.config.bucket,
+      {
+        action: 'cooldown.checkAndConsume',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async consume(key: string, now = this.now()): Promise<number> {
-    return await callStatefulLimiter<number>(this.config.bucket, {
-      action: 'cooldown.consume',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    return await callStatefulLimiter<number>(
+      this.config.bucket,
+      {
+        action: 'cooldown.consume',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async rollback(key: string, consumedAt: number): Promise<void> {
-    await callStatefulLimiter(this.config.bucket, {
-      action: 'cooldown.rollback',
-      key,
-      consumedAt,
-      config: this.config,
-    }, { key });
+    await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'cooldown.rollback',
+        key,
+        consumedAt,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async clear(key: string): Promise<void> {
-    await callStatefulLimiter(this.config.bucket, {
-      action: 'cooldown.clear',
-      key,
-      config: this.config,
-    }, { key });
+    await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'cooldown.clear',
+        key,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 }
 
 export class CloudflareAttemptLimiter {
   constructor(
     private readonly config: AttemptConfig,
-    private readonly now: () => number = Date.now
+    private readonly now: () => number = Date.now,
+    private readonly namespace?: StatefulLimiterNamespace
   ) {}
 
   async check(key: string, now = this.now()): Promise<LimitResult> {
-    return await callStatefulLimiter<LimitResult>(this.config.bucket, {
-      action: 'attempt.check',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    return await callStatefulLimiter<LimitResult>(
+      this.config.bucket,
+      {
+        action: 'attempt.check',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async recordFailure(
     key: string,
     now = this.now()
   ): Promise<{ attempts: number; retryAfterSeconds?: number }> {
-    return await callStatefulLimiter(this.config.bucket, {
-      action: 'attempt.recordFailure',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    return await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'attempt.recordFailure',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async clear(key: string): Promise<void> {
-    await callStatefulLimiter(this.config.bucket, {
-      action: 'attempt.clear',
-      key,
-      config: this.config,
-    }, { key });
+    await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'attempt.clear',
+        key,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 }
 
 export class CloudflareQuotaLimiter {
   constructor(
     private readonly config: QuotaConfig,
-    private readonly now: () => number = Date.now
+    private readonly now: () => number = Date.now,
+    private readonly namespace?: StatefulLimiterNamespace
   ) {}
 
   async acquire(
     key: string,
     now = this.now()
   ): Promise<AllowedLimitResult | DeniedLimitResult> {
-    return await callStatefulLimiter(this.config.bucket, {
-      action: 'quota.acquire',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    return await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'quota.acquire',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 
   async release(key: string, now = this.now()): Promise<void> {
-    await callStatefulLimiter(this.config.bucket, {
-      action: 'quota.release',
-      key,
-      now,
-      config: this.config,
-    }, { key });
+    await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'quota.release',
+        key,
+        now,
+        config: this.config,
+      },
+      { key, namespace: this.namespace }
+    );
   }
 }
 
 export class CloudflareDualConcurrencyLimiter {
   constructor(
     private readonly config: DualConfig,
-    private readonly now: () => number = Date.now
+    private readonly now: () => number = Date.now,
+    private readonly namespace?: StatefulLimiterNamespace
   ) {}
 
   async acquire(key: string, now = this.now()): Promise<boolean> {
-    return await callStatefulLimiter(this.config.bucket, {
-      action: 'dual.acquire',
-      key,
-      now,
-      config: this.config,
-    });
+    return await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'dual.acquire',
+        key,
+        now,
+        config: this.config,
+      },
+      { namespace: this.namespace }
+    );
   }
 
   async release(key: string, now = this.now()): Promise<void> {
-    await callStatefulLimiter(this.config.bucket, {
-      action: 'dual.release',
-      key,
-      now,
-      config: this.config,
-    });
+    await callStatefulLimiter(
+      this.config.bucket,
+      {
+        action: 'dual.release',
+        key,
+        now,
+        config: this.config,
+      },
+      { namespace: this.namespace }
+    );
   }
 }

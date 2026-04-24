@@ -130,8 +130,6 @@ test('assertPublicSettingsProjection 仅校验 public config projection', () => 
     assertPublicSettingsProjection({
       publicConfigs: {
         general_ai_enabled: 'true',
-        general_docs_enabled: 'true',
-        general_blog_enabled: 'true',
       },
     })
   );

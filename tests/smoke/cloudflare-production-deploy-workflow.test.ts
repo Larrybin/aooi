@@ -36,12 +36,20 @@ test('cloudflare production workflow 在 state 变更时先运行 state deploy',
     workflowContent,
     /deploy-state:\n[\s\S]*?if:\s*>-\s*[\s\S]*?always\(\)\s*&&[\s\S]*?needs\.prepare-release\.outputs\.state_changed == 'true'[\s\S]*?needs\.migrate-db\.result == 'skipped'[\s\S]*?run:\s*pnpm cf:deploy:state/
   );
+  assert.match(
+    workflowContent,
+    /deploy-state:\n[\s\S]*?env:\n[\s\S]*?SITE:\s*mamamiya/
+  );
 });
 
 test('cloudflare production workflow 总是以 app deploy 收尾', () => {
   assert.match(
     workflowContent,
     /deploy-app:\n[\s\S]*?needs:\s*\[prepare-release, migrate-db, deploy-state\][\s\S]*?run:\s*pnpm cf:deploy/
+  );
+  assert.match(
+    workflowContent,
+    /deploy-app:\n[\s\S]*?env:\n[\s\S]*?SITE:\s*mamamiya/
   );
   assert.doesNotMatch(
     workflowContent,

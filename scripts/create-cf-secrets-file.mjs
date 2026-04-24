@@ -6,7 +6,7 @@ import * as envContractNamespace from '../src/config/env-contract.ts';
 import {
   collectRequiredRuntimeBindings,
   normalizeCloudflareWorkerKeys,
-  readCloudflareRuntimeSettings,
+  readCloudflareDeployRequirements,
   resolveCloudflareWorkerKeys,
 } from './lib/cloudflare-runtime-bindings.mjs';
 
@@ -55,10 +55,10 @@ function resolveRequiredSecretValue(processEnv, name, fallbackValue) {
 
 function buildSecretFallbacks(requiredRequirements, processEnv, options) {
   const secretFallbacks = new Map();
-  const needsAuthSecret = requiredRequirements.some(
-    (requirement) =>
-      requirement.name === 'BETTER_AUTH_SECRET' ||
-      requirement.name === 'AUTH_SECRET'
+  const needsAuthSecret = requiredRequirements.some((requirement) =>
+    (requirement.names ?? [requirement.name]).some(
+      (name) => name === 'BETTER_AUTH_SECRET' || name === 'AUTH_SECRET'
+    )
   );
 
   if (!needsAuthSecret) {
@@ -76,18 +76,25 @@ export function buildCloudflareSecretsEnv(
   options = {}
 ) {
   const workerKeys = normalizeCloudflareWorkerKeys(options.workerKeys);
-  const runtimeSettings =
+  const bindingRequirements =
     options.runtimeSettings ??
-    readCloudflareRuntimeSettings({
+    readCloudflareDeployRequirements({
       processEnv,
       rootDir: options.rootDir ?? process.cwd(),
     });
   const requiredRequirements = collectRequiredRuntimeBindings(
     workerKeys,
-    runtimeSettings
+    bindingRequirements
   );
   const requiredSecretNames = Array.from(
-    new Set(requiredRequirements.map((requirement) => requirement.name))
+    new Set(
+      requiredRequirements
+        .filter((requirement) => requirement.kind === 'runtime-secret')
+        .flatMap(
+          (requirement) =>
+            requirement.outputNames ?? requirement.names ?? [requirement.name]
+        )
+    )
   );
   const secretFallbacks = buildSecretFallbacks(
     requiredRequirements,

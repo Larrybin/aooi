@@ -172,8 +172,6 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'default_payment_provider',
     'email_auth_enabled',
     'general_ai_enabled',
-    'general_blog_enabled',
-    'general_docs_enabled',
     'general_locale_switcher_enabled',
     'general_social_links',
     'general_social_links_enabled',

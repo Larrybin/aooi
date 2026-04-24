@@ -17,10 +17,9 @@
 ## Cloudflare Rules
 
 - Cloudflare runs as one private `state` Worker, one public router Worker, plus the canonical `public-web/auth/payment/member/chat/admin` private server Workers.
-- `sites/<site>/deploy.settings.json` is the repo-controlled, non-secret deploy settings contract for Cloudflare capability requirements.
-- `wrangler.cloudflare.toml` represents the router Worker.
-- `cloudflare/wrangler.state.toml` represents the state Worker and is the only Durable Object owner.
-- `cloudflare/wrangler.server-*.toml` represent the server Workers.
+- `sites/<site>/site.config.json` is the semantic source of truth and `sites/<site>/deploy.settings.json` is the infra-only deploy manifest.
+- Tracked `wrangler.cloudflare.toml`, `cloudflare/wrangler.state.toml`, and `cloudflare/wrangler.server-*.toml` are static templates, not site-specific source of truth.
+- Resolver behavior is deterministic and side-effect free: it reads site identity + deploy manifest, derives contract IR, and feeds every `cf:*` command, smoke script, typegen, and release gate.
 - Router-to-server dispatch must use Cloudflare version affinity.
 - Production deploy authority belongs to a hand-operated local `wrangler` session authenticated through Wrangler OAuth on the operator machine.
 - The operator must deploy the exact checked-out revision that passed local build and smoke gates; do not delegate release authority to branch-tip automation.
@@ -28,11 +27,12 @@
 - Cloudflare preview is removed from the supported contract as a user-facing deploy command.
 - `CF_FALLBACK_ORIGIN` is forbidden.
 - Any protected route redirecting to another origin is a failure.
-- `pnpm cf:build` is authoritative for size governance: it must pass `wrangler deploy --dry-run` for the state Worker and `wrangler versions upload --dry-run` for every app Worker, and every deployable gzip bundle must stay below `3 MiB`.
+- `pnpm cf:build` is authoritative for app size governance: it must pass `wrangler versions upload --dry-run` for router and every app Worker, and every deployable app gzip bundle must stay below `3 MiB`.
 - Any accepted change to `src/config/db/schema.ts` must include committed files under `src/config/db/migrations/**`; otherwise release preparation must fail before deploy.
 - Only the state Worker may define `[[migrations]]`.
-- Router and all app workers must bind Durable Objects from `roller-rabbit-state`.
+- Router and all app workers must bind Durable Objects from the resolved `workers.state` in the current site deploy contract.
 - State/app releases use an additive compatibility window: state-first changes may add fields or actions, but must not rename or redefine existing semantics in the same release.
+- Release metadata only classifies version-controlled deploy inputs into `state_changed` and `state_migrations_changed`; it must not reject a revision merely because state migration inputs and app inputs changed together.
 - `pnpm cf:deploy:app` and `pnpm cf:deploy` are pure app release commands. They must not bootstrap a missing router/server topology.
 - For brand-new or partially initialized production environments, the only valid release order is `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 - If app deploy detects a missing router/server deployment, it must fail fast and instruct the operator to run `pnpm cf:deploy:state` first.
@@ -42,17 +42,18 @@
 
 - `pnpm cf:check` validates the multi-worker config contract.
 - `pnpm cf:check -- --workers=state|app|all|<comma-list>` scopes the same contract to explicit worker targets; the default remains `all`.
-- `pnpm cf:check` reads `sites/<site>/deploy.settings.json` as the source of truth for conditional provider requirements; it does not infer enablement from admin/live settings or local test flags.
-- `pnpm cf:build` validates OpenNext multi-bundle generation and hard-fails if any required bundle is missing or if state/app dry-run upload checks report a deployable gzip bundle `>= 3 MiB`.
-- `pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: the router and all server Workers start under one `wrangler dev` multi-config session, required `.open-next` artifacts are checked before boot, and the read-only smoke runs against the router origin.
-- `pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `STORAGE_PUBLIC_BASE_URL` missing-error path inside the same local Cloudflare runtime session.
-- `pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
+- `pnpm cf:check` reads `sites/<site>/site.config.json` + `sites/<site>/deploy.settings.json` through the shared resolver; it does not infer deploy semantics from admin/live settings, local test flags, or static wrangler path bypasses.
+- `pnpm cf:build` validates OpenNext multi-bundle generation and hard-fails if any required router/server bundle is missing or if app dry-run upload checks report a deployable gzip bundle `>= 3 MiB`.
+- `SITE=<site-key> pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: the router and all server Workers start under one `wrangler dev` multi-config session, required `.open-next` artifacts are checked before boot, and the read-only smoke runs against the router origin.
+- `SITE=<site-key> pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `STORAGE_PUBLIC_BASE_URL` missing-error path inside the same local Cloudflare runtime session.
+- `SITE=<site-key> pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
 - Before production deploy, the operator must verify `pnpm exec wrangler whoami`, then run `pnpm cf:check`, `pnpm cf:build`, `pnpm cf:typegen:check`, and the relevant smoke gates locally.
 - If schema changes are present, the operator must run production DB migration before `pnpm cf:deploy:state` or `pnpm cf:deploy`.
 - GitHub-side deploy workflows are non-authoritative and must not replace the local Wrangler OAuth release path.
 - Production release preparation may use `state_migrations_changed` as a migration-safety signal, but state deployment triggering must follow the broader `state_changed` surface.
-- Public smoke package command names are stable. Internally, `scripts/smoke.mjs <scenario>` dispatches `cf-local`, `cf-app`, and `cf-admin-settings` to their concrete runner scripts.
-- `BETTER_AUTH_SECRET` / `AUTH_SECRET` are required only for the Next server workers because they run the shared server runtime; router/state must not be blocked by auth secret generation when they are the only deploy targets.
+- Compatibility-window safety is enforced by Cloudflare contract checks and state/app smoke coverage, not by changed-path allowlists in release metadata.
+- Public smoke package command names are stable, but they are explicit site-driven entrypoints. Internally, `run-with-site.mjs` feeds `scripts/smoke.mjs <scenario>` and dispatches `cf-local`, `cf-app`, and `cf-admin-settings` to their concrete runner scripts.
+- `BETTER_AUTH_SECRET` / `AUTH_SECRET` form one shared auth secret requirement for the Next server workers; satisfying either input key is enough, generated secrets files still write both keys, and router/state must not be blocked by auth secret generation when they are the only deploy targets.
 - Cloudflare secrets file generation must pass an explicit `--workers=state|app|all|<comma-list>` scope; there is no implicit worker default.
 
 ## Raw Conclusion Governance

@@ -78,17 +78,25 @@ test('validateCloudflareAppSmokeResponse 支持相对 Location 重定向头', as
 
 test('resolveCloudflareAppSmokeUrl 优先使用显式 smoke url，其次 NEXT_PUBLIC_APP_URL', () => {
   const originalSmokeUrl = process.env.CF_APP_SMOKE_URL;
+  const originalSite = process.env.SITE;
 
   process.env.CF_APP_SMOKE_URL = 'https://smoke.example.com';
   assert.equal(resolveCloudflareAppSmokeUrl(), 'https://smoke.example.com');
 
   delete process.env.CF_APP_SMOKE_URL;
+  process.env.SITE = 'mamamiya';
   assert.equal(resolveCloudflareAppSmokeUrl(), getCurrentSiteAppUrl());
 
   if (originalSmokeUrl === undefined) {
     delete process.env.CF_APP_SMOKE_URL;
   } else {
     process.env.CF_APP_SMOKE_URL = originalSmokeUrl;
+  }
+
+  if (originalSite === undefined) {
+    delete process.env.SITE;
+  } else {
+    process.env.SITE = originalSite;
   }
 });
 

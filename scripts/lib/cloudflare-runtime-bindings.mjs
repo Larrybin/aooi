@@ -1,6 +1,6 @@
 import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits.ts';
 import { resolveRequiredSiteKey } from './site-config.mjs';
-import { readSiteDeploySettings } from './site-deploy-settings.mjs';
+import { resolveSiteDeployContract } from './site-deploy-contract.mjs';
 
 const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS } = cloudflareWorkerSplits;
 
@@ -20,12 +20,158 @@ export const CLOUDFLARE_WORKER_SCOPES = Object.freeze({
 });
 
 const ALLOWED_WORKER_KEYS = new Set(CLOUDFLARE_ALL_WORKER_SCOPE);
+const SERVER_RUNTIME_WORKER_KEYS = Object.freeze([
+  'public-web',
+  'auth',
+  'payment',
+  'member',
+  'chat',
+  'admin',
+]);
 
 function formatAllowedWorkerKeys() {
   return [
     ...Object.keys(CLOUDFLARE_WORKER_SCOPES),
     ...CLOUDFLARE_ALL_WORKER_SCOPE,
   ].join(', ');
+}
+
+function pushRequirement(list, requirement) {
+  list.push(requirement);
+}
+
+function buildRequirementSignature(workerKey, requirement) {
+  const names = requirement.names ?? [requirement.name];
+  return `${workerKey}:${names.join('|')}`;
+}
+
+function createRequirementMap() {
+  return new Map([
+    ['router', []],
+    ['auth', []],
+    ['payment', []],
+    ['member', []],
+    ['chat', []],
+    ['admin', []],
+    ['public-web', []],
+    ['state', []],
+  ]);
+}
+
+function buildDeploySecretRequirementMap(contract) {
+  const requirements = createRequirementMap();
+  const { secrets, vars } = contract.bindingRequirements;
+
+  if (vars.storagePublicBaseUrl) {
+    for (const worker of ['router', ...SERVER_RUNTIME_WORKER_KEYS]) {
+      pushRequirement(requirements.get(worker), {
+        kind: 'runtime-var',
+        worker,
+        name: 'STORAGE_PUBLIC_BASE_URL',
+        requirement: 'storagePublicBaseUrl',
+        capability: 'Cloudflare R2 public asset base URL',
+      });
+    }
+  }
+
+  if (secrets.authSharedSecret) {
+    for (const worker of SERVER_RUNTIME_WORKER_KEYS) {
+      pushRequirement(requirements.get(worker), {
+        kind: 'runtime-secret',
+        worker,
+        names: ['BETTER_AUTH_SECRET', 'AUTH_SECRET'],
+        outputNames: ['BETTER_AUTH_SECRET', 'AUTH_SECRET'],
+        requirement: 'authSharedSecret',
+        capability: 'Next server runtime shared auth secret',
+      });
+    }
+  }
+
+  if (secrets.googleOauth) {
+    for (const name of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
+      pushRequirement(requirements.get('auth'), {
+        kind: 'runtime-secret',
+        worker: 'auth',
+        name,
+        requirement: 'googleOauth',
+        capability: 'Google auth provider',
+      });
+    }
+  }
+
+  if (secrets.githubOauth) {
+    for (const name of ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']) {
+      pushRequirement(requirements.get('auth'), {
+        kind: 'runtime-secret',
+        worker: 'auth',
+        name,
+        requirement: 'githubOauth',
+        capability: 'GitHub auth provider',
+      });
+    }
+  }
+
+  if (secrets.stripe) {
+    for (const worker of ['payment', 'member']) {
+      for (const name of [
+        'STRIPE_PUBLISHABLE_KEY',
+        'STRIPE_SECRET_KEY',
+        'STRIPE_SIGNING_SECRET',
+      ]) {
+        pushRequirement(requirements.get(worker), {
+          kind: 'runtime-secret',
+          worker,
+          name,
+          requirement: 'stripe',
+          capability: 'Stripe payment provider',
+        });
+      }
+    }
+  }
+
+  if (secrets.creem) {
+    for (const worker of ['payment', 'member']) {
+      for (const name of ['CREEM_API_KEY', 'CREEM_SIGNING_SECRET']) {
+        pushRequirement(requirements.get(worker), {
+          kind: 'runtime-secret',
+          worker,
+          name,
+          requirement: 'creem',
+          capability: 'Creem payment provider',
+        });
+      }
+    }
+  }
+
+  if (secrets.paypal) {
+    for (const worker of ['payment', 'member']) {
+      for (const name of [
+        'PAYPAL_CLIENT_ID',
+        'PAYPAL_CLIENT_SECRET',
+        'PAYPAL_WEBHOOK_ID',
+      ]) {
+        pushRequirement(requirements.get(worker), {
+          kind: 'runtime-secret',
+          worker,
+          name,
+          requirement: 'paypal',
+          capability: 'PayPal payment provider',
+        });
+      }
+    }
+  }
+
+  if (secrets.openrouter) {
+    pushRequirement(requirements.get('chat'), {
+      kind: 'runtime-secret',
+      worker: 'chat',
+      name: 'OPENROUTER_API_KEY',
+      requirement: 'openrouter',
+      capability: 'Chat AI runtime',
+    });
+  }
+
+  return requirements;
 }
 
 export function normalizeCloudflareWorkerKeys(workerKeys) {
@@ -74,213 +220,37 @@ export function resolveCloudflareWorkerKeys(value = 'all') {
   return normalizeCloudflareWorkerKeys(rawValue.split(','));
 }
 
-const SERVER_RUNTIME_SECRET_NAMES = Object.freeze([
-  'BETTER_AUTH_SECRET',
-  'AUTH_SECRET',
-]);
-
-const SERVER_RUNTIME_WORKER_KEYS = Object.freeze([
-  'public-web',
-  'auth',
-  'payment',
-  'member',
-  'chat',
-  'admin',
-]);
-
-function isEnabled(value) {
-  return value === true;
-}
-
-function pushRuntimeRequirement(list, worker, name, capability) {
-  list.push({
-    kind: 'runtime',
-    worker,
-    name,
-    capability,
-  });
-}
-
-function pushCapabilityRequirement(list, worker, name, setting, capability) {
-  list.push({
-    kind: 'capability',
-    worker,
-    name,
-    setting,
-    capability,
-  });
-}
-
-function createRequirementMap() {
-  return new Map([
-    ['router', []],
-    ['auth', []],
-    ['payment', []],
-    ['member', []],
-    ['chat', []],
-    ['admin', []],
-    ['public-web', []],
-    ['state', []],
-  ]);
-}
-
-export function readCloudflareRuntimeSettings({
+export function readCloudflareDeployRequirements({
   processEnv = process.env,
   rootDir = process.cwd(),
 } = {}) {
-  return readSiteDeploySettings({
+  return resolveSiteDeployContract({
     rootDir,
     siteKey: resolveRequiredSiteKey(processEnv),
-  });
+  }).bindingRequirements;
 }
 
 export function getRequiredRuntimeBindingsByWorker(
-  runtimeSettings = readCloudflareRuntimeSettings()
+  bindingRequirements = readCloudflareDeployRequirements()
 ) {
-  const requirements = createRequirementMap();
-
-  for (const worker of SERVER_RUNTIME_WORKER_KEYS) {
-    for (const secretName of SERVER_RUNTIME_SECRET_NAMES) {
-      pushRuntimeRequirement(
-        requirements.get(worker),
-        worker,
-        secretName,
-        'Next server runtime auth secret'
-      );
-    }
-  }
-
-  if (isEnabled(runtimeSettings.google_auth_enabled)) {
-    pushCapabilityRequirement(
-      requirements.get('auth'),
-      'auth',
-      'GOOGLE_CLIENT_ID',
-      'google_auth_enabled',
-      'Google auth'
-    );
-    pushCapabilityRequirement(
-      requirements.get('auth'),
-      'auth',
-      'GOOGLE_CLIENT_SECRET',
-      'google_auth_enabled',
-      'Google auth'
-    );
-  }
-
-  if (isEnabled(runtimeSettings.github_auth_enabled)) {
-    pushCapabilityRequirement(
-      requirements.get('auth'),
-      'auth',
-      'GITHUB_CLIENT_ID',
-      'github_auth_enabled',
-      'GitHub auth'
-    );
-    pushCapabilityRequirement(
-      requirements.get('auth'),
-      'auth',
-      'GITHUB_CLIENT_SECRET',
-      'github_auth_enabled',
-      'GitHub auth'
-    );
-  }
-
-  if (isEnabled(runtimeSettings.stripe_enabled)) {
-    for (const worker of ['payment', 'member']) {
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'STRIPE_PUBLISHABLE_KEY',
-        'stripe_enabled',
-        'Stripe payment'
-      );
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'STRIPE_SECRET_KEY',
-        'stripe_enabled',
-        'Stripe payment'
-      );
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'STRIPE_SIGNING_SECRET',
-        'stripe_enabled',
-        'Stripe payment'
-      );
-    }
-  }
-
-  if (isEnabled(runtimeSettings.creem_enabled)) {
-    for (const worker of ['payment', 'member']) {
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'CREEM_API_KEY',
-        'creem_enabled',
-        'Creem payment'
-      );
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'CREEM_SIGNING_SECRET',
-        'creem_enabled',
-        'Creem payment'
-      );
-    }
-  }
-
-  if (isEnabled(runtimeSettings.paypal_enabled)) {
-    for (const worker of ['payment', 'member']) {
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'PAYPAL_CLIENT_ID',
-        'paypal_enabled',
-        'PayPal payment'
-      );
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'PAYPAL_CLIENT_SECRET',
-        'paypal_enabled',
-        'PayPal payment'
-      );
-      pushCapabilityRequirement(
-        requirements.get(worker),
-        worker,
-        'PAYPAL_WEBHOOK_ID',
-        'paypal_enabled',
-        'PayPal payment'
-      );
-    }
-  }
-
-  if (isEnabled(runtimeSettings.general_ai_enabled)) {
-    pushCapabilityRequirement(
-      requirements.get('chat'),
-      'chat',
-      'OPENROUTER_API_KEY',
-      'general_ai_enabled',
-      'chat AI runtime'
-    );
-  }
-
-  return requirements;
+  return buildDeploySecretRequirementMap({
+    bindingRequirements,
+  });
 }
 
 export function collectRequiredRuntimeBindings(
   workerKeys,
-  runtimeSettings = readCloudflareRuntimeSettings()
+  bindingRequirements = readCloudflareDeployRequirements()
 ) {
   const normalizedWorkerKeys = normalizeCloudflareWorkerKeys(workerKeys);
   const requirementsByWorker =
-    getRequiredRuntimeBindingsByWorker(runtimeSettings);
+    getRequiredRuntimeBindingsByWorker(bindingRequirements);
   const collected = [];
   const seen = new Set();
 
   for (const workerKey of normalizedWorkerKeys) {
     for (const requirement of requirementsByWorker.get(workerKey) || []) {
-      const signature = `${workerKey}:${requirement.name}`;
+      const signature = buildRequirementSignature(workerKey, requirement);
       if (seen.has(signature)) {
         continue;
       }
@@ -295,11 +265,9 @@ export function collectRequiredRuntimeBindings(
 
 export function collectRequiredSecretNames(
   workerKeys,
-  runtimeSettings = readCloudflareRuntimeSettings()
+  bindingRequirements = readCloudflareDeployRequirements()
 ) {
-  return collectRequiredRuntimeBindings(workerKeys, runtimeSettings).map(
-    (requirement) => {
-      return requirement.name;
-    }
-  );
+  return collectRequiredRuntimeBindings(workerKeys, bindingRequirements)
+    .filter((requirement) => requirement.kind === 'runtime-secret')
+    .flatMap((requirement) => requirement.outputNames ?? requirement.names ?? [requirement.name]);
 }

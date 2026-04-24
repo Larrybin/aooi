@@ -10,8 +10,8 @@ Docs and Blog are optional content modules:
 
 ## Required Configuration
 
-- `general_docs_enabled`
-- `general_blog_enabled`
+- `sites/<site>/site.config.json` → `capabilities.docs`
+- `sites/<site>/site.config.json` → `capabilities.blog`
 
 ## External Services
 
@@ -24,9 +24,9 @@ Docs and Blog are optional content modules:
 
 ## Common Failure Modes
 
-- The route exists but the public config toggle is out of sync.
-- The `content` tab says the module is enabled, but public config or deploy state still hides the route.
-- A deploy contract change breaks docs visibility while the module remains marked enabled.
+- The site capability says docs/blog should exist, but route gating still reads runtime settings.
+- Navigation, sitemap, and route layout use different sources of truth for docs/blog visibility.
+- A site capability change is made for one site, but the corresponding smoke/deploy path is not revalidated.
 
 ## Product Impact If Disabled
 

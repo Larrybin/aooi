@@ -166,9 +166,9 @@
 
 #### Remaining risks
 
-- wrangler 仍然是模板驱动，不是每个 site 自带完整 deploy manifest
-- Cloudflare stateful bindings 仍未做 site-scoped 命名生成
-- site 级 deploy/resource contract 还没有完全平台化，但 capability requirements 已收口到 `sites/<site>/deploy.settings.json`
+- tracked wrangler 仍然是静态模板，但实例值已经只允许通过 shared deploy resolver 注入
+- 非核心文档里仍可能存在少量历史单站措辞，但不再代表 deploy contract 真相源
+- Cloudflare 之外的模块文档仍可能沿用旧单站措辞
 
 ### C. Runtime Settings
 
@@ -250,13 +250,15 @@
 
 ### Batch 3: Site-driven Build / Deploy Contract
 
-未完成。
+核心链路已完成。
 
 目标：
 
-- 新增一个 site 时，不需要手改现有单站命名
-- wrangler / deploy / smoke 输入都由当前 site 派生
-- stateful bindings 命名进入 site-scoped contract
+- 新增一个 site 时，不需要手改现有单站命名常量
+- `cf:check` / `cf:build` / `cf:deploy:*` / `cf:typegen*` / topology drift check 全部由当前 `SITE` 派生
+- `deploy.settings.json` 已收口为闭合 infra-only contract，unknown field / unknown slot 一律硬失败
+- multi-site topology signature 已建立并纳入测试
+- release gating 已切到当前 `SITE` 的有效 deploy inputs；`state_migrations_changed` 由解析后的 state deploy contract 决定，而不是 tracked template diff
 
 主要文件：
 

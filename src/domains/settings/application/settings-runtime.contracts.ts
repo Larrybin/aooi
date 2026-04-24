@@ -2,8 +2,6 @@ import type { NavItem } from '@/shared/types/blocks/common';
 
 export type PublicUiConfig = {
   aiEnabled: boolean;
-  blogEnabled: boolean;
-  docsEnabled: boolean;
   localeSwitcherEnabled: boolean;
   socialLinksEnabled: boolean;
   socialLinksJson: string;

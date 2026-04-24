@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   buildStatefulLimiterObjectName,
+  CloudflareDualConcurrencyLimiter,
+  CloudflareQuotaLimiter,
 } from '@/shared/platform/cloudflare/stateful-limiters';
 import { StatefulLimitersDurableObject } from '../../cloudflare/workers/stateful-limiters';
 
@@ -65,6 +67,31 @@ function createRequest(body: Record<string, unknown>) {
     },
     body: JSON.stringify(body),
   });
+}
+
+function createNamespaceBackedByStateWorker() {
+  const storages = new Map<string, DurableObjectStorage & FakeStorage>();
+
+  return {
+    idFromName(name: string) {
+      return name;
+    },
+    get(id: string) {
+      let storage = storages.get(id);
+      if (!storage) {
+        storage = createFakeStorage();
+        storages.set(id, storage);
+      }
+
+      const durableObject = createDurableObject(storage);
+      return {
+        fetch: async (_input: RequestInfo | URL, init?: RequestInit) => {
+          const request = new Request('https://stateful-limiters.internal', init);
+          return await durableObject.fetch(request);
+        },
+      };
+    },
+  } as DurableObjectNamespace;
 }
 
 test('buildStatefulLimiterObjectName 为单 key 与 bucket 级 limiter 生成不同 DO 名称', () => {
@@ -189,4 +216,44 @@ test('STATEFUL_LIMITERS dual concurrency 只访问 __global__ 与当前 key，�
   assert.equal(storage.listCallCount, 0);
   assert.deepEqual(storage.getCalls, ['__global__', 'user-1']);
   assert.equal(storage.map.has('user-2'), true);
+});
+
+test('Cloudflare limiter client 与 state worker 之间的动作协议保持兼容', async () => {
+  const namespace = createNamespaceBackedByStateWorker();
+  const quotaLimiter = new CloudflareQuotaLimiter(
+    {
+      bucket: 'api.email-test',
+      windowMs: 5 * 60 * 1000,
+      maxAttempts: 1,
+      maxConcurrent: 1,
+    },
+    () => 1_000,
+    namespace
+  );
+  const dualLimiter = new CloudflareDualConcurrencyLimiter(
+    {
+      bucket: 'api.storage-upload',
+      maxGlobal: 1,
+      maxPerKey: 1,
+      leaseMs: 15 * 60 * 1000,
+    },
+    () => 2_000,
+    namespace
+  );
+
+  const firstQuota = await quotaLimiter.acquire('user-1', 1_000);
+  const secondQuota = await quotaLimiter.acquire('user-1', 1_001);
+  const firstDual = await dualLimiter.acquire('user-1', 2_000);
+  const secondDual = await dualLimiter.acquire('user-2', 2_001);
+  await dualLimiter.release('user-1', 2_002);
+  const thirdDual = await dualLimiter.acquire('user-2', 2_003);
+
+  assert.deepEqual(firstQuota, { allowed: true });
+  assert.deepEqual(secondQuota, {
+    allowed: false,
+    reason: 'rate_limited',
+  });
+  assert.equal(firstDual, true);
+  assert.equal(secondDual, false);
+  assert.equal(thirdDual, true);
 });

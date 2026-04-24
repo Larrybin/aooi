@@ -30,8 +30,6 @@ export function buildPublicUiConfig(configs: Configs): PublicUiConfig {
 
   return {
     aiEnabled: isEnabled(configs[PUBLIC_UI_SETTING_KEYS.aiEnabled]),
-    blogEnabled: isEnabled(configs[PUBLIC_UI_SETTING_KEYS.blogEnabled]),
-    docsEnabled: isEnabled(configs[PUBLIC_UI_SETTING_KEYS.docsEnabled]),
     localeSwitcherEnabled: isEnabled(
       configs[PUBLIC_UI_SETTING_KEYS.localeSwitcherEnabled]
     ),

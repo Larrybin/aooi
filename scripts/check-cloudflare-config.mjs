@@ -1,53 +1,27 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
+import topology from '../src/shared/config/cloudflare-worker-topology.ts';
+import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import {
   getRequiredRuntimeBindingsByWorker,
-  readCloudflareRuntimeSettings,
   resolveCloudflareWorkerKeys,
 } from './lib/cloudflare-runtime-bindings.mjs';
-import { readCurrentSiteConfig } from './lib/site-config.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
 
 const {
-  CLOUDFLARE_ROUTER_WORKER,
-  CLOUDFLARE_ROUTER_WORKER_NAME,
-  CLOUDFLARE_STATE_WORKER,
-  CLOUDFLARE_STATE_WORKER_NAME,
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
   CLOUDFLARE_DURABLE_OBJECT_BINDINGS,
-  CLOUDFLARE_SERVER_WORKERS,
   CLOUDFLARE_SERVICE_BINDINGS,
   CLOUDFLARE_VERSION_ID_VARS,
   getServerWorkerMetadata,
-} = cloudflareWorkerSplits;
+} = topology;
 
 const rootDir = process.cwd();
-const routerConfigPath = path.resolve(
-  rootDir,
-  CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath
-);
-const stateConfigPath = path.resolve(
-  rootDir,
-  CLOUDFLARE_STATE_WORKER.wranglerConfigRelativePath
-);
-const DO_OWNER_WORKER_NAME = CLOUDFLARE_STATE_WORKER_NAME;
-const SHARED_INCREMENTAL_CACHE_BUCKET = 'roller-rabbit-opennext-cache';
-const SHARED_APP_STORAGE_BUCKET = 'roller-rabbit-storage';
-const DO_BINDINGS = new Map(
-  Object.entries(CLOUDFLARE_DURABLE_OBJECT_BINDINGS).map(
-    ([name, className]) => [name, { className }]
-  )
-);
-const serverConfigPaths = Object.fromEntries(
-  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
-    target,
-    path.resolve(
-      rootDir,
-      getServerWorkerMetadata(target).wranglerConfigRelativePath
-    ),
-  ])
-);
+const forbiddenIdentityEnvName = ['NEXT_PUBLIC', 'APP', 'NAME'].join('_');
+const configuredStoragePublicBaseUrl =
+  process.env.STORAGE_PUBLIC_BASE_URL?.trim() || '';
 
 function fail(message) {
   console.error(`[cf:check] ${message}`);
@@ -110,6 +84,14 @@ function readSection(content, sectionName) {
   return match[1];
 }
 
+function readOptionalSection(content, sectionName) {
+  const pattern = new RegExp(
+    String.raw`\[${sectionName}\]\s*([\s\S]*?)(?=\n\[\[|\n\[|$)`
+  );
+  const match = content.match(pattern);
+  return match?.[1] ?? null;
+}
+
 function normalizeOrigin(value, label) {
   try {
     const url = new URL(value);
@@ -122,18 +104,18 @@ function normalizeOrigin(value, label) {
   }
 }
 
-const currentSite = readCurrentSiteConfig({ rootDir });
-const defaultSiteOrigin = normalizeOrigin(
-  currentSite?.brand?.appUrl || '',
-  'site.brand.appUrl'
-);
-const configuredStoragePublicBaseUrl =
-  process.env.STORAGE_PUBLIC_BASE_URL?.trim() || '';
-const forbiddenIdentityEnvName = ['NEXT_PUBLIC', 'APP', 'NAME'].join('_');
-const runtimeSettings = readCloudflareRuntimeSettings();
-const requiredBindingsByWorker =
-  getRequiredRuntimeBindingsByWorker(runtimeSettings);
-const workerKeys = parseWorkerKeys(process.argv.slice(2));
+function normalizeTomlPath(value) {
+  return value.split(path.sep).join('/');
+}
+
+function readExpectedRebasedMain(templatePath, workerEntryRelativePath) {
+  return normalizeTomlPath(
+    path.relative(
+      path.resolve(rootDir, '.tmp'),
+      path.resolve(rootDir, workerEntryRelativePath)
+    )
+  );
+}
 
 function parseWorkerKeys(args) {
   const workersArg = args.find((arg) => arg.startsWith('--workers='));
@@ -146,32 +128,6 @@ function parseWorkerKeys(args) {
   }
 }
 
-function readOptionalSection(content, sectionName) {
-  const pattern = new RegExp(
-    String.raw`\[${sectionName}\]\s*([\s\S]*?)(?=\n\[\[|\n\[|$)`
-  );
-  const match = content.match(pattern);
-  return match?.[1] ?? null;
-}
-
-function assertRequiredRuntimeBindings(label, workerKey) {
-  const requirements = requiredBindingsByWorker.get(workerKey) || [];
-  for (const requirement of requirements) {
-    const value = process.env[requirement.name]?.trim() || '';
-    if (!value) {
-      if (requirement.kind === 'runtime') {
-        fail(
-          `${label} requires runtime binding ${requirement.name} because worker ${requirement.worker} runs ${requirement.capability}; runtime secrets do not come from settings`
-        );
-      }
-
-      fail(
-        `${label} requires runtime binding ${requirement.name} because setting ${requirement.setting} enables ${requirement.capability}; runtime secrets no longer come from settings`
-      );
-    }
-  }
-}
-
 function readFlags(content) {
   const match = content.match(/^\s*compatibility_flags\s*=\s*\[(.+?)\]/m);
   if (!match?.[1]) {
@@ -181,13 +137,35 @@ function readFlags(content) {
   return Array.from(match[1].matchAll(/"([^"]+)"/g), (flag) => flag[1]).sort();
 }
 
+function assertRequiredRuntimeBindings(
+  label,
+  workerKey,
+  requiredBindingsByWorker
+) {
+  const requirements = requiredBindingsByWorker.get(workerKey) || [];
+  for (const requirement of requirements) {
+    const names = requirement.names ?? [requirement.name];
+    const value = names.find((name) => (process.env[name]?.trim() || '').length > 0);
+    if (!value) {
+      const displayName = names.join(' or ');
+      fail(
+        `${label} requires runtime binding ${displayName} because worker ${requirement.worker} runs ${requirement.capability}; runtime settings do not control deploy requirements`
+      );
+    }
+  }
+}
+
 function assertSharedSettings(content, label, options = {}) {
   const {
     requiresAssets = true,
     requiresR2Buckets = true,
     requiresHyperdrive = true,
     requiresStoragePublicBaseUrl = true,
+    expectedAppOrigin,
+    expectedIncrementalCacheBucket,
+    expectedAppStorageBucket,
   } = options;
+
   const compatibilityDate = readQuotedValue(
     content,
     `${label}.compatibility_date`,
@@ -265,9 +243,9 @@ function assertSharedSettings(content, label, options = {}) {
       `${label}.r2_buckets.NEXT_INC_CACHE_R2_BUCKET.bucket_name`,
       /^\s*bucket_name\s*=\s*"([^"\n]+)"/m
     );
-    if (incrementalBucketName !== SHARED_INCREMENTAL_CACHE_BUCKET) {
+    if (incrementalBucketName !== expectedIncrementalCacheBucket) {
       fail(
-        `${label}.NEXT_INC_CACHE_R2_BUCKET bucket_name must equal ${SHARED_INCREMENTAL_CACHE_BUCKET}`
+        `${label}.NEXT_INC_CACHE_R2_BUCKET bucket_name must equal ${expectedIncrementalCacheBucket}`
       );
     }
 
@@ -282,9 +260,9 @@ function assertSharedSettings(content, label, options = {}) {
       `${label}.r2_buckets.APP_STORAGE_R2_BUCKET.bucket_name`,
       /^\s*bucket_name\s*=\s*"([^"\n]+)"/m
     );
-    if (appStorageBucketName !== SHARED_APP_STORAGE_BUCKET) {
+    if (appStorageBucketName !== expectedAppStorageBucket) {
       fail(
-        `${label}.APP_STORAGE_R2_BUCKET bucket_name must equal ${SHARED_APP_STORAGE_BUCKET}`
+        `${label}.APP_STORAGE_R2_BUCKET bucket_name must equal ${expectedAppStorageBucket}`
       );
     }
   } else if (r2BucketTables.length > 0) {
@@ -332,10 +310,10 @@ function assertSharedSettings(content, label, options = {}) {
 
   if (
     normalizeOrigin(appUrl, `${label}.vars.NEXT_PUBLIC_APP_URL`) !==
-    defaultSiteOrigin
+    expectedAppOrigin
   ) {
     fail(
-      `${label}.vars.NEXT_PUBLIC_APP_URL must share the same origin as site.brand.appUrl (${defaultSiteOrigin})`
+      `${label}.vars.NEXT_PUBLIC_APP_URL must share the same origin as site.brand.appUrl (${expectedAppOrigin})`
     );
   }
 
@@ -370,10 +348,34 @@ function assertSharedSettings(content, label, options = {}) {
   }
 }
 
-function assertRouterConfig() {
-  const content = readFile(routerConfigPath);
-  assertSharedSettings(content, 'router');
-  assertRequiredRuntimeBindings('router', 'router');
+function buildEffectiveWorkerConfig(contract, workerKey) {
+  const worker =
+    workerKey === 'router'
+      ? contract.router
+      : workerKey === 'state'
+        ? contract.stateWorker
+        : contract.serverWorkers[workerKey];
+  const templatePath = path.resolve(rootDir, worker.wranglerConfigRelativePath);
+  const template = readFile(templatePath);
+
+  return buildCloudflareWranglerConfig({
+    template,
+    contract,
+    workerSlot: workerKey,
+    storagePublicBaseUrl: configuredStoragePublicBaseUrl,
+    templatePath,
+    outputPath: path.resolve(rootDir, '.tmp', `cf-check-${workerKey}.toml`),
+    validateTemplateContract: true,
+  });
+}
+
+function assertRouterConfig(content, contract, requiredBindingsByWorker) {
+  assertSharedSettings(content, 'router', {
+    expectedAppOrigin: contract.appOrigin,
+    expectedIncrementalCacheBucket: contract.resources.incrementalCacheBucket,
+    expectedAppStorageBucket: contract.resources.appStorageBucket,
+  });
+  assertRequiredRuntimeBindings('router', 'router', requiredBindingsByWorker);
 
   const workerName = readQuotedValue(
     content,
@@ -385,13 +387,17 @@ function assertRouterConfig() {
     'router.main',
     /^\s*main\s*=\s*"([^"\n]+)"/m
   );
+  const expectedMain = readExpectedRebasedMain(
+    path.resolve(rootDir, contract.router.wranglerConfigRelativePath),
+    contract.router.workerEntryRelativePath
+  );
 
-  if (workerName !== CLOUDFLARE_ROUTER_WORKER_NAME) {
-    fail(`router.name must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`);
+  if (workerName !== contract.router.workerName) {
+    fail(`router.name must equal ${contract.router.workerName}`);
   }
 
-  if (main !== 'cloudflare/workers/router.ts') {
-    fail('router.main must equal cloudflare/workers/router.ts');
+  if (main !== expectedMain) {
+    fail(`router.main must equal ${expectedMain}`);
   }
 
   const imagesSection = readSection(content, 'images');
@@ -406,10 +412,10 @@ function assertRouterConfig() {
 
   const serviceTables = readArrayTable(content, 'services');
   const expectedServices = new Map([
-    ['WORKER_SELF_REFERENCE', CLOUDFLARE_ROUTER_WORKER_NAME],
+    ['WORKER_SELF_REFERENCE', contract.router.workerName],
     ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
       CLOUDFLARE_SERVICE_BINDINGS[target],
-      CLOUDFLARE_SERVER_WORKERS[target],
+      contract.serverWorkers[target].workerName,
     ]),
   ]);
 
@@ -441,10 +447,24 @@ function assertRouterConfig() {
         'm'
       )
     );
+
+    const workerNameVar = getServerWorkerMetadata(target).workerNameVar;
+    const workerNameValue = readMaybeEmptyQuotedValue(
+      varsSection,
+      `router.vars.${workerNameVar}`,
+      new RegExp(String.raw`^\s*${workerNameVar}\s*=\s*"([^"\n]*)"`, 'm')
+    );
+    if (workerNameValue !== contract.serverWorkers[target].workerName) {
+      fail(
+        `router.vars.${workerNameVar} must equal ${contract.serverWorkers[target].workerName}`
+      );
+    }
   }
 
   const doTables = readArrayTable(content, 'durable_objects.bindings');
-  for (const [bindingName, { className }] of DO_BINDINGS) {
+  for (const [bindingName, className] of Object.entries(
+    CLOUDFLARE_DURABLE_OBJECT_BINDINGS
+  )) {
     const table = doTables.find((entry) =>
       new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
     );
@@ -470,9 +490,9 @@ function assertRouterConfig() {
       `router.durable_objects.${bindingName}.script_name`,
       /^\s*script_name\s*=\s*"([^"\n]+)"/m
     );
-    if (scriptName !== DO_OWNER_WORKER_NAME) {
+    if (scriptName !== contract.stateWorker.workerName) {
       fail(
-        `router.durable_objects.${bindingName}.script_name must equal ${DO_OWNER_WORKER_NAME}`
+        `router.durable_objects.${bindingName}.script_name must equal ${contract.stateWorker.workerName}`
       );
     }
   }
@@ -483,15 +503,15 @@ function assertRouterConfig() {
   }
 }
 
-function assertStateConfig() {
-  const content = readFile(stateConfigPath);
+function assertStateConfig(content, contract, requiredBindingsByWorker) {
   assertSharedSettings(content, 'state', {
     requiresAssets: false,
     requiresR2Buckets: false,
     requiresHyperdrive: false,
     requiresStoragePublicBaseUrl: false,
+    expectedAppOrigin: contract.appOrigin,
   });
-  assertRequiredRuntimeBindings('state', 'state');
+  assertRequiredRuntimeBindings('state', 'state', requiredBindingsByWorker);
 
   const workerName = readQuotedValue(
     content,
@@ -503,13 +523,17 @@ function assertStateConfig() {
     'state.main',
     /^\s*main\s*=\s*"([^"\n]+)"/m
   );
+  const expectedMain = readExpectedRebasedMain(
+    path.resolve(rootDir, contract.stateWorker.wranglerConfigRelativePath),
+    contract.stateWorker.workerEntryRelativePath
+  );
 
-  if (workerName !== CLOUDFLARE_STATE_WORKER_NAME) {
-    fail(`state.name must equal ${CLOUDFLARE_STATE_WORKER_NAME}`);
+  if (workerName !== contract.stateWorker.workerName) {
+    fail(`state.name must equal ${contract.stateWorker.workerName}`);
   }
 
-  if (main !== 'workers/state.ts') {
-    fail('state.main must equal workers/state.ts');
+  if (main !== expectedMain) {
+    fail(`state.main must equal ${expectedMain}`);
   }
 
   const serviceTables = readArrayTable(content, 'services');
@@ -525,14 +549,16 @@ function assertStateConfig() {
     'state.services.WORKER_SELF_REFERENCE.service',
     /^\s*service\s*=\s*"([^"\n]+)"/m
   );
-  if (service !== CLOUDFLARE_ROUTER_WORKER_NAME) {
+  if (service !== contract.router.workerName) {
     fail(
-      `state.services.WORKER_SELF_REFERENCE.service must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`
+      `state.services.WORKER_SELF_REFERENCE.service must equal ${contract.router.workerName}`
     );
   }
 
   const doTables = readArrayTable(content, 'durable_objects.bindings');
-  for (const [bindingName, { className }] of DO_BINDINGS) {
+  for (const [bindingName, className] of Object.entries(
+    CLOUDFLARE_DURABLE_OBJECT_BINDINGS
+  )) {
     const table = doTables.find((entry) =>
       new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
     );
@@ -558,12 +584,33 @@ function assertStateConfig() {
   if (migrationTables.length === 0) {
     fail('state missing [[migrations]] as the Durable Object owner');
   }
+
+  const migrationTag = readQuotedValue(
+    migrationTables[0],
+    'state.migrations.tag',
+    /^\s*tag\s*=\s*"([^"\n]+)"/m
+  );
+  if (migrationTag !== contract.stateWorker.migrations.tag) {
+    fail(`state.migrations.tag must equal ${contract.stateWorker.migrations.tag}`);
+  }
 }
 
-function assertServerConfig(target, configPath) {
-  const content = readFile(configPath);
-  assertSharedSettings(content, `${target}`);
-  assertRequiredRuntimeBindings(`${target}`, target);
+function assertServerConfig(
+  content,
+  contract,
+  target,
+  requiredBindingsByWorker
+) {
+  assertSharedSettings(content, `${target}`, {
+    expectedAppOrigin: contract.appOrigin,
+    expectedIncrementalCacheBucket: contract.resources.incrementalCacheBucket,
+    expectedAppStorageBucket: contract.resources.appStorageBucket,
+  });
+  assertRequiredRuntimeBindings(
+    `${target}`,
+    target,
+    requiredBindingsByWorker
+  );
 
   const workerName = readQuotedValue(
     content,
@@ -575,12 +622,13 @@ function assertServerConfig(target, configPath) {
     `${target}.main`,
     /^\s*main\s*=\s*"([^"\n]+)"/m
   );
-  const expectedMain = getServerWorkerMetadata(
-    target
-  ).workerEntryRelativePath.replace(/^cloudflare\//, '');
+  const expectedMain = readExpectedRebasedMain(
+    path.resolve(rootDir, contract.serverWorkers[target].wranglerConfigRelativePath),
+    getServerWorkerMetadata(target).workerEntryRelativePath
+  );
 
-  if (workerName !== CLOUDFLARE_SERVER_WORKERS[target]) {
-    fail(`${target}.name must equal ${CLOUDFLARE_SERVER_WORKERS[target]}`);
+  if (workerName !== contract.serverWorkers[target].workerName) {
+    fail(`${target}.name must equal ${contract.serverWorkers[target].workerName}`);
   }
 
   if (main !== expectedMain) {
@@ -604,9 +652,9 @@ function assertServerConfig(target, configPath) {
     `${target}.services.WORKER_SELF_REFERENCE.service`,
     /^\s*service\s*=\s*"([^"\n]+)"/m
   );
-  if (service !== CLOUDFLARE_ROUTER_WORKER_NAME) {
+  if (service !== contract.router.workerName) {
     fail(
-      `${target}.services.WORKER_SELF_REFERENCE.service must equal ${CLOUDFLARE_ROUTER_WORKER_NAME}`
+      `${target}.services.WORKER_SELF_REFERENCE.service must equal ${contract.router.workerName}`
     );
   }
 
@@ -616,7 +664,9 @@ function assertServerConfig(target, configPath) {
   }
 
   const doTables = readArrayTable(content, 'durable_objects.bindings');
-  for (const [bindingName, { className }] of DO_BINDINGS) {
+  for (const [bindingName, className] of Object.entries(
+    CLOUDFLARE_DURABLE_OBJECT_BINDINGS
+  )) {
     const table = doTables.find((entry) =>
       new RegExp(`^\\s*name\\s*=\\s*"${bindingName}"`, 'm').test(entry)
     );
@@ -642,9 +692,9 @@ function assertServerConfig(target, configPath) {
       `${target}.durable_objects.${bindingName}.script_name`,
       /^\s*script_name\s*=\s*"([^"\n]+)"/m
     );
-    if (scriptName !== DO_OWNER_WORKER_NAME) {
+    if (scriptName !== contract.stateWorker.workerName) {
       fail(
-        `${target}.durable_objects.${bindingName}.script_name must equal ${DO_OWNER_WORKER_NAME}`
+        `${target}.durable_objects.${bindingName}.script_name must equal ${contract.stateWorker.workerName}`
       );
     }
   }
@@ -657,20 +707,35 @@ function assertServerConfig(target, configPath) {
   }
 }
 
-for (const workerKey of workerKeys) {
-  if (workerKey === 'router') {
-    assertRouterConfig();
-    continue;
+function main() {
+  const workerKeys = parseWorkerKeys(process.argv.slice(2));
+  const contract = resolveSiteDeployContract({
+    rootDir,
+    siteKey: resolveRequiredSiteKey(process.env),
+  });
+  const requiredBindingsByWorker = getRequiredRuntimeBindingsByWorker(
+    contract.bindingRequirements
+  );
+
+  for (const workerKey of workerKeys) {
+    const content = buildEffectiveWorkerConfig(contract, workerKey);
+
+    if (workerKey === 'router') {
+      assertRouterConfig(content, contract, requiredBindingsByWorker);
+      continue;
+    }
+
+    if (workerKey === 'state') {
+      assertStateConfig(content, contract, requiredBindingsByWorker);
+      continue;
+    }
+
+    assertServerConfig(content, contract, workerKey, requiredBindingsByWorker);
   }
 
-  if (workerKey === 'state') {
-    assertStateConfig();
-    continue;
-  }
-
-  assertServerConfig(workerKey, serverConfigPaths[workerKey]);
+  console.log(
+    `[cf:check] Cloudflare config structure looks good for workers: ${workerKeys.join(', ')}`
+  );
 }
 
-console.log(
-  `[cf:check] Cloudflare config structure looks good for workers: ${workerKeys.join(', ')}`
-);
+main();

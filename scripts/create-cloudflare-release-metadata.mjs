@@ -4,30 +4,31 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
+
 const execFileAsync = promisify(execFile);
 const rootDir = process.cwd();
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 const SCHEMA_PATH = 'src/config/db/schema.ts';
 const MIGRATIONS_PREFIX = 'src/config/db/migrations/';
-const STATE_WRANGLER_PATH = 'cloudflare/wrangler.state.toml';
-const STATE_RELEASE_PATHS = [
-  STATE_WRANGLER_PATH,
-  'cloudflare/workers/state.ts',
-  'cloudflare/workers/stateful-limiters.ts',
-];
-const STATE_DEPLOY_ALLOWLIST = [
-  '.github/workflows/',
-  'scripts/',
-  'tests/',
-  'cloudflare/workers/state.ts',
-  'cloudflare/workers/stateful-limiters.ts',
-  STATE_WRANGLER_PATH,
-  'README.md',
-  'AGENTS.md',
-  'docs/',
-  SCHEMA_PATH,
-  MIGRATIONS_PREFIX,
-];
+const STATE_TEMPLATE_PATH = 'cloudflare/wrangler.state.toml';
+
+function resolveStateDeployContext(processEnv = process.env) {
+  const siteKey = resolveRequiredSiteKey(processEnv);
+  const siteConfigPath = `sites/${siteKey}/site.config.json`;
+  const siteDeploySettingsPath = `sites/${siteKey}/deploy.settings.json`;
+
+  return {
+    siteKey,
+    stateReleasePaths: [
+      siteConfigPath,
+      siteDeploySettingsPath,
+      STATE_TEMPLATE_PATH,
+      'cloudflare/workers/state.ts',
+      'cloudflare/workers/stateful-limiters.ts',
+    ],
+  };
+}
 
 function parseArgs(argv) {
   const options = {
@@ -99,21 +100,32 @@ function pathMatchesPrefixOrFile(filePath, allowedPath) {
   );
 }
 
-function isAllowedDoMigrationPath(filePath) {
-  return STATE_DEPLOY_ALLOWLIST.some((allowedPath) =>
-    pathMatchesPrefixOrFile(filePath, allowedPath)
+function sortObject(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sortObject(entry));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, entry]) => entry !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, sortObject(entry)])
   );
 }
 
-function extractDurableObjectMigrationSection(content) {
-  if (!content.trim()) {
-    return '';
-  }
+function normalizeStateMigrations(migrations) {
+  return JSON.stringify(sortObject(migrations ?? {}));
+}
 
-  return Array.from(
-    content.matchAll(/\[\[migrations\]\]\s*[\s\S]*?(?=\n\[\[|\n\[|$)/g),
-    (match) => match[0].trim()
-  ).join('\n\n');
+export function hasStateMigrationChange(baseContract, headContract) {
+  return (
+    normalizeStateMigrations(baseContract?.stateWorker?.migrations) !==
+    normalizeStateMigrations(headContract?.stateWorker?.migrations)
+  );
 }
 
 export async function readFileAtRevision(revision, filePath) {
@@ -133,21 +145,172 @@ export async function readFileAtRevision(revision, filePath) {
   }
 }
 
-export async function detectDurableObjectMigrationChange(baseSha, headSha) {
-  const [baseContent, headContent] = await Promise.all([
-    readFileAtRevision(baseSha, STATE_WRANGLER_PATH),
-    readFileAtRevision(headSha, STATE_WRANGLER_PATH),
+export async function readJsonAtRevision(revision, filePath) {
+  const content = await readFileAtRevision(revision, filePath);
+  if (!content.trim()) {
+    return null;
+  }
+
+  return JSON.parse(content);
+}
+
+export function normalizeRevisionSiteConfig(siteConfig, { siteKey }) {
+  if (!siteConfig || typeof siteConfig !== 'object') {
+    return null;
+  }
+
+  const capabilities =
+    siteConfig.capabilities && typeof siteConfig.capabilities === 'object'
+      ? siteConfig.capabilities
+      : {};
+  const brand = siteConfig.brand && typeof siteConfig.brand === 'object' ? siteConfig.brand : {};
+
+  return {
+    key:
+      typeof siteConfig.key === 'string' && siteConfig.key.trim()
+        ? siteConfig.key
+        : siteKey,
+    brand: {
+      appUrl:
+        typeof brand.appUrl === 'string' && brand.appUrl.trim()
+          ? brand.appUrl
+          : null,
+    },
+    capabilities: {
+      ai:
+        typeof capabilities.ai === 'boolean'
+          ? capabilities.ai
+          : false,
+    },
+  };
+}
+
+export function normalizeRevisionDeploySettings(deploySettings) {
+  if (!deploySettings || typeof deploySettings !== 'object' || Array.isArray(deploySettings)) {
+    return {};
+  }
+
+  const workers =
+    deploySettings.workers && typeof deploySettings.workers === 'object'
+      ? deploySettings.workers
+      : null;
+  const state =
+    deploySettings.state && typeof deploySettings.state === 'object'
+      ? deploySettings.state
+      : null;
+
+  const normalized = {};
+
+  if (typeof workers?.state === 'string' && workers.state.trim()) {
+    normalized.stateWorkerName = workers.state;
+  }
+
+  if (Number.isInteger(state?.schemaVersion) && state.schemaVersion > 0) {
+    normalized.stateSchemaVersion = state.schemaVersion;
+  }
+
+  return normalized;
+}
+
+export function parseStateTemplateMigrations(templateContent) {
+  if (!templateContent?.trim()) {
+    return null;
+  }
+
+  const tagMatch = templateContent.match(/^\s*tag\s*=\s*"([^"]+)"\s*$/m);
+  const classesMatch = templateContent.match(
+    /^\s*new_sqlite_classes\s*=\s*\[([\s\S]*?)\]\s*$/m
+  );
+
+  const migrations = {};
+
+  if (tagMatch?.[1]) {
+    migrations.tag = tagMatch[1];
+  }
+
+  if (classesMatch?.[1]) {
+    const classes = [...classesMatch[1].matchAll(/"([^"]+)"/g)].map(
+      ([, value]) => value
+    );
+    if (classes.length > 0) {
+      migrations.newSqliteClasses = classes;
+    }
+  }
+
+  return Object.keys(migrations).length > 0 ? migrations : null;
+}
+
+export function buildRevisionStateDeployInput({
+  siteConfig,
+  deploySettings,
+  stateTemplate,
+  siteKey,
+}) {
+  const normalizedSite = normalizeRevisionSiteConfig(siteConfig, { siteKey });
+  const normalizedDeploySettings = normalizeRevisionDeploySettings(deploySettings);
+  const normalizedMigrations = parseStateTemplateMigrations(stateTemplate);
+
+  if (!normalizedSite) {
+    return null;
+  }
+
+  const normalized = {
+    siteKey: normalizedSite.key,
+    appUrl: normalizedSite.brand.appUrl,
+    aiEnabled: normalizedSite.capabilities.ai,
+    stateWorkerName: normalizedDeploySettings.stateWorkerName ?? null,
+    stateSchemaVersion: normalizedDeploySettings.stateSchemaVersion ?? null,
+    stateWorker: {
+      migrations: normalizedMigrations ?? {},
+    },
+  };
+
+  if (
+    !normalized.stateWorker.migrations.tag &&
+    normalized.stateWorkerName &&
+    normalized.stateSchemaVersion
+  ) {
+    normalized.stateWorker.migrations.tag = `${normalized.stateWorkerName}-v${normalized.stateSchemaVersion}`;
+  }
+
+  return normalized;
+}
+
+export async function resolveSiteDeployContractAtRevision(revision, siteKey) {
+  if (!revision || revision === EMPTY_TREE_SHA) {
+    return null;
+  }
+
+  const siteConfigPath = `sites/${siteKey}/site.config.json`;
+  const deploySettingsPath = `sites/${siteKey}/deploy.settings.json`;
+  const [siteConfig, deploySettings, stateTemplate] = await Promise.all([
+    readJsonAtRevision(revision, siteConfigPath),
+    readJsonAtRevision(revision, deploySettingsPath),
+    readFileAtRevision(revision, STATE_TEMPLATE_PATH),
   ]);
 
-  return (
-    extractDurableObjectMigrationSection(baseContent) !==
-    extractDurableObjectMigrationSection(headContent)
-  );
+  return buildRevisionStateDeployInput({
+    siteConfig,
+    deploySettings,
+    stateTemplate,
+    siteKey,
+  });
+}
+
+export async function detectDurableObjectMigrationChange(baseSha, headSha) {
+  const { siteKey } = resolveStateDeployContext();
+  const [baseContract, headContract] = await Promise.all([
+    resolveSiteDeployContractAtRevision(baseSha, siteKey),
+    resolveSiteDeployContractAtRevision(headSha, siteKey),
+  ]);
+
+  return hasStateMigrationChange(baseContract, headContract);
 }
 
 export function detectStateReleaseChange(changedPaths) {
+  const { stateReleasePaths } = resolveStateDeployContext();
   return changedPaths.some((changedPath) =>
-    STATE_RELEASE_PATHS.some((statePath) =>
+    stateReleasePaths.some((statePath) =>
       pathMatchesPrefixOrFile(changedPath, statePath)
     )
   );
@@ -169,16 +332,6 @@ export function buildReleaseMetadata({
   if (schemaFileChanged && !dbMigrationsChanged) {
     throw new Error(
       `${SCHEMA_PATH} changed without any committed migration in ${MIGRATIONS_PREFIX}`
-    );
-  }
-
-  const hasIllegalDoMigrationCompanionChange =
-    stateMigrationsChanged &&
-    changedPaths.some((changedPath) => !isAllowedDoMigrationPath(changedPath));
-
-  if (hasIllegalDoMigrationCompanionChange) {
-    throw new Error(
-      `State Durable Object migration changes must be released separately. Split this main commit into a state deploy and an app deploy.`
     );
   }
 

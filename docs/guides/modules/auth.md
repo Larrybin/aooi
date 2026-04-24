@@ -37,8 +37,8 @@ OAuth client id / secret 已改为 runtime bindings，不再属于 settings：
 ## Minimum Verification Commands
 
 - `pnpm test:auth-spike`
-- `pnpm test:cf-local-smoke`
-- `pnpm test:cf-app-smoke`
+- `SITE=<site-key> pnpm test:cf-local-smoke`
+- `SITE=<site-key> pnpm test:cf-app-smoke`
 
 ## Common Failure Modes
 

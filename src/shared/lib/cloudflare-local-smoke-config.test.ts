@@ -50,17 +50,13 @@ test('mergeCloudflareLocalSmokeConfigSeedConfigs 只覆盖本地 smoke 需要的
   assert.deepEqual(
     mergeCloudflareLocalSmokeConfigSeedConfigs(
       {
-        general_docs_enabled: 'false',
         general_ai_enabled: 'false',
-        general_blog_enabled: 'false',
         custom_flag: 'kept',
       },
       createEnv({ CF_LOCAL_SMOKE_WORKERS_DEV: 'true' })
     ),
     {
-      general_docs_enabled: 'true',
       general_ai_enabled: 'true',
-      general_blog_enabled: 'false',
       custom_flag: 'kept',
     }
   );

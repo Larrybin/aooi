@@ -5,7 +5,6 @@ import { affiliateSettings } from './definitions/affiliate';
 import { aiSettings } from './definitions/ai';
 import { analyticsSettings } from './definitions/analytics';
 import { authSettings } from './definitions/auth';
-import { contentSettings } from './definitions/content';
 import { customerServiceSettings } from './definitions/customer_service';
 import { emailSettings } from './definitions/email';
 import { generalSettings } from './definitions/general';
@@ -14,7 +13,6 @@ import type { SettingDefinition, SettingGroup } from './types';
 
 const SETTINGS_REGISTRY = [
   ...generalSettings,
-  ...contentSettings,
   ...authSettings,
   ...emailSettings,
   ...paymentSettings,
@@ -100,8 +98,6 @@ export const publicSettingNames = PUBLIC_SETTING_NAMES;
 
 export const PUBLIC_UI_SETTING_KEYS = Object.freeze({
   aiEnabled: 'general_ai_enabled',
-  blogEnabled: 'general_blog_enabled',
-  docsEnabled: 'general_docs_enabled',
   localeSwitcherEnabled: 'general_locale_switcher_enabled',
   socialLinksEnabled: 'general_social_links_enabled',
   socialLinks: 'general_social_links',

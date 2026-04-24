@@ -265,10 +265,11 @@ export function db() {
     if (!hyperdriveConnectionString) {
       log.error('db: missing Hyperdrive binding "HYPERDRIVE"', {
         operation: 'resolve-hyperdrive-binding',
-        hint: 'configure [[hyperdrive]] binding = "HYPERDRIVE" in wrangler.cloudflare.toml',
+        hint:
+          'configure [[hyperdrive]] binding = "HYPERDRIVE" in the tracked Wrangler template rendered by the current site deploy contract',
       });
       throw new ServiceUnavailableError(
-        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure it in your wrangler.cloudflare.toml as: [[hyperdrive]] binding = "HYPERDRIVE".',
+        'Cloudflare Workers requires Hyperdrive binding "HYPERDRIVE" with a valid connectionString. Configure [[hyperdrive]] binding = "HYPERDRIVE" in the tracked Wrangler template used by the current site deploy contract.',
         undefined,
         { publicMessage: publicUnavailableMessage }
       );

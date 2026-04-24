@@ -1,6 +1,6 @@
 // data: public configs (unstable_cache tag=public-configs, revalidate=3600s) + landing translations + theme layout
 // cache: cached configs + default RSC
-// reason: public blog is config-gated; keep db reads cheap
+// reason: public blog uses site capability as the authoritative gate
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -13,7 +13,7 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
-import { isLandingBlogEnabled } from '@/surfaces/public/navigation/landing-visibility';
+import { getSite } from '@/infra/platform/site';
 import {
   readAuthUiRuntimeSettingsCached,
   readBillingRuntimeSettingsCached,
@@ -38,7 +38,7 @@ export default async function BlogLayout({
     readAuthUiRuntimeSettingsCached(),
     readBillingRuntimeSettingsCached(),
   ]);
-  if (!isLandingBlogEnabled(publicUiConfig)) {
+  if (!getSite().capabilities.blog) {
     notFound();
   }
 

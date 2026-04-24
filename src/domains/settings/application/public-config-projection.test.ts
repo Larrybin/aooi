@@ -10,7 +10,6 @@ test('buildPublicUiConfig 在 fail-open 空洞输入下仍返回 closed object',
   });
 
   assert.equal(config.aiEnabled, true);
-  assert.equal(config.blogEnabled, false);
   assert.deepEqual(config.socialLinks, []);
 });
 
@@ -27,6 +26,8 @@ test('buildPublicUiConfig 返回 closed PublicUiConfig，不暴露 raw keys', ()
 
   assert.equal(config.aiEnabled, true);
   assert.equal('general_ai_enabled' in (config as Record<string, unknown>), false);
+  assert.equal('docsEnabled' in (config as Record<string, unknown>), false);
+  assert.equal('blogEnabled' in (config as Record<string, unknown>), false);
   assert.equal(config.socialLinksEnabled, true);
   assert.equal(config.socialLinks.length, 1);
 });

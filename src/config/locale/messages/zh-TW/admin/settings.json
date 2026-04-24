@@ -2,7 +2,6 @@
   "groups": {
     "general_ui": "介面",
     "general_brand": "品牌",
-    "content_modules": "內容模組",
     "email_auth": "郵箱認證",
     "google_auth": "Google 認證",
     "github_auth": "Github 認證",
@@ -38,7 +37,6 @@
     },
     "tabs": {
       "general": "通用",
-      "content": "內容",
       "auth": "認證",
       "payment": "支付",
       "email": "郵箱",

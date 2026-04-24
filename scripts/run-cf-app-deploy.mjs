@@ -4,37 +4,18 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
+import topology from '../src/shared/config/cloudflare-worker-topology.ts';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
-import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
+import { createCanonicalTypegenWranglerConfig } from './check-cf-typegen.mjs';
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
 
-const {
-  CLOUDFLARE_ROUTER_WORKER_NAME,
-  CLOUDFLARE_ROUTER_WORKER,
-  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
-  CLOUDFLARE_SERVER_WORKERS,
-  CLOUDFLARE_VERSION_ID_VARS,
-  getServerWorkerMetadata,
-} = cloudflareWorkerSplits;
+const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
+  topology;
 
 const rootDir = process.cwd();
-const uploadOrder = CLOUDFLARE_ALL_SERVER_WORKER_TARGETS;
-const routerConfigPath = path.resolve(
-  rootDir,
-  CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath
-);
-const serverConfigPaths = Object.fromEntries(
-  uploadOrder.map((target) => [
-    target,
-    path.resolve(
-      rootDir,
-      getServerWorkerMetadata(target).wranglerConfigRelativePath
-    ),
-  ])
-);
-const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
-const siteAppUrl = getCurrentSiteAppUrl();
+const uploadOrder = [...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS];
 
 function log(message) {
   console.log(`[cf:deploy:app] ${message}`);
@@ -42,6 +23,29 @@ function log(message) {
 
 function createDeployMessage(label) {
   return `${label}-${new Date().toISOString().replaceAll(':', '-')}`;
+}
+
+function resolveDeployContract({
+  rootPath = rootDir,
+  siteKey = resolveRequiredSiteKey(process.env),
+} = {}) {
+  return resolveSiteDeployContract({
+    rootDir: rootPath,
+    siteKey,
+  });
+}
+
+function resolveRouterConfigPath(contract, rootPath = rootDir) {
+  return path.resolve(rootPath, contract.router.wranglerConfigRelativePath);
+}
+
+function resolveServerConfigPaths(contract, rootPath = rootDir) {
+  return Object.fromEntries(
+    uploadOrder.map((target) => [
+      target,
+      path.resolve(rootPath, contract.serverWorkers[target].wranglerConfigRelativePath),
+    ])
+  );
 }
 
 function runWrangler(args, { allowFailure = false } = {}) {
@@ -243,27 +247,35 @@ export function buildRouterAppVersionIds(currentVersions, nextVersions) {
   };
 }
 
-export function buildRouterDeployConfigContent(content, versionIds) {
+export async function buildRouterDeployConfigContent({
+  contract = resolveDeployContract(),
+  versionIds,
+  rootPath = rootDir,
+}) {
+  const routerConfigPath = resolveRouterConfigPath(contract, rootPath);
+  const outputPath = path.resolve(rootPath, '.tmp/wrangler.cloudflare.router.deploy.toml');
+  const template = await readFile(routerConfigPath, 'utf8');
+
   return buildCloudflareWranglerConfig({
-    template: content,
-    storagePublicBaseUrl,
+    template,
+    contract,
+    workerSlot: 'router',
+    storagePublicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL?.trim(),
     templatePath: routerConfigPath,
-    outputPath: path.resolve(
-      rootDir,
-      '.tmp/wrangler.cloudflare.router.deploy.toml'
-    ),
+    outputPath,
     versionVars: Object.fromEntries(
       uploadOrder.map((target) => [
         CLOUDFLARE_VERSION_ID_VARS[target],
         versionIds[target],
       ])
     ),
+    validateTemplateContract: true,
   });
 }
 
 export function buildRouterDirectDeployArgs({
   configPath,
-  name = CLOUDFLARE_ROUTER_WORKER_NAME,
+  name,
   secretsPath,
   message = createDeployMessage('app-router-deploy'),
 }) {
@@ -282,8 +294,25 @@ export function buildRouterDirectDeployArgs({
   ];
 }
 
-export function resolvePostDeploySmokeUrl({ processEnv = process.env } = {}) {
-  return processEnv.CF_APP_SMOKE_URL?.trim() || siteAppUrl;
+export function resolvePostDeploySmokeUrl({
+  processEnv = process.env,
+  contract = resolveDeployContract(),
+} = {}) {
+  return processEnv.CF_APP_SMOKE_URL?.trim() || contract.appUrl;
+}
+
+export function buildPostDeploySmokeEnv({
+  processEnv = process.env,
+  contract = resolveDeployContract(),
+} = {}) {
+  return {
+    ...processEnv,
+    SITE: contract.siteKey || resolveRequiredSiteKey(processEnv),
+    CF_APP_SMOKE_URL: resolvePostDeploySmokeUrl({
+      processEnv,
+      contract,
+    }),
+  };
 }
 
 export function determineDeployMode(currentVersions) {
@@ -301,14 +330,22 @@ export async function createTempDeployArtifacts({
   templatePath,
   workerKeys,
   versionIds,
+  contract = resolveDeployContract(),
 }) {
+  const workerSlot = workerKeys.length === 1 ? workerKeys[0] : null;
+  if (!workerSlot) {
+    throw new Error('createTempDeployArtifacts requires exactly one worker slot');
+  }
+
   const tempDir = await mkdtemp(path.join(os.tmpdir(), `cf-${name}-`));
   const tempConfigPath = path.join(tempDir, `${name}.wrangler.toml`);
   const secretsPath = path.join(tempDir, `${name}.secrets.env`);
   const template = await readFile(templatePath, 'utf8');
   const content = buildCloudflareWranglerConfig({
     template,
-    storagePublicBaseUrl,
+    contract,
+    workerSlot,
+    storagePublicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL?.trim(),
     templatePath,
     outputPath: tempConfigPath,
     versionVars: versionIds
@@ -338,11 +375,12 @@ export async function createTempDeployArtifacts({
   };
 }
 
-async function deployRouterDirect({ configPath, secretsPath }) {
-  log(`deploying ${CLOUDFLARE_ROUTER_WORKER_NAME} via wrangler deploy`);
+async function deployRouterDirect({ name, configPath, secretsPath }) {
+  log(`deploying ${name} via wrangler deploy`);
   await runWrangler(
     buildRouterDirectDeployArgs({
       configPath,
+      name,
       secretsPath,
     })
   );
@@ -392,17 +430,12 @@ async function deployWorkerVersionSet({
   ]);
 }
 
-async function runPostDeploySmoke() {
+async function runPostDeploySmoke(contract) {
   log('running post-deploy smoke');
-  const routerConfigContent = await readFile(routerConfigPath, 'utf8');
-  const smokeUrl = resolvePostDeploySmokeUrl({ routerConfigContent });
   const smokeExitCode = await new Promise((resolve) => {
     const child = spawn('pnpm', ['test:cf-app-smoke'], {
       cwd: rootDir,
-      env: {
-        ...process.env,
-        CF_APP_SMOKE_URL: smokeUrl,
-      },
+      env: buildPostDeploySmokeEnv({ contract }),
       stdio: 'inherit',
     });
 
@@ -415,35 +448,37 @@ async function runPostDeploySmoke() {
   }
 }
 
-async function collectCurrentVersions() {
+async function collectCurrentVersions(contract = resolveDeployContract()) {
+  const routerConfigPath = resolveRouterConfigPath(contract);
+  const serverConfigPaths = resolveServerConfigPaths(contract);
   const versions = {};
 
   for (const target of uploadOrder) {
     versions[target] = await readCurrentVersionId(
-      CLOUDFLARE_SERVER_WORKERS[target],
+      contract.serverWorkers[target].workerName,
       serverConfigPaths[target]
     );
   }
 
   return {
     router: await readCurrentVersionId(
-      CLOUDFLARE_ROUTER_WORKER_NAME,
+      contract.router.workerName,
       routerConfigPath
     ),
     servers: versions,
   };
 }
 
-function buildMissingDeploymentsError(currentVersions) {
+function buildMissingDeploymentsError(currentVersions, contract) {
   const missingWorkers = [];
 
   if (!currentVersions.router) {
-    missingWorkers.push(CLOUDFLARE_ROUTER_WORKER_NAME);
+    missingWorkers.push(contract.router.workerName);
   }
 
   for (const target of uploadOrder) {
     if (!currentVersions.servers[target]) {
-      missingWorkers.push(CLOUDFLARE_SERVER_WORKERS[target]);
+      missingWorkers.push(contract.serverWorkers[target].workerName);
     }
   }
 
@@ -454,7 +489,34 @@ function buildMissingDeploymentsError(currentVersions) {
   );
 }
 
-async function deploySteadyState(currentVersions) {
+async function refreshCloudflareTypes() {
+  const artifacts = await createCanonicalTypegenWranglerConfig();
+
+  try {
+    await runWrangler(
+      [
+        'types',
+        '--config',
+        artifacts.configPath,
+        '--env-interface',
+        'CloudflareEnv',
+        path.resolve(rootDir, 'src/shared/types/cloudflare.d.ts'),
+      ],
+      {
+        allowFailure: true,
+      }
+    );
+  } finally {
+    await artifacts.cleanup();
+  }
+}
+
+async function deploySteadyState(
+  currentVersions,
+  contract = resolveDeployContract()
+) {
+  const routerConfigPath = resolveRouterConfigPath(contract);
+  const serverConfigPaths = resolveServerConfigPaths(contract);
   const serverArtifacts = [];
   let targetRouterArtifacts = null;
 
@@ -462,17 +524,18 @@ async function deploySteadyState(currentVersions) {
     const nextVersions = {};
 
     for (const target of uploadOrder) {
-      const name = CLOUDFLARE_SERVER_WORKERS[target];
+      const name = contract.serverWorkers[target].workerName;
       const artifacts = await createTempDeployArtifacts({
         name,
         templatePath: serverConfigPaths[target],
         workerKeys: [target],
+        contract,
       });
       serverArtifacts.push({ target, ...artifacts });
     }
 
     for (const { target, tempConfigPath, secretsPath } of serverArtifacts) {
-      const name = CLOUDFLARE_SERVER_WORKERS[target];
+      const name = contract.serverWorkers[target].workerName;
       nextVersions[target] = await uploadWorkerVersion({
         name,
         configPath: tempConfigPath,
@@ -482,7 +545,7 @@ async function deploySteadyState(currentVersions) {
 
     for (const { target, tempConfigPath } of serverArtifacts) {
       await deployWorkerVersionSet({
-        name: CLOUDFLARE_SERVER_WORKERS[target],
+        name: contract.serverWorkers[target].workerName,
         configPath: tempConfigPath,
         currentVersionId: currentVersions.servers[target],
         nextVersionId: nextVersions[target],
@@ -495,31 +558,20 @@ async function deploySteadyState(currentVersions) {
     ).target;
 
     targetRouterArtifacts = await createTempDeployArtifacts({
-      name: CLOUDFLARE_ROUTER_WORKER_NAME,
+      name: contract.router.workerName,
       templatePath: routerConfigPath,
       workerKeys: ['router'],
       versionIds: targetRouterVersionIds,
+      contract,
     });
     await deployRouterDirect({
+      name: contract.router.workerName,
       configPath: targetRouterArtifacts.tempConfigPath,
       secretsPath: targetRouterArtifacts.secretsPath,
     });
 
-    await runWrangler(
-      [
-        'types',
-        '--config',
-        routerConfigPath,
-        '--env-interface',
-        'CloudflareEnv',
-        'src/shared/types/cloudflare.d.ts',
-      ],
-      {
-        allowFailure: true,
-      }
-    );
-
-    await runPostDeploySmoke();
+    await refreshCloudflareTypes();
+    await runPostDeploySmoke(contract);
   } finally {
     for (const artifacts of serverArtifacts) {
       await artifacts.cleanup();
@@ -532,20 +584,23 @@ async function deploySteadyState(currentVersions) {
 }
 
 export async function deployCloudflareApp({
-  collectCurrentVersionsImpl = collectCurrentVersions,
-  deploySteadyStateImpl = deploySteadyState,
+  contract = resolveDeployContract(),
+  collectCurrentVersionsImpl = (resolvedContract) =>
+    collectCurrentVersions(resolvedContract),
+  deploySteadyStateImpl = (currentVersions, resolvedContract) =>
+    deploySteadyState(currentVersions, resolvedContract),
 } = {}) {
-  const currentVersions = await collectCurrentVersionsImpl();
+  const currentVersions = await collectCurrentVersionsImpl(contract);
   const deployMode = determineDeployMode(currentVersions);
 
   if (deployMode === 'missing-deployments') {
-    throw buildMissingDeploymentsError(currentVersions);
+    throw buildMissingDeploymentsError(currentVersions, contract);
   }
 
   log(
     'detected existing app worker deployments; entering steady-state rollout'
   );
-  await deploySteadyStateImpl(currentVersions);
+  await deploySteadyStateImpl(currentVersions, contract);
 }
 
 export { buildCloudflareWranglerConfig };

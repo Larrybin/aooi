@@ -4,8 +4,9 @@ import path from 'node:path';
 import test from 'node:test';
 
 import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
-import { getCurrentSiteAppUrl } from '../../scripts/lib/current-site.mjs';
+import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 import {
+  buildPostDeploySmokeEnv,
   buildRouterAppVersionIds,
   buildRouterDirectDeployArgs,
   buildRouterDeployConfigContent,
@@ -21,6 +22,10 @@ const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS, CLOUDFLARE_VERSION_ID_VARS } =
   cloudflareWorkerSplits;
 const expectedStoragePublicBaseUrl =
   process.env.STORAGE_PUBLIC_BASE_URL?.trim() ?? '';
+const contract = resolveSiteDeployContract({
+  rootDir: process.cwd(),
+  siteKey: 'mamamiya',
+});
 
 test('package cf:deploy:app 只跑 app-scoped check', async () => {
   const manifest = JSON.parse(await readFile('package.json', 'utf8')) as {
@@ -32,24 +37,7 @@ test('package cf:deploy:app 只跑 app-scoped check', async () => {
   assert.doesNotMatch(command, /pnpm cf:check &&/);
 });
 
-test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 改写为部署态配置', () => {
-  const template = `
-name = "roller-rabbit"
-main = "cloudflare/workers/router.ts"
-
-[assets]
-directory = ".open-next/assets"
-
-[vars]
-STORAGE_PUBLIC_BASE_URL = ""
-PUBLIC_WEB_WORKER_VERSION_ID = ""
-AUTH_WORKER_VERSION_ID = ""
-PAYMENT_WORKER_VERSION_ID = ""
-MEMBER_WORKER_VERSION_ID = ""
-CHAT_WORKER_VERSION_ID = ""
-ADMIN_WORKER_VERSION_ID = ""
-`;
-
+test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 改写为部署态配置', async () => {
   const versionIds = Object.fromEntries(
     CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target, index) => [
       target,
@@ -57,7 +45,10 @@ ADMIN_WORKER_VERSION_ID = ""
     ])
   );
 
-  const config = buildRouterDeployConfigContent(template, versionIds);
+  const config = await buildRouterDeployConfigContent({
+    contract,
+    versionIds,
+  });
 
   assert.match(
     config,
@@ -91,9 +82,25 @@ function escapeRegExp(value: string) {
 test('resolvePostDeploySmokeUrl 在未显式传 env 时回退到当前 site app url', () => {
   const smokeUrl = resolvePostDeploySmokeUrl({
     processEnv: {},
+    contract,
   });
 
-  assert.equal(smokeUrl, getCurrentSiteAppUrl());
+  assert.equal(smokeUrl, contract.appUrl);
+});
+
+test('buildPostDeploySmokeEnv 为 smoke 透传当前 SITE 与显式 smoke url', () => {
+  const env = buildPostDeploySmokeEnv({
+    processEnv: {
+      SITE: 'dev-local',
+      CF_APP_SMOKE_URL: 'https://smoke.example.com',
+      OTHER_ENV: 'keep-me',
+    },
+    contract,
+  });
+
+  assert.equal(env.SITE, 'mamamiya');
+  assert.equal(env.CF_APP_SMOKE_URL, 'https://smoke.example.com');
+  assert.equal(env.OTHER_ENV, 'keep-me');
 });
 
 test('determineDeployMode 在 router 或任一 server 缺 deployment 时标记为 missing-deployments', () => {
@@ -140,6 +147,7 @@ test('buildVersionDeploySpecs 生成缺省版本与 steady-state 的部署顺序
 test('buildRouterDirectDeployArgs 对 router 固定使用 wrangler deploy 与 keep-vars', () => {
   const args = buildRouterDirectDeployArgs({
     configPath: '/tmp/router.wrangler.toml',
+    name: contract.router.workerName,
     secretsPath: '/tmp/router.secrets.env',
     message: 'router-direct-deploy',
   });
@@ -149,7 +157,7 @@ test('buildRouterDirectDeployArgs 对 router 固定使用 wrangler deploy 与 ke
     '--config',
     '/tmp/router.wrangler.toml',
     '--name',
-    'roller-rabbit',
+    contract.router.workerName,
     '--message',
     'router-direct-deploy',
     '--experimental-autoconfig=false',
@@ -171,9 +179,10 @@ test('createTempDeployArtifacts 对 router 使用 router-scoped secrets', async 
     process.env.AUTH_SECRET = 'auth-secret';
 
     const artifacts = await createTempDeployArtifacts({
-      name: 'roller-rabbit',
+      name: contract.router.workerName,
       templatePath: path.resolve(process.cwd(), 'wrangler.cloudflare.toml'),
       workerKeys: ['router'],
+      contract,
     });
 
     try {
@@ -213,12 +222,13 @@ test('createTempDeployArtifacts 对 server worker 使用单 worker secrets scope
     delete process.env.AUTH_SECRET;
 
     const artifacts = await createTempDeployArtifacts({
-      name: 'roller-rabbit-auth',
+      name: contract.serverWorkers.auth.workerName,
       templatePath: path.resolve(
         process.cwd(),
         'cloudflare/wrangler.server-auth.toml'
       ),
       workerKeys: ['auth'],
+      contract,
     });
 
     try {
@@ -307,6 +317,7 @@ test('deployCloudflareApp 在 steady-state 时走 app rollout 分支', async () 
   const calls = [];
 
   await deployCloudflareApp({
+    contract,
     async collectCurrentVersionsImpl() {
       return {
         router: 'router-v1',
@@ -318,19 +329,21 @@ test('deployCloudflareApp 在 steady-state 时走 app rollout 分支', async () 
         ),
       };
     },
-    async deploySteadyStateImpl(currentVersions) {
-      calls.push(['steady-state', currentVersions]);
+    async deploySteadyStateImpl(currentVersions, resolvedContract) {
+      calls.push(['steady-state', currentVersions, resolvedContract]);
     },
   });
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0][0], 'steady-state');
+  assert.equal(calls[0][2], contract);
 });
 
 test('deployCloudflareApp 在缺少部署版本时直接失败并要求先跑 state deploy', async () => {
   await assert.rejects(
     () =>
       deployCloudflareApp({
+        contract,
         async collectCurrentVersionsImpl() {
           return {
             router: null,

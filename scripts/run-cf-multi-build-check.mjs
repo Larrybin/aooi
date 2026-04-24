@@ -5,40 +5,42 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import cloudflareWorkerSplits from '../src/shared/config/cloudflare-worker-splits.ts';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
 import { CLOUDFLARE_APP_WORKER_SCOPE } from './lib/cloudflare-runtime-bindings.mjs';
-
-const {
-  CLOUDFLARE_ROUTER_WORKER_NAME,
-  CLOUDFLARE_ROUTER_WORKER,
-  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
-  CLOUDFLARE_SERVER_WORKERS,
-  getServerWorkerMetadata,
-} = cloudflareWorkerSplits;
+import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
+import { resolveRequiredSiteKey } from './lib/site-config.mjs';
 
 const rootDir = process.cwd();
 const fallbackBuildSecret = 'cf-build-dry-run-secret-0123456789abcdef';
-const storagePublicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL?.trim();
-const uploadTargets = [
-  {
-    label: 'router',
-    name: CLOUDFLARE_ROUTER_WORKER_NAME,
-    configPath: path.resolve(
-      rootDir,
-      CLOUDFLARE_ROUTER_WORKER.wranglerConfigRelativePath
-    ),
-  },
-  ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => ({
-    label: target,
-    name: CLOUDFLARE_SERVER_WORKERS[target],
-    configPath: path.resolve(
-      rootDir,
-      getServerWorkerMetadata(target).wranglerConfigRelativePath
-    ),
-  })),
-];
+
+function resolveDeployContract({
+  rootPath = rootDir,
+  siteKey = resolveRequiredSiteKey(process.env),
+} = {}) {
+  return resolveSiteDeployContract({
+    rootDir: rootPath,
+    siteKey,
+  });
+}
+
+function buildUploadTargets(contract, rootPath = rootDir) {
+  return [
+    {
+      label: 'router',
+      name: contract.router.workerName,
+      configPath: path.resolve(rootPath, contract.router.wranglerConfigRelativePath),
+      workerSlot: 'router',
+    },
+    ...Object.entries(contract.serverWorkers).map(([target, worker]) => ({
+      label: target,
+      name: worker.workerName,
+      configPath: path.resolve(rootPath, worker.wranglerConfigRelativePath),
+      workerSlot: target,
+      bundleEntryRelativePath: worker.bundleEntryRelativePath,
+    })),
+  ];
+}
 
 function fail(message) {
   console.error(`[cf:build] ${message}`);
@@ -124,10 +126,9 @@ async function assertBundleExists(target) {
     return;
   }
 
-  const metadata = getServerWorkerMetadata(target.label);
   const handlerPath = path.resolve(
     rootDir,
-    path.join(path.dirname(metadata.bundleEntryRelativePath), 'handler.mjs')
+    path.join(path.dirname(target.bundleEntryRelativePath), 'handler.mjs')
   );
   if (!fs.existsSync(handlerPath)) {
     fail(`missing ${path.relative(rootDir, handlerPath)}`);
@@ -153,10 +154,9 @@ export function buildVersionUploadDryRunArgs({
 }
 
 async function readServerBundleDiagnostics(target) {
-  const metadata = getServerWorkerMetadata(target);
   const handlerPath = path.resolve(
     rootDir,
-    path.join(path.dirname(metadata.bundleEntryRelativePath), 'handler.mjs')
+    path.join(path.dirname(target.bundleEntryRelativePath), 'handler.mjs')
   );
   const metaPath = `${handlerPath}.meta.json`;
   const handlerStats = await fs.promises.stat(handlerPath);
@@ -193,6 +193,8 @@ async function readServerBundleDiagnostics(target) {
 }
 
 async function main() {
+  const contract = resolveDeployContract();
+  const uploadTargets = buildUploadTargets(contract);
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'cf-build-dry-run-'));
   const emptyAssetsDir = path.join(tempDir, 'assets');
   const secretsPath = path.join(tempDir, 'cloudflare.secrets.env');
@@ -214,7 +216,9 @@ async function main() {
       const template = await readFile(target.configPath, 'utf8');
       const generatedConfig = buildCloudflareWranglerConfig({
         template,
-        storagePublicBaseUrl,
+        contract,
+        workerSlot: target.workerSlot,
+        storagePublicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL?.trim(),
         templatePath: target.configPath,
         outputPath: tempConfigPath,
         validateTemplateContract: true,
@@ -235,7 +239,7 @@ async function main() {
       const diagnostics =
         target.label === 'router'
           ? null
-          : await readServerBundleDiagnostics(target.label);
+          : await readServerBundleDiagnostics(target);
 
       console.log(
         `[cf:build] ${target.label}: gzip ${formatted.kib} KiB / ${formatted.mib} MiB (total ${sizes.totalKiB.toFixed(2)} KiB)`
@@ -260,13 +264,14 @@ async function main() {
   }
 }
 
-const entryScriptPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
-
 if (
-  entryScriptPath &&
-  path.resolve(fileURLToPath(import.meta.url)) === entryScriptPath
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   main().catch((error) => {
-    fail(error instanceof Error ? error.stack || error.message : String(error));
+    console.error(
+      error instanceof Error ? error.stack || error.message : String(error)
+    );
+    process.exit(1);
   });
 }
