@@ -164,6 +164,7 @@ const eslintConfig = [
     ignores: [
       '**/.next/**',
       '**/.open-next/**',
+      '**/.cache/**',
       '**/.tmp/**',
       '**/.wrangler/**',
       '**/node_modules/**',
