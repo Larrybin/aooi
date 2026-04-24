@@ -80,3 +80,4 @@ next-env.d.ts
 .codex/context.md
 .gstack/
 .generated/
+.cache/fumadocs/

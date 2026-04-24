@@ -1,5 +1,4 @@
 import { createElement } from 'react';
-import { docs } from '@/.source';
 import type { I18nConfig } from 'fumadocs-core/i18n';
 import { loader } from 'fumadocs-core/source';
 import { icons } from 'lucide-react';
@@ -9,6 +8,7 @@ import {
   docsSource,
   toLoaderSource,
 } from '@/domains/content/infra/source';
+import { docs } from '@/content-source';
 import {
   normalizeDocsSlug,
   resolveDocsLocale,

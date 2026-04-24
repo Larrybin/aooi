@@ -22,8 +22,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/.source": ["./.source/index.ts"],
-      "@/site": ["./.generated/site.ts"]
+      "@/site": ["./.generated/site.ts"],
+      "@/content-source": ["./.generated/content-source.ts"]
     }
   },
   "include": [

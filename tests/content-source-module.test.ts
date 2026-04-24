@@ -1,0 +1,210 @@
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import test from 'node:test';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+const rootDir = process.cwd();
+const generatedContentSourcePath = path.resolve(
+  rootDir,
+  '.generated/content-source.ts'
+);
+
+async function runGenerateContentSource(siteKey: string) {
+  await execFileAsync(process.execPath, ['scripts/generate-content-source-module.mjs'], {
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      SITE: siteKey,
+    },
+  });
+}
+
+async function readGeneratedContentSource() {
+  return await readFile(generatedContentSourcePath, 'utf8');
+}
+
+function parseGeneratedPointer(source: string) {
+  const match = source.match(/\.source\/([^/]+)\/([^/]+)\/index/);
+  assert.ok(match, `expected generated source pointer, got: ${source}`);
+
+  return {
+    siteKey: match[1],
+    versionId: match[2],
+  };
+}
+
+async function listArtifactVersions(siteKey: string) {
+  const siteOutDir = path.resolve(rootDir, '.source', siteKey);
+
+  try {
+    const entries = await readdir(siteOutDir, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+test('@/content-source: SITE=dev-local points to versioned .source/dev-local artifact', async () => {
+  await runGenerateContentSource('dev-local');
+  const pointer = parseGeneratedPointer(await readGeneratedContentSource());
+
+  assert.equal(pointer.siteKey, 'dev-local');
+  assert.match(pointer.versionId, /^build-\d+-\d+$/);
+});
+
+test('@/content-source: SITE=mamamiya points to versioned .source/mamamiya artifact', async () => {
+  await runGenerateContentSource('mamamiya');
+  const pointer = parseGeneratedPointer(await readGeneratedContentSource());
+
+  assert.equal(pointer.siteKey, 'mamamiya');
+  assert.match(pointer.versionId, /^build-\d+-\d+$/);
+});
+
+test('@/content-source: generation failure keeps previous pointer', async () => {
+  await runGenerateContentSource('dev-local');
+  const previous = await readGeneratedContentSource();
+
+  const docsIndexPath = path.resolve(
+    rootDir,
+    'sites/dev-local/content/docs/index.mdx'
+  );
+  const original = await readFile(docsIndexPath, 'utf8');
+
+  try {
+    await rm(docsIndexPath);
+
+    await assert.rejects(
+      () => runGenerateContentSource('dev-local'),
+      /content\/docs\/index\.mdx is missing/
+    );
+
+    const next = await readGeneratedContentSource();
+    assert.equal(next, previous);
+  } finally {
+    await writeFile(docsIndexPath, original, 'utf8');
+    await runGenerateContentSource('dev-local');
+  }
+});
+
+test('@/content-source: blog-enabled site requires at least one post', async () => {
+  const postPath = path.resolve(
+    rootDir,
+    'sites/dev-local/content/posts/what-is-xxx.mdx'
+  );
+  const zhPostPath = path.resolve(
+    rootDir,
+    'sites/dev-local/content/posts/what-is-xxx.zh.mdx'
+  );
+  const originalPost = await readFile(postPath, 'utf8');
+  const originalZhPost = await readFile(zhPostPath, 'utf8');
+
+  try {
+    await rm(postPath);
+    await rm(zhPostPath);
+
+    await assert.rejects(
+      () => runGenerateContentSource('dev-local'),
+      /content\/posts must contain at least one \.mdx file/
+    );
+  } finally {
+    await writeFile(postPath, originalPost, 'utf8');
+    await writeFile(zhPostPath, originalZhPost, 'utf8');
+    await runGenerateContentSource('dev-local');
+  }
+});
+
+test('@/content-source: same-site publish keeps latest two versions and prunes older artifacts', async () => {
+  await rm(path.resolve(rootDir, '.source/dev-local'), {
+    recursive: true,
+    force: true,
+  });
+
+  await runGenerateContentSource('dev-local');
+  const first = parseGeneratedPointer(await readGeneratedContentSource());
+  const firstVersions = await listArtifactVersions('dev-local');
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await runGenerateContentSource('dev-local');
+  const second = parseGeneratedPointer(await readGeneratedContentSource());
+  const secondVersions = await listArtifactVersions('dev-local');
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await runGenerateContentSource('dev-local');
+  const third = parseGeneratedPointer(await readGeneratedContentSource());
+  const thirdVersions = await listArtifactVersions('dev-local');
+
+  assert.equal(first.siteKey, 'dev-local');
+  assert.equal(second.siteKey, 'dev-local');
+  assert.equal(third.siteKey, 'dev-local');
+  assert.notEqual(second.versionId, first.versionId);
+  assert.notEqual(third.versionId, second.versionId);
+
+  assert.deepEqual(firstVersions, [first.versionId]);
+  assert.deepEqual(secondVersions, [first.versionId, second.versionId].sort());
+  assert.deepEqual(thirdVersions, [second.versionId, third.versionId].sort());
+});
+
+test('@/content-source: cross-site publish does not collapse previous site retention window', async () => {
+  await rm(path.resolve(rootDir, '.source/dev-local'), {
+    recursive: true,
+    force: true,
+  });
+  await rm(path.resolve(rootDir, '.source/mamamiya'), {
+    recursive: true,
+    force: true,
+  });
+
+  await runGenerateContentSource('dev-local');
+  const firstDevLocal = parseGeneratedPointer(await readGeneratedContentSource());
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await runGenerateContentSource('dev-local');
+  const secondDevLocal = parseGeneratedPointer(await readGeneratedContentSource());
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await runGenerateContentSource('mamamiya');
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await runGenerateContentSource('dev-local');
+  const thirdDevLocal = parseGeneratedPointer(await readGeneratedContentSource());
+  const devLocalVersions = await listArtifactVersions('dev-local');
+
+  assert.equal(firstDevLocal.siteKey, 'dev-local');
+  assert.equal(secondDevLocal.siteKey, 'dev-local');
+  assert.equal(thirdDevLocal.siteKey, 'dev-local');
+  assert.deepEqual(devLocalVersions, [
+    secondDevLocal.versionId,
+    thirdDevLocal.versionId,
+  ].sort());
+});
+
+test('@/content-source: site.config key mismatch fails fast', async () => {
+  const siteConfigPath = path.resolve(rootDir, 'sites/dev-local/site.config.json');
+  const original = await readFile(siteConfigPath, 'utf8');
+
+  try {
+    const broken = JSON.stringify(
+      {
+        ...JSON.parse(original),
+        key: 'mamamiya',
+      },
+      null,
+      2
+    );
+    await writeFile(siteConfigPath, `${broken}\n`, 'utf8');
+
+    await assert.rejects(
+      () => runGenerateContentSource('dev-local'),
+      /site config key mismatch: expected "dev-local" but found "mamamiya"/
+    );
+  } finally {
+    await writeFile(siteConfigPath, original, 'utf8');
+    await runGenerateContentSource('dev-local');
+  }
+});

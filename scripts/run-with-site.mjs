@@ -21,6 +21,11 @@ if (args.length === 0) {
 }
 
 const generateScript = resolve(process.cwd(), 'scripts', 'generate-site-module.mjs');
+const generateContentScript = resolve(
+  process.cwd(),
+  'scripts',
+  'generate-content-source-module.mjs'
+);
 
 function joinCommand(parts) {
   return parts.join(' ').trim();
@@ -78,6 +83,15 @@ async function main() {
   const generateExitCode = await runNodeScript(generateScript, [], siteEnv);
   if (generateExitCode !== 0) {
     process.exit(generateExitCode);
+  }
+
+  const generateContentExitCode = await runNodeScript(
+    generateContentScript,
+    [],
+    siteEnv
+  );
+  if (generateContentExitCode !== 0) {
+    process.exit(generateContentExitCode);
   }
 
   const child = spawn(command, commandArgs, {

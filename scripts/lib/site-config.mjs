@@ -32,5 +32,10 @@ export function readCurrentSiteConfig({
   const site = JSON.parse(raw);
 
   validateSiteConfig(site);
+  if (site.key !== siteKey) {
+    throw new Error(
+      `site config key mismatch: expected "${siteKey}" but found "${site.key}" in sites/${siteKey}/site.config.json`
+    );
+  }
   return site;
 }

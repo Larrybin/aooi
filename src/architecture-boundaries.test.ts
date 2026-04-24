@@ -296,6 +296,47 @@ test('architecture: runtime 只能通过 @/site 获取站点输入', async () =>
   }
 });
 
+test('architecture: runtime 不得直接导入 .source 生成物', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) => !isTestFile(repoPath)
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        specifier === '@/.source' ||
+          /^@\/\.source\//.test(specifier) ||
+          /(?:^|\/)\.source(?:\/|$)/.test(specifier),
+        false,
+        `${file.repoPath} 不应导入 ${specifier}；运行时代码必须统一走 @/content-source`
+      );
+    }
+  }
+});
+
+test('architecture: .source 只能作为生成器或测试边界存在', async () => {
+  const allowedRepoPaths = new Set([
+    '.generated/content-source.ts',
+    'scripts/generate-content-source-module.mjs',
+    'src/architecture-boundaries.test.ts',
+    'tests/content-source-module.test.ts',
+  ]);
+
+  const files = await readSourceFiles();
+
+  for (const file of files) {
+    if (allowedRepoPaths.has(file.repoPath) || isTestFile(file.repoPath)) {
+      continue;
+    }
+
+    assert.equal(
+      /(?:^|\/)\.source(?:\/|$)/.test(file.content),
+      false,
+      `${file.repoPath} 不应依赖 .source；.source/** 只能作为生成器或测试边界存在`
+    );
+  }
+});
+
 test('architecture: 站点 identity 不允许从 settings/public-config 回流', async () => {
   const files = (await readSourceFiles()).filter(
     ({ repoPath }) => !isTestFile(repoPath)

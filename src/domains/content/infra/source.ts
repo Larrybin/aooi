@@ -1,6 +1,6 @@
 // .source folder will be generated when you run `next dev`
 import { createElement } from 'react';
-import { docs, pages, posts } from '@/.source';
+import { docs, pages, posts } from '@/content-source';
 import type { I18nConfig } from 'fumadocs-core/i18n';
 import { loader, type Source, type SourceConfig } from 'fumadocs-core/source';
 import { icons } from 'lucide-react';

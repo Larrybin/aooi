@@ -1,8 +1,13 @@
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { createMDX } from 'fumadocs-mdx/next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 import { NEXT_IMAGE_REMOTE_PATTERNS } from './src/shared/config/image-policy.mjs';
+
+const DEFAULT_CONTENT_SITE = 'dev-local';
 
 if (process.env.NODE_ENV === 'development') {
   import('@opennextjs/cloudflare').then((m) =>
@@ -10,7 +15,12 @@ if (process.env.NODE_ENV === 'development') {
   );
 }
 
-const withMDX = createMDX();
+const contentSiteKey = process.env.SITE?.trim() || DEFAULT_CONTENT_SITE;
+const fumadocsCacheOutDir = `.cache/fumadocs/${contentSiteKey}`;
+mkdirSync(path.resolve(fumadocsCacheOutDir), { recursive: true });
+const withMDX = createMDX({
+  outDir: fumadocsCacheOutDir,
+});
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
