@@ -7,7 +7,7 @@
 
 ## 0. 使用方式
 
-- 快速清单（PR 模板）：`content/docs/code-review-checklist.zh.mdx`（docs 路由：`/zh/docs/code-review-checklist`）。
+- 快速清单（PR 模板）：`sites/<site-key>/content/docs/code-review-checklist.zh.mdx`（docs 路由：`/zh/docs/code-review-checklist`）。
 - PR 尺度：
   - 日常：建议小步提交，一个 PR 聚焦一个问题或功能。
   - 特殊：首次全量审查可以跨模块，但仍按本文件顺序逐项过一遍。

@@ -52,8 +52,7 @@ cp ".env.example" ".env.development"
 
 必填项：
 
-- `sites/dev-local/site.config.json`：本地开发与测试使用的构建期站点 identity。
-- `sites/mamamiya/site.config.json`：生产构建期站点 identity。生产命令必须显式设置 `SITE=mamamiya`。
+- `sites/<site-key>/site.config.json`：构建期站点 identity。在当前仓库中，`sites/dev-local/site.config.json` 是本地开发与测试默认站点，`sites/mamamiya/site.config.json` 是生产站点。生产命令必须显式设置 `SITE=mamamiya`。
 - `site.brand.appUrl`：canonical app/auth origin。`NEXT_PUBLIC_APP_URL` 由它生成给 Cloudflare infra 使用，不是 identity 来源。
 
 如果你需要登录/管理后台/支付：
@@ -148,8 +147,8 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 - 环境变量：`.env.development` / `.env.production`（或平台的环境变量面板）
 - 站点图标：`public/logo.png`、`public/favicon.ico`
-- 应用信息说明：`content/docs/customize-app-info*.mdx`
-- 法律页面：`content/pages/privacy-policy*.mdx`、`content/pages/terms-of-service*.mdx`
+- 应用信息说明：`sites/<site-key>/content/docs/customize-app-info*.mdx`
+- 法律页面：`sites/<site-key>/content/pages/privacy-policy*.mdx`、`sites/<site-key>/content/pages/terms-of-service*.mdx`
 - 文案与落地页：`src/config/locale/messages/{locale}/common.json`、`src/config/locale/messages/{locale}/landing.json`
 - 主题样式：`src/config/style/theme.css`
 - 多语言：`src/config/locale/index.ts`

@@ -1,0 +1,178 @@
+---
+title: 快速开始
+description: 用最少配置把 YourAppName 跑起来（本地开发、数据库、管理员权限、上线）。
+---
+
+在开始之前，请确保你已准备好：
+
+- Node.js 18+
+- pnpm
+- PostgreSQL（如果你需要登录/管理后台/支付等功能）
+
+## 本地开发
+
+### 初始化项目
+
+如果你已经在仓库目录中，可以从「安装依赖」开始。
+
+1. 获取代码
+
+```bash
+git clone "https://github.com/Larrybin/aooi.git" "my-project"
+cd "my-project"
+```
+
+2. 安装依赖
+
+```bash
+pnpm install
+```
+
+3. 启动开发服务器
+
+```bash
+pnpm dev
+```
+
+默认端口为 `3000`：`http://localhost:3000`。自定义端口示例：
+
+```bash
+pnpm dev --port 8080
+```
+
+### 配置环境变量
+
+1. 创建本地开发环境变量文件
+
+```bash
+cp ".env.example" ".env.development"
+```
+
+2. 修改 `.env.development`
+
+必填项：
+
+- `sites/<site-key>/site.config.json`：构建期站点 identity。在当前仓库中，`sites/dev-local/site.config.json` 是本地开发与测试默认站点，`sites/mamamiya/site.config.json` 是生产站点。生产命令必须显式设置 `SITE=mamamiya`。
+- `site.brand.appUrl`：canonical app/auth origin。`NEXT_PUBLIC_APP_URL` 由它生成给 Cloudflare infra 使用，不是 identity 来源。
+
+如果你需要登录/管理后台/支付：
+
+- `DATABASE_URL`：PostgreSQL 连接串
+- `AUTH_SECRET`：鉴权密钥（生产环境必填；本地建议也配置）
+
+示例（按需替换为你的值）：
+
+```bash
+# theme
+NEXT_PUBLIC_THEME="default"
+
+# database
+DATABASE_URL="postgresql://user:password@127.0.0.1:5432/my_app"
+DATABASE_PROVIDER="postgresql"
+DB_SINGLETON_ENABLED="true"
+
+# auth secret
+# openssl rand -base64 32
+AUTH_SECRET="your-secret"
+```
+
+生成随机密钥：
+
+```bash
+openssl rand -base64 32
+```
+
+说明：
+
+- `DATABASE_PROVIDER` 当前仅支持 `postgresql`。
+- `DB_SINGLETON_ENABLED=true` 是这个 Cloudflare-only 仓库的标准生产配置。
+- 生产环境推荐使用 `BETTER_AUTH_SECRET`（优先级高于 `AUTH_SECRET`）；鉴权 Base URL 可通过 `BETTER_AUTH_URL/AUTH_URL` 覆盖（默认使用 `NEXT_PUBLIC_APP_URL`）。
+
+### 配置数据库
+
+如果你的项目需要用户登录/管理后台等功能，必须配置数据库。
+
+1. 创建 PostgreSQL 数据库，拿到连接串后写入 `DATABASE_URL`。
+
+2. 迁移数据表
+
+```bash
+pnpm db:migrate
+```
+
+可选：做一次 schema 自检（对齐迁移与表结构）
+
+```bash
+pnpm db:check
+```
+
+如果迁移命令卡住或超时，优先用 `psql` 验证连通性：
+
+```bash
+psql "postgresql://user:password@host:port/database"
+```
+
+### 配置管理后台访问
+
+管理后台路径为 `/admin`（也支持 `/<locale>/admin`）。首次访问会被重定向到 `/sign-in`。
+
+1. 初始化 RBAC（写入默认角色与权限）
+
+```bash
+pnpm rbac:init
+```
+
+2. 在网页注册一个账号（邮箱 + 密码），然后为该账号分配 `super_admin`：
+
+```bash
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```
+
+3. 再次访问 `/admin`，即可进入管理后台。
+
+### 品牌配置（推荐）
+
+登录管理后台后，在 `Admin -> Settings -> General -> Brand` 配置：
+
+- `App Name`：用于站点标题、文档/SEO、邮件标题等
+- `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
+- `Support Email`：用于法律页面与联系入口
+- `App Logo` / `Favicon` / `Preview Image`：可直接在后台上传（需先配置 `Storage`）
+
+注意：生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致。
+
+## 自定义配置
+
+按「最小可上线」优先级，通常需要改这些：
+
+- 环境变量：`.env.development` / `.env.production`（或平台的环境变量面板）
+- 站点图标：`public/logo.png`、`public/favicon.ico`
+- 应用信息说明：`sites/<site-key>/content/docs/customize-app-info*.mdx`
+- 法律页面：`sites/<site-key>/content/pages/privacy-policy*.mdx`、`sites/<site-key>/content/pages/terms-of-service*.mdx`
+- 文案与落地页：`src/config/locale/messages/{locale}/common.json`、`src/config/locale/messages/{locale}/landing.json`
+- 主题样式：`src/config/style/theme.css`
+- 多语言：`src/config/locale/index.ts`
+- SEO：`src/app/sitemap.ts`、`src/app/robots.ts`
+
+## 发布上线
+
+上线前务必完成：
+
+- 仅支持 Cloudflare Workers：配置受版本控制的 Wrangler 模板、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`、共享的 `NEXT_INC_CACHE_R2_BUCKET`、业务上传 `APP_STORAGE_R2_BUCKET`、router `IMAGES`，以及 runtime binding `STORAGE_PUBLIC_BASE_URL`；本地 runtime smoke 需要生成临时 Wrangler 配置并注入 `localConnectionString`，deploy 仍要求真实的 `hyperdrive.id`
+
+部署流程：
+
+- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-local-smoke` 现在会通过单个本地 `wrangler dev` 多配置 session 启动完整的 router + split-worker topology。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传资源，并在同一个本地 runtime session 内验证公开配置投影和缺失 `STORAGE_PUBLIC_BASE_URL` 的显式失败路径。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
+
+## 功能配置
+
+项目发布上线后，通过 `/admin/settings/*` 进入管理后台按需开启与配置功能。多数第三方集成（支付/邮件/存储/AI/统计等）会写入 `config` 表，而不是放在环境变量里。
+
+常见配置入口：
+
+- 登录与三方 OAuth：`/admin/settings/auth`
+- 支付（Stripe/PayPal/Creem）：`/admin/settings/payment`
+- 文件存储（Cloudflare R2）：配置 runtime binding `STORAGE_PUBLIC_BASE_URL`
+- 邮件（Resend）：`/admin/settings/email`
+
+更详细的工程文档见：`docs/guides/*.md`。

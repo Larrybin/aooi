@@ -52,8 +52,7 @@ cp ".env.example" ".env.development"
 
 Required:
 
-- `sites/dev-local/site.config.json`: local build-time site identity for development and tests.
-- `sites/mamamiya/site.config.json`: production build-time site identity. Production commands must set `SITE=mamamiya`.
+- `sites/<site-key>/site.config.json`: build-time site identity. In this repo, `sites/dev-local/site.config.json` is the local default for development/tests and `sites/mamamiya/site.config.json` is the production site. Production commands must set `SITE=mamamiya`.
 - `site.brand.appUrl`: canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated from it for Cloudflare infra and is not an identity source.
 
 If you need auth/admin/payment:
@@ -148,8 +147,8 @@ Minimal "go-live" checklist:
 
 - Env vars: `.env.development` / `.env.production` (or your platform env settings)
 - Icons: `public/logo.png`, `public/favicon.ico`
-- App info guide: `content/docs/customize-app-info*.mdx`
-- Legal pages: `content/pages/privacy-policy*.mdx`, `content/pages/terms-of-service*.mdx`
+- App info guide: `sites/<site-key>/content/docs/customize-app-info*.mdx`
+- Legal pages: `sites/<site-key>/content/pages/privacy-policy*.mdx`, `sites/<site-key>/content/pages/terms-of-service*.mdx`
 - Copy & landing: `src/config/locale/messages/{locale}/common.json`, `src/config/locale/messages/{locale}/landing.json`
 - Theme styles: `src/config/style/theme.css`
 - Locales: `src/config/locale/index.ts`

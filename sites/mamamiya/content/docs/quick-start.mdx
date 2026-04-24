@@ -1,0 +1,178 @@
+---
+title: Quick Start
+description: Run YourAppName locally with minimal setup (dev, database, admin RBAC, deployment).
+---
+
+Before you start, make sure you have:
+
+- Node.js 18+
+- pnpm
+- PostgreSQL (required for auth/admin/payment features)
+
+## Local Development
+
+### Bootstrap
+
+If you are already in the repository, start from "Install dependencies".
+
+1. Get the code
+
+```bash
+git clone "https://github.com/Larrybin/aooi.git" "my-project"
+cd "my-project"
+```
+
+2. Install dependencies
+
+```bash
+pnpm install
+```
+
+3. Start the dev server
+
+```bash
+pnpm dev
+```
+
+Default port is `3000`: `http://localhost:3000`. Custom port example:
+
+```bash
+pnpm dev --port 8080
+```
+
+### Environment Variables
+
+1. Create a local env file
+
+```bash
+cp ".env.example" ".env.development"
+```
+
+2. Edit `.env.development`
+
+Required:
+
+- `sites/<site-key>/site.config.json`: build-time site identity. In this repo, `sites/dev-local/site.config.json` is the local default for development/tests and `sites/mamamiya/site.config.json` is the production site. Production commands must set `SITE=mamamiya`.
+- `site.brand.appUrl`: canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated from it for Cloudflare infra and is not an identity source.
+
+If you need auth/admin/payment:
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `AUTH_SECRET`: auth secret (required in production; recommended locally too)
+
+Example (replace values as needed):
+
+```bash
+# theme
+NEXT_PUBLIC_THEME="default"
+
+# database
+DATABASE_URL="postgresql://user:password@127.0.0.1:5432/my_app"
+DATABASE_PROVIDER="postgresql"
+DB_SINGLETON_ENABLED="true"
+
+# auth secret
+# openssl rand -base64 32
+AUTH_SECRET="your-secret"
+```
+
+Generate a random secret:
+
+```bash
+openssl rand -base64 32
+```
+
+Notes:
+
+- `DATABASE_PROVIDER` only supports `postgresql` for now.
+- `DB_SINGLETON_ENABLED=true` is the canonical production setting for this Cloudflare-only repo.
+- In production, prefer `BETTER_AUTH_SECRET` (overrides `AUTH_SECRET`). You can override auth base URL via `BETTER_AUTH_URL/AUTH_URL` (defaults to `NEXT_PUBLIC_APP_URL`).
+
+### Database
+
+If you need auth/admin features, you must configure the database.
+
+1. Create a PostgreSQL database and put the connection string into `DATABASE_URL`.
+
+2. Run migrations
+
+```bash
+pnpm db:migrate
+```
+
+Optional: run a schema check (validate migration vs schema expectations)
+
+```bash
+pnpm db:check
+```
+
+If migration hangs or times out, verify connectivity with `psql` first:
+
+```bash
+psql "postgresql://user:password@host:port/database"
+```
+
+### Admin Access (RBAC)
+
+Admin entry is `/admin` (also works with `/<locale>/admin`). Your first visit redirects to `/sign-in`.
+
+1. Seed default roles/permissions
+
+```bash
+pnpm rbac:init
+```
+
+2. Create a user in the UI (email + password), then grant `super_admin`:
+
+```bash
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```
+
+3. Refresh `/admin` to access the dashboard.
+
+### Branding (Recommended)
+
+After signing in, configure `Admin -> Settings -> General -> Brand`:
+
+- `App Name`
+- `App URL (Origin)`
+- `Support Email`
+- `App Logo` / `Favicon` / `Preview Image` (upload directly in admin; requires `Storage` to be configured first)
+
+Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it consistent with `App URL (Origin)`.
+
+## Customization
+
+Minimal "go-live" checklist:
+
+- Env vars: `.env.development` / `.env.production` (or your platform env settings)
+- Icons: `public/logo.png`, `public/favicon.ico`
+- App info guide: `sites/<site-key>/content/docs/customize-app-info*.mdx`
+- Legal pages: `sites/<site-key>/content/pages/privacy-policy*.mdx`, `sites/<site-key>/content/pages/terms-of-service*.mdx`
+- Copy & landing: `src/config/locale/messages/{locale}/common.json`, `src/config/locale/messages/{locale}/landing.json`
+- Theme styles: `src/config/style/theme.css`
+- Locales: `src/config/locale/index.ts`
+- SEO: `src/app/sitemap.ts`, `src/app/robots.ts`
+
+## Deploy
+
+Before deploying:
+
+- Cloudflare Workers only: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, shared `NEXT_INC_CACHE_R2_BUCKET`, business `APP_STORAGE_R2_BUCKET`, router `IMAGES`, and `STORAGE_PUBLIC_BASE_URL`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
+
+Deployment flow:
+
+- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-local-smoke` now starts the full router + split-worker topology through one local `wrangler dev` multi-config session. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, and validates public config projection plus the explicit missing-`STORAGE_PUBLIC_BASE_URL` failure path in the same local runtime session. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
+
+## Feature Configuration
+
+After deploying, configure features in `/admin/settings/*`. Most third-party integration configs are stored in the `config` table (not environment variables).
+
+Common tabs:
+
+- Auth providers: `/admin/settings/auth`
+- Payments (Stripe/PayPal/Creem): `/admin/settings/payment`
+- Storage (Cloudflare R2): configure runtime binding `STORAGE_PUBLIC_BASE_URL`
+- Email (Resend): `/admin/settings/email`
+
+For deeper engineering docs, see `docs/guides/*.md`.

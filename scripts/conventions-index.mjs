@@ -104,8 +104,8 @@ function discover(rootDir) {
     'docs/architecture/shared-layering.md',
     'docs/CODE_REVIEW.md',
     'docs/ARCHITECTURE_REVIEW.md',
-    'content/docs/logging-conventions.zh.mdx',
-    'content/docs/code-review-checklist.zh.mdx',
+    'sites/<site-key>/content/docs/logging-conventions.zh.mdx',
+    'sites/<site-key>/content/docs/code-review-checklist.zh.mdx',
     'eslint.config.mjs',
   ].filter((p) => fs.existsSync(path.join(rootDir, p)));
 
@@ -216,7 +216,7 @@ function extractPathsFromDoc(docText) {
       !(
         value.startsWith('docs/') ||
         value.startsWith('src/') ||
-        value.startsWith('content/') ||
+        value.startsWith('sites/') ||
         value.startsWith('scripts/') ||
         value.startsWith('prompts/')
       )

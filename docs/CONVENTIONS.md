@@ -40,8 +40,8 @@
 | `src/shared` 分层约定                  | `docs/architecture/shared-layering.md`      | 规定 shared 只保留纯 UI、工具、HTTP schema、types、constants，禁止业务能力回流。             |
 | Code Review 基线                       | `docs/CODE_REVIEW.md`                       | PR 审查顺序与常见坑，含大量场景化示例。                                                      |
 | 架构审计与关键约束说明                 | `docs/ARCHITECTURE_REVIEW.md`               | 解释为什么这么分层/这么约束（便于理解“为什么”）。                                            |
-| Logging 约定                           | `content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                                      |
-| PR Checklist                           | `content/docs/code-review-checklist.zh.mdx` | 面向 PR 的快速清单。                                                                         |
+| Logging 约定                           | `sites/<site-key>/content/docs/logging-conventions.zh.mdx`   | 结构化日志字段/规范等。                                                                      |
+| PR Checklist                           | `sites/<site-key>/content/docs/code-review-checklist.zh.mdx` | 面向 PR 的快速清单。                                                                         |
 | 认证                                   | `docs/guides/auth.md`                       | Better Auth 使用方式与边界。                                                                 |
 | RBAC                                   | `docs/guides/rbac.md`                       | 角色/权限建模与初始化脚本。                                                                  |
 | 支付                                   | `docs/guides/payment.md`                    | 支付接入、回调、幂等等关键路径。                                                             |

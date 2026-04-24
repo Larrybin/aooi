@@ -41,7 +41,7 @@ src/
 └── themes/        # UI themes
 
 docs/              # Engineering documentation
-content/           # MDX content (docs, blog, legal pages)
+sites/             # Per-site identity, deploy, and content inputs
 scripts/           # Maintenance and automation scripts
 ```
 
@@ -109,7 +109,7 @@ pnpm rbac:init -- --admin-email=your@email.com
 
 ## Getting Started
 
-Read `content/docs` to start your AI SaaS project.
+Read `sites/<site-key>/content/docs` to start your AI SaaS project.
 
 ## Documentation
 
@@ -159,9 +159,9 @@ Read `content/docs` to start your AI SaaS project.
 
 ### Docs Site
 
-- App info customization: `content/docs/customize-app-info.zh.mdx` (route: `/zh/docs/customize-app-info`)
-- PR checklist: `content/docs/code-review-checklist.zh.mdx` (route: `/zh/docs/code-review-checklist`)
-- Logging conventions: `content/docs/logging-conventions.zh.mdx` (route: `/zh/docs/logging-conventions`)
+- App info customization: `sites/<site-key>/content/docs/customize-app-info.zh.mdx` (route: `/zh/docs/customize-app-info`)
+- PR checklist: `sites/<site-key>/content/docs/code-review-checklist.zh.mdx` (route: `/zh/docs/code-review-checklist`)
+- Logging conventions: `sites/<site-key>/content/docs/logging-conventions.zh.mdx` (route: `/zh/docs/logging-conventions`)
 
 ## Internationalization (i18n)
 

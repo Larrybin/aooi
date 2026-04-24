@@ -3,7 +3,7 @@ title: Customize App Info
 description: Customize brand identity, SEO metadata, legal pages, and site assets in the current repository.
 ---
 
-This repository uses build-time site identity for app info and brand info. Configure identity in the explicit site directory, for example `sites/mamamiya/site.config.json` for production or `sites/dev-local/site.config.json` for local development. Runtime settings are reserved for site-internal toggles and integrations.
+This repository uses build-time site identity for app info and brand info. Configure identity in `sites/<site-key>/site.config.json`. In this repo, `sites/dev-local/site.config.json` is the local default and `sites/mamamiya/site.config.json` is the production site. Runtime settings are reserved for site-internal toggles and integrations.
 
 ## What can be customized
 
@@ -15,8 +15,8 @@ This repository uses build-time site identity for app info and brand info. Confi
 | Logo                 | Supported            | `sites/<site-key>/site.config.json -> brand.logo` or `public/logo.png`               |
 | Favicon              | Supported            | `sites/<site-key>/site.config.json -> brand.favicon` or `public/favicon.ico`         |
 | Social preview image | Supported            | `sites/<site-key>/site.config.json -> brand.previewImage`                            |
-| Privacy policy       | Supported            | `content/pages/privacy-policy*.mdx`                                                  |
-| Terms of service     | Supported            | `content/pages/terms-of-service*.mdx`                                                |
+| Privacy policy       | Supported            | `sites/<site-key>/content/pages/privacy-policy*.mdx`                               |
+| Terms of service     | Supported            | `sites/<site-key>/content/pages/terms-of-service*.mdx`                             |
 | Sitemap              | Supported            | `src/app/sitemap.ts`                                                                 |
 | Robots               | Supported            | `src/app/robots.ts`                                                                  |
 
@@ -75,13 +75,13 @@ These assets are reused by:
 
 ### 4. Update legal pages
 
-Edit:
+Edit the current site content under `sites/<site-key>/content/pages/`, for example:
 
-- `content/pages/privacy-policy.mdx`
-- `content/pages/privacy-policy.zh.mdx`
-- `content/pages/terms-of-service.mdx`
-- `content/pages/terms-of-service.zh.mdx`
-- `content/pages/terms-of-service.zh-TW.mdx`
+- `sites/<site-key>/content/pages/privacy-policy.mdx`
+- `sites/<site-key>/content/pages/privacy-policy.zh.mdx`
+- `sites/<site-key>/content/pages/terms-of-service.mdx`
+- `sites/<site-key>/content/pages/terms-of-service.zh.mdx`
+- `sites/<site-key>/content/pages/terms-of-service.zh-TW.mdx`
 
 Brand placeholders such as `YourAppName`, `your-domain.com`, and `support@your-domain.com` are automatically replaced at render time.
 

@@ -1,0 +1,133 @@
+---
+title: Customize App Info
+description: Customize brand identity, SEO metadata, legal pages, and site assets in the current repository.
+---
+
+This repository uses build-time site identity for app info and brand info. Configure identity in `sites/<site-key>/site.config.json`. In this repo, `sites/dev-local/site.config.json` is the local default and `sites/mamamiya/site.config.json` is the production site. Runtime settings are reserved for site-internal toggles and integrations.
+
+## What can be customized
+
+| Item                 | Current repo support | Main entry                                                                           |
+| -------------------- | -------------------- | ------------------------------------------------------------------------------------ |
+| App name             | Supported            | `sites/<site-key>/site.config.json -> brand.appName`                                 |
+| App URL              | Supported            | `sites/<site-key>/site.config.json -> brand.appUrl`                                  |
+| Support email        | Supported            | `sites/<site-key>/site.config.json -> brand.supportEmail`                            |
+| Logo                 | Supported            | `sites/<site-key>/site.config.json -> brand.logo` or `public/logo.png`               |
+| Favicon              | Supported            | `sites/<site-key>/site.config.json -> brand.favicon` or `public/favicon.ico`         |
+| Social preview image | Supported            | `sites/<site-key>/site.config.json -> brand.previewImage`                            |
+| Privacy policy       | Supported            | `sites/<site-key>/content/pages/privacy-policy*.mdx`                               |
+| Terms of service     | Supported            | `sites/<site-key>/content/pages/terms-of-service*.mdx`                             |
+| Sitemap              | Supported            | `src/app/sitemap.ts`                                                                 |
+| Robots               | Supported            | `src/app/robots.ts`                                                                  |
+
+## Recommended customization order
+
+### 1. Configure app identity
+
+Set the build-time site identity:
+
+```json
+{
+  "brand": {
+    "appName": "YourAppName",
+    "appUrl": "https://example.com",
+    "supportEmail": "support@example.com",
+    "logo": "/logo.png",
+    "favicon": "/favicon.ico",
+    "previewImage": "/logo.png"
+  }
+}
+```
+
+Rules:
+
+- `brand.appUrl` must be a pure origin, e.g. `https://example.com`
+- `brand.logo` / `brand.favicon` / `brand.previewImage` must be public paths or absolute URLs allowed by the image policy
+- `SITE` selects the site explicitly. Production commands must set `SITE=mamamiya`; local lint/test commands use the internal `dev-local` test site when `SITE` is omitted.
+- `NEXT_PUBLIC_APP_URL` is generated from `brand.appUrl` for infra/deploy use; it is not an identity source or fallback.
+
+### 2. Configure runtime settings
+
+After signing in to the admin panel, go to:
+
+`/admin/settings/general`
+
+Brand identity is not editable from admin settings. Third-party integration configs remain in the config table.
+
+### 3. Replace site assets
+
+Recommended defaults:
+
+- `public/logo.png`
+- `public/favicon.ico`
+
+If you want a different path without replacing the default files, you can either:
+
+- update `brand.logo` / `brand.favicon` / `brand.previewImage` in the selected `sites/<site-key>/site.config.json`
+
+These assets are reused by:
+
+- docs top nav
+- auth pages
+- not-found page
+- landing/admin/chat brand logo
+- global SEO metadata and favicon
+
+### 4. Update legal pages
+
+Edit the current site content under `sites/<site-key>/content/pages/`, for example:
+
+- `sites/<site-key>/content/pages/privacy-policy.mdx`
+- `sites/<site-key>/content/pages/privacy-policy.zh.mdx`
+- `sites/<site-key>/content/pages/terms-of-service.mdx`
+- `sites/<site-key>/content/pages/terms-of-service.zh.mdx`
+- `sites/<site-key>/content/pages/terms-of-service.zh-TW.mdx`
+
+Brand placeholders such as `YourAppName`, `your-domain.com`, and `support@your-domain.com` are automatically replaced at render time.
+
+### 5. Review SEO behavior
+
+Main files:
+
+- `src/shared/lib/seo.ts`
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+
+Current defaults:
+
+- favicon comes from `site.brand.favicon`
+- Open Graph / Twitter image defaults to `site.brand.previewImage`
+- canonical and sitemap use `site.brand.appUrl`
+
+## Where each capability is implemented
+
+### Env defaults
+
+- `src/config/index.ts`
+
+### Runtime brand resolution
+
+- `src/shared/lib/brand-placeholders.server.ts`
+- `src/shared/lib/brand-identity.ts`
+
+### Metadata / SEO
+
+- `src/shared/lib/seo.ts`
+- `src/app/[locale]/layout.tsx`
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+
+### UI surfaces using brand assets
+
+- `src/app/[locale]/(docs)/layout.config.tsx`
+- `src/app/[locale]/(auth)/layout.tsx`
+- `src/app/not-found.tsx`
+
+## Current limitation vs. ShipAny-style docs
+
+The core customization capability is now mostly aligned:
+
+- **App name / URL / support email**: configurable in admin
+- **Logo / favicon / preview image**: uploadable in admin, with env/`public/` fallback
+
+The remaining intentional constraint is that uploaded assets are stored in object storage instead of the database itself.

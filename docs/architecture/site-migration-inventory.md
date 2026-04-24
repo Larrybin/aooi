@@ -81,7 +81,6 @@
 
 ### 未完成
 
-- content 仍然主要来自仓库级 `content/**`，没有切到 `sites/<site>/content`
 - Cloudflare bindings 仍然是“模板 + 当前 site 注入”，还不是“每个 site 自带完整 deploy manifest”
 - stateful Cloudflare resource naming 仍未进入 site-scoped contract
 - payment / Cloudflare site instance contract 还没有按 site 独立编排
@@ -280,12 +279,15 @@
 
 ### Batch 4: Site-scoped Content Source
 
-未开始。
+已完成。
 
 目标：
 
 - 文档、博客、page 内容都可以按 site 独立
 - 仓库不再默认只有一套 docs/blog/page 内容
+- `.source` 已收口为 site-scoped、versioned internal artifact；运行时唯一入口是 `@/content-source`
+- 发布路径保留最近两版 artifact，用于覆盖切指针后的并发安全窗口
+- `site.config.json` 已要求 `site.key` 与目录名强一致，内容生成不再允许 split-brain
 
 主要文件：
 
@@ -294,8 +296,13 @@
 - [src/domains/content/application/public-content.query.ts](/Users/bin/Desktop/project/aooi/src/domains/content/application/public-content.query.ts)
 - [src/domains/content/application/local-content.tsx](/Users/bin/Desktop/project/aooi/src/domains/content/application/local-content.tsx)
 - [src/app/api/docs/search/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/docs/search/route.ts)
-- [content/docs/**](/Users/bin/Desktop/project/aooi/content/docs)
-- [content/pages/**](/Users/bin/Desktop/project/aooi/content/pages)
+- [scripts/generate-content-source-module.mjs](/Users/bin/Desktop/project/aooi/scripts/generate-content-source-module.mjs)
+- [tests/content-source-module.test.ts](/Users/bin/Desktop/project/aooi/tests/content-source-module.test.ts)
+- [.generated/content-source.ts](/Users/bin/Desktop/project/aooi/.generated/content-source.ts)
+- `sites/<site-key>/content/docs/**`
+- `sites/<site-key>/content/pages/**`
+- [sites/mamamiya/content/docs/**](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/docs)
+- [sites/mamamiya/content/pages/**](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/pages)
 
 ### Batch 5: Payment / Cloudflare Site Instance Contract
 
