@@ -1,41 +1,110 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { handlePaymentNotifyRequest } from '@/domains/billing/application/payment-notify-flow';
+
 import {
-  PaymentEventType,
   WebhookPayloadError,
   WebhookVerificationError,
   type PaymentEvent,
+  PaymentEventType,
 } from '@/domains/billing/domain/payment';
-import { PayPalProvider } from '@/infra/adapters/payment/paypal';
-import { StripeProvider } from '@/infra/adapters/payment/stripe';
+import { site } from '@/site';
 
-import { PayloadTooLargeError, UpstreamError } from '@/shared/lib/api/errors';
+import {
+  buildPaymentNotifyPostLogic,
+  type PaymentNotifyRouteDeps,
+} from '@/app/api/payment/notify/route-logic';
 
-function createInboxRecord(overrides: Record<string, unknown> = {}) {
+function createRequest() {
+  return new Request('https://example.com/api/payment/notify', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-request-id': 'req_payment_notify_route',
+    },
+    body: '{"event":"test"}',
+  });
+}
+
+function createUnknownEvent(provider: 'stripe' | 'creem' | 'paypal'): PaymentEvent {
   return {
-    id: 'inbox_1',
-    status: 'received',
-    ...overrides,
+    eventType: PaymentEventType.UNKNOWN,
+    eventResult: { event: 'unknown' },
+    paymentSession: {
+      provider,
+      metadata: {
+        event_id: 'evt_1',
+        event_type: 'UNKNOWN',
+      },
+    },
   };
 }
 
-function createLog() {
-  return {
-    debug: () => undefined,
-    info: () => undefined,
-    warn: () => undefined,
-    error: () => undefined,
-  };
-}
-
-function createDeps(overrides: Record<string, unknown> = {}) {
-  return {
-    findOrderByInvoiceId: async () => null,
-    findOrderByOrderNo: async () => ({
-      orderNo: 'order_1',
-      status: 'created',
+function createRouteHandler(
+  overrides: Partial<PaymentNotifyRouteDeps> = {}
+) {
+  return buildPaymentNotifyPostLogic({
+    createApiContext: () => ({
+      log: {
+        debug: () => undefined,
+        info: () => undefined,
+        warn: () => undefined,
+        error: () => undefined,
+      },
     }),
+    requirePaymentCapability: () => {
+      const capability = site.capabilities.payment;
+      if (capability === 'none') {
+        throw new Error('requirePaymentCapability override required');
+      }
+      return capability;
+    },
+    readBillingRuntimeSettingsCached: async () => ({
+      provider: 'stripe',
+      paymentCapability: 'stripe',
+      locale: 'en',
+      defaultLocale: 'en',
+      stripePaymentMethods: 'card',
+    }),
+    readBillingRuntimeSettingsFresh: async () => ({
+      provider: 'stripe',
+      paymentCapability: 'stripe',
+      locale: 'en',
+      defaultLocale: 'en',
+      stripePaymentMethods: 'card',
+    }),
+    readPaymentRuntimeBindings: () => ({
+      provider: 'stripe',
+      paymentCapability: 'stripe',
+      stripePublishableKey: 'pk_test',
+      stripeSecretKey: 'sk_test',
+      stripeSigningSecret: 'whsec_test',
+    }),
+    createPaymentService: async () => ({
+      getProvider: () => undefined,
+      getDefaultProvider: () => {
+        throw new Error('not needed in route contract test');
+      },
+      createPayment: async () => {
+        throw new Error('not needed in route contract test');
+      },
+      getPaymentSession: async () => {
+        throw new Error('not needed in route contract test');
+      },
+      getPaymentEvent: async () => createUnknownEvent('stripe'),
+    }),
+    createPaymentWebhookInboxReceipt: async () => ({
+      record: { id: 'inbox_1', status: 'received' },
+      isNew: true,
+    }),
+    recordPaymentWebhookInboxCanonicalEvent: async () => undefined,
+    markPaymentWebhookInboxAttempt: async () => undefined,
+    markPaymentWebhookInboxProcessFailed: async () => undefined,
+    markPaymentWebhookInboxProcessed: async () => undefined,
+    serializePaymentWebhookHeaders: (headers: Headers) =>
+      JSON.stringify(Object.fromEntries(headers.entries())),
+    resolveConfigConsistencyMode: () => 'cached',
+    findOrderByInvoiceId: async () => null,
+    findOrderByOrderNo: async () => null,
     findOrderByTransactionId: async () => null,
     findSubscriptionByProviderSubscriptionId: async () => null,
     recordUnknownWebhookEvent: async () => undefined,
@@ -43,756 +112,267 @@ function createDeps(overrides: Record<string, unknown> = {}) {
     handleSubscriptionCanceled: async () => undefined,
     handleSubscriptionRenewal: async () => undefined,
     handleSubscriptionUpdated: async () => undefined,
-    createPaymentWebhookInboxReceipt: async () => ({
-      record: createInboxRecord(),
-      isNew: true,
-    }),
-    recordPaymentWebhookInboxCanonicalEvent: async () => undefined,
-    markPaymentWebhookInboxAttempt: async () => undefined,
-    markPaymentWebhookInboxParseFailed: async () => undefined,
-    markPaymentWebhookInboxProcessFailed: async () => undefined,
-    markPaymentWebhookInboxProcessed: async () => undefined,
-    serializePaymentWebhookHeaders: (headers: Headers) =>
-      JSON.stringify(Object.fromEntries(headers.entries())),
-    getPaymentEvent: async () => {
-      throw new Error('getPaymentEvent override required');
-    },
-    now: () => new Date('2026-04-17T10:00:00.000Z'),
+    now: () => new Date('2026-04-24T10:00:00.000Z'),
     ...overrides,
-  };
+  });
 }
 
-test('payment notify flow 验签成功后写 inbox 并处理 canonical event', async () => {
-  const attempts: string[] = [];
-  const canonicalEvents: PaymentEvent[] = [];
-  const processed: Array<{ inboxId: string; eventType: PaymentEventType }> = [];
-  const steps: string[] = [];
-  const event: PaymentEvent = {
-    eventType: PaymentEventType.UNKNOWN,
-    eventResult: { source: 'webhook', kind: 'unmapped' },
-    paymentSession: {
-      provider: 'creem',
-      metadata: {
-        event_type: 'CREEM.UNKNOWN',
-        event_id: 'evt_1',
-      },
-    },
-  };
+async function withPaymentCapability<T>(
+  capability: typeof site.capabilities.payment,
+  run: () => Promise<T>
+): Promise<T> {
+  const originalCapability = site.capabilities.payment;
+  site.capabilities.payment = capability;
+  try {
+    return await run();
+  } finally {
+    site.capabilities.payment = originalCapability;
+  }
+}
 
-  const response = await handlePaymentNotifyRequest({
-    provider: 'creem',
-    req: new Request('https://example.com/api/payment/notify/creem', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: '{"ok":1}',
-    }),
-    log: createLog(),
-    deps: createDeps({
-      getPaymentEvent: async (req: Request) => {
-        steps.push('getPaymentEvent');
-        assert.equal(await req.text(), '{"ok":1}');
-        return event;
-      },
-      createPaymentWebhookInboxReceipt: async (input: {
-        provider: string;
-        rawBody: string;
-        rawHeaders: string;
-      }) => {
-        steps.push('createPaymentWebhookInboxReceipt');
-        assert.equal(input.provider, 'creem');
-        assert.equal(input.rawBody, '{"ok":1}');
-        assert.match(input.rawHeaders, /content-type/i);
-        return {
-          record: createInboxRecord(),
-          isNew: true,
-        };
-      },
-      markPaymentWebhookInboxAttempt: async ({
-        inboxId,
-      }: {
-        inboxId: string;
-      }) => {
-        attempts.push(inboxId);
-        return undefined;
-      },
-      recordPaymentWebhookInboxCanonicalEvent: async ({
-        event: canonicalEvent,
-      }: {
-        event: PaymentEvent;
-      }) => {
-        canonicalEvents.push(canonicalEvent);
-        return undefined;
-      },
-      markPaymentWebhookInboxProcessed: async ({
-        inboxId,
-        eventType,
-      }: {
-        inboxId: string;
-        eventType: PaymentEventType;
-      }) => {
-        processed.push({ inboxId, eventType });
-        return undefined;
-      },
-    }),
-  });
+test('payment notify route: payment=none 时直接 404，且不会读取 settings/bindings/service', async () => {
+  await withPaymentCapability('none', async () => {
+    const { NotFoundError } = await import('@/shared/lib/api/errors');
+    const { withApi } = await import('@/shared/lib/api/route');
+    let settingsRead = false;
+    let bindingsRead = false;
+    let serviceCreated = false;
 
-  assert.deepEqual(steps, [
-    'getPaymentEvent',
-    'createPaymentWebhookInboxReceipt',
-  ]);
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    code: 0,
-    message: 'ok',
-    data: { message: 'ignored' },
+    const handler = withApi(
+      createRouteHandler({
+        requirePaymentCapability: () => {
+          throw new NotFoundError('not found', undefined, {
+            internalMeta: { reason: 'capability_disabled' },
+          });
+        },
+        readBillingRuntimeSettingsCached: async () => {
+          settingsRead = true;
+          throw new Error('should not read settings');
+        },
+        readBillingRuntimeSettingsFresh: async () => {
+          settingsRead = true;
+          throw new Error('should not read fresh settings');
+        },
+        readPaymentRuntimeBindings: () => {
+          bindingsRead = true;
+          throw new Error('should not read bindings');
+        },
+        createPaymentService: async () => {
+          serviceCreated = true;
+          throw new Error('should not create service');
+        },
+      })
+    );
+
+    const response = await handler(createRequest());
+    const body = (await response.json()) as Record<string, unknown>;
+
+    assert.equal(response.status, 404);
+    assert.equal(body.message, 'not found');
+    assert.equal('reason' in body, false);
+    assert.equal('internalMeta' in body, false);
+    assert.equal(settingsRead, false);
+    assert.equal(bindingsRead, false);
+    assert.equal(serviceCreated, false);
   });
-  assert.deepEqual(attempts, ['inbox_1']);
-  assert.deepEqual(canonicalEvents, [event]);
-  assert.deepEqual(processed, [
-    {
-      inboxId: 'inbox_1',
-      eventType: PaymentEventType.UNKNOWN,
-    },
-  ]);
 });
 
-test('payment notify flow 对已终态 inbox 直接返回幂等响应', async () => {
-  let attempted = false;
-  let providerCalled = false;
+test('payment notify route: capability_disabled internalMeta 写日志但不写响应', async () => {
+  const logs: Array<{ message: string; meta?: unknown }> = [];
+  const originalConsoleInfo = console.info;
+  console.info = ((message: string, meta?: unknown) => {
+    logs.push({ message, meta });
+  }) as typeof console.info;
 
-  const response = await handlePaymentNotifyRequest({
-    provider: 'creem',
-    req: new Request('https://example.com/api/payment/notify/creem', {
-      method: 'POST',
-      body: '{}',
-    }),
-    log: createLog(),
-    deps: createDeps({
-      getPaymentEvent: async () => {
-        providerCalled = true;
-        return {
-          eventType: PaymentEventType.UNKNOWN,
-          eventResult: {},
-          paymentSession: {
-            provider: 'creem',
-            metadata: {},
+  try {
+    await withPaymentCapability('none', async () => {
+      const { NotFoundError } = await import('@/shared/lib/api/errors');
+      const { withApi } = await import('@/shared/lib/api/route');
+      const handler = withApi(
+        createRouteHandler({
+          requirePaymentCapability: () => {
+            throw new NotFoundError('not found', undefined, {
+              internalMeta: { reason: 'capability_disabled' },
+            });
           },
-        };
-      },
-      createPaymentWebhookInboxReceipt: async () => ({
-        record: createInboxRecord({ status: 'processed' }),
-        isNew: false,
-      }),
-      markPaymentWebhookInboxAttempt: async () => {
-        attempted = true;
-        return undefined;
-      },
-    }),
-  });
+        })
+      );
+      const response = await handler(createRequest());
+      const body = (await response.json()) as Record<string, unknown>;
 
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    code: 0,
-    message: 'ok',
-    data: { message: 'already processed' },
-  });
-  assert.equal(attempted, false);
-  assert.equal(providerCalled, true);
+      assert.equal(response.status, 404);
+      assert.equal('reason' in body, false);
+      assert.equal('internalMeta' in body, false);
+    });
+
+    assert.equal(
+      logs.some(
+        (entry) =>
+          entry.message === '[api] handled business error' &&
+          JSON.stringify(entry.meta).includes('capability_disabled')
+      ),
+      true
+    );
+  } finally {
+    console.info = originalConsoleInfo;
+  }
 });
 
-test('payment notify flow 在 provider 早期失败时不会把已终态 inbox 降级成 process_failed', async () => {
-  let attempted = false;
-  let processFailed = false;
-  let processFailureHookCalled = false;
-  let providerCalled = false;
-
-  const response = await handlePaymentNotifyRequest({
-    provider: 'paypal',
-    req: new Request('https://example.com/api/payment/notify/paypal', {
-      method: 'POST',
-      body: '{}',
-    }),
-    log: createLog(),
-    deps: createDeps({
-      getPaymentEvent: async () => {
-        providerCalled = true;
-        throw new UpstreamError(502, 'transient upstream failure');
-      },
-      createPaymentWebhookInboxReceipt: async () => ({
-        record: createInboxRecord({ status: 'processed' }),
-        isNew: false,
-      }),
-      markPaymentWebhookInboxAttempt: async () => {
-        attempted = true;
-        return undefined;
-      },
-      markPaymentWebhookInboxProcessFailed: async () => {
-        processFailed = true;
-        return undefined;
-      },
-      onProcessFailure: async () => {
-        processFailureHookCalled = true;
-      },
-    }),
-  });
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    code: 0,
-    message: 'ok',
-    data: { message: 'already processed' },
-  });
-  assert.equal(providerCalled, true);
-  assert.equal(attempted, false);
-  assert.equal(processFailed, false);
-  assert.equal(processFailureHookCalled, false);
-});
-
-test('payment notify flow 在 payload 非法时不会写 inbox', async () => {
-  let inboxCreated = false;
-  let attempted = false;
-
-  await assert.rejects(
-    () =>
-      handlePaymentNotifyRequest({
-        provider: 'creem',
-        req: new Request('https://example.com/api/payment/notify/creem', {
-          method: 'POST',
-          body: '{}',
-        }),
-        log: createLog(),
-        deps: createDeps({
-          getPaymentEvent: async () => {
-            throw new WebhookPayloadError('invalid webhook payload');
+test('payment notify route: 验签失败返回 401，不回落成 404', async () => {
+  await withPaymentCapability('stripe', async () => {
+    const { withApi } = await import('@/shared/lib/api/route');
+    const handler = withApi(
+      createRouteHandler({
+        createPaymentService: async () => ({
+          getProvider: () => undefined,
+          getDefaultProvider: () => {
+            throw new Error('not needed in route contract test');
           },
-          createPaymentWebhookInboxReceipt: async () => {
-            inboxCreated = true;
-            return {
-              record: createInboxRecord(),
-              isNew: true,
-            };
+          createPayment: async () => {
+            throw new Error('not needed in route contract test');
           },
-          markPaymentWebhookInboxAttempt: async () => {
-            attempted = true;
-            return undefined;
+          getPaymentSession: async () => {
+            throw new Error('not needed in route contract test');
           },
-        }),
-      }),
-    /invalid webhook payload/
-  );
-
-  assert.equal(inboxCreated, false);
-  assert.equal(attempted, false);
-});
-
-test('payment notify flow 在验签失败时不会写 inbox', async () => {
-  let inboxCreated = false;
-
-  await assert.rejects(
-    () =>
-      handlePaymentNotifyRequest({
-        provider: 'creem',
-        req: new Request('https://example.com/api/payment/notify/creem', {
-          method: 'POST',
-          body: '{}',
-        }),
-        log: createLog(),
-        deps: createDeps({
           getPaymentEvent: async () => {
             throw new WebhookVerificationError('invalid webhook signature');
           },
-          createPaymentWebhookInboxReceipt: async () => {
-            inboxCreated = true;
-            return {
-              record: createInboxRecord(),
-              isNew: true,
-            };
-          },
         }),
-      }),
-    /invalid webhook signature/
-  );
+      })
+    );
 
-  assert.equal(inboxCreated, false);
+    const response = await handler(createRequest());
+    const body = (await response.json()) as Record<string, unknown>;
+
+    assert.equal(response.status, 401);
+    assert.equal(body.message, 'invalid webhook signature');
+  });
 });
 
-test('payment notify flow 在 body 超限时返回 413 且不会解析或写 inbox', async () => {
-  let inboxCreated = false;
-  let providerCalled = false;
-
-  await assert.rejects(
-    () =>
-      handlePaymentNotifyRequest({
-        provider: 'creem',
-        req: new Request('https://example.com/api/payment/notify/creem', {
-          method: 'POST',
-          headers: {
-            'content-length': String(256 * 1024 + 1),
+test('payment notify route: payload 非法返回 400，不回落成 404', async () => {
+  await withPaymentCapability('stripe', async () => {
+    const { withApi } = await import('@/shared/lib/api/route');
+    const handler = withApi(
+      createRouteHandler({
+        createPaymentService: async () => ({
+          getProvider: () => undefined,
+          getDefaultProvider: () => {
+            throw new Error('not needed in route contract test');
           },
-          body: '{}',
-        }),
-        log: createLog(),
-        deps: createDeps({
+          createPayment: async () => {
+            throw new Error('not needed in route contract test');
+          },
+          getPaymentSession: async () => {
+            throw new Error('not needed in route contract test');
+          },
           getPaymentEvent: async () => {
-            providerCalled = true;
-            throw new Error('should not be called');
-          },
-          createPaymentWebhookInboxReceipt: async () => {
-            inboxCreated = true;
-            return {
-              record: createInboxRecord(),
-              isNew: true,
-            };
+            throw new WebhookPayloadError('invalid webhook payload');
           },
         }),
-      }),
-    (error) => {
-      assert.equal(error instanceof PayloadTooLargeError, true);
-      return true;
-    }
-  );
+      })
+    );
 
-  assert.equal(providerCalled, false);
-  assert.equal(inboxCreated, false);
+    const response = await handler(createRequest());
+    const body = (await response.json()) as Record<string, unknown>;
+
+    assert.equal(response.status, 400);
+    assert.equal(body.message, 'invalid webhook payload');
+  });
 });
 
-test('payment notify flow 通过真实 Stripe provider 处理 invoice.payment_failed 并返回 processed', async () => {
-  const warnings: Array<Record<string, unknown>> = [];
-  let checkoutHandled = false;
-  let renewalHandled = false;
-  let canceledHandled = false;
-  let updatedHandled = false;
-
-  const provider = new StripeProvider(
-    {
-      secretKey: 'sk_test',
-      publishableKey: 'pk_test',
-      signingSecret: 'whsec_test',
-    },
-    {
-      transport: {
-        constructWebhookEvent: () =>
-          ({
-            id: 'evt_failed_123',
-            type: 'invoice.payment_failed',
-            data: {
-              object: {
-                id: 'in_failed_123',
-                metadata: {
-                  order_no: 'order_123',
+test('payment notify route: provider-specific 配置失败返回 503，不回落成 404', async () => {
+  await withPaymentCapability('stripe', async () => {
+    const { ServiceUnavailableError } = await import('@/shared/lib/api/errors');
+    const { withApi } = await import('@/shared/lib/api/route');
+    const handler = withApi(
+      createRouteHandler({
+        createPaymentService: async () => ({
+          getProvider: () => undefined,
+          getDefaultProvider: () => {
+            throw new Error('not needed in route contract test');
+          },
+          createPayment: async () => {
+            throw new Error('not needed in route contract test');
+          },
+          getPaymentSession: async () => {
+            throw new Error('not needed in route contract test');
+          },
+          getPaymentEvent: async () => {
+            throw new ServiceUnavailableError(
+              'signing secret not configured',
+              undefined,
+              {
+                internalMeta: {
+                  reason: 'misconfigured_provider',
+                  provider: 'stripe',
                 },
-              },
-            },
-          }) as never,
-      } as never,
-    }
-  );
+              }
+            );
+          },
+        }),
+      })
+    );
 
-  const response = await handlePaymentNotifyRequest({
-    provider: 'stripe',
-    req: new Request('https://example.com/api/payment/notify/stripe', {
-      method: 'POST',
-      headers: {
-        'stripe-signature': 'sig_123',
-      },
-      body: '{"ok":true}',
-    }),
-    log: {
-      ...createLog(),
-      warn: (_message: string, meta?: Record<string, unknown>) => {
-        warnings.push(meta || {});
-      },
-    },
-    deps: createDeps({
-      getPaymentEvent: async (req: Request) =>
-        await provider.getPaymentEvent({ req }),
-      handleCheckoutSuccess: async () => {
-        checkoutHandled = true;
-      },
-      handleSubscriptionRenewal: async () => {
-        renewalHandled = true;
-      },
-      handleSubscriptionCanceled: async () => {
-        canceledHandled = true;
-      },
-      handleSubscriptionUpdated: async () => {
-        updatedHandled = true;
-      },
-    }),
-  });
+    const response = await handler(createRequest());
+    const body = (await response.json()) as Record<string, unknown>;
 
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    code: 0,
-    message: 'ok',
-    data: { message: 'success' },
+    assert.equal(response.status, 503);
+    assert.equal(body.message, 'signing secret not configured');
   });
-  assert.equal(warnings.length, 1);
-  assert.equal(warnings[0]?.eventType, PaymentEventType.PAYMENT_FAILED);
-  assert.equal(checkoutHandled, false);
-  assert.equal(renewalHandled, false);
-  assert.equal(canceledHandled, false);
-  assert.equal(updatedHandled, false);
 });
 
-test('payment notify flow 通过真实 PayPal provider 处理 renewal payment success', async () => {
-  let renewalTransactionId = '';
-  let renewalInvoiceId = '';
-  let renewalSubscriptionId = '';
+test('payment notify route: provider 严格来自 site capability，而不是 URL', async () => {
+  let observedProvider = '';
 
-  const provider = new PayPalProvider(
-    {
-      clientId: 'client',
-      clientSecret: 'secret',
-      webhookId: 'wh_123',
-    },
-    {
-      transport: {
-        parseWebhookEvent: () =>
-          ({
-            id: 'wh_evt_123',
-            event_type: 'PAYMENT.CAPTURE.COMPLETED',
-            resource: {
-              id: 'capture_123',
-              status: 'COMPLETED',
-              invoice_id: 'inv_123',
-              amount: {
-                value: '12.34',
-                currency_code: 'USD',
-              },
-              payer: {
-                email_address: 'buyer@example.com',
-              },
-              supplementary_data: {
-                related_ids: {
-                  subscription_id: 'sub_123',
-                },
-              },
-              metadata: {
-                order_no: 'order_123',
-              },
-            },
-          }) as never,
-        verifyWebhookSignature: async () => undefined,
-        getSubscription: async () =>
-          ({
-            id: 'sub_123',
-            status: 'ACTIVE',
-            plan_id: 'plan_123',
-            start_time: '2026-04-01T00:00:00.000Z',
-            billing_info: {
-              last_payment: {
-                time: '2026-04-01T00:00:00.000Z',
-                amount: {
-                  value: '12.34',
-                  currency_code: 'USD',
-                },
-              },
-              next_billing_time: '2026-05-01T00:00:00.000Z',
-            },
-          }) as never,
-      } as never,
-    }
-  );
-
-  const response = await handlePaymentNotifyRequest({
-    provider: 'paypal',
-    req: new Request('https://example.com/api/payment/notify/paypal', {
-      method: 'POST',
-      headers: {
-        'paypal-auth-algo': 'algo',
-        'paypal-cert-id': 'cert',
-        'paypal-transmission-id': 'tx_id',
-        'paypal-transmission-sig': 'sig',
-        'paypal-transmission-time': '2026-04-17T10:00:00.000Z',
-      },
-      body: '{}',
-    }),
-    log: createLog(),
-    deps: createDeps({
-      getPaymentEvent: async (req: Request) =>
-        await provider.getPaymentEvent({ req }),
-      findSubscriptionByProviderSubscriptionId: async () => ({
-        subscriptionNo: 'sub_no_1',
-        status: 'active',
-      }),
-      handleSubscriptionRenewal: async ({
-        session,
-      }: {
-        session: {
-          subscriptionId?: string;
-          paymentInfo?: {
-            transactionId?: string;
-            invoiceId?: string;
-          };
-        };
-      }) => {
-        renewalSubscriptionId = session.subscriptionId || '';
-        renewalTransactionId = session.paymentInfo?.transactionId || '';
-        renewalInvoiceId = session.paymentInfo?.invoiceId || '';
-      },
-    }),
-  });
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    code: 0,
-    message: 'ok',
-    data: { message: 'success' },
-  });
-  assert.equal(renewalSubscriptionId, 'sub_123');
-  assert.equal(renewalTransactionId, 'capture_123');
-  assert.equal(renewalInvoiceId, 'inv_123');
-});
-
-test('payment notify flow 通过真实 PayPal provider 处理 renewal sale success', async () => {
-  let renewalTransactionId = '';
-  let renewalInvoiceId = '';
-  let renewalSubscriptionId = '';
-
-  const provider = new PayPalProvider(
-    {
-      clientId: 'client',
-      clientSecret: 'secret',
-      webhookId: 'wh_123',
-    },
-    {
-      transport: {
-        parseWebhookEvent: () =>
-          ({
-            id: 'wh_evt_sale_123',
-            event_type: 'PAYMENT.SALE.COMPLETED',
-            resource: {
-              id: 'sale_123',
-              state: 'completed',
-              invoice_id: 'inv_sale_123',
-              amount: {
-                value: '21.00',
-                currency_code: 'USD',
-              },
-              payer: {
-                email_address: 'buyer@example.com',
-              },
-              supplementary_data: {
-                related_ids: {
-                  subscription_id: 'sub_sale_123',
-                },
-              },
-              metadata: {
-                order_no: 'order_sale_123',
-              },
-            },
-          }) as never,
-        verifyWebhookSignature: async () => undefined,
-        getSubscription: async () =>
-          ({
-            id: 'sub_sale_123',
-            status: 'ACTIVE',
-            plan_id: 'plan_123',
-            start_time: '2026-04-01T00:00:00.000Z',
-            billing_info: {
-              last_payment: {
-                time: '2026-04-01T00:00:00.000Z',
-                amount: {
-                  value: '21.00',
-                  currency_code: 'USD',
-                },
-              },
-              next_billing_time: '2026-05-01T00:00:00.000Z',
-            },
-          }) as never,
-      } as never,
-    }
-  );
-
-  const response = await handlePaymentNotifyRequest({
-    provider: 'paypal',
-    req: new Request('https://example.com/api/payment/notify/paypal', {
-      method: 'POST',
-      headers: {
-        'paypal-auth-algo': 'algo',
-        'paypal-cert-id': 'cert',
-        'paypal-transmission-id': 'tx_id',
-        'paypal-transmission-sig': 'sig',
-        'paypal-transmission-time': '2026-04-17T10:00:00.000Z',
-      },
-      body: '{}',
-    }),
-    log: createLog(),
-    deps: createDeps({
-      getPaymentEvent: async (req: Request) =>
-        await provider.getPaymentEvent({ req }),
-      findSubscriptionByProviderSubscriptionId: async () => ({
-        subscriptionNo: 'sub_no_sale_1',
-        status: 'active',
-      }),
-      handleSubscriptionRenewal: async ({
-        session,
-      }: {
-        session: {
-          subscriptionId?: string;
-          paymentInfo?: {
-            transactionId?: string;
-            invoiceId?: string;
-          };
-        };
-      }) => {
-        renewalSubscriptionId = session.subscriptionId || '';
-        renewalTransactionId = session.paymentInfo?.transactionId || '';
-        renewalInvoiceId = session.paymentInfo?.invoiceId || '';
-      },
-    }),
-  });
-
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    code: 0,
-    message: 'ok',
-    data: { message: 'success' },
-  });
-  assert.equal(renewalSubscriptionId, 'sub_sale_123');
-  assert.equal(renewalTransactionId, 'sale_123');
-  assert.equal(renewalInvoiceId, 'inv_sale_123');
-});
-
-test('payment notify flow 在 PayPal renewal 订阅详情无效时标记 inbox process_failed', async () => {
-  const processFailures: string[] = [];
-  const attempts: string[] = [];
-  let inboxCreated = false;
-
-  const provider = new PayPalProvider(
-    {
-      clientId: 'client',
-      clientSecret: 'secret',
-      webhookId: 'wh_123',
-    },
-    {
-      transport: {
-        parseWebhookEvent: () =>
-          ({
-            id: 'wh_evt_invalid_sub_123',
-            event_type: 'PAYMENT.CAPTURE.COMPLETED',
-            resource: {
-              id: 'capture_123',
-              status: 'COMPLETED',
-              supplementary_data: {
-                related_ids: {
-                  subscription_id: 'sub_invalid_123',
-                },
-              },
-            },
-          }) as never,
-        verifyWebhookSignature: async () => undefined,
-        getSubscription: async () =>
-          ({
-            id: 'sub_invalid_123',
-            status: 'ACTIVE',
-            billing_info: {},
-          }) as never,
-      } as never,
-    }
-  );
-
-  await assert.rejects(
-    () =>
-      handlePaymentNotifyRequest({
+  await withPaymentCapability('paypal', async () => {
+    const { withApi } = await import('@/shared/lib/api/route');
+    const handler = withApi(
+      createRouteHandler({
+      readBillingRuntimeSettingsCached: async () => ({
         provider: 'paypal',
-        req: new Request('https://example.com/api/payment/notify/paypal', {
-          method: 'POST',
-          headers: {
-            'paypal-auth-algo': 'algo',
-            'paypal-cert-id': 'cert',
-            'paypal-transmission-id': 'tx_id',
-            'paypal-transmission-sig': 'sig',
-            'paypal-transmission-time': '2026-04-17T10:00:00.000Z',
-          },
-          body: '{}',
-        }),
-        log: createLog(),
-        deps: createDeps({
-          getPaymentEvent: async (req: Request) =>
-            await provider.getPaymentEvent({ req }),
-          createPaymentWebhookInboxReceipt: async () => {
-            inboxCreated = true;
-            return {
-              record: createInboxRecord(),
-              isNew: true,
-            };
-          },
-          markPaymentWebhookInboxAttempt: async ({
-            inboxId,
-          }: {
-            inboxId: string;
-          }) => {
-            attempts.push(inboxId);
-            return undefined;
-          },
-          markPaymentWebhookInboxProcessFailed: async ({
-            inboxId,
-            error,
-          }: {
-            inboxId: string;
-            error: unknown;
-          }) => {
-            processFailures.push(`${inboxId}:${String(error)}`);
-            return undefined;
-          },
-        }),
+        paymentCapability: 'paypal',
+        locale: 'en',
+        defaultLocale: 'en',
+        paypalEnvironment: 'sandbox',
       }),
-    (error: unknown) =>
-      error instanceof UpstreamError &&
-      error.status === 502 &&
-      error.message === 'invalid paypal subscription response'
-  );
-
-  assert.equal(inboxCreated, true);
-  assert.deepEqual(attempts, ['inbox_1']);
-  assert.deepEqual(processFailures, [
-    'inbox_1:UpstreamError: invalid paypal subscription response',
-  ]);
-});
-
-test('payment notify flow 在 process 失败时标记 inbox process_failed', async () => {
-  const processFailures: string[] = [];
-  const event: PaymentEvent = {
-    eventType: PaymentEventType.CHECKOUT_SUCCESS,
-    eventResult: {},
-    paymentSession: {
-      provider: 'creem',
-      metadata: {
-        order_no: 'order_missing',
+      readBillingRuntimeSettingsFresh: async () => ({
+        provider: 'paypal',
+        paymentCapability: 'paypal',
+        locale: 'en',
+        defaultLocale: 'en',
+        paypalEnvironment: 'sandbox',
+      }),
+      readPaymentRuntimeBindings: () => ({
+        provider: 'paypal',
+        paymentCapability: 'paypal',
+        paypalClientId: 'client',
+        paypalClientSecret: 'secret',
+        paypalWebhookId: 'wh_123',
+      }),
+      createPaymentService: async () => ({
+        getProvider: () => undefined,
+        getDefaultProvider: () => {
+          throw new Error('not needed in route contract test');
+        },
+        createPayment: async () => {
+          throw new Error('not needed in route contract test');
+        },
+        getPaymentSession: async () => {
+          throw new Error('not needed in route contract test');
+        },
+        getPaymentEvent: async () => createUnknownEvent('paypal'),
+      }),
+      recordUnknownWebhookEvent: async ({ provider }) => {
+        observedProvider = provider;
       },
-    },
-  };
+      })
+    );
 
-  await assert.rejects(
-    () =>
-      handlePaymentNotifyRequest({
-        provider: 'creem',
-        req: new Request('https://example.com/api/payment/notify/creem', {
-          method: 'POST',
-          body: '{}',
-        }),
-        log: createLog(),
-        deps: createDeps({
-          getPaymentEvent: async () => event,
-          findOrderByOrderNo: async () => null,
-          markPaymentWebhookInboxProcessFailed: async ({
-            inboxId,
-            error,
-          }: {
-            inboxId: string;
-            error: unknown;
-          }) => {
-            processFailures.push(`${inboxId}:${String(error)}`);
-            return undefined;
-          },
-        }),
-      }),
-    /order not found/
-  );
+    const response = await handler(createRequest());
+    const body = (await response.json()) as Record<string, unknown>;
 
-  assert.deepEqual(processFailures, ['inbox_1:NotFoundError: order not found']);
+    assert.equal(response.status, 200);
+    assert.equal(body.message, 'ok');
+    assert.equal(observedProvider, 'paypal');
+  });
 });

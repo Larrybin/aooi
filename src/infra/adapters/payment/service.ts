@@ -19,10 +19,6 @@ import {
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
 import { isProductionEnv } from '@/shared/lib/env';
-import {
-  ProviderRegistry,
-  trimmedProviderNameKey,
-} from '@/shared/lib/providers/provider-registry';
 
 const log = createUseCaseLogger({
   domain: 'billing',
@@ -51,11 +47,15 @@ function assertStructuredPaymentInput(
 }
 
 async function addStripeProvider(
-  registry: ProviderRegistry<PaymentProvider>,
   input: PaymentServiceInput
-) {
+): Promise<PaymentProvider> {
   const { StripeProvider } = await import('@/infra/adapters/payment/stripe');
   const { settings, bindings } = input;
+  if (settings.provider !== 'stripe' || bindings.provider !== 'stripe') {
+    throw new ServiceUnavailableError(
+      'payment bindings/provider mismatch for stripe'
+    );
+  }
   const isProduction = isProductionEnv();
 
   if (isProduction && !bindings.stripeSigningSecret.trim()) {
@@ -82,141 +82,91 @@ async function addStripeProvider(
     }
   }
 
-  registry.addUnique(
-    new StripeProvider({
-      secretKey: bindings.stripeSecretKey,
-      publishableKey: bindings.stripePublishableKey,
-      signingSecret: bindings.stripeSigningSecret,
-      allowedPaymentMethods,
-    }),
-    {
-      isDefault: settings.defaultPaymentProvider === 'stripe',
-      invalidNameError: () =>
-        new ServiceUnavailableError('Payment provider name is required'),
-      duplicateNameError: (name) =>
-        new ServiceUnavailableError(
-          `Payment provider '${name}' is already registered`
-        ),
-    }
-  );
+  return new StripeProvider({
+    secretKey: bindings.stripeSecretKey,
+    publishableKey: bindings.stripePublishableKey,
+    signingSecret: bindings.stripeSigningSecret,
+    allowedPaymentMethods,
+  });
 }
 
 async function addCreemProvider(
-  registry: ProviderRegistry<PaymentProvider>,
   input: PaymentServiceInput
-) {
+): Promise<PaymentProvider> {
   const { CreemProvider } = await import('@/infra/adapters/payment/creem');
   const { settings, bindings } = input;
+  if (settings.provider !== 'creem' || bindings.provider !== 'creem') {
+    throw new ServiceUnavailableError(
+      'payment bindings/provider mismatch for creem'
+    );
+  }
 
-  registry.addUnique(
-    new CreemProvider({
-      apiKey: bindings.creemApiKey,
-      environment: settings.creemEnvironment,
-      signingSecret: bindings.creemSigningSecret,
-    }),
-    {
-      isDefault: settings.defaultPaymentProvider === 'creem',
-      invalidNameError: () =>
-        new ServiceUnavailableError('Payment provider name is required'),
-      duplicateNameError: (name) =>
-        new ServiceUnavailableError(
-          `Payment provider '${name}' is already registered`
-        ),
-    }
-  );
+  return new CreemProvider({
+    apiKey: bindings.creemApiKey,
+    environment: settings.creemEnvironment,
+    signingSecret: bindings.creemSigningSecret,
+  });
 }
 
 async function addPayPalProvider(
-  registry: ProviderRegistry<PaymentProvider>,
   input: PaymentServiceInput
-) {
+): Promise<PaymentProvider> {
   const { PayPalProvider } = await import('@/infra/adapters/payment/paypal');
   const { settings, bindings } = input;
+  if (settings.provider !== 'paypal' || bindings.provider !== 'paypal') {
+    throw new ServiceUnavailableError(
+      'payment bindings/provider mismatch for paypal'
+    );
+  }
 
-  registry.addUnique(
-    new PayPalProvider({
-      clientId: bindings.paypalClientId,
-      clientSecret: bindings.paypalClientSecret,
-      webhookId: bindings.paypalWebhookId,
-      environment: settings.paypalEnvironment,
-    }),
-    {
-      isDefault: settings.defaultPaymentProvider === 'paypal',
-      invalidNameError: () =>
-        new ServiceUnavailableError('Payment provider name is required'),
-      duplicateNameError: (name) =>
-        new ServiceUnavailableError(
-          `Payment provider '${name}' is already registered`
-        ),
-    }
-  );
+  return new PayPalProvider({
+    clientId: bindings.paypalClientId,
+    clientSecret: bindings.paypalClientSecret,
+    webhookId: bindings.paypalWebhookId,
+    environment: settings.paypalEnvironment,
+  });
 }
 
 export type PaymentService = {
   getProvider(name: string): PaymentProvider | undefined;
-  getDefaultProvider(): PaymentProvider | undefined;
-  createPayment(input: {
-    order: PaymentOrder;
-    provider?: string;
-  }): Promise<CheckoutSession>;
-  getPaymentSession(input: {
-    sessionId: string;
-    provider?: string;
-  }): Promise<PaymentSession>;
-  getPaymentEvent(input: {
-    req: Request;
-    provider?: string;
-  }): Promise<PaymentEvent>;
+  getDefaultProvider(): PaymentProvider;
+  createPayment(input: { order: PaymentOrder }): Promise<CheckoutSession>;
+  getPaymentSession(input: { sessionId: string }): Promise<PaymentSession>;
+  getPaymentEvent(input: { req: Request }): Promise<PaymentEvent>;
 };
 
 export async function getPaymentService(
   input: PaymentServiceInput
 ): Promise<PaymentService> {
   assertStructuredPaymentInput(input);
-
-  const registry = new ProviderRegistry<PaymentProvider>({
-    toNameKey: trimmedProviderNameKey,
-  });
-
-  if (input.settings.stripeEnabled) {
-    await addStripeProvider(registry, input);
-  }
-
-  if (input.settings.creemEnabled) {
-    await addCreemProvider(registry, input);
-  }
-
-  if (input.settings.paypalEnabled) {
-    await addPayPalProvider(registry, input);
-  }
-
-  const resolveProvider = (provider?: string) => {
-    if (provider) {
-      return registry.getRequired(
-        provider,
-        (name) => new BadRequestError(`Payment provider '${name}' not found`)
-      );
+  const provider = await (async (): Promise<PaymentProvider> => {
+    switch (input.settings.provider) {
+      case 'stripe':
+        return await addStripeProvider(input);
+      case 'creem':
+        return await addCreemProvider(input);
+      case 'paypal':
+        return await addPayPalProvider(input);
+      case 'none':
+        throw new ServiceUnavailableError('No payment provider configured');
     }
-    return registry.getDefaultRequired(
-      () => new ServiceUnavailableError('No payment provider configured')
-    );
-  };
+  })();
 
   return {
-    getProvider: (name) => registry.get(name),
-    getDefaultProvider: () => registry.getDefault(),
+    getProvider: (name) => (provider.name === name ? provider : undefined),
+    getDefaultProvider: () => provider,
     async createPayment(nextInput) {
-      return await resolveProvider(nextInput.provider).createPayment({
+      return await provider.createPayment({
         order: nextInput.order,
       });
     },
     async getPaymentSession(nextInput) {
-      return await resolveProvider(nextInput.provider).getPaymentSession({
+      return await provider.getPaymentSession({
         sessionId: nextInput.sessionId,
       });
     },
     async getPaymentEvent(nextInput) {
-      return await resolveProvider(nextInput.provider).getPaymentEvent({
+      return await provider.getPaymentEvent({
         req: nextInput.req,
       });
     },

@@ -1,3 +1,4 @@
+import { requirePaymentCapability } from '@/app/api/payment/_lib/guard';
 import { redirect } from 'next/navigation';
 import {
   confirmPaymentCallbackUseCase,
@@ -39,13 +40,17 @@ export function buildPaymentCallbackGetHandler(deps: {
   createApiContext: (req: Request) => PaymentCallbackGetApiContext;
   resolveRedirectQuery?: typeof resolvePaymentCallbackRedirectQuery;
   resolvePricingFallbackUrl?: typeof resolvePaymentCallbackPricingFallbackUrl;
+  requirePaymentCapability?: () => void;
 }) {
   const resolveRedirectQuery =
     deps.resolveRedirectQuery ?? resolvePaymentCallbackRedirectQuery;
   const resolvePricingFallbackUrl =
     deps.resolvePricingFallbackUrl ?? resolvePaymentCallbackPricingFallbackUrl;
+  const ensurePaymentCapability =
+    deps.requirePaymentCapability ?? requirePaymentCapability;
 
   return async (req: Request) => {
+    ensurePaymentCapability();
     const api = deps.createApiContext(req);
     const { log } = api;
     let redirectUrl: string;
@@ -71,11 +76,15 @@ export function buildPaymentCallbackPostAction(deps: {
   createApiContext: (req: Request) => PaymentCallbackPostApiContext;
   confirmUseCase?: typeof confirmPaymentCallbackUseCase;
   resolveMode?: typeof resolveConfigConsistencyMode;
+  requirePaymentCapability?: () => void;
 }) {
   const confirmUseCase = deps.confirmUseCase ?? confirmPaymentCallbackUseCase;
   const resolveMode = deps.resolveMode ?? resolveConfigConsistencyMode;
+  const ensurePaymentCapability =
+    deps.requirePaymentCapability ?? requirePaymentCapability;
 
   return async (req: Request) => {
+    ensurePaymentCapability();
     const api = deps.createApiContext(req);
     const { log } = api;
     const { order_no: orderNo } = await api.parseJson(

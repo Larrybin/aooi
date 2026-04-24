@@ -1,4 +1,5 @@
 import { createApiContext } from '@/app/api/_lib/context';
+import { requirePaymentCapability } from '@/app/api/payment/_lib/guard';
 import { createPaymentCheckoutSession } from '@/domains/billing/application/checkout';
 import { findPricingItemByProductId } from '@/domains/billing/domain/pricing';
 import { readBillingRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
@@ -12,10 +13,12 @@ import { PaymentCheckoutBodySchema } from '@/shared/schemas/api/payment/checkout
 import type { Pricing } from '@/shared/types/blocks/pricing';
 
 export const POST = withApi(async (req: Request) => {
+  requirePaymentCapability();
   const api = createApiContext(req);
   const { log } = api;
-  const { product_id, currency, locale, payment_provider, metadata } =
-    await api.parseJson(PaymentCheckoutBodySchema);
+  const { product_id, currency, locale, metadata } = await api.parseJson(
+    PaymentCheckoutBodySchema
+  );
 
   const t = await getTranslations({
     locale: locale || 'en',
@@ -46,7 +49,6 @@ export const POST = withApi(async (req: Request) => {
     bindings,
     currency,
     locale,
-    paymentProvider: payment_provider,
     metadata,
     log,
   });

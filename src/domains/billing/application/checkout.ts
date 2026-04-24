@@ -9,7 +9,6 @@ import {
 } from '@/domains/billing/domain/payment';
 import { resolveCreemPaymentProductId } from '@/domains/billing/domain/payment-config';
 import {
-  assertPaymentProviderAllowedForCheckout,
   resolveCheckoutPricingContext,
   resolvePaymentTypeFromInterval,
   resolvePricingPaymentInterval,
@@ -82,26 +81,6 @@ function assertAppUrlOrigin(appUrl: string): string {
   return origin;
 }
 
-function resolvePaymentProviderName({
-  requestedProvider,
-  settings,
-  log,
-}: {
-  requestedProvider: string | null | undefined;
-  settings: BillingRuntimeSettings;
-  log: LogLike;
-}): string {
-  const provider =
-    (requestedProvider || '').trim() || settings.defaultPaymentProvider;
-  if (!provider) {
-    log.error('payment: no payment provider configured', {
-      defaultPaymentProvider: settings.defaultPaymentProvider,
-    });
-    throw new ServiceUnavailableError('payment provider not configured');
-  }
-  return provider;
-}
-
 async function getPaymentProductIdFromProviderConfig({
   productId,
   provider,
@@ -115,7 +94,7 @@ async function getPaymentProductIdFromProviderConfig({
   settings: BillingRuntimeSettings;
   log: LogLike;
 }): Promise<string | undefined> {
-  if (provider !== 'creem') {
+  if (provider !== 'creem' || settings.provider !== 'creem') {
     return;
   }
 
@@ -300,7 +279,6 @@ export async function createPaymentCheckoutSession({
   bindings,
   currency,
   locale,
-  paymentProvider,
   metadata,
   log,
 }: {
@@ -310,7 +288,6 @@ export async function createPaymentCheckoutSession({
   bindings: PaymentRuntimeBindings;
   currency: string | null | undefined;
   locale: string | null | undefined;
-  paymentProvider: string | null | undefined;
   metadata: Record<string, unknown> | null | undefined;
   log: LogLike;
 }): Promise<CheckoutInfo> {
@@ -318,27 +295,16 @@ export async function createPaymentCheckoutSession({
     throw new UnauthorizedError('no auth, please sign in');
   }
 
-  const paymentProviderName = resolvePaymentProviderName({
-    requestedProvider: paymentProvider,
-    settings,
-    log,
-  });
+  if (settings.provider === 'none' || bindings.provider === 'none') {
+    throw new ServiceUnavailableError('payment provider not configured');
+  }
+
+  const paymentProviderName = settings.provider;
 
   const pricingContext = resolveCheckoutPricingContext({
     pricingItem,
     currency,
   });
-
-  if (
-    !assertPaymentProviderAllowedForCheckout({
-      provider: paymentProviderName,
-      pricingContext,
-    })
-  ) {
-    throw new BadRequestError(
-      `payment provider ${paymentProviderName} is not supported for this currency`
-    );
-  }
 
   const paymentInterval = resolvePricingPaymentInterval(pricingItem.interval);
   const paymentType = resolvePaymentTypeFromInterval(paymentInterval);
@@ -415,7 +381,6 @@ export async function createPaymentCheckoutSession({
 
   try {
     const result = await paymentService.createPayment({
-      provider: paymentProviderName,
       order: checkoutOrder,
     });
 

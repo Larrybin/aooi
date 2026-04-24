@@ -13,9 +13,13 @@ export class ApiError extends PublicError {
     status: number,
     message: string,
     data?: unknown,
-    options?: { publicMessage?: string }
+    options?: { publicMessage?: string; internalMeta?: unknown }
   ) {
-    super(message, { data, publicMessage: options?.publicMessage });
+    super(message, {
+      data,
+      publicMessage: options?.publicMessage,
+      internalMeta: options?.internalMeta,
+    });
     this.name = 'ApiError';
     this.status = status;
   }
@@ -43,8 +47,12 @@ export class ForbiddenError extends ApiError {
 }
 
 export class NotFoundError extends ApiError {
-  constructor(message = 'not found', data?: unknown) {
-    super(404, message, data);
+  constructor(
+    message = 'not found',
+    data?: unknown,
+    options?: { publicMessage?: string; internalMeta?: unknown }
+  ) {
+    super(404, message, data, options);
     this.name = 'NotFoundError';
   }
 }
@@ -81,7 +89,7 @@ export class ServiceUnavailableError extends ApiError {
   constructor(
     message = 'service unavailable',
     data?: unknown,
-    options?: { publicMessage?: string }
+    options?: { publicMessage?: string; internalMeta?: unknown }
   ) {
     super(503, message, data, options);
     this.name = 'ServiceUnavailableError';

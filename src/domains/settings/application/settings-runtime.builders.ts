@@ -4,6 +4,8 @@ import {
   BILLING_RUNTIME_SETTING_KEYS,
   PUBLIC_UI_SETTING_KEYS,
 } from '@/domains/settings/registry';
+import type { PaymentCapability } from '@/config/payment-capability';
+import { site } from '@/site';
 
 import { parseGeneralSocialLinks } from '@/shared/lib/general-ui.client';
 
@@ -90,39 +92,54 @@ export function buildAuthUiRuntimeSettings(
 export function buildBillingRuntimeSettings(
   configs: Configs
 ): BillingRuntimeSettings {
-  return {
+  const shared = {
     locale: readString(configs[BILLING_RUNTIME_SETTING_KEYS.locale]),
     defaultLocale: readString(
       configs[BILLING_RUNTIME_SETTING_KEYS.defaultLocale]
     ),
-    selectPaymentEnabled: isEnabled(
-      configs[BILLING_RUNTIME_SETTING_KEYS.selectPaymentEnabled]
-    ),
-    defaultPaymentProvider: readString(
-      configs[BILLING_RUNTIME_SETTING_KEYS.defaultPaymentProvider]
-    ),
-    stripeEnabled: isEnabled(
-      configs[BILLING_RUNTIME_SETTING_KEYS.stripeEnabled]
-    ),
-    stripePaymentMethods: readString(
-      configs[BILLING_RUNTIME_SETTING_KEYS.stripePaymentMethods]
-    ),
-    creemEnabled: isEnabled(configs[BILLING_RUNTIME_SETTING_KEYS.creemEnabled]),
-    creemEnvironment:
-      configs[BILLING_RUNTIME_SETTING_KEYS.creemEnvironment] === 'production'
-        ? 'production'
-        : 'sandbox',
-    creemProductIds: readString(
-      configs[BILLING_RUNTIME_SETTING_KEYS.creemProductIds]
-    ),
-    paypalEnabled: isEnabled(
-      configs[BILLING_RUNTIME_SETTING_KEYS.paypalEnabled]
-    ),
-    paypalEnvironment:
-      configs[BILLING_RUNTIME_SETTING_KEYS.paypalEnvironment] === 'production'
-        ? 'production'
-        : 'sandbox',
-  };
+  } as const;
+  const paymentCapability = site.capabilities.payment as PaymentCapability;
+
+  switch (paymentCapability) {
+    case 'none':
+      return {
+        ...shared,
+        provider: 'none',
+        paymentCapability: 'none',
+      };
+    case 'stripe':
+      return {
+        ...shared,
+        provider: 'stripe',
+        paymentCapability: 'stripe',
+        stripePaymentMethods: readString(
+          configs[BILLING_RUNTIME_SETTING_KEYS.stripePaymentMethods]
+        ),
+      };
+    case 'creem':
+      return {
+        ...shared,
+        provider: 'creem',
+        paymentCapability: 'creem',
+        creemEnvironment:
+          configs[BILLING_RUNTIME_SETTING_KEYS.creemEnvironment] === 'production'
+            ? 'production'
+            : 'sandbox',
+        creemProductIds: readString(
+          configs[BILLING_RUNTIME_SETTING_KEYS.creemProductIds]
+        ),
+      };
+    case 'paypal':
+      return {
+        ...shared,
+        provider: 'paypal',
+        paymentCapability: 'paypal',
+        paypalEnvironment:
+          configs[BILLING_RUNTIME_SETTING_KEYS.paypalEnvironment] === 'production'
+            ? 'production'
+            : 'sandbox',
+      };
+  }
 }
 
 export function buildAiRuntimeSettings(configs: Configs): AiRuntimeSettings {

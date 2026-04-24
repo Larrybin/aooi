@@ -1,6 +1,8 @@
 // data: signed-in user (better-auth) + paid orders (db) + payment callback state (query) + pagination/filter
 // cache: no-store (request-bound auth)
 // reason: user-specific payment history and invoices
+import { notFound } from 'next/navigation';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   listMemberPaymentsQuery,
   type MemberPaymentRow,
@@ -25,6 +27,10 @@ export default async function PaymentsPage({
     order_no?: string;
   }>;
 }) {
+  if (resolveSitePaymentCapability() === 'none') {
+    notFound();
+  }
+
   const {
     page: pageNum,
     pageSize,

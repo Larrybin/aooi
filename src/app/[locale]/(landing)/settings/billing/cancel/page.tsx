@@ -1,7 +1,9 @@
 // data: signed-in user (better-auth) + subscription (db) + Server Action cancels via provider then updates db
 // cache: no-store (request-bound auth)
 // reason: user-specific billing mutation flow
+import { notFound } from 'next/navigation';
 import { requireActionUser } from '@/app/access-control/action-guard';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   cancelMemberSubscription,
   readMemberCancelableSubscription,
@@ -27,6 +29,10 @@ export default async function CancelBillingPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ subscription_no: string }>;
 }) {
+  if (resolveSitePaymentCapability() === 'none') {
+    notFound();
+  }
+
   const t = await getTranslations('settings.billing.cancel');
   const tb = await getTranslations('settings.billing');
   const { locale: _locale } = await params;

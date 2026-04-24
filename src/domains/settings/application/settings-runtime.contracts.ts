@@ -1,3 +1,7 @@
+import type {
+  ActivePaymentCapability,
+  PaymentCapability,
+} from '@/config/payment-capability';
 import type { NavItem } from '@/shared/types/blocks/common';
 
 export type PublicUiConfig = {
@@ -27,29 +31,71 @@ export type AuthServerBindings = {
   githubClientSecret: string;
 };
 
-export type BillingRuntimeSettings = {
+type BillingRuntimeSharedSettings = {
   locale: string;
   defaultLocale: string;
-  selectPaymentEnabled: boolean;
-  defaultPaymentProvider: string;
-  stripeEnabled: boolean;
-  stripePaymentMethods: string;
-  creemEnabled: boolean;
-  creemEnvironment: 'sandbox' | 'production';
-  creemProductIds: string;
-  paypalEnabled: boolean;
-  paypalEnvironment: 'sandbox' | 'production';
 };
 
-export type PaymentRuntimeBindings = {
-  stripePublishableKey: string;
-  stripeSecretKey: string;
-  stripeSigningSecret: string;
-  creemApiKey: string;
-  creemSigningSecret: string;
-  paypalClientId: string;
-  paypalClientSecret: string;
-  paypalWebhookId: string;
+export type BillingRuntimeSettings =
+  | (BillingRuntimeSharedSettings & {
+      provider: 'none';
+      paymentCapability: 'none';
+    })
+  | (BillingRuntimeSharedSettings & {
+      provider: 'stripe';
+      paymentCapability: 'stripe';
+      stripePaymentMethods: string;
+    })
+  | (BillingRuntimeSharedSettings & {
+      provider: 'creem';
+      paymentCapability: 'creem';
+      creemEnvironment: 'sandbox' | 'production';
+      creemProductIds: string;
+    })
+  | (BillingRuntimeSharedSettings & {
+      provider: 'paypal';
+      paymentCapability: 'paypal';
+      paypalEnvironment: 'sandbox' | 'production';
+    });
+
+export type ActiveBillingRuntimeSettings = Extract<
+  BillingRuntimeSettings,
+  { provider: ActivePaymentCapability }
+>;
+
+export type PaymentRuntimeBindings =
+  | {
+      provider: 'none';
+      paymentCapability: 'none';
+    }
+  | {
+      provider: 'stripe';
+      paymentCapability: 'stripe';
+      stripePublishableKey: string;
+      stripeSecretKey: string;
+      stripeSigningSecret: string;
+    }
+  | {
+      provider: 'creem';
+      paymentCapability: 'creem';
+      creemApiKey: string;
+      creemSigningSecret: string;
+    }
+  | {
+      provider: 'paypal';
+      paymentCapability: 'paypal';
+      paypalClientId: string;
+      paypalClientSecret: string;
+      paypalWebhookId: string;
+    };
+
+export type ActivePaymentRuntimeBindings = Extract<
+  PaymentRuntimeBindings,
+  { provider: ActivePaymentCapability }
+>;
+
+export type PaymentCapabilitySnapshot = {
+  capability: PaymentCapability;
 };
 
 export type AiRuntimeSettings = {

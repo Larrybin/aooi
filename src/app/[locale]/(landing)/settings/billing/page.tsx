@@ -1,6 +1,8 @@
 // data: signed-in user (better-auth) + subscriptions (db) + payment callback state (query)
 // cache: no-store (request-bound auth)
 // reason: user-specific billing history and actions
+import { notFound } from 'next/navigation';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   MEMBER_BILLING_ACTIVE_STATUSES,
   readMemberBillingOverviewQuery,
@@ -27,6 +29,10 @@ export default async function BillingPage({
     order_no?: string;
   }>;
 }) {
+  if (resolveSitePaymentCapability() === 'none') {
+    notFound();
+  }
+
   const {
     page: pageNum,
     pageSize,

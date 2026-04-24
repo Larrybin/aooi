@@ -1,7 +1,8 @@
 // data: signed-in user (better-auth) + subscription (db) + provider billing portal URL + redirect
 // cache: no-store (request-bound auth)
 // reason: user-specific provider portal entry; do not cache redirects
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import { retrieveMemberBillingPortalUrl } from '@/domains/billing/application/member-billing.actions';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { buildCanonicalUrl } from '@/infra/url/canonical';
@@ -17,6 +18,10 @@ export default async function RetrieveBillingPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ subscription_no: string }>;
 }) {
+  if (resolveSitePaymentCapability() === 'none') {
+    notFound();
+  }
+
   const { locale: _locale } = await params;
   const { subscription_no } = await searchParams;
   const t = await getTranslations('settings.billing');

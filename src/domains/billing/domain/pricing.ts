@@ -19,7 +19,6 @@ export type CheckoutPricingContext = {
   checkoutCurrency: string;
   checkoutAmount: number;
   selectedCurrency?: PricingCurrency;
-  allowedProviders?: string[];
   paymentProductId?: string;
 };
 
@@ -58,12 +57,6 @@ export function resolveCheckoutPricingContext({
     ? selectedCurrency.amount
     : pricingItem.amount;
 
-  const allowedProviders =
-    selectedCurrency?.payment_providers &&
-    selectedCurrency.payment_providers.length > 0
-      ? selectedCurrency.payment_providers
-      : pricingItem.payment_providers;
-
   const paymentProductId =
     normalizeOptionalString(selectedCurrency?.payment_product_id) ??
     normalizeOptionalString(pricingItem.payment_product_id);
@@ -73,24 +66,8 @@ export function resolveCheckoutPricingContext({
     checkoutCurrency,
     checkoutAmount,
     selectedCurrency,
-    allowedProviders,
     paymentProductId,
   };
-}
-
-export function assertPaymentProviderAllowedForCheckout({
-  provider,
-  pricingContext,
-}: {
-  provider: string;
-  pricingContext: Pick<CheckoutPricingContext, 'allowedProviders'>;
-}): boolean {
-  const allowedProviders = pricingContext.allowedProviders;
-  if (!allowedProviders || allowedProviders.length === 0) {
-    return true;
-  }
-
-  return allowedProviders.includes(provider);
 }
 
 export function resolvePricingPaymentInterval(

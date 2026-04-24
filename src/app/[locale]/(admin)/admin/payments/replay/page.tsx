@@ -1,7 +1,8 @@
 // data: admin session (RBAC) + payment webhook inbox preview + server action execute
 // cache: no-store (request-bound auth/RBAC)
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { requirePagePermission } from '@/app/[locale]/(admin)/_guards/page-access';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   buildPaymentReplayReturnPath,
   getPaymentReplayPreviewLabel,
@@ -37,6 +38,10 @@ export default async function PaymentReplayPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  if (resolveSitePaymentCapability() === 'none') {
+    notFound();
+  }
+
   const { locale } = await params;
   setRequestLocale(locale);
 

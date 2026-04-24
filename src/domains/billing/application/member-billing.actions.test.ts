@@ -13,26 +13,17 @@ import {
 const BILLING_SETTINGS: BillingRuntimeSettings = {
   locale: '',
   defaultLocale: '',
-  selectPaymentEnabled: false,
-  defaultPaymentProvider: 'stripe',
-  stripeEnabled: true,
+  provider: 'stripe',
+  paymentCapability: 'stripe',
   stripePaymentMethods: '',
-  creemEnabled: false,
-  creemEnvironment: 'sandbox',
-  creemProductIds: '',
-  paypalEnabled: false,
-  paypalEnvironment: 'sandbox',
 };
 
 const PAYMENT_BINDINGS: PaymentRuntimeBindings = {
+  provider: 'stripe',
+  paymentCapability: 'stripe',
   stripePublishableKey: '',
   stripeSecretKey: '',
   stripeSigningSecret: '',
-  creemApiKey: '',
-  creemSigningSecret: '',
-  paypalClientId: '',
-  paypalClientSecret: '',
-  paypalWebhookId: '',
 };
 
 test('readCancelableSubscriptionPageUseCase 返回 not_found / forbidden / missing_subscription_target', async () => {
@@ -113,10 +104,7 @@ test('readCancelableSubscriptionPageUseCase 对 provider 不可用返回 provide
       getPaymentService: async () => ({
         getProvider: () => undefined,
       }),
-      readBillingRuntimeSettingsCached: async () => ({
-        ...BILLING_SETTINGS,
-        stripeEnabled: false,
-      }),
+      readBillingRuntimeSettingsCached: async () => BILLING_SETTINGS,
       readPaymentRuntimeBindings: async () => PAYMENT_BINDINGS,
     }
   );

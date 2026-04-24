@@ -25,7 +25,10 @@ export type PublicErrorOptions = {
   publicMessage?: string;
   data?: unknown;
   cause?: unknown;
+  internalMeta?: unknown;
 };
+
+export const INTERNAL_ERROR_META = Symbol('internal_error_meta');
 
 export class PublicError extends Error {
   readonly publicMessage: string;
@@ -40,7 +43,26 @@ export class PublicError extends Error {
     if (options?.cause !== undefined) {
       (this as Error & { cause?: unknown }).cause = options.cause;
     }
+
+    if (options?.internalMeta !== undefined) {
+      Object.defineProperty(this, INTERNAL_ERROR_META, {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: options.internalMeta,
+      });
+    }
   }
+}
+
+export function getInternalErrorMeta(error: unknown): unknown {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  return (error as Error & { [INTERNAL_ERROR_META]?: unknown })[
+    INTERNAL_ERROR_META
+  ];
 }
 
 export class BusinessError extends PublicError {

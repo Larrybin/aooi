@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PaymentModal } from '@/domains/billing/ui/payment-modal';
 import { Check, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -80,12 +79,8 @@ export function Pricing({
 }) {
   const locale = useLocale();
   const t = useTranslations('pricing.page');
-  const {
-    setIsShowSignModal,
-    setIsShowPaymentModal,
-    billingSettings,
-    uiConfig,
-  } = usePublicAppContext();
+  const { setIsShowSignModal, billingSettings, uiConfig } =
+    usePublicAppContext();
   const {
     data: details,
     error: detailsError,
@@ -126,9 +121,6 @@ export function Pricing({
     }
   }, [currentSubscriptionProductId, pricing.items]);
 
-  // current pricing item
-  const [pricingItem, setPricingItem] = useState<PricingItem | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
 
@@ -162,8 +154,6 @@ export function Pricing({
             original_price: currencyData.original_price,
             payment_product_id:
               currencyData.payment_product_id || item.payment_product_id,
-            payment_providers:
-              currencyData.payment_providers || item.payment_providers,
           }
         : item;
 
@@ -216,18 +206,7 @@ export function Pricing({
       return;
     }
 
-    if (billingSettings.selectPaymentEnabled) {
-      setPricingItem(displayedItem);
-      setIsShowPaymentModal(true);
-      setProductId(null);
-      return;
-    }
-
-    void handleCheckout(
-      displayedItem,
-      billingSettings.defaultPaymentProvider,
-      accountDetails
-    );
+    void handleCheckout(displayedItem, accountDetails);
   };
 
   const getAffiliateMetadata = ({
@@ -263,7 +242,6 @@ export function Pricing({
 
   const handleCheckout = async (
     item: PricingItem,
-    paymentProvider?: string,
     accountDetails?: SelfUserDetails
   ) => {
     try {
@@ -278,14 +256,14 @@ export function Pricing({
       }
 
       const affiliateMetadata = getAffiliateMetadata({
-        paymentProvider: paymentProvider || '',
+        paymentProvider:
+          billingSettings.provider === 'none' ? '' : billingSettings.provider,
       });
 
       const params = {
         product_id: item.product_id,
         currency: item.currency,
         locale: locale || 'en',
-        payment_provider: paymentProvider || '',
         metadata: affiliateMetadata,
       };
 
@@ -311,7 +289,6 @@ export function Pricing({
       if (e instanceof RequestIdError && e.status === 401) {
         setIsLoading(false);
         setProductId(null);
-        setPricingItem(null);
         setIsShowSignModal(true);
         return;
       }
@@ -575,13 +552,6 @@ export function Pricing({
         </div>
       </div>
 
-      <PaymentModal
-        isLoading={isLoading}
-        pricingItem={pricingItem}
-        onCheckout={(item, paymentProvider) =>
-          handleCheckout(item, paymentProvider)
-        }
-      />
     </section>
   );
 }

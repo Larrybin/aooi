@@ -9,6 +9,7 @@ import { PAYMENT_WEBHOOK_INBOX_STATUS } from '@/domains/billing/infra/payment-we
 import {
   BadRequestError,
   PayloadTooLargeError,
+  ServiceUnavailableError,
   UnauthorizedError,
 } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
@@ -138,7 +139,12 @@ export async function getPaymentEventOrThrow(input: {
       throw new BadRequestError(err.message);
     }
     if (err instanceof WebhookConfigError) {
-      throw err;
+      throw new ServiceUnavailableError(err.message, undefined, {
+        internalMeta: {
+          reason: 'misconfigured_provider',
+          provider: input.provider,
+        },
+      });
     }
     throw err;
   }
@@ -175,7 +181,7 @@ export async function handlePaymentNotifyRequest(input: {
     if (
       error instanceof BadRequestError ||
       error instanceof UnauthorizedError ||
-      error instanceof WebhookConfigError
+      error instanceof ServiceUnavailableError
     ) {
       throw error;
     }

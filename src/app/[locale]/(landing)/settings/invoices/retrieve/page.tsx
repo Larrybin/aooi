@@ -1,7 +1,8 @@
 // data: signed-in user (better-auth) + order (db) + provider invoice URL + redirect
 // cache: no-store (request-bound auth)
 // reason: user-specific invoice retrieval; do not cache redirects
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import { retrieveMemberInvoiceUrl } from '@/domains/billing/application/member-billing.actions';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 
@@ -15,6 +16,10 @@ export default async function RetrieveInvoicePage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ order_no: string }>;
 }) {
+  if (resolveSitePaymentCapability() === 'none') {
+    notFound();
+  }
+
   const { locale: _locale } = await params;
   const { order_no } = await searchParams;
 

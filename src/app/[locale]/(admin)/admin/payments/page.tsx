@@ -1,6 +1,8 @@
 // data: admin session (RBAC) + payments/orders list (db) + pagination/search/filter
 // cache: no-store (request-bound auth/RBAC)
 // reason: billing data is sensitive; avoid caching across users/roles
+import { notFound } from 'next/navigation';
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   ADMIN_PAYMENT_FILTER_STATUSES,
   listAdminPaymentsQuery,
@@ -18,6 +20,11 @@ import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 export default createAdminTablePage<AdminPaymentRow, AdminPaymentsListQuery>({
   namespace: 'admin.payments',
   permission: PERMISSIONS.PAYMENTS_READ,
+  beforeLoad: async () => {
+    if (resolveSitePaymentCapability() === 'none') {
+      notFound();
+    }
+  },
   crumbs: [
     { key: 'list.crumbs.admin', url: '/admin' },
     { key: 'list.crumbs.payments' },
@@ -60,13 +67,10 @@ export default createAdminTablePage<AdminPaymentRow, AdminPaymentsListQuery>({
       titleKey: 'list.filters.provider.title',
       options: [
         { value: 'all', labelKey: 'list.filters.provider.options.all' },
-        { value: 'stripe', labelKey: 'list.filters.provider.options.stripe' },
-        { value: 'creem', labelKey: 'list.filters.provider.options.creem' },
         {
-          value: 'lemonsqueezy',
-          labelKey: 'list.filters.provider.options.lemonsqueezy',
+          value: resolveSitePaymentCapability(),
+          labelKey: `list.filters.provider.options.${resolveSitePaymentCapability()}`,
         },
-        { value: 'paypal', labelKey: 'list.filters.provider.options.paypal' },
       ],
     },
   ],

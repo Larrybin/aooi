@@ -39,8 +39,6 @@ function isOneTapCapable(value: unknown): value is OneTapCapable {
 export interface ContextValue {
   isShowSignModal: boolean;
   setIsShowSignModal: (show: boolean) => void;
-  isShowPaymentModal: boolean;
-  setIsShowPaymentModal: (show: boolean) => void;
   uiConfig: PublicUiConfig;
   authSettings: AuthUiRuntimeSettings;
   billingSettings: BillingRuntimeSettings;
@@ -71,22 +69,13 @@ const EMPTY_AUTH_SETTINGS: AuthUiRuntimeSettings = {
 const EMPTY_BILLING_SETTINGS: BillingRuntimeSettings = {
   locale: '',
   defaultLocale: '',
-  selectPaymentEnabled: false,
-  defaultPaymentProvider: '',
-  stripeEnabled: false,
-  stripePaymentMethods: '',
-  creemEnabled: false,
-  creemEnvironment: 'sandbox',
-  creemProductIds: '',
-  paypalEnabled: false,
-  paypalEnvironment: 'sandbox',
+  provider: 'none',
+  paymentCapability: 'none',
 };
 
 const defaultContextValue: ContextValue = {
   isShowSignModal: false,
   setIsShowSignModal: noop,
-  isShowPaymentModal: false,
-  setIsShowPaymentModal: noop,
   uiConfig: EMPTY_PUBLIC_UI_CONFIG,
   authSettings: EMPTY_AUTH_SETTINGS,
   billingSettings: EMPTY_BILLING_SETTINGS,
@@ -155,7 +144,6 @@ export const PublicAppProvider = ({
   const didShowOneTap = useRef(false);
 
   const [isShowSignModal, setIsShowSignModal] = useState(false);
-  const [isShowPaymentModal, setIsShowPaymentModal] = useState(false);
 
   const showOneTap = useCallback(async function (
     settings: AuthUiRuntimeSettings
@@ -211,8 +199,6 @@ export const PublicAppProvider = ({
       value={{
         isShowSignModal,
         setIsShowSignModal,
-        isShowPaymentModal,
-        setIsShowPaymentModal,
         uiConfig,
         authSettings,
         billingSettings,

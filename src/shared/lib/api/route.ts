@@ -4,7 +4,11 @@
  * - Throw `ApiError` (or subclasses) for consistent `{code,message,data}` responses with HTTP status.
  */
 
-import { BusinessError, ExternalError } from '@/shared/lib/errors';
+import {
+  BusinessError,
+  ExternalError,
+  getInternalErrorMeta,
+} from '@/shared/lib/errors';
 
 import { ApiError } from './errors';
 import { jsonErr } from './response';
@@ -23,10 +27,34 @@ type RequestLoggerLike = {
 };
 
 const fallbackLog: LogLike = {
-  debug: () => undefined,
-  info: () => undefined,
-  warn: () => undefined,
-  error: () => undefined,
+  debug: (message, meta) => {
+    if (meta === undefined) {
+      console.debug(message);
+      return;
+    }
+    console.debug(message, meta);
+  },
+  info: (message, meta) => {
+    if (meta === undefined) {
+      console.info(message);
+      return;
+    }
+    console.info(message, meta);
+  },
+  warn: (message, meta) => {
+    if (meta === undefined) {
+      console.warn(message);
+      return;
+    }
+    console.warn(message, meta);
+  },
+  error: (message, meta) => {
+    if (meta === undefined) {
+      console.error(message);
+      return;
+    }
+    console.error(message, meta);
+  },
 };
 
 function createFallbackRequestLogger(request: Request): RequestLoggerLike {
@@ -104,6 +132,13 @@ export function withApi<Args extends ApiRouteHandlerArgs, R>(
           logHandledServerError(reqLogger, error, {
             status: error.status,
             kind: 'ApiError',
+            internalMeta: getInternalErrorMeta(error),
+          });
+        } else if (getInternalErrorMeta(error) !== undefined) {
+          reqLogger?.log.info('[api] handled business error', {
+            status: error.status,
+            kind: 'ApiError',
+            internalMeta: getInternalErrorMeta(error),
           });
         }
         const response = jsonErr(error.status, error.publicMessage, error.data);

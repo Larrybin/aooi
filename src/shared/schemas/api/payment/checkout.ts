@@ -18,8 +18,7 @@ export const PaymentCheckoutBodySchema = z.object({
       message: 'unsupported locale',
     })
     .optional(),
-  payment_provider: z.string().min(1).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-});
+}).strict();
 
 export type PaymentCheckoutBody = z.infer<typeof PaymentCheckoutBodySchema>;

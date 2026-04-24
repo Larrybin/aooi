@@ -142,7 +142,6 @@ export async function confirmPaymentCallbackUseCase(
     bindings,
   });
   const session: PaymentSession = await paymentService.getPaymentSession({
-    provider: order.paymentProvider,
     sessionId: order.paymentSessionId,
   });
 

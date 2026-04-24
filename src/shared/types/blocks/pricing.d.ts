@@ -16,7 +16,6 @@ export interface PricingCurrency {
   price: string; // price text
   original_price: string; // original price text
   payment_product_id?: string;
-  payment_providers?: string[];
 }
 
 export interface PricingItem {
@@ -39,7 +38,6 @@ export interface PricingItem {
   interval: PaymentInterval;
   product_id: string;
   payment_product_id?: string;
-  payment_providers?: string[];
   product_name?: string;
   plan_name?: string;
 
