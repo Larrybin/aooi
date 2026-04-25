@@ -19,6 +19,32 @@ export const CLOUDFLARE_WORKER_SCOPES = Object.freeze({
   all: CLOUDFLARE_ALL_WORKER_SCOPE,
 });
 
+export const CLOUDFLARE_SECRET_WORKER_ALLOWLIST = Object.freeze({
+  BETTER_AUTH_SECRET: [
+    'auth',
+    'payment',
+    'member',
+    'chat',
+    'admin',
+    'public-web',
+  ],
+  AUTH_SECRET: ['auth', 'payment', 'member', 'chat', 'admin', 'public-web'],
+  GOOGLE_CLIENT_ID: ['auth'],
+  GOOGLE_CLIENT_SECRET: ['auth'],
+  GITHUB_CLIENT_ID: ['auth'],
+  GITHUB_CLIENT_SECRET: ['auth'],
+  RESEND_API_KEY: ['auth', 'admin'],
+  STRIPE_PUBLISHABLE_KEY: ['payment', 'member'],
+  STRIPE_SECRET_KEY: ['payment', 'member'],
+  STRIPE_SIGNING_SECRET: ['payment', 'member'],
+  CREEM_API_KEY: ['payment', 'member'],
+  CREEM_SIGNING_SECRET: ['payment', 'member'],
+  PAYPAL_CLIENT_ID: ['payment', 'member'],
+  PAYPAL_CLIENT_SECRET: ['payment', 'member'],
+  PAYPAL_WEBHOOK_ID: ['payment', 'member'],
+  OPENROUTER_API_KEY: ['chat'],
+});
+
 const ALLOWED_WORKER_KEYS = new Set(CLOUDFLARE_ALL_WORKER_SCOPE);
 const SERVER_RUNTIME_WORKER_KEYS = Object.freeze([
   'public-web',
@@ -38,6 +64,21 @@ function formatAllowedWorkerKeys() {
 
 function pushRequirement(list, requirement) {
   list.push(requirement);
+}
+
+function assertSecretWorkerAllowed(name, workers) {
+  const allowedWorkers = CLOUDFLARE_SECRET_WORKER_ALLOWLIST[name];
+  if (!allowedWorkers) {
+    throw new Error(`Missing Cloudflare secret worker allowlist for ${name}`);
+  }
+
+  for (const worker of workers) {
+    if (!allowedWorkers.includes(worker)) {
+      throw new Error(
+        `Cloudflare secret ${name} is not allowed for worker ${worker}; update CLOUDFLARE_SECRET_WORKER_ALLOWLIST explicitly`
+      );
+    }
+  }
 }
 
 function buildRequirementSignature(workerKey, requirement) {
@@ -89,6 +130,7 @@ function buildDeploySecretRequirementMap(contract) {
 
   if (secrets.googleOauth) {
     for (const name of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
+      assertSecretWorkerAllowed(name, ['auth']);
       pushRequirement(requirements.get('auth'), {
         kind: 'runtime-secret',
         worker: 'auth',
@@ -101,6 +143,7 @@ function buildDeploySecretRequirementMap(contract) {
 
   if (secrets.githubOauth) {
     for (const name of ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']) {
+      assertSecretWorkerAllowed(name, ['auth']);
       pushRequirement(requirements.get('auth'), {
         kind: 'runtime-secret',
         worker: 'auth',
@@ -111,7 +154,23 @@ function buildDeploySecretRequirementMap(contract) {
     }
   }
 
+  if (secrets.emailProvider) {
+    assertSecretWorkerAllowed('RESEND_API_KEY', ['auth', 'admin']);
+    for (const worker of ['auth', 'admin']) {
+      pushRequirement(requirements.get(worker), {
+        kind: 'runtime-secret',
+        worker,
+        name: 'RESEND_API_KEY',
+        requirement: 'emailProvider',
+        capability: 'Email delivery provider',
+      });
+    }
+  }
+
   if (payment.provider === 'stripe') {
+    assertSecretWorkerAllowed('STRIPE_PUBLISHABLE_KEY', ['payment', 'member']);
+    assertSecretWorkerAllowed('STRIPE_SECRET_KEY', ['payment', 'member']);
+    assertSecretWorkerAllowed('STRIPE_SIGNING_SECRET', ['payment', 'member']);
     for (const worker of ['payment', 'member']) {
       for (const name of [
         'STRIPE_PUBLISHABLE_KEY',
@@ -130,6 +189,8 @@ function buildDeploySecretRequirementMap(contract) {
   }
 
   if (payment.provider === 'creem') {
+    assertSecretWorkerAllowed('CREEM_API_KEY', ['payment', 'member']);
+    assertSecretWorkerAllowed('CREEM_SIGNING_SECRET', ['payment', 'member']);
     for (const worker of ['payment', 'member']) {
       for (const name of ['CREEM_API_KEY', 'CREEM_SIGNING_SECRET']) {
         pushRequirement(requirements.get(worker), {
@@ -144,6 +205,9 @@ function buildDeploySecretRequirementMap(contract) {
   }
 
   if (payment.provider === 'paypal') {
+    assertSecretWorkerAllowed('PAYPAL_CLIENT_ID', ['payment', 'member']);
+    assertSecretWorkerAllowed('PAYPAL_CLIENT_SECRET', ['payment', 'member']);
+    assertSecretWorkerAllowed('PAYPAL_WEBHOOK_ID', ['payment', 'member']);
     for (const worker of ['payment', 'member']) {
       for (const name of [
         'PAYPAL_CLIENT_ID',
@@ -162,6 +226,7 @@ function buildDeploySecretRequirementMap(contract) {
   }
 
   if (secrets.openrouter) {
+    assertSecretWorkerAllowed('OPENROUTER_API_KEY', ['chat']);
     pushRequirement(requirements.get('chat'), {
       kind: 'runtime-secret',
       worker: 'chat',

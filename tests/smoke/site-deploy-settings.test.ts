@@ -15,6 +15,7 @@ test('site deploy settings 读取当前闭合 manifest', () => {
 
   assert.equal(settings.configVersion, 1);
   assert.equal(settings.bindingRequirements.secrets.authSharedSecret, true);
+  assert.equal(settings.bindingRequirements.secrets.emailProvider, true);
   assert.equal(settings.workers.router, 'roller-rabbit');
   assert.equal(settings.state.schemaVersion, 1);
 });
@@ -35,6 +36,7 @@ test('site deploy settings 拒绝未知嵌套字段', () => {
               authSharedSecret: true,
               googleOauth: false,
               githubOauth: false,
+              emailProvider: true,
               openrouter: false,
               extraSecret: false,
             },
@@ -83,6 +85,7 @@ test('site deploy settings 不再接受 payment provider deploy requirement 双�
               authSharedSecret: true,
               googleOauth: false,
               githubOauth: false,
+              emailProvider: true,
               stripe: true,
               openrouter: false,
             },
@@ -131,6 +134,7 @@ test('site deploy settings 保留 ai 重叠语义一致性校验', () => {
               authSharedSecret: true,
               googleOauth: false,
               githubOauth: false,
+              emailProvider: true,
               openrouter: true,
             },
             vars: {
@@ -162,7 +166,7 @@ test('site deploy settings 保留 ai 重叠语义一致性校验', () => {
   );
 });
 
-test('site deploy settings 不再把 auth/docs/blog 拓扑政策塞进 cross-contract validator', () => {
+test('site deploy settings 对 auth/emailProvider 重叠语义保持一致性校验', () => {
   const currentSiteConfig = readCurrentSiteConfig({
     rootDir: process.cwd(),
     siteKey: 'mamamiya',
@@ -177,41 +181,44 @@ test('site deploy settings 不再把 auth/docs/blog 拓扑政策塞进 cross-con
     },
   };
 
-  assert.doesNotThrow(() =>
-    validateSiteDeploySettings(
-      {
-        configVersion: 1,
-        bindingRequirements: {
-          secrets: {
-            authSharedSecret: true,
-            googleOauth: false,
-            githubOauth: false,
-            openrouter: false,
+  assert.throws(
+    () =>
+      validateSiteDeploySettings(
+        {
+          configVersion: 1,
+          bindingRequirements: {
+            secrets: {
+              authSharedSecret: true,
+              googleOauth: false,
+              githubOauth: false,
+              emailProvider: true,
+              openrouter: false,
+            },
+            vars: {
+              storagePublicBaseUrl: true,
+            },
           },
-          vars: {
-            storagePublicBaseUrl: true,
+          workers: {
+            router: 'worker-router',
+            state: 'worker-state',
+            'public-web': 'worker-public-web',
+            auth: 'worker-auth',
+            payment: 'worker-payment',
+            member: 'worker-member',
+            chat: 'worker-chat',
+            admin: 'worker-admin',
+          },
+          resources: {
+            incrementalCacheBucket: 'bucket-a',
+            appStorageBucket: 'bucket-b',
+            hyperdriveId: 'd208cd72765b46a7b0849fc687e2fb61',
+          },
+          state: {
+            schemaVersion: 1,
           },
         },
-        workers: {
-          router: 'worker-router',
-          state: 'worker-state',
-          'public-web': 'worker-public-web',
-          auth: 'worker-auth',
-          payment: 'worker-payment',
-          member: 'worker-member',
-          chat: 'worker-chat',
-          admin: 'worker-admin',
-        },
-        resources: {
-          incrementalCacheBucket: 'bucket-a',
-          appStorageBucket: 'bucket-b',
-          hyperdriveId: 'd208cd72765b46a7b0849fc687e2fb61',
-        },
-        state: {
-          schemaVersion: 1,
-        },
-      },
-      { siteConfig }
-    )
+        { siteConfig }
+      ),
+    /auth=false forbids emailProvider/i
   );
 });

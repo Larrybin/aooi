@@ -31,6 +31,7 @@ export const CLOUDFLARE_SECRET_REQUIREMENT_KEYS = Object.freeze([
   'authSharedSecret',
   'googleOauth',
   'githubOauth',
+  'emailProvider',
   'openrouter',
 ]);
 
@@ -230,6 +231,18 @@ function assertCrossContractConsistency(siteConfig, deploySettings) {
   if (!siteConfig.capabilities.ai && secrets.openrouter) {
     throw new Error(
       'site.config.json and deploy.settings.json are inconsistent: ai=false forbids openrouter deploy requirement'
+    );
+  }
+
+  if (siteConfig.capabilities.auth && !secrets.emailProvider) {
+    throw new Error(
+      'site.config.json and deploy.settings.json are inconsistent: auth=true requires emailProvider deploy requirement'
+    );
+  }
+
+  if (!siteConfig.capabilities.auth && secrets.emailProvider) {
+    throw new Error(
+      'site.config.json and deploy.settings.json are inconsistent: auth=false forbids emailProvider deploy requirement'
     );
   }
 }

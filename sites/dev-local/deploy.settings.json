@@ -5,6 +5,7 @@
       "authSharedSecret": true,
       "googleOauth": false,
       "githubOauth": false,
+      "emailProvider": true,
       "openrouter": false
     },
     "vars": {

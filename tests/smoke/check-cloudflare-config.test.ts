@@ -22,6 +22,7 @@ const requiredSecretEnvNames = [
   'GOOGLE_CLIENT_SECRET',
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
+  'RESEND_API_KEY',
   'STRIPE_PUBLISHABLE_KEY',
   'STRIPE_SECRET_KEY',
   'STRIPE_SIGNING_SECRET',
@@ -206,6 +207,7 @@ test('cf:check 在仅设置 BETTER_AUTH_SECRET 时通过 auth shared secret requ
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
+        RESEND_API_KEY: 'resend-key',
       },
     });
 
@@ -224,10 +226,32 @@ test('cf:check 在仅设置 AUTH_SECRET 时通过 auth shared secret requirement
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         AUTH_SECRET: 'auth-secret',
+        RESEND_API_KEY: 'resend-key',
       },
     });
 
     assert.equal(result.ok, true, result.stderr);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 在 auth/admin worker 缺 RESEND_API_KEY 时直接失败', async () => {
+  const fixture = await withFixture();
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=auth'],
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /RESEND_API_KEY/);
+    assert.match(result.stderr, /Email delivery provider/i);
   } finally {
     await fixture.cleanup();
   }
@@ -382,6 +406,7 @@ test('cf:check 在默认禁用 provider 时只要求 server runtime auth secret�
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
+        RESEND_API_KEY: 'resend-key',
       },
     });
 
@@ -414,6 +439,7 @@ test('cf:check 仅对已启用 auth provider 要求对应 bindings', async () =>
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
+        RESEND_API_KEY: 'resend-key',
         GITHUB_CLIENT_ID: 'github-client-id',
         GITHUB_CLIENT_SECRET: 'github-client-secret',
       },
@@ -469,6 +495,7 @@ test('cf:check 在 chat worker 场景只要求 OPENROUTER_API_KEY', async () => 
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
+        RESEND_API_KEY: 'resend-key',
         OPENROUTER_API_KEY: 'openrouter-key',
       },
     });
@@ -521,6 +548,7 @@ test('cf:check 已启用能力缺 bindings 时给出 setting -> binding 错误',
       env: {
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
+        RESEND_API_KEY: 'resend-key',
       },
     });
 
@@ -589,7 +617,10 @@ test('cf:check active payment provider 缺 secret 时带环境上下文并直接
     });
 
     assert.equal(result.ok, false);
-    assert.match(result.stderr, /STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_SIGNING_SECRET/);
+    assert.match(
+      result.stderr,
+      /STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_SIGNING_SECRET/
+    );
     assert.match(result.stderr, /SITE=mamamiya/);
     assert.match(result.stderr, /NODE_ENV=production/);
     assert.match(result.stderr, /DEPLOY_TARGET=cloudflare/);

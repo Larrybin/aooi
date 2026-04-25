@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 
-import cloudflareWorkerTopology from '../../src/shared/config/cloudflare-worker-topology.ts';
 import * as paymentCapabilityNamespace from '../../src/config/payment-capability.ts';
+import cloudflareWorkerTopology from '../../src/shared/config/cloudflare-worker-topology.ts';
 import {
   readCurrentSiteConfig,
   resolveRequiredSiteKey,
@@ -91,6 +91,9 @@ function buildDerivedBindingRequirements(site) {
   const requiresPaymentSecrets = paymentHealth.provider !== null;
 
   return {
+    secrets: {
+      emailProvider: site.capabilities.auth,
+    },
     payment: {
       capability: paymentCapability,
       provider: paymentHealth.provider,
@@ -204,7 +207,11 @@ export function resolveSiteDeployContractFromSources({
     },
     bindingRequirements: {
       ...deploySettings.bindingRequirements,
-      ...derivedBindingRequirements,
+      secrets: {
+        ...deploySettings.bindingRequirements.secrets,
+        ...derivedBindingRequirements.secrets,
+      },
+      payment: derivedBindingRequirements.payment,
     },
     workers: deploySettings.workers,
     resources: deploySettings.resources,

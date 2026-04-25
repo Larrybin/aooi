@@ -34,6 +34,7 @@ test('buildCloudflareSecretsEnv 只输出白名单 secret，并为缺失项补�
   const content = buildCloudflareSecretsEnv(
     {
       BETTER_AUTH_SECRET: 'better-secret',
+      RESEND_API_KEY: 'resend-key',
       OTHER_SECRET: 'ignored',
       SITE: 'mamamiya',
     },
@@ -44,9 +45,12 @@ test('buildCloudflareSecretsEnv 只输出白名单 secret，并为缺失项补�
 
   assert.equal(
     content,
-    ['BETTER_AUTH_SECRET=better-secret', 'AUTH_SECRET=better-secret', ''].join(
-      '\n'
-    )
+    [
+      'BETTER_AUTH_SECRET=better-secret',
+      'AUTH_SECRET=better-secret',
+      'RESEND_API_KEY=resend-key',
+      '',
+    ].join('\n')
   );
 });
 
@@ -54,6 +58,7 @@ test('buildCloudflareSecretsEnv 仅提供 AUTH_SECRET 时仍双写输出 auth sh
   const content = buildCloudflareSecretsEnv(
     {
       AUTH_SECRET: 'auth-secret',
+      RESEND_API_KEY: 'resend-key',
       SITE: 'mamamiya',
     },
     {
@@ -63,7 +68,12 @@ test('buildCloudflareSecretsEnv 仅提供 AUTH_SECRET 时仍双写输出 auth sh
 
   assert.equal(
     content,
-    ['BETTER_AUTH_SECRET=auth-secret', 'AUTH_SECRET=auth-secret', ''].join('\n')
+    [
+      'BETTER_AUTH_SECRET=auth-secret',
+      'AUTH_SECRET=auth-secret',
+      'RESEND_API_KEY=resend-key',
+      '',
+    ].join('\n')
   );
 });
 
@@ -106,10 +116,42 @@ test('buildCloudflareSecretsEnv 在 server worker 缺少 auth secret 时失败',
   );
 });
 
+test('buildCloudflareSecretsEnv 在 auth/admin worker 缺少 RESEND_API_KEY 时失败', () => {
+  assert.throws(
+    () =>
+      buildCloudflareSecretsEnv(
+        {
+          SITE: 'mamamiya',
+          BETTER_AUTH_SECRET: 'better-secret',
+        },
+        {
+          workerKeys: ['auth'],
+        }
+      ),
+    /RESEND_API_KEY is required/
+  );
+});
+
+test('buildCloudflareSecretsEnv 不会把 RESEND_API_KEY 扩散到非 allowlist worker', () => {
+  const content = buildCloudflareSecretsEnv(
+    {
+      SITE: 'mamamiya',
+      BETTER_AUTH_SECRET: 'better-secret',
+      RESEND_API_KEY: 'resend-key',
+    },
+    {
+      workerKeys: ['payment'],
+    }
+  );
+
+  assert.doesNotMatch(content, /RESEND_API_KEY=/);
+});
+
 test('buildCloudflareSecretsEnv 仅输出当前启用能力所需 secrets', () => {
   const content = buildCloudflareSecretsEnv(
     {
       BETTER_AUTH_SECRET: 'better-secret',
+      RESEND_API_KEY: 'resend-key',
       SITE: 'mamamiya',
       GOOGLE_CLIENT_ID: 'google-id',
       GOOGLE_CLIENT_SECRET: 'google-secret',
@@ -198,6 +240,7 @@ test('buildCloudflareSecretsEnv 按 deploy.settings.json 与 workerKeys 限定 s
       const content = buildCloudflareSecretsEnv(
         {
           BETTER_AUTH_SECRET: 'better-secret',
+          RESEND_API_KEY: 'resend-key',
           SITE: 'mamamiya',
           GOOGLE_CLIENT_ID: 'google-id',
           GOOGLE_CLIENT_SECRET: 'google-secret',
