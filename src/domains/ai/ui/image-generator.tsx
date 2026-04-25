@@ -2,9 +2,12 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import {
-  useAiGenerationController,
-  type AIGenerationTaskAdapter,
-} from '@/domains/ai/ui/use-ai-generation-controller';
+  buildAIGenerationControllerMessages,
+  buildAIGenerationSelectState,
+  createImageGenerationTaskAdapter,
+  type GeneratedImage,
+} from '@/domains/ai/ui/media-generation';
+import { useAiGenerationController } from '@/domains/ai/ui/use-ai-generation-controller';
 import { Link } from '@/infra/platform/i18n/navigation';
 import {
   CreditCard,
@@ -49,52 +52,7 @@ interface ImageGeneratorProps {
   srOnlyTitle?: string;
 }
 
-interface GeneratedImage {
-  id: string;
-  url: string;
-  provider?: string;
-  model?: string;
-  prompt?: string;
-}
-
 const MAX_PROMPT_LENGTH = 2000;
-
-interface ImageTaskResult extends Record<string, unknown> {
-  images?: Array<
-    | {
-        imageUrl?: string;
-        url?: string;
-      }
-    | string
-    | null
-    | undefined
-  >;
-  errorMessage?: string;
-  errorCode?: string;
-  status?: string;
-}
-
-type BackendTaskInfo = ImageTaskResult;
-
-function extractImageUrlsFromTaskInfo(
-  taskInfo: BackendTaskInfo | null
-): string[] {
-  if (!taskInfo?.images || !Array.isArray(taskInfo.images)) {
-    return [];
-  }
-
-  return taskInfo.images
-    .map((image) => {
-      if (!image) return undefined;
-      if (typeof image === 'string') return image;
-      if (typeof image === 'object') {
-        if (typeof image.imageUrl === 'string') return image.imageUrl;
-        if (typeof image.url === 'string') return image.url;
-      }
-      return undefined;
-    })
-    .filter((url): url is string => Boolean(url));
-}
 
 export function ImageGenerator({
   allowMultipleImages = true,
@@ -112,65 +70,38 @@ export function ImageGenerator({
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const { downloadingId: downloadingImageId, downloadBlob } = useBlobDownload();
 
-  const imageTaskAdapter = useMemo<
-    AIGenerationTaskAdapter<BackendTaskInfo | null>
-  >(
-    () => ({
-      initialProgress: 15,
-      pollIntervalMs: 5000,
-      timeoutMs: 180000,
-      parsePollingPayload: (task) => task.taskInfo as BackendTaskInfo | null,
-      onStart: () => {
-        setGeneratedImages([]);
-      },
-      handlePending: ({ helpers: { setProgress } }) => {
-        setProgress((prev) => Math.max(prev, 20));
-      },
-      handleProcessing: ({ task, payload, helpers: { setProgress } }) => {
-        const imageUrls = extractImageUrlsFromTaskInfo(payload);
-
-        if (imageUrls.length > 0) {
-          setGeneratedImages(
-            imageUrls.map((url, index) => ({
-              id: `${task.id}-${index}`,
-              url,
-              provider: task.provider,
-              model: task.model ?? undefined,
-              prompt: task.prompt ?? undefined,
-            }))
-          );
-          setProgress((prev) => Math.max(prev, 85));
-          return;
-        }
-
-        setProgress((prev) => Math.min(prev + 10, 80));
-      },
-      handleSuccess: ({ task, payload }) => {
-        const imageUrls = extractImageUrlsFromTaskInfo(payload);
-
-        if (imageUrls.length === 0) {
+  const imageTaskAdapter = useMemo(
+    () =>
+      createImageGenerationTaskAdapter({
+        clearGeneratedImages: () => {
+          setGeneratedImages([]);
+        },
+        setGeneratedImages,
+        onEmptySuccess: () => {
           toast.error(t('errors.no_images_returned'));
-          return;
-        }
+        },
+        onSuccess: () => {
+          toast.success(t('messages.generated_success'));
+        },
+        failedFallbackMessage: t('errors.generate_failed'),
+      }),
+    [t]
+  );
 
-        setGeneratedImages(
-          imageUrls.map((url, index) => ({
-            id: `${task.id}-${index}`,
-            url,
-            provider: task.provider,
-            model: task.model ?? undefined,
-            prompt: task.prompt ?? undefined,
-          }))
-        );
-        toast.success(t('messages.generated_success'));
-      },
-      handleFailed: ({ payload }) => {
-        const errorMessage = payload?.errorMessage;
-        return typeof errorMessage === 'string' && errorMessage.trim()
-          ? errorMessage
-          : t('errors.generate_failed');
-      },
-    }),
+  const controllerMessages = useMemo(
+    () =>
+      buildAIGenerationControllerMessages({
+        invalidProviderOrModel: t('errors.invalid_provider_or_model'),
+        insufficientCredits: t('errors.insufficient_credits'),
+        createTaskFailed: t('errors.create_task_failed'),
+        queryTaskFailed: t('errors.query_task_failed'),
+        timeout: t('errors.timeout'),
+        unknownError: t('errors.unknown_error'),
+        createTaskFailedWithReason: (reason) =>
+          t('errors.generate_failed_with_reason', { reason }),
+        queryTaskFailedWithReason: (reason) =>
+          t('errors.query_task_failed_with_reason', { reason }),
+      }),
     [t]
   );
 
@@ -216,21 +147,7 @@ export function ImageGenerator({
       };
     },
     adapter: imageTaskAdapter,
-    messages: {
-      loadAccountDetailsFailed: 'Failed to load account details',
-      refreshAccountDetailsFailed: 'Failed to refresh account details',
-      loadCapabilitiesFailed: 'Failed to load AI capabilities',
-      invalidProviderOrModel: t('errors.invalid_provider_or_model'),
-      insufficientCredits: t('errors.insufficient_credits'),
-      createTaskFailed: t('errors.create_task_failed'),
-      queryTaskFailed: t('errors.query_task_failed'),
-      timeout: t('errors.timeout'),
-      unknownError: t('errors.unknown_error'),
-      createTaskFailedWithReason: (reason) =>
-        t('errors.generate_failed_with_reason', { reason }),
-      queryTaskFailedWithReason: (reason) =>
-        t('errors.query_task_failed_with_reason', { reason }),
-    },
+    messages: controllerMessages,
   });
 
   const promptLength = prompt.trim().length;
@@ -242,36 +159,10 @@ export function ImageGenerator({
       ? t('errors.invalid_provider_or_model')
       : null);
 
-  const providerOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        capabilities
-          .filter((capability) => capability.scene === scene)
-          .map((capability) => capability.provider)
-      )
-    ).map((value) => ({
-      value,
-      label: value,
-    }));
-  }, [capabilities, scene]);
-
-  const modelOptions = useMemo(() => {
-    return capabilities
-      .filter(
-        (capability) =>
-          capability.scene === scene && capability.provider === provider
-      )
-      .map((capability) => ({
-        value: capability.model,
-        label: capability.label,
-      }));
-  }, [capabilities, provider, scene]);
-
-  const sceneOptions = useMemo(() => {
-    return Array.from(
-      new Set(capabilities.map((capability) => capability.scene))
-    );
-  }, [capabilities]);
+  const { sceneOptions, providerOptions, modelOptions } = useMemo(
+    () => buildAIGenerationSelectState(capabilities, scene, provider),
+    [capabilities, provider, scene]
+  );
 
   const handleTabChange = useCallback(
     (value: string) => {

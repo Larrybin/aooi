@@ -3,9 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
-  useAiGenerationController,
-  type AIGenerationTaskAdapter,
-} from '@/domains/ai/ui/use-ai-generation-controller';
+  buildAIGenerationControllerMessages,
+  buildAIGenerationSelectState,
+  createMusicGenerationTaskAdapter,
+  type GeneratedSong,
+} from '@/domains/ai/ui/media-generation';
+import { useAiGenerationController } from '@/domains/ai/ui/use-ai-generation-controller';
 import { Link } from '@/infra/platform/i18n/navigation';
 import {
   CheckCircle,
@@ -21,7 +24,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { AIMediaType, type AISong } from '@/extensions/ai';
+import { AIMediaType } from '@/extensions/ai';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -44,18 +47,6 @@ import { Switch } from '@/shared/components/ui/switch';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { useBlobDownload } from '@/shared/hooks/use-blob-download';
 import { cn } from '@/shared/lib/utils';
-
-interface GeneratedSong {
-  id: string;
-  title: string;
-  duration: number;
-  audioUrl: string;
-  imageUrl?: string;
-  artist: string;
-  style: string;
-  status: string;
-  prompt?: string;
-}
 
 interface SongGeneratorProps {
   srOnlyTitle?: string;
@@ -98,91 +89,35 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
     };
   }, []);
 
-  type MusicTaskInfo = Record<string, unknown> & {
-    songs?: AISong[];
-    errorMessage?: string;
-  };
+  const songTaskAdapter = useMemo(
+    () =>
+      createMusicGenerationTaskAdapter({
+        clearGeneratedSongs: () => {
+          setGeneratedSongs([]);
+          setCurrentPlayingSong(null);
+        },
+        setGeneratedSongs,
+        formatFailedReason: (reason) =>
+          t('generator.errors.generate_failed_with_reason', { reason }),
+        unknownErrorMessage: t('generator.errors.unknown_error'),
+      }),
+    [t]
+  );
 
-  const songTaskAdapter = useMemo<
-    AIGenerationTaskAdapter<MusicTaskInfo | null>
-  >(
-    () => ({
-      initialProgress: 10,
-      pollIntervalMs: 10000,
-      timeoutMs: 180000,
-      parsePollingPayload: (task) => task.taskInfo as MusicTaskInfo,
-      onStart: () => {
-        setGeneratedSongs([]);
-        setCurrentPlayingSong(null);
-      },
-      handlePending: ({ helpers: { setProgress } }) => {
-        setProgress(10);
-      },
-      handleProcessing: ({ payload, helpers: { setProgress } }) => {
-        const songs = Array.isArray(payload?.songs) ? payload.songs : [];
-
-        if (songs.length === 0) {
-          setProgress((prev) => Math.min(prev + 3, 80));
-          return;
-        }
-
-        const nextSongs = songs.map(
-          (song): GeneratedSong => ({
-            id: song.id ?? '',
-            title: song.title ?? '',
-            duration: song.duration,
-            audioUrl: song.audioUrl,
-            imageUrl: song.imageUrl ?? '',
-            artist: song.artist ?? '',
-            style: song.style ?? '',
-            status: '',
-            prompt: song.prompt,
-          })
-        );
-
-        setGeneratedSongs(nextSongs);
-
-        if (songs.some((song) => !!song.audioUrl)) {
-          setProgress(85);
-          return;
-        }
-
-        if (songs.some((song) => !!song.imageUrl)) {
-          setProgress(60);
-          return;
-        }
-
-        setProgress(20);
-      },
-      handleSuccess: ({ payload }) => {
-        const songs = Array.isArray(payload?.songs) ? payload.songs : [];
-
-        setGeneratedSongs(
-          songs.map(
-            (song): GeneratedSong => ({
-              id: song.id ?? '',
-              title: song.title ?? '',
-              duration: song.duration,
-              audioUrl: song.audioUrl,
-              imageUrl: song.imageUrl ?? '',
-              artist: song.artist ?? '',
-              style: song.style ?? '',
-              status: '',
-              prompt: song.prompt,
-            })
-          )
-        );
-      },
-      handleFailed: ({ payload }) => {
-        const errorMessage = payload?.errorMessage;
-        return t('generator.errors.generate_failed_with_reason', {
-          reason:
-            typeof errorMessage === 'string' && errorMessage.trim()
-              ? errorMessage
-              : t('generator.errors.unknown_error'),
-        });
-      },
-    }),
+  const controllerMessages = useMemo(
+    () =>
+      buildAIGenerationControllerMessages({
+        invalidProviderOrModel: t('generator.errors.invalid_provider_or_model'),
+        insufficientCredits: t('generator.errors.insufficient_credits'),
+        createTaskFailed: t('generator.errors.create_task_failed'),
+        queryTaskFailed: t('generator.errors.query_task_failed'),
+        timeout: t('generator.errors.timeout'),
+        unknownError: t('generator.errors.unknown_error'),
+        createTaskFailedWithReason: (reason) =>
+          t('generator.errors.generate_failed_with_reason', { reason }),
+        queryTaskFailedWithReason: (reason) =>
+          t('generator.errors.create_song_failed_with_reason', { reason }),
+      }),
     [t]
   );
 
@@ -224,47 +159,13 @@ export function MusicGenerator({ className, srOnlyTitle }: SongGeneratorProps) {
       options: formState.options,
     }),
     adapter: songTaskAdapter,
-    messages: {
-      loadAccountDetailsFailed: 'Failed to load account details',
-      refreshAccountDetailsFailed: 'Failed to refresh account details',
-      loadCapabilitiesFailed: 'Failed to load AI capabilities',
-      invalidProviderOrModel: t('generator.errors.invalid_provider_or_model'),
-      insufficientCredits: t('generator.errors.insufficient_credits'),
-      createTaskFailed: t('generator.errors.create_task_failed'),
-      queryTaskFailed: t('generator.errors.query_task_failed'),
-      timeout: t('generator.errors.timeout'),
-      unknownError: t('generator.errors.unknown_error'),
-      createTaskFailedWithReason: (reason) =>
-        t('generator.errors.generate_failed_with_reason', { reason }),
-      queryTaskFailedWithReason: (reason) =>
-        t('generator.errors.create_song_failed_with_reason', { reason }),
-    },
+    messages: controllerMessages,
   });
 
-  const modelOptions = useMemo(() => {
-    return capabilities
-      .filter(
-        (capability) =>
-          capability.scene === scene && capability.provider === provider
-      )
-      .map((capability) => ({
-        value: capability.model,
-        label: capability.label,
-      }));
-  }, [capabilities, provider, scene]);
-
-  const providerOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        capabilities
-          .filter((capability) => capability.scene === scene)
-          .map((capability) => capability.provider)
-      )
-    ).map((value) => ({
-      value,
-      label: value,
-    }));
-  }, [capabilities, scene]);
+  const { providerOptions, modelOptions } = useMemo(
+    () => buildAIGenerationSelectState(capabilities, scene, provider),
+    [capabilities, provider, scene]
+  );
 
   const effectiveCapabilityErrorMessage =
     capabilityErrorMessage ||
