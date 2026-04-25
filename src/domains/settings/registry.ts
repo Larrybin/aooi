@@ -1,5 +1,3 @@
-import { getTranslations } from 'next-intl/server';
-
 import { adsSettings } from './definitions/ads';
 import { affiliateSettings } from './definitions/affiliate';
 import { aiSettings } from './definitions/ai';
@@ -112,6 +110,10 @@ export const AUTH_RUNTIME_SETTING_KEYS = Object.freeze({
   githubAuthEnabled: 'github_auth_enabled',
 } as const);
 
+export const EMAIL_RUNTIME_SETTING_KEYS = Object.freeze({
+  resendSenderEmail: 'resend_sender_email',
+} as const);
+
 export const BILLING_RUNTIME_SETTING_KEYS = Object.freeze({
   locale: 'locale',
   defaultLocale: 'default_locale',
@@ -123,6 +125,46 @@ export const BILLING_RUNTIME_SETTING_KEYS = Object.freeze({
 
 export const AI_RUNTIME_SETTING_KEYS = Object.freeze({
   aiEnabled: 'general_ai_enabled',
+} as const);
+
+export const ANALYTICS_RUNTIME_SETTING_KEYS = Object.freeze({
+  googleAnalyticsId: 'google_analytics_id',
+  clarityId: 'clarity_id',
+  plausibleDomain: 'plausible_domain',
+  plausibleSrc: 'plausible_src',
+  openpanelClientId: 'openpanel_client_id',
+} as const);
+
+export const AFFILIATE_RUNTIME_SETTING_KEYS = Object.freeze({
+  affonsoEnabled: 'affonso_enabled',
+  affonsoId: 'affonso_id',
+  affonsoCookieDuration: 'affonso_cookie_duration',
+  promotekitEnabled: 'promotekit_enabled',
+  promotekitId: 'promotekit_id',
+} as const);
+
+export const CUSTOMER_SERVICE_RUNTIME_SETTING_KEYS = Object.freeze({
+  crispEnabled: 'crisp_enabled',
+  crispWebsiteId: 'crisp_website_id',
+  tawkEnabled: 'tawk_enabled',
+  tawkPropertyId: 'tawk_property_id',
+  tawkWidgetId: 'tawk_widget_id',
+} as const);
+
+export const ADS_RUNTIME_SETTING_KEYS = Object.freeze({
+  adsEnabled: 'ads_enabled',
+  adsProvider: 'ads_provider',
+  adsenseClientId: 'adsense_client_id',
+  adsenseSlotLandingInlinePrimary: 'adsense_slot_landing_inline_primary',
+  adsenseSlotBlogPostInline: 'adsense_slot_blog_post_inline',
+  adsenseSlotBlogPostFooter: 'adsense_slot_blog_post_footer',
+  adsterraMode: 'adsterra_mode',
+  adsterraGlobalSnippet: 'adsterra_global_snippet',
+  adsterraZoneLandingInlinePrimarySnippet:
+    'adsterra_zone_landing_inline_primary_snippet',
+  adsterraZoneBlogPostInlineSnippet: 'adsterra_zone_blog_post_inline_snippet',
+  adsterraZoneBlogPostFooterSnippet: 'adsterra_zone_blog_post_footer_snippet',
+  adsterraAdsTxtEntry: 'adsterra_ads_txt_entry',
 } as const);
 
 export const SETTING_DEFINITION_BY_NAME = derivedRegistry.byName as ReadonlyMap<
@@ -163,13 +205,7 @@ export function getSettingGroupsFromDefinitions(
 ): SettingGroup[] {
   return getSettingGroupsFromRegistry(translate).filter((group) =>
     settings.some(
-      (setting) =>
-        setting.group.id === group.name && setting.tab === group.tab
+      (setting) => setting.group.id === group.name && setting.tab === group.tab
     )
   );
-}
-
-export async function getSettingGroups() {
-  const t = await getTranslations('admin.settings');
-  return getSettingGroupsFromRegistry((key) => t(key));
 }

@@ -449,6 +449,52 @@ test('architecture: Batch 2 旧 facade 与旧 bag 输入必须保持归零', asy
   }
 });
 
+test('architecture: email provider 只能通过统一 service factory 构造', async () => {
+  const files = await readSourceFiles();
+
+  for (const file of files) {
+    if (isTestFile(file.repoPath)) continue;
+
+    assert.equal(
+      /\bcreateResendProvider\b/.test(file.content),
+      false,
+      `${file.repoPath} 不应暴露或调用 raw Resend provider factory`
+    );
+
+    if (!/\bnew\s+ResendProvider\b/.test(file.content)) continue;
+
+    assert.equal(
+      file.repoPath,
+      'src/infra/adapters/email/service.ts',
+      `${file.repoPath} 不应绕过 email service factory 构造 ResendProvider`
+    );
+  }
+});
+
+test('architecture: settings runtime query 只暴露 cached/fresh reader 与 bindings', async () => {
+  const files = await readSourceFiles();
+  const queryFile = files.find(
+    ({ repoPath }) =>
+      repoPath === 'src/domains/settings/application/settings-runtime.query.ts'
+  );
+
+  assert.ok(queryFile, 'settings-runtime.query.ts 应存在');
+
+  const exportedFunctions = [
+    ...queryFile.content.matchAll(/export\s+function\s+(\w+)\s*\(/g),
+    ...queryFile.content.matchAll(/export\s+async\s+function\s+(\w+)\s*\(/g),
+  ].map((match) => match[1]);
+
+  for (const name of exportedFunctions) {
+    assert.equal(
+      /^read[A-Z]\w+(?:Cached|Fresh)$/.test(name) ||
+        name === 'readEmailRuntimeBindings',
+      true,
+      `settings-runtime.query.ts 不应暴露第三种 reader 语义: ${name}`
+    );
+  }
+});
+
 test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP schema', async () => {
   const files = (await readSourceFiles()).filter(({ repoPath }) =>
     /^src\/domains\/[^/]+\/domain\//.test(repoPath)
@@ -576,6 +622,77 @@ test('architecture: settings 不拥有业务域实现', async () => {
   }
 });
 
+test('architecture: settings 内部边界保持单向且 index 仅做聚合导出', async () => {
+  const files = await readSourceFiles();
+  const settingsIndex = files.find(
+    ({ repoPath }) => repoPath === 'src/domains/settings/index.ts'
+  );
+  const settingsTabs = files.find(
+    ({ repoPath }) => repoPath === 'src/domains/settings/tabs.ts'
+  );
+  const settingsSiteAware = files.find(
+    ({ repoPath }) => repoPath === 'src/domains/settings/site-aware.ts'
+  );
+  const settingsRegistry = files.find(
+    ({ repoPath }) => repoPath === 'src/domains/settings/registry.ts'
+  );
+
+  assert.ok(settingsIndex, 'settings/index.ts 应存在');
+  assert.ok(settingsTabs, 'settings/tabs.ts 应存在');
+  assert.ok(settingsSiteAware, 'settings/site-aware.ts 应存在');
+  assert.ok(settingsRegistry, 'settings/registry.ts 应存在');
+
+  const indexImports = readImportSpecifiers(settingsIndex.content);
+  assert.equal(
+    /export\s+async\s+function|export\s+function/.test(settingsIndex.content),
+    false,
+    'settings/index.ts 只能做聚合导出，不应定义运行时函数'
+  );
+  assert.equal(
+    /^\s*import\s/m.test(settingsIndex.content),
+    false,
+    'settings/index.ts 不应通过 import 参与内部实现依赖'
+  );
+  assert.equal(
+    indexImports.every((specifier) =>
+      [
+        './registry',
+        './tabs',
+        './settings-form-mapper',
+        './settings-normalizers',
+        './types',
+      ]
+        .includes(specifier)
+    ),
+    true,
+    'settings/index.ts 只允许聚合导出受控子模块'
+  );
+
+  const tabsImports = readImportSpecifiers(settingsTabs.content);
+  assert.equal(
+    tabsImports.includes('./index'),
+    false,
+    'settings/tabs.ts 不得反向依赖 settings/index.ts'
+  );
+  assert.equal(
+    tabsImports.includes('@/domains/settings'),
+    false,
+    'settings/tabs.ts 不得依赖 settings barrel'
+  );
+
+  const registryImports = readImportSpecifiers(settingsRegistry.content);
+  assert.equal(
+    registryImports.includes('./site-aware'),
+    false,
+    'settings/registry.ts 不得反向依赖 site-aware'
+  );
+  assert.equal(
+    registryImports.includes('./index'),
+    false,
+    'settings/registry.ts 不得依赖 settings/index.ts'
+  );
+});
+
 test('architecture: settings-store 拥有 settings cache invalidation', async () => {
   const files = await readSourceFiles();
   const settingsStore = files.find(
@@ -667,6 +784,37 @@ test('architecture: admin app 入口必须 application-first', async () => {
         `${file.repoPath} 不应直连 ${specifier}`
       );
     }
+  }
+});
+
+test('architecture: 只有 settings domain 和 admin settings 页面可以导入 settings-store / Configs', async () => {
+  const files = await readSourceFiles();
+
+  for (const file of files) {
+    const importsSettingsStore = readImportSpecifiers(file.content).some(
+      (specifier) =>
+        specifier === '@/domains/settings/application/settings-store' ||
+        specifier === './settings-store'
+    );
+    const mentionsConfigsImport =
+      /import\s+type\s*\{[^}]*\bConfigs\b[^}]*\}\s+from\s+['"][^'"]*settings-store['"]/.test(
+        file.content
+      );
+
+    if (!importsSettingsStore && !mentionsConfigsImport) {
+      continue;
+    }
+
+    const allowed =
+      /^src\/domains\/settings\//.test(file.repoPath) ||
+      file.repoPath ===
+        'src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx';
+
+    assert.equal(
+      allowed,
+      true,
+      `${file.repoPath} 不应导入 settings-store / Configs`
+    );
   }
 });
 

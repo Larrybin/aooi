@@ -10,8 +10,7 @@ import {
 import {
   getSettingGroups,
   getSettings,
-  getSettingTabs,
-} from '@/domains/settings';
+} from '@/domains/settings/site-aware';
 import {
   readSettingsSafe,
   saveSettings,
@@ -20,6 +19,7 @@ import { mapSettingsToForms } from '@/domains/settings/settings-form-mapper';
 import { normalizeSettingOverrides } from '@/domains/settings/settings-normalizers';
 import { mergeRegisteredSettingValues } from '@/domains/settings/settings-submit-merge';
 import { isSettingTabName } from '@/domains/settings/tab-names';
+import { getSettingTabs } from '@/domains/settings/tabs';
 import { getSettingsModuleContractRows } from '@/surfaces/admin/settings/module-contract';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { z } from 'zod';
@@ -32,7 +32,7 @@ import { parseFormData } from '@/shared/lib/action/form';
 import { actionErr, actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
 import type { Crumb } from '@/shared/types/blocks/common';
-import { getAvailableSettingTabs } from '@/domains/settings';
+import { getAvailableSettingTabs } from '@/domains/settings/site-aware';
 
 const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
 
@@ -73,7 +73,10 @@ export default async function SettingsPage({
     { title: t('edit.crumbs.settings'), is_active: true },
   ];
 
-  const tabs = await getSettingTabs(settingsTab);
+  const tabs = await getSettingTabs({
+    activeTab: settingsTab,
+    availableTabs,
+  });
   const hasConfigsError = Boolean(configsError);
   const moduleContractRows = getSettingsModuleContractRows(settingsTab);
   const handleSubmit = async (data: FormData) => {

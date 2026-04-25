@@ -8,7 +8,7 @@ test('site-aware settings: payment=none 时 payment tab 不存在', async () => 
   process.env.SITE = 'mamamiya';
 
   try {
-    const mod = await import('./index');
+    const mod = await import('./site-aware');
     const tabs = await mod.getAvailableSettingTabs();
     const settings = await mod.getSettings();
 
@@ -31,7 +31,7 @@ test('site-aware settings: 测试站点 payment!=none 时只暴露当前 provide
 
   try {
     const siteModulePath = '@/site';
-    const settingsModulePath = './index';
+    const settingsModulePath = './site-aware';
     const registryModulePath = './registry';
     const [siteModule, settingsModule, registryModule] = await Promise.all([
       import(siteModulePath),

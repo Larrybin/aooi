@@ -3,11 +3,15 @@ import { getTranslations } from 'next-intl/server';
 import type { Tab } from '@/shared/types/blocks/common';
 
 import { SETTING_TAB_NAMES, type SettingTabName } from './tab-names';
-import { getAvailableSettingTabs } from './index';
 
-export async function getSettingTabs(tab: SettingTabName) {
+export async function getSettingTabs({
+  activeTab,
+  availableTabs,
+}: {
+  activeTab: SettingTabName;
+  availableTabs: readonly SettingTabName[];
+}) {
   const t = await getTranslations('admin.settings');
-  const availableTabs = await getAvailableSettingTabs();
 
   const tabs: Tab[] = SETTING_TAB_NAMES.filter((name) =>
     availableTabs.includes(name)
@@ -15,7 +19,7 @@ export async function getSettingTabs(tab: SettingTabName) {
     name,
     title: t(`edit.tabs.${name}`),
     url: `/admin/settings/${name}`,
-    is_active: tab === name,
+    is_active: activeTab === name,
   }));
 
   return tabs;
