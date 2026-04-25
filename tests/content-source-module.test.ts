@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  cp,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
@@ -119,6 +127,75 @@ test('@/content-source: blog-enabled site requires at least one post', async () 
   } finally {
     await writeFile(postPath, originalPost, 'utf8');
     await writeFile(zhPostPath, originalZhPost, 'utf8');
+    await runGenerateContentSource('dev-local');
+  }
+});
+
+test('@/content-source: disabled docs/blog site may omit docs and posts directories', async () => {
+  const backupDir = await mkdtemp(path.join(os.tmpdir(), 'content-backup-'));
+  const siteConfigPath = path.resolve(
+    rootDir,
+    'sites/dev-local/site.config.json'
+  );
+  const docsDir = path.resolve(rootDir, 'sites/dev-local/content/docs');
+  const postsDir = path.resolve(rootDir, 'sites/dev-local/content/posts');
+  const originalSiteConfig = await readFile(siteConfigPath, 'utf8');
+
+  try {
+    await cp(docsDir, path.join(backupDir, 'docs'), { recursive: true });
+    await cp(postsDir, path.join(backupDir, 'posts'), { recursive: true });
+
+    const siteConfig = JSON.parse(originalSiteConfig);
+    await writeFile(
+      siteConfigPath,
+      JSON.stringify(
+        {
+          ...siteConfig,
+          capabilities: {
+            ...siteConfig.capabilities,
+            docs: false,
+            blog: false,
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+    await rm(docsDir, { recursive: true, force: true });
+    await rm(postsDir, { recursive: true, force: true });
+
+    await runGenerateContentSource('dev-local');
+
+    const pointer = parseGeneratedPointer(await readGeneratedContentSource());
+    assert.equal(pointer.siteKey, 'dev-local');
+  } finally {
+    await writeFile(siteConfigPath, originalSiteConfig, 'utf8');
+    await rm(docsDir, { recursive: true, force: true });
+    await rm(postsDir, { recursive: true, force: true });
+    await cp(path.join(backupDir, 'docs'), docsDir, { recursive: true });
+    await cp(path.join(backupDir, 'posts'), postsDir, { recursive: true });
+    await rm(backupDir, { recursive: true, force: true });
+    await runGenerateContentSource('dev-local');
+  }
+});
+
+test('@/content-source: pages directory remains required for every site', async () => {
+  const backupDir = await mkdtemp(path.join(os.tmpdir(), 'content-backup-'));
+  const pagesDir = path.resolve(rootDir, 'sites/dev-local/content/pages');
+
+  try {
+    await cp(pagesDir, path.join(backupDir, 'pages'), { recursive: true });
+    await rm(pagesDir, { recursive: true, force: true });
+
+    await assert.rejects(
+      () => runGenerateContentSource('dev-local'),
+      /site content directory is required: sites\/dev-local\/content\/pages/
+    );
+  } finally {
+    await rm(pagesDir, { recursive: true, force: true });
+    await cp(path.join(backupDir, 'pages'), pagesDir, { recursive: true });
+    await rm(backupDir, { recursive: true, force: true });
     await runGenerateContentSource('dev-local');
   }
 });

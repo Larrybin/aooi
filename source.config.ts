@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   defineConfig,
@@ -11,7 +12,13 @@ const siteKey = process.env.SITE?.trim() || DEFAULT_SITE_KEY;
 const rootDir = process.cwd();
 const contentRoot = path.resolve(rootDir, 'sites', siteKey, 'content');
 
-const requiredCollectionDirs = ['docs', 'pages', 'posts'];
+const requiredCollectionDirs = ['pages'];
+if (existsSync(path.resolve(contentRoot, 'docs'))) {
+  requiredCollectionDirs.push('docs');
+}
+if (existsSync(path.resolve(contentRoot, 'posts'))) {
+  requiredCollectionDirs.push('posts');
+}
 
 for (const collection of requiredCollectionDirs) {
   const collectionPath = path.resolve(contentRoot, collection);

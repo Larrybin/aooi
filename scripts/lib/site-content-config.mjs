@@ -97,8 +97,19 @@ export function parseContentSourceModuleSpecifier(source) {
 export function assertSiteContentDirectoriesExist({
   rootDir = process.cwd(),
   siteKey = resolveRequiredSiteKey(),
+  site,
 } = {}) {
-  for (const collection of CONTENT_COLLECTION_KEYS) {
+  const requiredCollections = ['pages'];
+
+  if (!site || site.capabilities.docs) {
+    requiredCollections.push('docs');
+  }
+
+  if (!site || site.capabilities.blog) {
+    requiredCollections.push('posts');
+  }
+
+  for (const collection of requiredCollections) {
     const dirPath = resolveSiteCollectionDir({
       rootDir,
       siteKey,
@@ -129,7 +140,7 @@ export function validateSiteContentCompleteness({
   siteKey = resolveRequiredSiteKey(),
   site,
 }) {
-  assertSiteContentDirectoriesExist({ rootDir, siteKey });
+  assertSiteContentDirectoriesExist({ rootDir, siteKey, site });
 
   const docsDir = resolveSiteCollectionDir({
     rootDir,
