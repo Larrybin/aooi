@@ -31,26 +31,17 @@ function createLog() {
 const BILLING_SETTINGS: BillingRuntimeSettings = {
   locale: '',
   defaultLocale: '',
-  selectPaymentEnabled: false,
-  defaultPaymentProvider: 'stripe',
-  stripeEnabled: true,
+  provider: 'stripe',
+  paymentCapability: 'stripe',
   stripePaymentMethods: '',
-  creemEnabled: false,
-  creemEnvironment: 'sandbox',
-  creemProductIds: '',
-  paypalEnabled: false,
-  paypalEnvironment: 'sandbox',
 };
 
 const PAYMENT_BINDINGS: PaymentRuntimeBindings = {
+  provider: 'stripe',
+  paymentCapability: 'stripe',
   stripePublishableKey: '',
   stripeSecretKey: '',
   stripeSigningSecret: '',
-  creemApiKey: '',
-  creemSigningSecret: '',
-  paypalClientId: '',
-  paypalClientSecret: '',
-  paypalWebhookId: '',
 };
 
 test('resolvePaymentCallbackRedirectQuery 对 not_found/forbidden 回退到 pricing', async () => {

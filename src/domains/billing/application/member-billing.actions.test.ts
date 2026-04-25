@@ -86,8 +86,8 @@ test('readCancelableSubscriptionPageUseCase 返回 not_found / forbidden / missi
   assert.deepEqual(missingTarget, { status: 'missing_subscription_target' });
 });
 
-test('readCancelableSubscriptionPageUseCase 对 provider 不可用返回 provider_not_found，并且不吞 invalid_status', async () => {
-  const providerNotFound = await readCancelableSubscriptionPageUseCase(
+test('readCancelableSubscriptionPageUseCase 对 payment 不可用返回 payment_unavailable，并且不吞 invalid_status', async () => {
+  const paymentUnavailable = await readCancelableSubscriptionPageUseCase(
     {
       subscriptionNo: 'sub_1',
       actorUserId: 'user_1',
@@ -109,7 +109,7 @@ test('readCancelableSubscriptionPageUseCase 对 provider 不可用返回 provide
     }
   );
 
-  assert.deepEqual(providerNotFound, { status: 'provider_not_found' });
+  assert.deepEqual(paymentUnavailable, { status: 'payment_unavailable' });
 
   const okForInvalidStatus = await readCancelableSubscriptionPageUseCase(
     {
@@ -145,7 +145,7 @@ test('readCancelableSubscriptionPageUseCase 对 provider 不可用返回 provide
   assert.equal(okForInvalidStatus.status, 'ok');
 });
 
-test('readCancelableSubscriptionPageUseCase 在 payment service 构建失败时返回 provider_not_found', async () => {
+test('readCancelableSubscriptionPageUseCase 在 payment service 构建失败时返回 payment_unavailable', async () => {
   const result = await readCancelableSubscriptionPageUseCase(
     {
       subscriptionNo: 'sub_1',
@@ -175,7 +175,7 @@ test('readCancelableSubscriptionPageUseCase 在 payment service 构建失败时�
     }
   );
 
-  assert.deepEqual(result, { status: 'provider_not_found' });
+  assert.deepEqual(result, { status: 'payment_unavailable' });
 });
 
 test('cancelSubscriptionUseCase 仅在提交期返回 invalid_status', async () => {

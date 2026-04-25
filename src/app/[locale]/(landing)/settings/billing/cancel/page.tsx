@@ -3,7 +3,6 @@
 // reason: user-specific billing mutation flow
 import { notFound } from 'next/navigation';
 import { requireActionUser } from '@/app/access-control/action-guard';
-import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   cancelMemberSubscription,
   readMemberCancelableSubscription,
@@ -13,6 +12,7 @@ import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import { Empty } from '@/shared/blocks/common/empty';
 import { FormCard } from '@/shared/blocks/form';
 import { ActionError } from '@/shared/lib/action/errors';
@@ -60,8 +60,8 @@ export default async function CancelBillingPage({
   if (subscriptionResult.status === 'forbidden') {
     return <Empty message={tb('errors.no_permission')} />;
   }
-  if (subscriptionResult.status === 'provider_not_found') {
-    return <Empty message={tb('errors.payment_provider_not_found')} />;
+  if (subscriptionResult.status === 'payment_unavailable') {
+    return <Empty message={tb('errors.payment_service_unavailable')} />;
   }
   if (subscriptionResult.status !== 'ok') {
     return <Empty message={tb('errors.subscription_not_found')} />;
@@ -108,7 +108,7 @@ export default async function CancelBillingPage({
         throw new ActionError('subscription is not active or trialing');
       }
       if (result.status === 'missing_provider') {
-        throw new ActionError('payment provider not found');
+        throw new ActionError('payment service unavailable');
       }
       if (result.status === 'cancel_failed') {
         throw new ActionError('cancel subscription failed');

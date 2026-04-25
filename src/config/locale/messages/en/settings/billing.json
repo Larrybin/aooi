@@ -63,7 +63,7 @@
     "missing_payment_subscription_id": "Missing payment subscription ID",
     "missing_payment_user_id": "Missing payment user ID",
     "no_permission": "You don't have permission",
-    "payment_provider_not_found": "Payment provider not found",
+    "payment_service_unavailable": "Payment service unavailable",
     "billing_url_not_found": "Billing URL not found",
     "get_billing_failed": "Failed to retrieve billing link"
   }

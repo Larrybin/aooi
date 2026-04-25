@@ -69,7 +69,7 @@ export async function retrieveInvoiceUseCase(
   });
   const paymentProvider = paymentService.getProvider(order.paymentProvider);
   if (!paymentProvider?.getPaymentInvoice) {
-    throw new ServiceUnavailableError('payment provider not found');
+    throw new ServiceUnavailableError('payment service unavailable');
   }
 
   const invoice = await paymentProvider.getPaymentInvoice({
@@ -153,7 +153,7 @@ export async function retrieveBillingPortalUseCase(
     subscription.paymentProvider
   );
   if (!paymentProvider?.getPaymentBilling) {
-    throw new ServiceUnavailableError('payment provider not found');
+    throw new ServiceUnavailableError('payment service unavailable');
   }
 
   const billing = await paymentProvider.getPaymentBilling({
@@ -240,7 +240,7 @@ export async function cancelSubscriptionUseCase(
     subscription.paymentProvider
   );
   if (!paymentProvider?.cancelSubscription) {
-    throw new ServiceUnavailableError('payment provider not found');
+    throw new ServiceUnavailableError('payment service unavailable');
   }
 
   const result = await paymentProvider.cancelSubscription({
@@ -373,7 +373,7 @@ export async function readCancelableSubscriptionPageUseCase(
         | 'not_found'
         | 'forbidden'
         | 'missing_subscription_target'
-        | 'provider_not_found';
+        | 'payment_unavailable';
     }
 > {
   const subscription = await deps.findSubscriptionBySubscriptionNo(
@@ -394,7 +394,7 @@ export async function readCancelableSubscriptionPageUseCase(
     deps
   );
   if (!paymentProvider?.cancelSubscription) {
-    return { status: 'provider_not_found' };
+    return { status: 'payment_unavailable' };
   }
 
   return { status: 'ok', subscription };
@@ -434,7 +434,7 @@ export async function readMemberCancelableSubscription(input: {
         | 'not_found'
         | 'forbidden'
         | 'missing_subscription_target'
-        | 'provider_not_found';
+        | 'payment_unavailable';
     }
 > {
   const [
