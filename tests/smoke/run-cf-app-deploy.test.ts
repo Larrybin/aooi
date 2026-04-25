@@ -218,10 +218,12 @@ test('createTempDeployArtifacts 对 server worker 使用单 worker secrets scope
   const previousSite = process.env.SITE;
   const previousBetterAuthSecret = process.env.BETTER_AUTH_SECRET;
   const previousAuthSecret = process.env.AUTH_SECRET;
+  const previousResendApiKey = process.env.RESEND_API_KEY;
 
   try {
     process.env.SITE = 'mamamiya';
     process.env.BETTER_AUTH_SECRET = 'better-secret';
+    process.env.RESEND_API_KEY = 'resend-key';
     delete process.env.AUTH_SECRET;
 
     const artifacts = await createTempDeployArtifacts({
@@ -241,6 +243,7 @@ test('createTempDeployArtifacts 对 server worker 使用单 worker secrets scope
         [
           'BETTER_AUTH_SECRET=better-secret',
           'AUTH_SECRET=better-secret',
+          'RESEND_API_KEY=resend-key',
           '',
         ].join('\n')
       );
@@ -262,6 +265,11 @@ test('createTempDeployArtifacts 对 server worker 使用单 worker secrets scope
       delete process.env.AUTH_SECRET;
     } else {
       process.env.AUTH_SECRET = previousAuthSecret;
+    }
+    if (previousResendApiKey === undefined) {
+      delete process.env.RESEND_API_KEY;
+    } else {
+      process.env.RESEND_API_KEY = previousResendApiKey;
     }
   }
 });

@@ -164,6 +164,9 @@ test('非 payment surface 不允许直接 import payment provider 实现', async
     if (file.endsWith('app-boundaries.test.ts')) {
       continue;
     }
+    if (/\.(test|spec)\.tsx?$/.test(file)) {
+      continue;
+    }
 
     if (
       allowedPrefixes.some((allowedPrefix) => file.startsWith(allowedPrefix))

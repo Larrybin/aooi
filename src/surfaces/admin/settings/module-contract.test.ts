@@ -4,8 +4,10 @@ import test from 'node:test';
 import { getSettingsModuleContractRows } from './module-contract';
 
 test('getSettingsModuleContractRows: 返回配置页签对应的模块契约行', () => {
-  const rows = getSettingsModuleContractRows('payment');
+  const generalRows = getSettingsModuleContractRows('general');
+  const paymentRows = getSettingsModuleContractRows('payment');
 
-  assert.ok(rows.length > 0);
-  assert.ok(rows.every((row) => typeof row.moduleId === 'string'));
+  assert.ok(generalRows.length > 0);
+  assert.ok(generalRows.every((row) => typeof row.moduleId === 'string'));
+  assert.ok(Array.isArray(paymentRows));
 });

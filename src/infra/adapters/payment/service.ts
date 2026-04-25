@@ -15,7 +15,6 @@ import type {
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 
 import {
-  BadRequestError,
   ServiceUnavailableError,
 } from '@/shared/lib/api/errors';
 import { isProductionEnv } from '@/shared/lib/env';

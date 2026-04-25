@@ -3,6 +3,7 @@
  * - Wrap Route Handlers: `export const POST = withApi(async (req) => { ... })`
  * - Throw `ApiError` (or subclasses) for consistent `{code,message,data}` responses with HTTP status.
  */
+/* eslint-disable no-console */
 
 import {
   BusinessError,

@@ -28,6 +28,7 @@ import {
 import { getPaymentRuntimeBindings } from '@/infra/adapters/payment/runtime-bindings';
 import { getPaymentService } from '@/infra/adapters/payment/service';
 
+import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { withApi } from '@/shared/lib/api/route';
 import { resolveConfigConsistencyMode } from '@/shared/lib/config-consistency';
 
@@ -60,7 +61,9 @@ const routeDeps: PaymentNotifyRouteDeps = {
   readPaymentRuntimeBindings: () => {
     const bindings = getPaymentRuntimeBindings();
     if (bindings.provider === 'none') {
-      throw new Error('payment notify bindings cannot be resolved for payment=none');
+      throw new ServiceUnavailableError(
+        'payment notify bindings cannot be resolved for payment=none'
+      );
     }
     return bindings;
   },
