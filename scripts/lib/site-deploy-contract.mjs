@@ -93,6 +93,7 @@ function buildDerivedBindingRequirements(site) {
   return {
     secrets: {
       emailProvider: site.capabilities.auth,
+      openrouter: site.capabilities.ai,
     },
     payment: {
       capability: paymentCapability,
@@ -179,6 +180,20 @@ function buildTopologySignature(contract) {
       ),
     })
   );
+}
+
+function assertUniqueSiteRoutePatterns(contracts) {
+  const seen = new Map();
+  for (const contract of contracts) {
+    const pattern = contract.route.pattern;
+    const otherSiteKey = seen.get(pattern);
+    if (otherSiteKey && otherSiteKey !== contract.siteKey) {
+      throw new Error(
+        `duplicate site route pattern detected for "${pattern}" between ${otherSiteKey} and ${contract.siteKey}`
+      );
+    }
+    seen.set(pattern, contract.siteKey);
+  }
 }
 
 export function normalizeDeployContractShape(contract) {
@@ -312,12 +327,14 @@ export function resolveAllSiteDeployContracts({
   rootDir = process.cwd(),
 } = {}) {
   const siteKeys = listSiteKeys({ rootDir });
-  return siteKeys.map((siteKey) =>
+  const contracts = siteKeys.map((siteKey) =>
     resolveSiteDeployContract({
       rootDir,
       siteKey,
     })
   );
+  assertUniqueSiteRoutePatterns(contracts);
+  return contracts;
 }
 
 export function createCanonicalTypegenContract(contract) {

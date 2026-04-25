@@ -59,6 +59,19 @@ async function copyCloudflareConfigFixture(tempDir: string) {
   }
 }
 
+async function copySiteFixture(tempDir: string, siteKey: string) {
+  const targetDir = path.join(tempDir, 'sites', siteKey);
+  await mkdir(targetDir, { recursive: true });
+  await cp(
+    path.join(rootDir, 'sites', siteKey, 'site.config.json'),
+    path.join(targetDir, 'site.config.json')
+  );
+  await cp(
+    path.join(rootDir, 'sites', siteKey, 'deploy.settings.json'),
+    path.join(targetDir, 'deploy.settings.json')
+  );
+}
+
 async function withFixture(
   mutate: (tempDir: string) => Promise<void> | void = () => {}
 ) {
@@ -397,6 +410,55 @@ test('cf:check 接受显式 storage public runtime binding', async () => {
   }
 });
 
+test('cf:check 拒绝任意两个已配置 site 复用同一 domain', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await copySiteFixture(fixtureDir, 'dev-local');
+
+    const devLocalConfigPath = path.join(
+      fixtureDir,
+      'sites/dev-local/site.config.json'
+    );
+    const devLocalConfig = JSON.parse(
+      await readFile(devLocalConfigPath, 'utf8')
+    );
+    await writeFile(
+      devLocalConfigPath,
+      JSON.stringify(
+        {
+          ...devLocalConfig,
+          domain: 'mamamiya.pdfreprinting.net',
+          brand: {
+            ...devLocalConfig.brand,
+            appUrl: 'https://dev-local.example.com',
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        RESEND_API_KEY: 'resend-key',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(
+      result.stderr,
+      /duplicate site route pattern detected for "mamamiya\.pdfreprinting\.net" between dev-local and mamamiya/
+    );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
 test('cf:check 在默认禁用 provider 时只要求 server runtime auth secret，不要求 provider secrets', async () => {
   const fixture = await withFixture();
 
@@ -455,18 +517,6 @@ test('cf:check 仅对已启用 auth provider 要求对应 bindings', async () =>
 
 test('cf:check 在 chat worker 场景只要求 OPENROUTER_API_KEY', async () => {
   const fixture = await withFixture(async (fixtureDir) => {
-    await writeDeploySettings(fixtureDir, (current) => ({
-      ...current,
-      bindingRequirements: {
-        ...(current.bindingRequirements as Record<string, unknown>),
-        secrets: {
-          ...((
-            current.bindingRequirements as DeployBindingRequirements | undefined
-          )?.secrets ?? {}),
-          openrouter: true,
-        },
-      },
-    }));
     const siteConfigPath = path.join(
       fixtureDir,
       'sites/mamamiya/site.config.json'
@@ -508,18 +558,6 @@ test('cf:check 在 chat worker 场景只要求 OPENROUTER_API_KEY', async () => 
 
 test('cf:check 已启用能力缺 bindings 时给出 setting -> binding 错误', async () => {
   const fixture = await withFixture(async (fixtureDir) => {
-    await writeDeploySettings(fixtureDir, (current) => ({
-      ...current,
-      bindingRequirements: {
-        ...(current.bindingRequirements as Record<string, unknown>),
-        secrets: {
-          ...((
-            current.bindingRequirements as DeployBindingRequirements | undefined
-          )?.secrets ?? {}),
-          openrouter: true,
-        },
-      },
-    }));
     const siteConfigPath = path.join(
       fixtureDir,
       'sites/mamamiya/site.config.json'

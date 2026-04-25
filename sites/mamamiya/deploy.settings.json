@@ -4,9 +4,7 @@
     "secrets": {
       "authSharedSecret": true,
       "googleOauth": false,
-      "githubOauth": false,
-      "emailProvider": true,
-      "openrouter": false
+      "githubOauth": false
     },
     "vars": {
       "storagePublicBaseUrl": true

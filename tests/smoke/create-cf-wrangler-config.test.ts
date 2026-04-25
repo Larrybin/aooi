@@ -109,6 +109,11 @@ ADMIN_WORKER_NAME = ""
     /STORAGE_PUBLIC_BASE_URL = "http:\/\/127\.0\.0\.1:8787\/assets\/"/
   );
   assert.match(config, /DEPLOY_TARGET = "cloudflare"/);
+  assert.match(
+    config,
+    new RegExp(`pattern = "${escapeRegExp(contract.site.domain)}"`)
+  );
+  assert.match(config, /custom_domain = true/);
   assert.match(config, /PUBLIC_WEB_WORKER_VERSION_ID = "v-public-web"/);
   assert.match(config, /AUTH_WORKER_VERSION_ID = "v-auth"/);
   assert.match(

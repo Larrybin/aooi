@@ -31,8 +31,6 @@ export const CLOUDFLARE_SECRET_REQUIREMENT_KEYS = Object.freeze([
   'authSharedSecret',
   'googleOauth',
   'githubOauth',
-  'emailProvider',
-  'openrouter',
 ]);
 
 export const CLOUDFLARE_VAR_REQUIREMENT_KEYS = Object.freeze([
@@ -202,7 +200,7 @@ function assertState(state) {
   );
 }
 
-function assertCrossContractConsistency(siteConfig, deploySettings) {
+function assertCrossContractConsistency(siteConfig) {
   if (
     siteConfig.key !== undefined &&
     siteConfig.key !== siteConfig.key?.trim()
@@ -211,7 +209,6 @@ function assertCrossContractConsistency(siteConfig, deploySettings) {
   }
 
   const paymentCapability = siteConfig.capabilities.payment;
-  const secrets = deploySettings.bindingRequirements.secrets;
 
   if (
     paymentCapability !== 'none' &&
@@ -219,30 +216,6 @@ function assertCrossContractConsistency(siteConfig, deploySettings) {
   ) {
     throw new Error(
       `site.config.json has unsupported payment capability: ${String(paymentCapability)}`
-    );
-  }
-
-  if (siteConfig.capabilities.ai && !secrets.openrouter) {
-    throw new Error(
-      'site.config.json and deploy.settings.json are inconsistent: ai=true requires openrouter deploy requirement'
-    );
-  }
-
-  if (!siteConfig.capabilities.ai && secrets.openrouter) {
-    throw new Error(
-      'site.config.json and deploy.settings.json are inconsistent: ai=false forbids openrouter deploy requirement'
-    );
-  }
-
-  if (siteConfig.capabilities.auth && !secrets.emailProvider) {
-    throw new Error(
-      'site.config.json and deploy.settings.json are inconsistent: auth=true requires emailProvider deploy requirement'
-    );
-  }
-
-  if (!siteConfig.capabilities.auth && secrets.emailProvider) {
-    throw new Error(
-      'site.config.json and deploy.settings.json are inconsistent: auth=false forbids emailProvider deploy requirement'
     );
   }
 }
@@ -269,7 +242,7 @@ export function validateSiteDeploySettings(config, { siteConfig = null } = {}) {
   assertState(config.state);
 
   if (siteConfig) {
-    assertCrossContractConsistency(siteConfig, config);
+    assertCrossContractConsistency(siteConfig);
   }
 }
 

@@ -97,6 +97,23 @@ test('run-with-site 尊重显式 SITE', async () => {
   assert.equal(result.stdout.trimEnd().split('\n').at(-1), 'mamamiya');
 });
 
+test('run-with-site 对未知 SITE 输出可修复的配置错误', async () => {
+  const result = await runWithSite(['node', '-p', 'process.env.SITE || ""'], {
+    SITE: '__missing_site__',
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.stderr, /site "__missing_site__" is not configured/);
+  assert.match(
+    result.stderr,
+    /missing sites\/__missing_site__\/site\.config\.json/
+  );
+  assert.match(result.stderr, /set SITE to one of: dev-local, mamamiya/);
+  assert.doesNotMatch(result.stderr, /ENOENT/);
+  assert.doesNotMatch(result.stderr, /Error: site "__missing_site__"/);
+  assert.doesNotMatch(result.stderr, /at readCurrentSiteConfig/);
+});
+
 test('run-with-site 对 release metadata 只生成 site module，不预生成 content source', async () => {
   const result = await runWithSite(
     [

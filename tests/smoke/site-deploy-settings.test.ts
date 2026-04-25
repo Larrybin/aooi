@@ -15,7 +15,10 @@ test('site deploy settings 读取当前闭合 manifest', () => {
 
   assert.equal(settings.configVersion, 1);
   assert.equal(settings.bindingRequirements.secrets.authSharedSecret, true);
-  assert.equal(settings.bindingRequirements.secrets.emailProvider, true);
+  assert.equal('emailProvider' in settings.bindingRequirements.secrets, false);
+  assert.equal('openrouter' in settings.bindingRequirements.secrets, false);
+  assert.equal(settings.bindingRequirements.secrets.googleOauth, false);
+  assert.equal(settings.bindingRequirements.secrets.githubOauth, false);
   assert.equal(settings.workers.router, 'roller-rabbit');
   assert.equal(settings.state.schemaVersion, 1);
 });
@@ -36,8 +39,6 @@ test('site deploy settings 拒绝未知嵌套字段', () => {
               authSharedSecret: true,
               googleOauth: false,
               githubOauth: false,
-              emailProvider: true,
-              openrouter: false,
               extraSecret: false,
             },
             vars: {
@@ -69,7 +70,7 @@ test('site deploy settings 拒绝未知嵌套字段', () => {
   );
 });
 
-test('site deploy settings 不再接受 payment provider deploy requirement 双写字段', () => {
+test('site deploy settings 不接受派生 secret requirement 双写字段', () => {
   const siteConfig = readCurrentSiteConfig({
     rootDir: process.cwd(),
     siteKey: 'mamamiya',
@@ -118,107 +119,54 @@ test('site deploy settings 不再接受 payment provider deploy requirement 双�
   );
 });
 
-test('site deploy settings 保留 ai 重叠语义一致性校验', () => {
-  const siteConfig = readCurrentSiteConfig({
-    rootDir: process.cwd(),
-    siteKey: 'mamamiya',
-  });
-
-  assert.throws(
-    () =>
-      validateSiteDeploySettings(
-        {
-          configVersion: 1,
-          bindingRequirements: {
-            secrets: {
-              authSharedSecret: true,
-              googleOauth: false,
-              githubOauth: false,
-              emailProvider: true,
-              openrouter: true,
-            },
-            vars: {
-              storagePublicBaseUrl: true,
-            },
-          },
-          workers: {
-            router: 'worker-router',
-            state: 'worker-state',
-            'public-web': 'worker-public-web',
-            auth: 'worker-auth',
-            payment: 'worker-payment',
-            member: 'worker-member',
-            chat: 'worker-chat',
-            admin: 'worker-admin',
-          },
-          resources: {
-            incrementalCacheBucket: 'bucket-a',
-            appStorageBucket: 'bucket-b',
-            hyperdriveId: 'd208cd72765b46a7b0849fc687e2fb61',
-          },
-          state: {
-            schemaVersion: 1,
-          },
-        },
-        { siteConfig }
-      ),
-    /ai=false forbids openrouter/i
-  );
-});
-
-test('site deploy settings 对 auth/emailProvider 重叠语义保持一致性校验', () => {
-  const currentSiteConfig = readCurrentSiteConfig({
+test('site deploy settings allow site-specific capability-derived contract to stay closed', async () => {
+  const baseSiteConfig = readCurrentSiteConfig({
     rootDir: process.cwd(),
     siteKey: 'mamamiya',
   });
   const siteConfig = {
-    ...currentSiteConfig,
+    ...baseSiteConfig,
+    key: 'demo-site',
+    domain: 'demo.example.com',
     capabilities: {
-      ...currentSiteConfig.capabilities,
-      auth: false,
-      docs: false,
-      blog: false,
+      ...baseSiteConfig.capabilities,
+      auth: true,
+      ai: true,
+    },
+  };
+  const settings = {
+    configVersion: 1,
+    bindingRequirements: {
+      secrets: {
+        authSharedSecret: true,
+        googleOauth: false,
+        githubOauth: false,
+      },
+      vars: {
+        storagePublicBaseUrl: true,
+      },
+    },
+    workers: {
+      router: 'demo-site-router',
+      state: 'demo-site-state',
+      'public-web': 'demo-site-public-web',
+      auth: 'demo-site-auth',
+      payment: 'demo-site-payment',
+      member: 'demo-site-member',
+      chat: 'demo-site-chat',
+      admin: 'demo-site-admin',
+    },
+    resources: {
+      incrementalCacheBucket: 'demo-site-opennext-cache',
+      appStorageBucket: 'demo-site-storage',
+      hyperdriveId: '00000000000000000000000000000001',
+    },
+    state: {
+      schemaVersion: 1,
     },
   };
 
-  assert.throws(
-    () =>
-      validateSiteDeploySettings(
-        {
-          configVersion: 1,
-          bindingRequirements: {
-            secrets: {
-              authSharedSecret: true,
-              googleOauth: false,
-              githubOauth: false,
-              emailProvider: true,
-              openrouter: false,
-            },
-            vars: {
-              storagePublicBaseUrl: true,
-            },
-          },
-          workers: {
-            router: 'worker-router',
-            state: 'worker-state',
-            'public-web': 'worker-public-web',
-            auth: 'worker-auth',
-            payment: 'worker-payment',
-            member: 'worker-member',
-            chat: 'worker-chat',
-            admin: 'worker-admin',
-          },
-          resources: {
-            incrementalCacheBucket: 'bucket-a',
-            appStorageBucket: 'bucket-b',
-            hyperdriveId: 'd208cd72765b46a7b0849fc687e2fb61',
-          },
-          state: {
-            schemaVersion: 1,
-          },
-        },
-        { siteConfig }
-      ),
-    /auth=false forbids emailProvider/i
+  assert.doesNotThrow(() =>
+    validateSiteDeploySettings(settings, { siteConfig })
   );
 });

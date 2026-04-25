@@ -8,7 +8,10 @@ import {
   resolveCloudflareWorkerKeys,
 } from './lib/cloudflare-runtime-bindings.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
-import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
+import {
+  resolveAllSiteDeployContracts,
+  resolveSiteDeployContract,
+} from './lib/site-deploy-contract.mjs';
 
 const {
   CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
@@ -153,9 +156,10 @@ function assertRequiredRuntimeBindings(
       const site = process.env.SITE?.trim() || 'unknown';
       const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
       const deployTarget = process.env.DEPLOY_TARGET?.trim() || 'cloudflare';
-      const workerScope = process.argv
-        .find((arg) => arg.startsWith('--workers='))
-        ?.split('=')[1] || 'all';
+      const workerScope =
+        process.argv
+          .find((arg) => arg.startsWith('--workers='))
+          ?.split('=')[1] || 'all';
       fail(
         `${label} requires runtime binding ${displayName} because worker ${requirement.worker} runs ${requirement.capability}; runtime settings do not control deploy requirements (SITE=${site} NODE_ENV=${nodeEnv} DEPLOY_TARGET=${deployTarget} workers=${workerScope})`
       );
@@ -426,6 +430,33 @@ function assertRouterConfig(content, contract, requiredBindingsByWorker) {
       contract.serverWorkers[target].workerName,
     ]),
   ]);
+
+  const routeTables = readArrayTable(content, 'routes');
+  if (routeTables.length !== 1) {
+    fail('router must define exactly one [[routes]] table');
+  }
+  const routePattern = readQuotedValue(
+    routeTables[0],
+    'router.routes.pattern',
+    /^\s*pattern\s*=\s*"([^"\n]+)"/m
+  );
+  const routeCustomDomain = readBooleanValue(
+    routeTables[0],
+    'router.routes.custom_domain',
+    /^\s*custom_domain\s*=\s*(true|false)/m
+  );
+
+  if (routePattern !== contract.site.domain) {
+    fail(
+      `router.routes.pattern must equal site.domain (${contract.site.domain})`
+    );
+  }
+
+  if (routeCustomDomain !== String(contract.route.customDomain)) {
+    fail(
+      `router.routes.custom_domain must equal ${String(contract.route.customDomain)}`
+    );
+  }
 
   for (const [binding, expectedService] of expectedServices) {
     const table = serviceTables.find((entry) =>
@@ -720,6 +751,12 @@ function assertServerConfig(
 
 function main() {
   const workerKeys = parseWorkerKeys(process.argv.slice(2));
+  try {
+    resolveAllSiteDeployContracts({ rootDir });
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+
   const contract = resolveSiteDeployContract({
     rootDir,
     siteKey: resolveRequiredSiteKey(process.env),
@@ -727,6 +764,12 @@ function main() {
   const requiredBindingsByWorker = getRequiredRuntimeBindingsByWorker(
     contract.bindingRequirements
   );
+
+  if (contract.route.pattern !== contract.site.domain) {
+    fail(
+      `site domain and router route pattern must match exactly: ${contract.site.domain} vs ${contract.route.pattern}`
+    );
+  }
 
   for (const workerKey of workerKeys) {
     const content = buildEffectiveWorkerConfig(contract, workerKey);
