@@ -63,8 +63,8 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
-      - name: Run dependency graph lint
-        run: pnpm lint:deps
+      - name: Run architecture gate
+        run: pnpm arch:check
 
       - name: Run unit and contract tests
         run: pnpm test

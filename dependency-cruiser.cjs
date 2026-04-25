@@ -1,3 +1,43 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { ARCHITECTURE_RULES } = require('./architecture-rules.cjs');
+
+function escapeRegex(value) {
+  return value.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+}
+
+function toDirectoryPathPattern(directories) {
+  return `^(?:${directories.map(escapeRegex).join('|')})(?:/|$)`;
+}
+
+function importPatternToSourcePathPattern(pattern) {
+  return pattern
+    .replace(/^\^@\//, '^src/')
+    .replace(/\(\?:\/\|\$\)/g, '(?:/|\\.[^.]+$)')
+    .replace(/\$$/, '(?:\\.[^.]+)?$');
+}
+
+function createPathRules({ baseName, fromPath, importPatterns }) {
+  return importPatterns.map((pattern, index) => ({
+    name: index === 0 ? baseName : `${baseName}-${index + 1}`,
+    severity: 'error',
+    from: { path: fromPath },
+    to: {
+      path: importPatternToSourcePathPattern(pattern),
+    },
+  }));
+}
+
+function createExactPathRules({ baseName, fromPath, targetPaths }) {
+  return targetPaths.map((targetPath, index) => ({
+    name: index === 0 ? baseName : `${baseName}-${index + 1}`,
+    severity: 'error',
+    from: { path: fromPath },
+    to: {
+      path: `^${escapeRegex(targetPath)}$`,
+    },
+  }));
+}
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -11,7 +51,11 @@ module.exports = {
       name: 'no-import-legacy-architecture-paths',
       severity: 'error',
       from: {},
-      to: { path: '^src/(core|features|shared/(models|services))/' },
+      to: {
+        path: toDirectoryPathPattern(
+          ARCHITECTURE_RULES.legacyArchitectureDirectories
+        ),
+      },
     },
     {
       name: 'no-runtime-to-scripts-or-tests',
@@ -91,6 +135,43 @@ module.exports = {
           '^src/domains/settings/application/settings-runtime\\.contracts\\.ts$',
       },
     },
+    ...createPathRules({
+      baseName: 'no-admin-app-to-domain-infra-or-adapters',
+      fromPath: '^src/app/\\[locale\\]/\\(admin\\)/admin/',
+      importPatterns: ARCHITECTURE_RULES.appAdminForbiddenImports,
+    }),
+    ...createPathRules({
+      baseName: 'no-member-settings-to-billing-infra-or-payment-adapters',
+      fromPath: '^src/app/\\[locale\\]/\\(landing\\)/settings/',
+      importPatterns: ARCHITECTURE_RULES.memberSettingsForbiddenImports,
+    }),
+    ...createPathRules({
+      baseName: 'no-member-activity-to-chat-ai-infra',
+      fromPath: '^src/app/\\[locale\\]/\\(landing\\)/activity/',
+      importPatterns: ARCHITECTURE_RULES.memberActivityForbiddenImports,
+    }),
+    ...createPathRules({
+      baseName: 'no-member-chat-to-chat-infra',
+      fromPath: '^src/app/\\[locale\\]/\\(chat\\)/',
+      importPatterns: ARCHITECTURE_RULES.memberChatForbiddenImports,
+    }),
+    ...createPathRules({
+      baseName: 'no-payment-callback-to-billing-infra-or-payment-adapters',
+      fromPath: '^src/app/api/payment/callback/route\\.ts$',
+      importPatterns: ARCHITECTURE_RULES.paymentCallbackRouteForbiddenImports,
+    }),
+    ...createExactPathRules({
+      baseName: 'no-surfaces-admin-to-app-facades-domain-infra-or-adapters',
+      fromPath: '^src/surfaces/admin/',
+      targetPaths: ARCHITECTURE_RULES.appOnlyFacades,
+    }),
+    ...createPathRules({
+      baseName: 'no-surfaces-admin-to-app-facades-domain-infra-or-adapters-3',
+      fromPath: '^src/surfaces/admin/',
+      importPatterns: ARCHITECTURE_RULES.surfacesAdminForbiddenImports.filter(
+        (pattern) => !pattern.startsWith('^@/app/')
+      ),
+    }),
   ],
   options: {
     doNotFollow: {

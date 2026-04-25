@@ -1,4 +1,4 @@
-export const ARCHITECTURE_RULES = {
+const ARCHITECTURE_RULES = {
   requiredTargetDirectories: [
     'src/domains/chat',
     'src/domains/account',
@@ -159,6 +159,8 @@ export const ARCHITECTURE_RULES = {
     'payment',
     'rbac',
   ],
-} as const;
+};
 
-export type ArchitectureRules = typeof ARCHITECTURE_RULES;
+module.exports = {
+  ARCHITECTURE_RULES,
+};

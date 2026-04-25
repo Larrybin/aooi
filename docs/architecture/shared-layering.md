@@ -2,7 +2,7 @@
 
 `src/shared` is intentionally small. It is not a fallback for business code.
 The executable allowlist for `src/shared/lib/**` lives in
-`src/testing/architecture-rules.ts`; this document explains the rule, but the
+`architecture-rules.cjs`; this document explains the rule, but the
 manifest is the source of truth.
 
 ## Allowed Contents
@@ -47,7 +47,7 @@ access-control entrypoints, and structure guards must keep them inside
 
 ## `shared/lib` Allowlist
 
-`src/testing/architecture-rules.ts` allowlists the current `shared/lib` path
+`architecture-rules.cjs` allowlists the current `shared/lib` path
 families. New files under `shared/lib` must fit one of these categories:
 
 - API/action transport helpers such as parse, response, typed errors, rate limits, CSRF, and client fetch wrappers.
@@ -95,7 +95,7 @@ Shared UI must not depend on:
 
 The executable source of truth is:
 
-- `src/testing/architecture-rules.ts`
+- `architecture-rules.cjs`
 - `eslint.config.mjs`
 - `dependency-cruiser.cjs`
 - `src/architecture-boundaries.test.ts`

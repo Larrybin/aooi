@@ -1,7 +1,7 @@
 # Architecture Overview
 
 This document is the current repository architecture baseline.
-Executable architecture rules live in `src/testing/architecture-rules.ts`.
+Executable architecture rules live in `architecture-rules.cjs`.
 Documentation, dependency tests, and review checklists must describe that
 manifest instead of inventing parallel allowlists.
 
@@ -72,7 +72,7 @@ src/config
 
 - Pure cross-cutting utilities, UI primitives, HTTP schemas, constants, and types.
 - `shared/schemas/api/**` is for HTTP wire contracts only.
-- `shared/lib/**` is allowlisted by `src/testing/architecture-rules.ts` and may only contain pure tools or transport helpers without business capability ownership.
+- `shared/lib/**` is allowlisted by `architecture-rules.cjs` and may only contain pure tools or transport helpers without business capability ownership.
 - `shared` must not become a business capability layer.
 
 ### `src/config`
@@ -110,7 +110,7 @@ Old architecture roots are removed: `src/core`, `src/features`, `src/shared/mode
 
 ## Anti-Regression Rules
 
-`src/testing/architecture-rules.ts` is the machine-readable source of truth for:
+`architecture-rules.cjs` is the machine-readable source of truth for:
 
 - legacy forbidden imports and deleted architecture directories
 - `shared/lib` allowed path patterns and forbidden semantic entry names
@@ -120,7 +120,8 @@ Old architecture roots are removed: `src/core`, `src/features`, `src/shared/mode
 - aggregation/orchestration budgets and required exception marker formats
 - domain forbidden imports
 
-The dependency tests import that manifest from `src/architecture-boundaries.test.ts`.
+`dependency-cruiser.cjs` consumes that manifest for graph rules, and
+`src/architecture-boundaries.test.ts` consumes it for semantic rules.
 When a boundary changes, update the manifest first, then update documentation to
 match the manifest. Do not maintain a second hidden allowlist in docs or review
 notes.
@@ -219,10 +220,11 @@ app/api route -> domain application flow -> infra adapter transport/provider -> 
 
 ## Enforced By
 
-- `src/testing/architecture-rules.ts`
+- `architecture-rules.cjs`
 - `dependency-cruiser.cjs`
 - `eslint.config.mjs`
 - `src/architecture-boundaries.test.ts`
+- `pnpm arch:check`
 - Stage-specific contract tests under each domain/infra/surface
 
 ## Related Documents

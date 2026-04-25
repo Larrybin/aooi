@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { readdir, stat } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -11,6 +11,7 @@ const coverageEnabled = args.includes('--coverage');
 const TEST_FILE_PATTERN = /\.(test|spec)\.(t|j)sx?$/;
 const SERVER_TEST_FILE_PATTERN = /\.server\.(test|spec)\.(t|j)sx?$/;
 const IGNORED_DIRS = new Set(['.git', '.next', 'dist', 'node_modules', 'out']);
+const EXCLUDED_TEST_FILES = new Set(['src/architecture-boundaries.test.ts']);
 
 async function isDirectory(path) {
   try {
@@ -33,7 +34,11 @@ async function collectTestFiles(dir, out) {
     if (!entry.isFile()) continue;
     if (!TEST_FILE_PATTERN.test(entry.name)) continue;
 
-    out.push(resolve(dir, entry.name));
+    const filePath = resolve(dir, entry.name);
+    const repoPath = relative(ROOT_DIR, filePath).split(sep).join('/');
+    if (EXCLUDED_TEST_FILES.has(repoPath)) continue;
+
+    out.push(filePath);
   }
 }
 

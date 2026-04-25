@@ -12,11 +12,11 @@
   - 日常：建议小步提交，一个 PR 聚焦一个问题或功能。
   - 特殊：首次全量审查可以跨模块，但仍按本文件顺序逐项过一遍。
 - 先机后人：
-  - 要求通过 `pnpm lint`、`pnpm format:check`、`pnpm test`、`pnpm build`（含 TypeScript 检查）后再人工 review。
+  - 要求通过 `pnpm lint`、`pnpm format:check`、`pnpm arch:check`、`pnpm test`、`pnpm build`（含 TypeScript 检查）后再人工 review。
   - 机器负责“底线”，人重点看设计、边界条件和长期可维护性。
 - 以护栏为准：
   - 依赖方向与 Server/Client 边界以 `eslint.config.mjs` 为单一事实来源（不要靠口头约定）。
-  - 架构结构守卫以 `src/testing/architecture-rules.ts` 为机器可读 source of truth；`src/architecture-boundaries.test.ts` 只是它的执行投影。
+  - 架构门禁以根级 `architecture-rules.cjs` 为共享事实源；`dependency-cruiser.cjs` 负责图结构，`src/architecture-boundaries.test.ts` 负责语义、预算与 marker 校验。
   - `src/shared` 分层约定见 `docs/architecture/shared-layering.md`（变更触及边界时，优先用 ESLint 规则固化）。
   - `src/app/account/runtime-deps.ts` 与 `src/app/access-control/runtime-deps.ts` 是仅有的 app-only façade；review 时必须确认它们没有向 surfaces/domains/shared 扩散。
 - 新旧代码策略：
@@ -250,7 +250,7 @@
 ### 5.4 架构反退化审查
 
 - 机器先行：
-  - `pnpm lint:deps` 和 `pnpm test` 会执行结构护栏，但它们只证明“没有越过硬边界”。
+  - `pnpm arch:check` 会执行架构护栏，但它只证明“没有越过硬边界或语义预算”。
   - 人工 review 必须继续判断依赖语义：fan-out 数量过关不代表跨域关系合理。
 - 新 domain 准入：
   - 必须有独立不变量、独立数据边界或独立生命周期。

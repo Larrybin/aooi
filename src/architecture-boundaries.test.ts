@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { readdir, readFile, stat } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
-import { ARCHITECTURE_RULES } from '@/testing/architecture-rules';
+
+const require = createRequire(import.meta.url);
+const { ARCHITECTURE_RULES } = require('../architecture-rules.cjs');
 
 const repoRoot = process.cwd();
 const srcRoot = path.resolve(repoRoot, 'src');
@@ -118,30 +121,6 @@ const applicationAllowedPlatformImportPatterns =
   );
 const appOnlyFacadeImportPatterns =
   ARCHITECTURE_RULES.appOnlyFacadeImportPatterns.map(
-    (pattern) => new RegExp(pattern)
-  );
-const appAdminForbiddenImportPatterns =
-  ARCHITECTURE_RULES.appAdminForbiddenImports.map(
-    (pattern) => new RegExp(pattern)
-  );
-const memberSettingsForbiddenImportPatterns =
-  ARCHITECTURE_RULES.memberSettingsForbiddenImports.map(
-    (pattern) => new RegExp(pattern)
-  );
-const memberActivityForbiddenImportPatterns =
-  ARCHITECTURE_RULES.memberActivityForbiddenImports.map(
-    (pattern) => new RegExp(pattern)
-  );
-const memberChatForbiddenImportPatterns =
-  ARCHITECTURE_RULES.memberChatForbiddenImports.map(
-    (pattern) => new RegExp(pattern)
-  );
-const paymentCallbackRouteForbiddenImportPatterns =
-  ARCHITECTURE_RULES.paymentCallbackRouteForbiddenImports.map(
-    (pattern) => new RegExp(pattern)
-  );
-const surfacesAdminForbiddenImportPatterns =
-  ARCHITECTURE_RULES.surfacesAdminForbiddenImports.map(
     (pattern) => new RegExp(pattern)
   );
 const applicationPlatformImportExceptions =
@@ -769,24 +748,6 @@ test('architecture: app-only facade 只有两个 runtime-deps 且仅限 app 导�
   }
 });
 
-test('architecture: admin app 入口必须 application-first', async () => {
-  const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/app\/\[locale\]\/\(admin\)\/admin\//.test(repoPath)
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        appAdminForbiddenImportPatterns.some((pattern) =>
-          pattern.test(specifier)
-        ),
-        false,
-        `${file.repoPath} 不应直连 ${specifier}`
-      );
-    }
-  }
-});
-
 test('architecture: 只有 settings domain 和 admin settings 页面可以导入 settings-store / Configs', async () => {
   const files = await readSourceFiles();
 
@@ -815,96 +776,6 @@ test('architecture: 只有 settings domain 和 admin settings 页面可以导入
       true,
       `${file.repoPath} 不应导入 settings-store / Configs`
     );
-  }
-});
-
-test('architecture: member settings billing 入口不得直连 billing infra/adapters', async () => {
-  const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/app\/\[locale\]\/\(landing\)\/settings\//.test(repoPath)
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        memberSettingsForbiddenImportPatterns.some((pattern) =>
-          pattern.test(specifier)
-        ),
-        false,
-        `${file.repoPath} 不应直连 ${specifier}`
-      );
-    }
-  }
-});
-
-test('architecture: member activity 入口不得直连 chat/ai infra', async () => {
-  const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/app\/\[locale\]\/\(landing\)\/activity\//.test(repoPath)
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        memberActivityForbiddenImportPatterns.some((pattern) =>
-          pattern.test(specifier)
-        ),
-        false,
-        `${file.repoPath} 不应直连 ${specifier}`
-      );
-    }
-  }
-});
-
-test('architecture: member chat 入口不得直连 chat infra', async () => {
-  const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/app\/\[locale\]\/\(chat\)\//.test(repoPath)
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        memberChatForbiddenImportPatterns.some((pattern) =>
-          pattern.test(specifier)
-        ),
-        false,
-        `${file.repoPath} 不应直连 ${specifier}`
-      );
-    }
-  }
-});
-
-test('architecture: payment callback route 不得直连 billing infra/adapters', async () => {
-  const files = (await readSourceFiles()).filter(
-    ({ repoPath }) => repoPath === 'src/app/api/payment/callback/route.ts'
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        paymentCallbackRouteForbiddenImportPatterns.some((pattern) =>
-          pattern.test(specifier)
-        ),
-        false,
-        `${file.repoPath} 不应直连 ${specifier}`
-      );
-    }
-  }
-});
-
-test('architecture: surfaces/admin 不得导入 app facade 或 infra 实现', async () => {
-  const files = (await readSourceFiles()).filter(({ repoPath }) =>
-    /^src\/surfaces\/admin\//.test(repoPath)
-  );
-
-  for (const file of files) {
-    for (const specifier of readImportSpecifiers(file.content)) {
-      assert.equal(
-        surfacesAdminForbiddenImportPatterns.some((pattern) =>
-          pattern.test(specifier)
-        ),
-        false,
-        `${file.repoPath} 不应导入 ${specifier}`
-      );
-    }
   }
 });
 
@@ -1169,6 +1040,41 @@ test('architecture: aggregation/orchestration 不能被外域 application 调用
       );
     }
   }
+});
+
+test('architecture: 架构门禁配置保持单一事实源', async () => {
+  const dependencyCruiserConfigPath = path.resolve(
+    repoRoot,
+    'dependency-cruiser.cjs'
+  );
+  const dependencyCruiserSource = await readFile(
+    dependencyCruiserConfigPath,
+    'utf8'
+  );
+  const dependencyCruiserConfig = require(dependencyCruiserConfigPath);
+  const ruleNames = dependencyCruiserConfig.forbidden.map(
+    (rule: { name: string }) => rule.name
+  );
+
+  assert.match(
+    dependencyCruiserSource,
+    /require\(['"]\.\/architecture-rules\.cjs['"]\)/,
+    'dependency-cruiser.cjs 必须消费共享 architecture-rules.cjs'
+  );
+  assert.ok(
+    ruleNames.includes('no-circular'),
+    'dependency-cruiser.cjs 必须启用 no-circular'
+  );
+  assert.ok(
+    ruleNames.includes('no-admin-app-to-domain-infra-or-adapters'),
+    'dependency-cruiser.cjs 必须包含 admin app 入口目录门禁'
+  );
+  assert.ok(
+    ruleNames.includes(
+      'no-surfaces-admin-to-app-facades-domain-infra-or-adapters'
+    ),
+    'dependency-cruiser.cjs 必须包含 surfaces/admin 目录门禁'
+  );
 });
 
 test('architecture: shared/lib 只保留 allowlist 纯工具', async () => {

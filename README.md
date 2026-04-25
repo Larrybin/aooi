@@ -144,9 +144,10 @@ Read `sites/<site-key>/content/docs` to start your AI SaaS project.
 
 ### CI Guardrails
 
-- `pnpm lint:deps` 是仓库正式门禁，使用 `dependency-cruiser` 校验目录边界、`src/testing/**` 依赖方向和全仓循环依赖。
+- `pnpm arch:check` 是唯一架构门禁入口：`pnpm arch:graph` 负责 `dependency-cruiser` 图结构校验，`pnpm arch:semantic` 负责 `src/architecture-boundaries.test.ts` 的语义与预算校验。
 - `.github/workflows/dependency-review.yaml` 会在 `pull_request -> main` 运行 `dependency-review`，当前只拦截新增 `high/critical` 依赖漏洞。
-- `.github/workflows/cloudflare-acceptance.yaml` 的顺序固定为：`pnpm lint` -> `pnpm lint:deps` -> `pnpm test` -> `pnpm cf:check` -> `pnpm cf:build` -> Cloudflare smoke。
+- `pnpm test` 只保留业务、单元与契约测试，不再隐式执行架构测试。
+- `.github/workflows/cloudflare-acceptance.yaml` 的顺序固定为：`pnpm lint` -> `pnpm arch:check` -> `pnpm test` -> `pnpm cf:check` -> `pnpm cf:build` -> Cloudflare smoke。
 - 所有 marketplace actions 都固定到完整 commit SHA，并在 `uses:` 旁保留 `# pinned from vX` 注释；`.github/dependabot.yml` 负责按周提出 `github-actions` 与 `npm` 更新 PR，但默认不自动合并。
 - GitHub 平台侧仍需手工开启 `secret scanning`、`push protection`，并把 `dependency-review` 与 `cloudflare acceptance` 设为 required checks。
 

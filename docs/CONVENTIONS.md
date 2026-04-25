@@ -35,7 +35,7 @@
 
 | 主题                         | 单一事实来源                                                 | 说明                                                                             |
 | ---------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| 架构结构守卫 manifest        | `src/testing/architecture-rules.ts`                          | 机器可读的结构规则源；文档、测试、review checklist 必须与它对齐。                |
+| 架构结构守卫 manifest        | `architecture-rules.cjs`                                     | 机器可读的结构规则源；`dependency-cruiser.cjs` 与 `src/architecture-boundaries.test.ts` 必须共享它。 |
 | Server/Client 边界、依赖方向 | `eslint.config.mjs`                                          | 以 lint 规则固化边界，避免口头约定（见 `docs/CODE_REVIEW.md`）。                 |
 | `src/shared` 分层约定        | `docs/architecture/shared-layering.md`                       | 规定 shared 只保留纯 UI、工具、HTTP schema、types、constants，禁止业务能力回流。 |
 | Code Review 基线             | `docs/CODE_REVIEW.md`                                        | PR 审查顺序与常见坑，含大量场景化示例。                                          |
@@ -88,7 +88,7 @@
 
 ### Route Handlers（`src/app/**/route.ts`）
 
-约定：入口只做入站适配（鉴权/校验/调用 domain application/返回响应），避免引入 UI 依赖图或业务规则；具体护栏见 `eslint.config.mjs`、`src/testing/architecture-rules.ts` 与 `docs/architecture/shared-layering.md`。
+约定：入口只做入站适配（鉴权/校验/调用 domain application/返回响应），避免引入 UI 依赖图或业务规则；具体护栏见 `eslint.config.mjs`、`architecture-rules.cjs` 与 `docs/architecture/shared-layering.md`。
 
 - 支付 checkout：`src/app/api/payment/checkout/route.ts`
 - 支付回调/通知：`src/app/api/payment/notify/route.ts`
@@ -119,7 +119,7 @@
 
 ### 当前架构分层（边界与示例入口）
 
-以 `src/testing/architecture-rules.ts` 和 `docs/architecture/shared-layering.md` 为准；当不确定放哪层时，先对照机器可读 manifest，再看文档解释。
+以 `architecture-rules.cjs` 和 `docs/architecture/shared-layering.md` 为准；当不确定放哪层时，先对照机器可读 manifest，再看文档解释。
 
 - 纯工具/一致性逻辑：`src/shared/lib/**`（示例：`src/shared/lib/api/parse.ts`、`src/shared/lib/date/format.ts`）
 - 叶子常量层：`src/shared/constants/**`（示例：`src/shared/constants/rbac-permissions.ts`）
