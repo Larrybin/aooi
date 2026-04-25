@@ -17,15 +17,15 @@ Detailed contract and runtime behavior live in [Authentication Guide](../auth.md
 - `google_auth_enabled`
 - `google_one_tap_enabled`
 - `github_auth_enabled`
-- `resend_api_key`
 - `resend_sender_email`
 
-OAuth client id / secret 已改为 runtime bindings，不再属于 settings：
+OAuth / Email secrets 已改为 runtime bindings，不再属于 settings：
 
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
+- `RESEND_API_KEY`
 
 ## External Services
 

@@ -52,7 +52,8 @@
   - [src/domains/settings/application/settings-runtime.builders.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/application/settings-runtime.builders.ts)
   - [src/domains/settings/application/settings-runtime.query.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/application/settings-runtime.query.ts)
 - 公开 UI 配置已收敛为 `PublicUiConfig`，旧 `public-config.view.ts` 已删除：
-  - [src/domains/settings/application/public-config-projection.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/application/public-config-projection.ts)
+  - [src/domains/settings/application/settings-runtime.builders.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/application/settings-runtime.builders.ts)
+  - [src/domains/settings/application/settings-runtime.query.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/application/settings-runtime.query.ts)
   - [src/app/api/config/get-configs/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/config/get-configs/route.ts)
   - [src/app/api/config/get-configs/route-logic.ts](/Users/bin/Desktop/project/aooi/src/app/api/config/get-configs/route-logic.ts)
 - auth 已拆成 UI settings + server bindings：
@@ -63,8 +64,19 @@
   - [src/infra/adapters/payment/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/payment/service.ts)
   - [src/infra/adapters/payment/runtime-bindings.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/payment/runtime-bindings.ts)
   - [src/app/api/payment/checkout/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/checkout/route.ts)
-  - [src/app/api/payment/notify/[provider]/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/notify/%5Bprovider%5D/route.ts)
+  - [src/app/api/payment/notify/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/notify/route.ts)
   - [src/domains/billing/application/payment-callback.ts](/Users/bin/Desktop/project/aooi/src/domains/billing/application/payment-callback.ts)
+- payment / Cloudflare Batch 5 已完成：
+  - [src/config/payment-capability.ts](/Users/bin/Desktop/project/aooi/src/config/payment-capability.ts)
+  - [scripts/lib/site-deploy-contract.mjs](/Users/bin/Desktop/project/aooi/scripts/lib/site-deploy-contract.mjs)
+  - [scripts/lib/cloudflare-runtime-bindings.mjs](/Users/bin/Desktop/project/aooi/scripts/lib/cloudflare-runtime-bindings.mjs)
+  - [src/shared/platform/cloudflare/stateful-limiters.ts](/Users/bin/Desktop/project/aooi/src/shared/platform/cloudflare/stateful-limiters.ts)
+- email / analytics / affiliate / customer service / ads 已迁到 typed subsets：
+  - [src/infra/adapters/email/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/email/service.ts)
+  - [src/infra/adapters/analytics/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/analytics/service.ts)
+  - [src/infra/adapters/affiliate/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/affiliate/service.ts)
+  - [src/infra/adapters/customer-service/service.tsx](/Users/bin/Desktop/project/aooi/src/infra/adapters/customer-service/service.tsx)
+  - [src/infra/adapters/ads/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/ads/service.ts)
 - AI 已拆成 gating settings + provider bindings：
   - [src/domains/ai/application/capabilities.ts](/Users/bin/Desktop/project/aooi/src/domains/ai/application/capabilities.ts)
   - [src/domains/ai/application/service.ts](/Users/bin/Desktop/project/aooi/src/domains/ai/application/service.ts)
@@ -79,12 +91,12 @@
   - [dependency-cruiser.cjs](/Users/bin/Desktop/project/aooi/dependency-cruiser.cjs)
   - [src/architecture-boundaries.test.ts](/Users/bin/Desktop/project/aooi/src/architecture-boundaries.test.ts)
 
-### 未完成
+### 收口结论
 
-- Cloudflare bindings 仍然是“模板 + 当前 site 注入”，还不是“每个 site 自带完整 deploy manifest”
-- stateful Cloudflare resource naming 仍未进入 site-scoped contract
-- payment / Cloudflare site instance contract 还没有按 site 独立编排
-- 仓库中仍有一批 raw settings consumers 没迁到 typed subsets，只是已经不再承载 identity / secret 主线
+- Cloudflare deploy contract 已按 `SITE` 单向推导，tracked wrangler 只作为模板存在，不再是真相源
+- stateful limiter bucket 已进入 typed + `site.key` scoped contract
+- payment / Cloudflare site instance contract 已完成，旧 provider webhook 路径已删除
+- raw `Configs` 只保留在 settings domain 内部和 admin settings 页面，不再向业务运行时扩散
 
 ## Classification
 
@@ -201,7 +213,7 @@
   - [src/shared/contexts/app.tsx](/Users/bin/Desktop/project/aooi/src/shared/contexts/app.tsx)
 - Billing / payment
   - [src/app/api/payment/checkout/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/checkout/route.ts)
-  - [src/app/api/payment/notify/[provider]/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/notify/%5Bprovider%5D/route.ts)
+  - [src/app/api/payment/notify/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/notify/route.ts)
   - [src/domains/billing/application/member-billing.actions.ts](/Users/bin/Desktop/project/aooi/src/domains/billing/application/member-billing.actions.ts)
   - [src/domains/billing/application/payment-callback.ts](/Users/bin/Desktop/project/aooi/src/domains/billing/application/payment-callback.ts)
 - AI capability / service / routes
@@ -210,28 +222,20 @@
   - [src/app/api/ai/generate/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/ai/generate/route.ts)
   - [src/app/api/chat/deps.ts](/Users/bin/Desktop/project/aooi/src/app/api/chat/deps.ts)
 
-#### Remaining raw settings consumers
+#### Remaining raw settings surface
 
-这些路径仍然直接读取 `settings-store` 或直接消费 `Configs`，但已经不再承载 site identity / secret boundary 主线：
+raw `Configs` 现在只保留在底层持久化总线与 admin 写路径：
 
-- Root layout 的 analytics / affiliate / customer service 聚合
-  - [src/app/layout.tsx](/Users/bin/Desktop/project/aooi/src/app/layout.tsx)
-  - [src/infra/adapters/analytics/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/analytics/service.ts)
-  - [src/infra/adapters/affiliate/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/affiliate/service.ts)
-  - [src/infra/adapters/customer-service/service.tsx](/Users/bin/Desktop/project/aooi/src/infra/adapters/customer-service/service.tsx)
-- Email provider runtime
-  - [src/infra/adapters/email/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/email/service.ts)
-- Ads / ads.txt
-  - [src/infra/adapters/ads/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/ads/service.ts)
-  - [src/app/ads.txt/route.ts](/Users/bin/Desktop/project/aooi/src/app/ads.txt/route.ts)
+- settings domain 内部 store / merge
+  - [src/domains/settings/application/settings-store.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/application/settings-store.ts)
+  - [src/domains/settings/settings-submit-merge.ts](/Users/bin/Desktop/project/aooi/src/domains/settings/settings-submit-merge.ts)
 - Admin settings 页面本身
   - [src/app/[locale]/(admin)/admin/settings/[tab]/page.tsx](</Users/bin/Desktop/project/aooi/src/app/%5Blocale%5D/(admin)/admin/settings/%5Btab%5D/page.tsx>)
 
 #### Remaining risks
 
-- `settings-store` 仍然是若干非关键能力的 raw source bus
-- ads / analytics / affiliate / customer service / email 还没有迁到 typed subsets
 - `settings-store` 仍保留 `Configs = Record<string, string>` 作为底层存储表示，但不应再次向业务层扩散
+- admin settings 仍是唯一允许处理 raw key/value merge 的脏区，必须持续保持边界测试
 
 ## Batch Status
 
@@ -303,23 +307,3 @@
 - `sites/<site-key>/content/pages/**`
 - [sites/mamamiya/content/docs/\*\*](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/docs)
 - [sites/mamamiya/content/pages/\*\*](/Users/bin/Desktop/project/aooi/sites/mamamiya/content/pages)
-
-### Batch 5: Payment / Cloudflare Site Instance Contract
-
-未开始。
-
-目标：
-
-- provider 初始化不再依赖单站全局假设
-- webhook / callback / secret / binding 都可以按 site 独立编排
-- 删除任一 site 的支付或状态资源，不影响其他站
-
-主要文件：
-
-- [src/domains/billing/application/checkout.ts](/Users/bin/Desktop/project/aooi/src/domains/billing/application/checkout.ts)
-- [src/domains/billing/application/payment-callback.ts](/Users/bin/Desktop/project/aooi/src/domains/billing/application/payment-callback.ts)
-- [src/app/api/payment/notify/[provider]/route.ts](/Users/bin/Desktop/project/aooi/src/app/api/payment/notify/%5Bprovider%5D/route.ts)
-- [src/infra/adapters/payment/service.ts](/Users/bin/Desktop/project/aooi/src/infra/adapters/payment/service.ts)
-- [cloudflare/wrangler.state.toml](/Users/bin/Desktop/project/aooi/cloudflare/wrangler.state.toml)
-- [src/shared/platform/cloudflare/stateful-limiters.ts](/Users/bin/Desktop/project/aooi/src/shared/platform/cloudflare/stateful-limiters.ts)
-- [src/shared/platform/cloudflare/storage.ts](/Users/bin/Desktop/project/aooi/src/shared/platform/cloudflare/storage.ts)
