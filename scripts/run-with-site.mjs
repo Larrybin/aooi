@@ -92,16 +92,10 @@ function buildSiteEnv(commandParts, env = process.env) {
   const nextEnv = {
     ...env,
     SITE: TEST_SITE_KEY,
+    STORAGE_PUBLIC_BASE_URL: TEST_STORAGE_PUBLIC_BASE_URL,
+    BETTER_AUTH_SECRET: TEST_AUTH_SHARED_SECRET,
+    AUTH_SECRET: TEST_AUTH_SHARED_SECRET,
   };
-
-  if (!nextEnv.STORAGE_PUBLIC_BASE_URL?.trim()) {
-    nextEnv.STORAGE_PUBLIC_BASE_URL = TEST_STORAGE_PUBLIC_BASE_URL;
-  }
-
-  if (!nextEnv.BETTER_AUTH_SECRET?.trim() && !nextEnv.AUTH_SECRET?.trim()) {
-    nextEnv.BETTER_AUTH_SECRET = TEST_AUTH_SHARED_SECRET;
-    nextEnv.AUTH_SECRET = TEST_AUTH_SHARED_SECRET;
-  }
 
   return nextEnv;
 }

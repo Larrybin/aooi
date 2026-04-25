@@ -118,6 +118,7 @@ Read `sites/<site-key>/content/docs` to start your AI SaaS project.
 | Document                                          | Description                                   |
 | ------------------------------------------------- | --------------------------------------------- |
 | [Auth Guide](docs/guides/auth.md)                 | Authentication with Better Auth               |
+| [Add Site Runbook](docs/guides/add-site.md)       | Add a new site instance to the monorepo       |
 | [Module Contract](docs/guides/module-contract.md) | Product module matrix and verification status |
 | [RBAC Guide](docs/guides/rbac.md)                 | Role-Based Access Control                     |
 | [Settings Guide](docs/guides/settings.md)         | User and admin settings surfaces              |
