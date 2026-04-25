@@ -15,12 +15,6 @@ export const emailSettings = defineSettingsGroup(
   },
   [
     {
-      name: 'resend_api_key',
-      title: 'Resend API Key',
-      type: 'password',
-      placeholder: '',
-    },
-    {
       name: 'resend_sender_email',
       title: 'Resend Sender Email',
       type: 'email',

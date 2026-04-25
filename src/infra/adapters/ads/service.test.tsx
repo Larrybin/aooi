@@ -7,23 +7,47 @@ import { adsterraSnippetLog } from '@/extensions/ads/adsterra-snippet.server';
 
 import { getAdsTxtBody, resolveAdsRuntime } from './runtime';
 
+function createAdsSettings(
+  overrides: Partial<Parameters<typeof resolveAdsRuntime>[0]>
+) {
+  return {
+    adsEnabled: false,
+    adsProvider: '',
+    adsenseClientId: '',
+    adsenseSlotLandingInlinePrimary: '',
+    adsenseSlotBlogPostInline: '',
+    adsenseSlotBlogPostFooter: '',
+    adsterraMode: '',
+    adsterraGlobalSnippet: '',
+    adsterraZoneLandingInlinePrimarySnippet: '',
+    adsterraZoneBlogPostInlineSnippet: '',
+    adsterraZoneBlogPostFooterSnippet: '',
+    adsterraAdsTxtEntry: '',
+    ...overrides,
+  };
+}
+
 test('resolveAdsRuntime: ads disabled 时返回 empty runtime', () => {
-  const runtime = resolveAdsRuntime({
-    ads_enabled: 'false',
-    ads_provider: 'adsense',
-  });
+  const runtime = resolveAdsRuntime(
+    createAdsSettings({
+      adsEnabled: false,
+      adsProvider: 'adsense',
+    })
+  );
 
   assert.equal(runtime.enabled, false);
 });
 
 test('resolveAdsRuntime: AdSense 解析 client 和 zone slots', () => {
-  const runtime = resolveAdsRuntime({
-    ads_enabled: 'true',
-    ads_provider: 'adsense',
-    adsense_client_id: 'ca-pub-123456789',
-    adsense_slot_landing_inline_primary: 'slot-1',
-    adsense_slot_blog_post_inline: 'slot-2',
-  });
+  const runtime = resolveAdsRuntime(
+    createAdsSettings({
+      adsEnabled: true,
+      adsProvider: 'adsense',
+      adsenseClientId: 'ca-pub-123456789',
+      adsenseSlotLandingInlinePrimary: 'slot-1',
+      adsenseSlotBlogPostInline: 'slot-2',
+    })
+  );
 
   assert.equal(runtime.enabled, true);
   if (!runtime.enabled) {
@@ -40,14 +64,16 @@ test('resolveAdsRuntime: AdSense 解析 client 和 zone slots', () => {
 });
 
 test('resolveAdsRuntime: Adsterra zone mode 只启用有脚本的 zone', () => {
-  const runtime = resolveAdsRuntime({
-    ads_enabled: 'true',
-    ads_provider: 'adsterra',
-    adsterra_mode: 'native_banner',
-    adsterra_zone_blog_post_inline_snippet:
-      '<script src="https://cdn.example.com/inline.js"></script>',
-    adsterra_ads_txt_entry: 'adsterra.com, publisher-id, DIRECT',
-  });
+  const runtime = resolveAdsRuntime(
+    createAdsSettings({
+      adsEnabled: true,
+      adsProvider: 'adsterra',
+      adsterraMode: 'native_banner',
+      adsterraZoneBlogPostInlineSnippet:
+        '<script src="https://cdn.example.com/inline.js"></script>',
+      adsterraAdsTxtEntry: 'adsterra.com, publisher-id, DIRECT',
+    })
+  );
 
   assert.equal(runtime.enabled, true);
   if (!runtime.enabled) {
@@ -70,13 +96,15 @@ test('resolveAdsRuntime: Adsterra zone mode 只启用有脚本的 zone', () => {
 });
 
 test('resolveAdsRuntime: Adsterra zone mode 通过 SSR 直出 snippet', () => {
-  const runtime = resolveAdsRuntime({
-    ads_enabled: 'true',
-    ads_provider: 'adsterra',
-    adsterra_mode: 'display_banner',
-    adsterra_zone_blog_post_footer_snippet:
-      '<div class="ad-shell"></div><script src="https://cdn.example.com/footer.js"></script>',
-  });
+  const runtime = resolveAdsRuntime(
+    createAdsSettings({
+      adsEnabled: true,
+      adsProvider: 'adsterra',
+      adsterraMode: 'display_banner',
+      adsterraZoneBlogPostFooterSnippet:
+        '<div class="ad-shell"></div><script src="https://cdn.example.com/footer.js"></script>',
+    })
+  );
 
   assert.equal(runtime.enabled, true);
   if (!runtime.enabled) {
@@ -97,13 +125,15 @@ test('resolveAdsRuntime: Adsterra zone mode 通过 SSR 直出 snippet', () => {
 });
 
 test('resolveAdsRuntime: Popunder 通过 head SSR 直出 global snippet', () => {
-  const runtime = resolveAdsRuntime({
-    ads_enabled: 'true',
-    ads_provider: 'adsterra',
-    adsterra_mode: 'popunder',
-    adsterra_global_snippet:
-      '<script src="https://cdn.example.com/popunder.js"></script>',
-  });
+  const runtime = resolveAdsRuntime(
+    createAdsSettings({
+      adsEnabled: true,
+      adsProvider: 'adsterra',
+      adsterraMode: 'popunder',
+      adsterraGlobalSnippet:
+        '<script src="https://cdn.example.com/popunder.js"></script>',
+    })
+  );
 
   assert.equal(runtime.enabled, true);
   if (!runtime.enabled) {
@@ -121,13 +151,15 @@ test('resolveAdsRuntime: Popunder 通过 head SSR 直出 global snippet', () => 
 });
 
 test('resolveAdsRuntime: Social Bar 通过 body SSR 直出 global snippet', () => {
-  const runtime = resolveAdsRuntime({
-    ads_enabled: 'true',
-    ads_provider: 'adsterra',
-    adsterra_mode: 'social_bar',
-    adsterra_global_snippet:
-      '<script src="https://cdn.example.com/social-bar.js"></script>',
-  });
+  const runtime = resolveAdsRuntime(
+    createAdsSettings({
+      adsEnabled: true,
+      adsProvider: 'adsterra',
+      adsterraMode: 'social_bar',
+      adsterraGlobalSnippet:
+        '<script src="https://cdn.example.com/social-bar.js"></script>',
+    })
+  );
 
   assert.equal(runtime.enabled, true);
   if (!runtime.enabled) {
@@ -151,13 +183,15 @@ test('resolveAdsRuntime: malformed Adsterra snippet 会记录日志并禁用 run
   };
 
   try {
-    const runtime = resolveAdsRuntime({
-      ads_enabled: 'true',
-      ads_provider: 'adsterra',
-      adsterra_mode: 'popunder',
-      adsterra_global_snippet:
-        '<script src="https://cdn.example.com/broken.js"',
-    });
+    const runtime = resolveAdsRuntime(
+      createAdsSettings({
+        adsEnabled: true,
+        adsProvider: 'adsterra',
+        adsterraMode: 'popunder',
+        adsterraGlobalSnippet:
+          '<script src="https://cdn.example.com/broken.js"',
+      })
+    );
 
     assert.equal(runtime.enabled, false);
     assert.equal(calls.length, 1);

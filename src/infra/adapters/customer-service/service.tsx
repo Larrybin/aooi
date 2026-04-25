@@ -1,41 +1,36 @@
 import 'server-only';
 
-import type { Configs } from '@/domains/settings/application/settings-store';
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+import type { CustomerServiceRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { readCustomerServiceRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 
 import {
   CrispCustomerServiceProvider,
   CustomerServiceManager,
   TawkCustomerServiceProvider,
 } from '@/extensions/customer-service';
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 
-/**
- * get affiliate manager with configs
- */
-export function getCustomerServiceWithConfigs(configs: Configs) {
-  const customerServiceManager: CustomerServiceManager =
-    new CustomerServiceManager();
+export function createCustomerServiceManager(
+  settings: CustomerServiceRuntimeSettings
+) {
+  const customerServiceManager = new CustomerServiceManager();
 
-  // crisp
-  if (configs.crisp_enabled === 'true' && configs.crisp_website_id) {
+  if (settings.crispEnabled && settings.crispWebsiteId) {
     customerServiceManager.addProvider(
       new CrispCustomerServiceProvider({
-        websiteId: configs.crisp_website_id,
+        websiteId: settings.crispWebsiteId,
       })
     );
   }
 
-  // tawk
   if (
-    configs.tawk_enabled === 'true' &&
-    configs.tawk_property_id &&
-    configs.tawk_widget_id
+    settings.tawkEnabled &&
+    settings.tawkPropertyId &&
+    settings.tawkWidgetId
   ) {
     customerServiceManager.addProvider(
       new TawkCustomerServiceProvider({
-        propertyId: configs.tawk_property_id,
-        widgetId: configs.tawk_widget_id,
+        propertyId: settings.tawkPropertyId,
+        widgetId: settings.tawkWidgetId,
       })
     );
   }
@@ -43,16 +38,8 @@ export function getCustomerServiceWithConfigs(configs: Configs) {
   return customerServiceManager;
 }
 
-/**
- * global customer service
- */
-export async function getCustomerService(
-  options: {
-    mode?: ConfigConsistencyMode;
-  } = {}
-): Promise<CustomerServiceManager> {
-  return await buildServiceFromLatestConfigs(
-    getCustomerServiceWithConfigs,
-    options
+export async function getCustomerService(): Promise<CustomerServiceManager> {
+  return createCustomerServiceManager(
+    await readCustomerServiceRuntimeSettingsCached()
   );
 }

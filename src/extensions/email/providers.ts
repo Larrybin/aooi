@@ -1,7 +1,3 @@
 import 'server-only';
 
-export {
-  ResendProvider,
-  createResendProvider,
-  type ResendConfigs,
-} from './resend';
+export { ResendProvider, type ResendConfigs } from './resend';

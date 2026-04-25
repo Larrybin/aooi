@@ -1,13 +1,10 @@
 import 'server-only';
 
-import { cache } from 'react';
 import {
-  readSettingsSafe,
-  type Configs,
-} from '@/domains/settings/application/settings-store';
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+  readAdsRuntimeSettingsCached,
+  readAdsRuntimeSettingsFresh,
+} from '@/domains/settings/application/settings-runtime.query';
 
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
 
 import { resolveAdsRuntime, type ResolvedAdsRuntime } from './runtime';
@@ -18,25 +15,20 @@ export {
   type ResolvedAdsRuntime,
 } from './runtime';
 
-export function getAdsRuntimeWithConfigs(configs: Configs): ResolvedAdsRuntime {
+export function createAdsRuntime(
+  settings: Awaited<ReturnType<typeof readAdsRuntimeSettingsCached>>
+): ResolvedAdsRuntime {
   if (!isProductionEnv() && !isDebugEnv()) {
     return { enabled: false };
   }
 
-  return resolveAdsRuntime(configs);
+  return resolveAdsRuntime(settings);
 }
 
-export async function getAdsRuntime(
-  options: {
-    mode?: ConfigConsistencyMode;
-  } = {}
-): Promise<ResolvedAdsRuntime> {
-  return await buildServiceFromLatestConfigs(getAdsRuntimeWithConfigs, options);
+export async function getAdsRuntimeCached(): Promise<ResolvedAdsRuntime> {
+  return createAdsRuntime(await readAdsRuntimeSettingsCached());
 }
 
-export const getAdsRuntimeForRequest = cache(
-  async (): Promise<ResolvedAdsRuntime> => {
-    const { configs } = await readSettingsSafe();
-    return getAdsRuntimeWithConfigs(configs);
-  }
-);
+export async function getAdsRuntimeFresh(): Promise<ResolvedAdsRuntime> {
+  return createAdsRuntime(await readAdsRuntimeSettingsFresh());
+}

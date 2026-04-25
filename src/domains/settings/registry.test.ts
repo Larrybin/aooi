@@ -183,7 +183,6 @@ test('settings registry: DSL 重写后 key 集合保持不变', () => {
     'plausible_src',
     'promotekit_enabled',
     'promotekit_id',
-    'resend_api_key',
     'resend_sender_email',
     'stripe_payment_methods',
     'tawk_enabled',

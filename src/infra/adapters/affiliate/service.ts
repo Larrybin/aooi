@@ -1,51 +1,37 @@
 import 'server-only';
 
-import type { Configs } from '@/domains/settings/application/settings-store';
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+import type { AffiliateRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { readAffiliateRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 
 import {
   AffiliateManager,
   AffonsoAffiliateProvider,
   PromoteKitAffiliateProvider,
 } from '@/extensions/affiliate';
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 
-/**
- * get affiliate manager with configs
- */
-export function getAffiliateManagerWithConfigs(configs: Configs) {
-  const affiliateManager: AffiliateManager = new AffiliateManager();
+export function createAffiliateManager(settings: AffiliateRuntimeSettings) {
+  const affiliateManager = new AffiliateManager();
 
-  // affonso
-  if (configs.affonso_enabled === 'true' && configs.affonso_id) {
+  if (settings.affonsoEnabled && settings.affonsoId) {
     affiliateManager.addProvider(
       new AffonsoAffiliateProvider({
-        affonsoId: configs.affonso_id,
-        cookieDuration: Number(configs.affonso_cookie_duration) ?? 30,
+        affonsoId: settings.affonsoId,
+        cookieDuration: settings.affonsoCookieDuration,
       })
     );
   }
 
-  // promotekit
-  if (configs.promotekit_enabled === 'true' && configs.promotekit_id) {
+  if (settings.promotekitEnabled && settings.promotekitId) {
     affiliateManager.addProvider(
-      new PromoteKitAffiliateProvider({ promotekitId: configs.promotekit_id })
+      new PromoteKitAffiliateProvider({
+        promotekitId: settings.promotekitId,
+      })
     );
   }
 
   return affiliateManager;
 }
 
-/**
- * global affiliate service
- */
-export async function getAffiliateService(
-  options: {
-    mode?: ConfigConsistencyMode;
-  } = {}
-): Promise<AffiliateManager> {
-  return await buildServiceFromLatestConfigs(
-    getAffiliateManagerWithConfigs,
-    options
-  );
+export async function getAffiliateService(): Promise<AffiliateManager> {
+  return createAffiliateManager(await readAffiliateRuntimeSettingsCached());
 }

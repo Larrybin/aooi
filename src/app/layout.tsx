@@ -3,71 +3,29 @@
 // reason: keep the root html shell statically analyzable; locale-specific state lives under app/[locale]
 import '@/config/style/global.css';
 
-import { readSettingsSafe } from '@/domains/settings/application/settings-store';
-import { getAdsRuntimeForRequest } from '@/infra/adapters/ads/service';
-import { getAffiliateManagerWithConfigs } from '@/infra/adapters/affiliate/service';
-import { getAnalyticsManagerWithConfigs } from '@/infra/adapters/analytics/service';
-import { getCustomerServiceWithConfigs } from '@/infra/adapters/customer-service/service';
-
 import { defaultLocale, isRtlLocale } from '@/config/locale';
-import { isDebugEnv, isProductionEnv } from '@/shared/lib/env';
+
+import { resolveRootRuntimeInjectionsForServer } from './root-runtime-injections.server';
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isProduction = isProductionEnv();
-  const isDebug = isDebugEnv();
-
-  // ads components
-  let adsMetaTags = null;
-  let adsHeadScripts = null;
-  let adsBodyScripts = null;
-
-  // analytics components
-  let analyticsMetaTags = null;
-  let analyticsHeadScripts = null;
-  let analyticsBodyScripts = null;
-
-  // affiliate components
-  let affiliateMetaTags = null;
-  let affiliateHeadScripts = null;
-  let affiliateBodyScripts = null;
-
-  // customer service components
-  let customerServiceMetaTags = null;
-  let customerServiceHeadScripts = null;
-  let customerServiceBodyScripts = null;
-
-  if (isProduction || isDebug) {
-    const { configs } = await readSettingsSafe();
-
-    const adsRuntime = await getAdsRuntimeForRequest();
-    if (adsRuntime.enabled) {
-      adsMetaTags = adsRuntime.provider.getMetaTags();
-      adsHeadScripts = adsRuntime.provider.getHeadScripts();
-      adsBodyScripts = adsRuntime.provider.getBodyScripts();
-    }
-
-    // get analytics components
-    const analyticsService = getAnalyticsManagerWithConfigs(configs);
-    analyticsMetaTags = analyticsService.getMetaTags();
-    analyticsHeadScripts = analyticsService.getHeadScripts();
-    analyticsBodyScripts = analyticsService.getBodyScripts();
-
-    // get affiliate components
-    const affiliateService = getAffiliateManagerWithConfigs(configs);
-    affiliateMetaTags = affiliateService.getMetaTags();
-    affiliateHeadScripts = affiliateService.getHeadScripts();
-    affiliateBodyScripts = affiliateService.getBodyScripts();
-
-    // get customer service components
-    const customerService = getCustomerServiceWithConfigs(configs);
-    customerServiceMetaTags = customerService.getMetaTags();
-    customerServiceHeadScripts = customerService.getHeadScripts();
-    customerServiceBodyScripts = customerService.getBodyScripts();
-  }
+  const {
+    adsMetaTags,
+    adsHeadScripts,
+    adsBodyScripts,
+    analyticsMetaTags,
+    analyticsHeadScripts,
+    analyticsBodyScripts,
+    affiliateMetaTags,
+    affiliateHeadScripts,
+    affiliateBodyScripts,
+    customerServiceMetaTags,
+    customerServiceHeadScripts,
+    customerServiceBodyScripts,
+  } = await resolveRootRuntimeInjectionsForServer();
 
   return (
     <html

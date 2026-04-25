@@ -1,7 +1,7 @@
 import 'server-only';
 
-import type { Configs } from '@/domains/settings/application/settings-store';
-import { buildServiceFromLatestConfigs } from '@/infra/adapters/config-refresh-policy';
+import type { AnalyticsRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
+import { readAnalyticsRuntimeSettingsCached } from '@/domains/settings/application/settings-runtime.query';
 
 import {
   AnalyticsManager,
@@ -10,43 +10,35 @@ import {
   OpenPanelAnalyticsProvider,
   PlausibleAnalyticsProvider,
 } from '@/extensions/analytics';
-import type { ConfigConsistencyMode } from '@/shared/lib/config-consistency';
 
-/**
- * get analytics manager with configs
- */
-export function getAnalyticsManagerWithConfigs(configs: Configs) {
+export function createAnalyticsManager(settings: AnalyticsRuntimeSettings) {
   const analytics = new AnalyticsManager();
 
-  // google analytics
-  if (configs.google_analytics_id) {
+  if (settings.googleAnalyticsId) {
     analytics.addProvider(
-      new GoogleAnalyticsProvider({ gaId: configs.google_analytics_id })
+      new GoogleAnalyticsProvider({ gaId: settings.googleAnalyticsId })
     );
   }
 
-  // clarity
-  if (configs.clarity_id) {
+  if (settings.clarityId) {
     analytics.addProvider(
-      new ClarityAnalyticsProvider({ clarityId: configs.clarity_id })
+      new ClarityAnalyticsProvider({ clarityId: settings.clarityId })
     );
   }
 
-  // plausible
-  if (configs.plausible_domain && configs.plausible_src) {
+  if (settings.plausibleDomain && settings.plausibleSrc) {
     analytics.addProvider(
       new PlausibleAnalyticsProvider({
-        domain: configs.plausible_domain,
-        src: configs.plausible_src,
+        domain: settings.plausibleDomain,
+        src: settings.plausibleSrc,
       })
     );
   }
 
-  // openpanel
-  if (configs.openpanel_client_id) {
+  if (settings.openpanelClientId) {
     analytics.addProvider(
       new OpenPanelAnalyticsProvider({
-        clientId: configs.openpanel_client_id,
+        clientId: settings.openpanelClientId,
       })
     );
   }
@@ -54,16 +46,6 @@ export function getAnalyticsManagerWithConfigs(configs: Configs) {
   return analytics;
 }
 
-/**
- * global analytics service
- */
-export async function getAnalyticsService(
-  options: {
-    mode?: ConfigConsistencyMode;
-  } = {}
-): Promise<AnalyticsManager> {
-  return await buildServiceFromLatestConfigs(
-    getAnalyticsManagerWithConfigs,
-    options
-  );
+export async function getAnalyticsService(): Promise<AnalyticsManager> {
+  return createAnalyticsManager(await readAnalyticsRuntimeSettingsCached());
 }

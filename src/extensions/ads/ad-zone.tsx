@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { getAdsRuntimeForRequest } from '@/infra/adapters/ads/service';
+import { getAdsRuntimeCached } from '@/infra/adapters/ads/service';
 
 import { cn } from '@/shared/lib/utils';
 
@@ -16,7 +16,7 @@ export async function AdZone({
   className?: string;
   containerClassName?: string;
 }) {
-  const runtime = await getAdsRuntimeForRequest();
+  const runtime = await getAdsRuntimeCached();
   if (!runtime.enabled || !runtime.provider.supportsZone(zone)) {
     return null;
   }

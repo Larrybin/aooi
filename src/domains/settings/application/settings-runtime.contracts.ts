@@ -31,6 +31,14 @@ export type AuthServerBindings = {
   githubClientSecret: string;
 };
 
+export type EmailRuntimeSettings = {
+  resendSenderEmail: string;
+};
+
+export type EmailRuntimeBindings = {
+  resendApiKey: string;
+};
+
 type BillingRuntimeSharedSettings = {
   locale: string;
   defaultLocale: string;
@@ -107,4 +115,43 @@ export type AiProviderBindings = {
   replicateApiToken: string;
   falApiKey: string;
   kieApiKey: string;
+};
+
+export type AnalyticsRuntimeSettings = {
+  googleAnalyticsId: string;
+  clarityId: string;
+  plausibleDomain: string;
+  plausibleSrc: string;
+  openpanelClientId: string;
+};
+
+export type AffiliateRuntimeSettings = {
+  affonsoEnabled: boolean;
+  affonsoId: string;
+  affonsoCookieDuration: number;
+  promotekitEnabled: boolean;
+  promotekitId: string;
+};
+
+export type CustomerServiceRuntimeSettings = {
+  crispEnabled: boolean;
+  crispWebsiteId: string;
+  tawkEnabled: boolean;
+  tawkPropertyId: string;
+  tawkWidgetId: string;
+};
+
+export type AdsRuntimeSettings = {
+  adsEnabled: boolean;
+  adsProvider: 'adsense' | 'adsterra' | '';
+  adsenseClientId: string;
+  adsenseSlotLandingInlinePrimary: string;
+  adsenseSlotBlogPostInline: string;
+  adsenseSlotBlogPostFooter: string;
+  adsterraMode: string;
+  adsterraGlobalSnippet: string;
+  adsterraZoneLandingInlinePrimarySnippet: string;
+  adsterraZoneBlogPostInlineSnippet: string;
+  adsterraZoneBlogPostFooterSnippet: string;
+  adsterraAdsTxtEntry: string;
 };

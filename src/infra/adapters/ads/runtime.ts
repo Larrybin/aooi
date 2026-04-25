@@ -1,4 +1,4 @@
-import type { Configs } from '@/domains/settings/application/settings-store';
+import type { AdsRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 
 import { AdsenseProvider } from '@/extensions/ads/adsense';
 import { AdsterraProvider } from '@/extensions/ads/adsterra';
@@ -19,24 +19,11 @@ export type ResolvedAdsRuntime =
       adsTxtEntry: string | null;
     };
 
-function getNonEmptyConfig(configs: Configs, key: string) {
-  return configs[key]?.trim() || '';
-}
-
-function getAdsterraZoneSnippetMap(configs: Configs) {
+function getAdsterraZoneSnippetMap(settings: AdsRuntimeSettings) {
   return {
-    landing_inline_primary: getNonEmptyConfig(
-      configs,
-      'adsterra_zone_landing_inline_primary_snippet'
-    ),
-    blog_post_inline: getNonEmptyConfig(
-      configs,
-      'adsterra_zone_blog_post_inline_snippet'
-    ),
-    blog_post_footer: getNonEmptyConfig(
-      configs,
-      'adsterra_zone_blog_post_footer_snippet'
-    ),
+    landing_inline_primary: settings.adsterraZoneLandingInlinePrimarySnippet,
+    blog_post_inline: settings.adsterraZoneBlogPostInlineSnippet,
+    blog_post_footer: settings.adsterraZoneBlogPostFooterSnippet,
   } satisfies Partial<Record<AdsZoneName, string>>;
 }
 
@@ -54,8 +41,8 @@ function buildRuntime(providerName: AdsProviderName, provider: AdsProvider) {
   };
 }
 
-function buildAdsenseRuntime(configs: Configs): ResolvedAdsRuntime {
-  const clientId = getNonEmptyConfig(configs, 'adsense_client_id');
+function buildAdsenseRuntime(settings: AdsRuntimeSettings): ResolvedAdsRuntime {
+  const clientId = settings.adsenseClientId;
   if (!clientId) {
     return { enabled: false };
   }
@@ -65,25 +52,18 @@ function buildAdsenseRuntime(configs: Configs): ResolvedAdsRuntime {
     new AdsenseProvider({
       clientId,
       slotIds: {
-        landing_inline_primary: getNonEmptyConfig(
-          configs,
-          'adsense_slot_landing_inline_primary'
-        ),
-        blog_post_inline: getNonEmptyConfig(
-          configs,
-          'adsense_slot_blog_post_inline'
-        ),
-        blog_post_footer: getNonEmptyConfig(
-          configs,
-          'adsense_slot_blog_post_footer'
-        ),
+        landing_inline_primary: settings.adsenseSlotLandingInlinePrimary,
+        blog_post_inline: settings.adsenseSlotBlogPostInline,
+        blog_post_footer: settings.adsenseSlotBlogPostFooter,
       },
     })
   );
 }
 
-function buildAdsterraRuntime(configs: Configs): ResolvedAdsRuntime {
-  const mode = getNonEmptyConfig(configs, 'adsterra_mode');
+function buildAdsterraRuntime(
+  settings: AdsRuntimeSettings
+): ResolvedAdsRuntime {
+  const mode = settings.adsterraMode;
   if (
     mode !== 'social_bar' &&
     mode !== 'popunder' &&
@@ -95,9 +75,9 @@ function buildAdsterraRuntime(configs: Configs): ResolvedAdsRuntime {
 
   const provider = new AdsterraProvider({
     mode,
-    globalSnippet: getNonEmptyConfig(configs, 'adsterra_global_snippet'),
-    adsTxtEntry: getNonEmptyConfig(configs, 'adsterra_ads_txt_entry'),
-    zoneSnippets: getAdsterraZoneSnippetMap(configs),
+    globalSnippet: settings.adsterraGlobalSnippet,
+    adsTxtEntry: settings.adsterraAdsTxtEntry,
+    zoneSnippets: getAdsterraZoneSnippetMap(settings),
   });
 
   if (
@@ -118,18 +98,20 @@ function buildAdsterraRuntime(configs: Configs): ResolvedAdsRuntime {
   return buildRuntime('adsterra', provider);
 }
 
-export function resolveAdsRuntime(configs: Configs): ResolvedAdsRuntime {
-  if (getNonEmptyConfig(configs, 'ads_enabled') !== 'true') {
+export function resolveAdsRuntime(
+  settings: AdsRuntimeSettings
+): ResolvedAdsRuntime {
+  if (!settings.adsEnabled) {
     return { enabled: false };
   }
 
-  const providerName = getNonEmptyConfig(configs, 'ads_provider');
+  const providerName = settings.adsProvider;
   if (providerName === 'adsense') {
-    return buildAdsenseRuntime(configs);
+    return buildAdsenseRuntime(settings);
   }
 
   if (providerName === 'adsterra') {
-    return buildAdsterraRuntime(configs);
+    return buildAdsterraRuntime(settings);
   }
 
   return { enabled: false };

@@ -150,10 +150,3 @@ export class ResendProvider implements EmailProvider {
     }
   }
 }
-
-/**
- * Create Resend provider with configs
- */
-export function createResendProvider(configs: ResendConfigs): ResendProvider {
-  return new ResendProvider(configs);
-}
