@@ -19,6 +19,7 @@
     "dev:local": "SITE=dev-local node scripts/run-with-site.mjs pnpm exec next dev --turbopack",
     "build": "node scripts/run-with-site.mjs node scripts/next-build.mjs",
     "build:fast": "node scripts/run-with-site.mjs node scripts/next-build.mjs --max-old-space-size=4096",
+    "analyze": "ANALYZE=true node scripts/run-with-site.mjs node scripts/next-build.mjs",
     "start": "node scripts/run-with-site.mjs pnpm exec next start",
     "test": "node scripts/run-with-site.mjs node scripts/run-tests.mjs",
     "test:auth-spike": "node --import tsx scripts/smoke.mjs auth-spike",
