@@ -122,9 +122,44 @@ intended `SITE=<site-key>` explicitly.
 | `pnpm db:migrate`        | Apply database migrations                |
 | `pnpm db:studio`         | Open Drizzle Studio                      |
 | `SITE=<site> pnpm build` | Build the selected site                  |
+| `SITE=<site> pnpm analyze` | Build with bundle analyzer reports     |
 
 Cloudflare commands live in the
 [Deployment Guide](docs/guides/deployment.md).
+
+## Bundle 分析
+
+使用分析构建（与现有 build 包装器一致）：
+
+```bash
+SITE=<site> pnpm analyze
+```
+
+例如本地基线可使用 `SITE=dev-local pnpm analyze`。
+
+报告输出位置（Next Bundle Analyzer 默认目录）：
+
+- `.next/analyze/client.html`
+- `.next/analyze/edge.html`
+- `.next/analyze/nodejs.html`
+
+为便于基线对比，约定：
+
+- 原始 analyzer 报告固定使用 `.next/analyze/`。
+- 将关键指标按日期记录到本文档（或对应运维文档）“Bundle 分析”小节。
+- 至少跟踪以下关键页面：首页（`/[locale]`）、登录（`/[locale]/sign-in`）、账单（`/[locale]/settings/billing`）。
+
+### 初始基线（2026-04-28，SITE=dev-local）
+
+- 初始 JS（root main files，总和）：`426,187 bytes`（≈ `416.2 KiB`）。
+- 三个关键页面共享 chunk（交集，总和）：`534,522 bytes`（≈ `522.0 KiB`）。
+- 主要路由 chunk（路由级 app chunks 总和）：
+
+| 页面 | 路由级 chunk 总量 |
+| --- | ---: |
+| 首页 `(/[locale])` | `33,812 bytes` (≈ `33.0 KiB`) |
+| 登录 `(/[locale]/sign-in)` | `41,819 bytes` (≈ `40.8 KiB`) |
+| 账单 `(/[locale]/settings/billing)` | `35,939 bytes` (≈ `35.1 KiB`) |
 
 ## Site Configuration
 
