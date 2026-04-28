@@ -8,7 +8,6 @@ import {
   readMemberCancelableSubscription,
 } from '@/domains/billing/application/member-billing.actions';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
@@ -19,6 +18,7 @@ import { ActionError } from '@/shared/lib/action/errors';
 import { parseFormData } from '@/shared/lib/action/form';
 import { actionOk } from '@/shared/lib/action/result';
 import { withAction } from '@/shared/lib/action/with-action';
+import { formatYmd } from '@/shared/lib/date/format-ymd';
 import type { Crumb } from '@/shared/types/blocks/common';
 import type { Form } from '@/shared/types/blocks/form';
 
@@ -141,13 +141,13 @@ export default async function CancelBillingPage({
       {
         name: 'subscriptionCreatedAt',
         title: t('fields.subscription_created_at'),
-        value: moment(subscription.createdAt).format('YYYY-MM-DD'),
+        value: formatYmd(subscription.createdAt),
         attributes: { disabled: true },
       },
       {
         name: 'currentPeriod',
         title: t('fields.current_period'),
-        value: `${moment(subscription.currentPeriodStart).format('YYYY-MM-DD')} ~ ${moment(subscription.currentPeriodEnd).format('YYYY-MM-DD')}`,
+        value: `${formatYmd(subscription.currentPeriodStart)} ~ ${formatYmd(subscription.currentPeriodEnd)}`,
         attributes: { disabled: true },
       },
     ],
