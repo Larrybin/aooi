@@ -241,6 +241,10 @@ GitHub Actions are pinned to full commit SHAs with `# pinned from vX` comments.
 Keep `dependency-review` and `cloudflare acceptance` configured as required
 checks in repository settings.
 
+GitHub Actions is the Cloudflare acceptance gate, not the production deploy authority.
+Production Cloudflare releases are run explicitly from a local operator session
+with `SITE=mamamiya pnpm release:cf`.
+
 ## Feedback
 
 Submit feedback via GitHub Issues.

@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AIMediaType } from '@/extensions/ai';
+import { AIMediaType, AITaskStatus, type AIProvider } from '@/extensions/ai';
 import { BadRequestError } from '@/shared/lib/api/errors';
 
 import {
   createAiGeneratePostHandler,
   type AiGenerateRouteDeps,
 } from './create-handler';
+
+type AiGenerateCreateApiContext = AiGenerateRouteDeps['createApiContext'];
+type NewAiTask = Parameters<AiGenerateRouteDeps['createAITask']>[0];
+type AiTaskRecord = Awaited<ReturnType<AiGenerateRouteDeps['createAITask']>>;
+type UpdateAiTaskPatch = Parameters<AiGenerateRouteDeps['updateAITaskById']>[1];
 
 function createApiContextStub(body: {
   provider: string;
@@ -16,18 +21,63 @@ function createApiContextStub(body: {
   prompt?: string;
   options?: Record<string, unknown>;
   scene?: string;
-}) {
-  return () =>
-    ({
-      log: {
-        debug: () => undefined,
-        info: () => undefined,
-        warn: () => undefined,
-        error: () => undefined,
-      },
-      parseJson: async () => body,
-      requireUser: async () => ({ id: 'user_1' }),
-    }) as any;
+}): AiGenerateCreateApiContext {
+  return () => ({
+    log: {
+      debug: () => undefined,
+      info: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+    },
+    parseJson: async () => body,
+    requireUser: async () => ({ id: 'user_1' }),
+  });
+}
+
+function createAiTaskRecord(
+  task: NewAiTask,
+  overrides: Partial<AiTaskRecord> = {}
+): AiTaskRecord {
+  return {
+    id: task.id,
+    userId: task.userId,
+    mediaType: task.mediaType,
+    provider: task.provider,
+    model: task.model,
+    prompt: task.prompt,
+    options: task.options ?? null,
+    status: task.status,
+    createdAt: new Date('2026-04-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+    deletedAt: null,
+    taskId: task.taskId ?? null,
+    taskInfo: task.taskInfo ?? null,
+    taskResult: task.taskResult ?? null,
+    costCredits: task.costCredits ?? 0,
+    scene: task.scene ?? '',
+    creditId: task.creditId ?? null,
+    ...overrides,
+  };
+}
+
+function createAiGenerateProvider(): AIProvider {
+  return {
+    name: 'replicate',
+    configs: {},
+    generate: async () => ({
+      taskStatus: AITaskStatus.PROCESSING,
+      taskId: 'provider-task-1',
+      taskInfo: { step: 'queued' },
+    }),
+  };
+}
+
+function createEmptyAiService() {
+  return {
+    getProvider: () => undefined,
+    getDefaultProvider: () => undefined,
+    getMediaTypes: () => [],
+  };
 }
 
 test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredits', async () => {
@@ -59,31 +109,31 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
       costCredits: 4,
       isDefault: true,
     }),
-    getAIService: () =>
-      ({
-        getProvider: () => ({
-          generate: async () => ({
-            taskId: 'provider-task-1',
-            taskInfo: { step: 'queued' },
-          }),
-        }),
-        getDefaultProvider: () => undefined,
-        getMediaTypes: () => [],
-      }) as any,
+    getAIService: () => ({
+      getProvider: () => createAiGenerateProvider(),
+      getDefaultProvider: () => undefined,
+      getMediaTypes: () => [],
+    }),
     getUuid: () => 'db-task-1',
     createAITask: async (task) => {
       createdTask = task as Record<string, unknown>;
-      return {
-        ...task,
-        id: 'db-task-1',
+      return createAiTaskRecord(task, {
         creditId: 'credit-1',
-      } as any;
+      });
     },
-    updateAITaskById: async (_id, patch) =>
-      ({
-        id: 'db-task-1',
-        ...patch,
-      }) as any,
+    updateAITaskById: async (_id, patch: UpdateAiTaskPatch) =>
+      createAiTaskRecord(
+        {
+          id: 'db-task-1',
+          userId: 'user_1',
+          mediaType: AIMediaType.IMAGE,
+          provider: 'replicate',
+          model: 'google/nano-banana',
+          prompt: 'hello',
+          status: AITaskStatus.PENDING,
+        },
+        patch
+      ),
   });
 
   const response = await handler(
@@ -125,12 +175,7 @@ test('ai/generate 路由非法 capability 统一返回 400', async () => {
     resolveConfiguredAICapability: () => {
       throw new BadRequestError('invalid ai capability');
     },
-    getAIService: () =>
-      ({
-        getProvider: () => undefined,
-        getDefaultProvider: () => undefined,
-        getMediaTypes: () => [],
-      }) as any,
+    getAIService: createEmptyAiService,
     getUuid: () => 'db-task-1',
     createAITask: async () => {
       throw new Error('should not create task');

@@ -21,9 +21,10 @@
 - Tracked `wrangler.cloudflare.toml`, `cloudflare/wrangler.state.toml`, and `cloudflare/wrangler.server-*.toml` are static templates, not site-specific source of truth.
 - Resolver behavior is deterministic and side-effect free: it reads site identity + deploy manifest, derives contract IR, and feeds every `cf:*` command, smoke script, typegen, and release gate.
 - Router-to-server dispatch must use Cloudflare version affinity.
-- Production deploy authority belongs to GitHub Actions through `.github/workflows/cloudflare-production-deploy.yaml`.
-- The production workflow may deploy only the current `main` head whose `Cloudflare Deploy Acceptance` run succeeded and whose release metadata artifact matches the triggering workflow run.
-- Manual Wrangler deploy commands are diagnostics and emergency procedures; they must follow the same site-resolved contract and post-deploy smoke requirement.
+- Production release authority belongs to the local operator session through `SITE=mamamiya pnpm release:cf`.
+- GitHub Actions is the acceptance gate only. It must not deploy production.
+- The local release command may deploy only the current `main` head whose `Cloudflare Deploy Acceptance` run succeeded.
+- Manual lower-level Wrangler deploy commands are diagnostics and emergency procedures; they must follow the same site-resolved contract and post-deploy smoke requirement.
 - Cloudflare preview is removed from the supported contract as a user-facing deploy command.
 - `CF_FALLBACK_ORIGIN` is forbidden.
 - Any protected route redirecting to another origin is a failure.
@@ -32,7 +33,7 @@
 - Only the state Worker may define `[[migrations]]`.
 - Router and all app workers must bind Durable Objects from the resolved `workers.state` in the current site deploy contract.
 - State/app releases use an additive compatibility window: state-first changes may add fields or actions, but must not rename or redefine existing semantics in the same release.
-- Release metadata only classifies version-controlled deploy inputs into `state_changed` and `state_migrations_changed`; it must not reject a revision merely because state migration inputs and app inputs changed together.
+- Release input checks enforce schema/migration pairing before deploy; they must not create a parallel release metadata authority.
 - `pnpm cf:deploy:app` and `pnpm cf:deploy` are pure app release commands. They must not bootstrap a missing router/server topology.
 - For brand-new or partially initialized production environments, the only valid release order is `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 - If app deploy detects a missing router/server deployment, it must fail fast and instruct the operator to run `pnpm cf:deploy:state` first.
@@ -48,9 +49,10 @@
 - `SITE=<site-key> pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `STORAGE_PUBLIC_BASE_URL` missing-error path inside the same local Cloudflare runtime session.
 - `SITE=<site-key> pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
 - Before production deploy, `Cloudflare Deploy Acceptance` must pass `pnpm lint`, `pnpm arch:check`, `pnpm test`, `pnpm cf:check`, and `pnpm cf:build` for the accepted `main` revision.
-- If schema changes are present, the production deploy workflow must run `.github/workflows/cloudflare-production-migrate.yaml` before `pnpm cf:deploy:state` or `pnpm cf:deploy`.
-- After app worker deploy, the production deploy workflow must run `pnpm test:cf-app-smoke` against the real app origin.
-- Production release preparation may use `state_migrations_changed` as a migration-safety signal, but state deployment triggering must follow the broader `state_changed` surface.
+- `SITE=mamamiya pnpm release:cf` must verify `HEAD == origin/main` and a successful `Cloudflare Deploy Acceptance` run for that exact commit before any production mutation.
+- If schema changes are present, the local release input guard must require committed files under `src/config/db/migrations/**` before deploy.
+- The local release command must run `pnpm db:migrate` before `pnpm cf:deploy:state` or app deploy work.
+- After app worker deploy, the local release command must run `pnpm test:cf-app-smoke` against the real app origin.
 - Compatibility-window safety is enforced by Cloudflare contract checks and state/app smoke coverage, not by changed-path allowlists in release metadata.
 - Public smoke package command names are stable, but they are explicit site-driven entrypoints. Internally, `run-with-site.mjs` feeds `scripts/smoke.mjs <scenario>` and dispatches `cf-local`, `cf-app`, and `cf-admin-settings` to their concrete runner scripts.
 - `BETTER_AUTH_SECRET` / `AUTH_SECRET` form one shared auth secret requirement for the Next server workers; satisfying either input key is enough, generated secrets files still write both keys, and router/state must not be blocked by auth secret generation when they are the only deploy targets.

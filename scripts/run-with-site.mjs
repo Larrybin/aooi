@@ -10,7 +10,6 @@ const SITE_REQUIRED_COMMANDS = [
   'node scripts/next-build.mjs',
   'pnpm exec @better-auth/cli generate',
   'node --import tsx scripts/check-cloudflare-config.mjs',
-  'node scripts/create-cloudflare-release-metadata.mjs',
   'pnpm exec opennextjs-cloudflare build',
   'node --import tsx scripts/smoke.mjs',
   'node --import tsx scripts/run-cf-app-deploy.mjs',

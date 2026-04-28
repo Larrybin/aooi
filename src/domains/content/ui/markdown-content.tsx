@@ -1,4 +1,4 @@
-import { renderMarkdown } from '@/shared/lib/markdown/render-markdown';
+import { renderMarkdown } from './render-markdown';
 
 export function MarkdownContent({ content }: { content: string }) {
   const html = renderMarkdown(content);

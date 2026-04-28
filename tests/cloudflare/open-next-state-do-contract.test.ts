@@ -3,6 +3,21 @@ import test from 'node:test';
 
 const cloudflareContextSymbol = Symbol.for('__cloudflare-context__');
 
+type QueueOverride = {
+  name: string;
+  send: (message: Record<string, unknown>) => Promise<void>;
+};
+
+type TagCacheOverride = {
+  name: string;
+  getLastRevalidated: (tags: string[]) => Promise<number | undefined>;
+  hasBeenRevalidated: (
+    tags: string[],
+    lastModified?: number
+  ) => Promise<boolean>;
+  writeTags: (tags: string[]) => Promise<void>;
+};
+
 async function loadOpenNextConfig() {
   const configModule = await import('../../open-next.config.ts');
   return configModule.default;
@@ -55,7 +70,7 @@ function withCloudflareContext<T>(
 
 test('OpenNext queue override 继续通过 NEXT_CACHE_DO_QUEUE.revalidate 投递 state 失效消息', async () => {
   const openNextConfig = await loadOpenNextConfig();
-  const createQueue = requireCallableOverride<[], any>(
+  const createQueue = requireCallableOverride<[], QueueOverride>(
     openNextConfig.default.override?.queue,
     'queue override'
   );
@@ -113,7 +128,7 @@ test('OpenNext tag cache override 继续通过 NEXT_TAG_CACHE_DO_SHARDED 的 get
   const openNextConfig = await loadOpenNextConfig();
   const createTagCache = requireCallableOverride<
     [{ regionalCache: boolean }],
-    any
+    TagCacheOverride
   >(openNextConfig.default.override?.tagCache, 'tag cache override');
   const tagCache = createTagCache({
     regionalCache: false,

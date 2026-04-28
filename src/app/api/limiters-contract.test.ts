@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { ApiContext } from '@/app/api/_lib/context';
+import type { z } from 'zod';
 
-import { AITaskStatus } from '@/extensions/ai';
+import { AITaskStatus, type AIProvider } from '@/extensions/ai';
 import type { EmailSendResult } from '@/extensions/email';
 import {
   CooldownLimiter,
@@ -18,7 +20,7 @@ import { createEmailTestPostHandler } from './email/test/route';
 import { createVerifyCodePostHandler } from './email/verify-code/route';
 import { createStorageUploadImagePostHandler } from './storage/upload-image/route';
 
-function createLog() {
+function createLog(): ApiContext['log'] {
   return {
     debug: () => undefined,
     info: () => undefined,
@@ -34,9 +36,14 @@ function createApiContextStub(input: { body: unknown; userId?: string }) {
     requestId: 'test-request-id',
     route: '/api/test',
     method: 'POST',
-    parseJson: async () => input.body,
-    parseQuery: () => ({}),
-    parseParams: async () => ({}),
+    parseJson: async <TSchema extends z.ZodTypeAny>(_schema: TSchema) =>
+      input.body as z.infer<TSchema>,
+    parseQuery: <TSchema extends z.ZodTypeAny>(_schema: TSchema) =>
+      ({}) as z.infer<TSchema>,
+    parseParams: async <TSchema extends z.ZodTypeAny>(
+      _paramsPromise: Promise<unknown>,
+      _schema: TSchema
+    ) => ({}) as z.infer<TSchema>,
     requireUser: async () => ({
       id: input.userId ?? 'u1',
       name: 'Test User',
@@ -44,11 +51,23 @@ function createApiContextStub(input: { body: unknown; userId?: string }) {
       image: null,
     }),
     requirePermission: async () => undefined,
-  } as any;
+  } satisfies ApiContext;
 }
 
 function createSuccessUploadResult() {
   return [{ key: 'k1', url: 'https://cdn.example.com/k1', filename: 'a.png' }];
+}
+
+function createAiQueryProvider(query: AIProvider['query']): AIProvider {
+  return {
+    name: 'mock-provider',
+    configs: {},
+    generate: async () => ({
+      taskStatus: AITaskStatus.PROCESSING,
+      taskId: 'unused-generate-task',
+    }),
+    query,
+  };
 }
 
 async function waitForCondition(
@@ -158,17 +177,18 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
         kieApiKey: '',
       };
     },
-    getAIService: async () =>
-      ({
-        getProvider: () => ({
-          query: async () => {
-            queryCalls += 1;
-            return { taskStatus: AITaskStatus.PROCESSING };
-          },
+    getAIService: async () => ({
+      getProvider: () =>
+        createAiQueryProvider(async () => {
+          queryCalls += 1;
+          return {
+            taskStatus: AITaskStatus.PROCESSING,
+            taskId: 'provider-task-1',
+          };
         }),
-        getDefaultProvider: () => undefined,
-        getMediaTypes: () => [],
-      }) as any,
+      getDefaultProvider: () => undefined,
+      getMediaTypes: () => [],
+    }),
     rateLimiter: new CooldownLimiter({
       bucket: LimiterBucket.API_AI_QUERY,
       minIntervalMs: 4_000,
@@ -229,14 +249,15 @@ test('ai/query 路由按一致性模式切换 cached/fresh settings reader', asy
       falApiKey: '',
       kieApiKey: '',
     }),
-    getAIService: async () =>
-      ({
-        getProvider: () => ({
-          query: async () => ({ taskStatus: AITaskStatus.PROCESSING }),
-        }),
-        getDefaultProvider: () => undefined,
-        getMediaTypes: () => [],
-      }) as any,
+    getAIService: async () => ({
+      getProvider: () =>
+        createAiQueryProvider(async () => ({
+          taskStatus: AITaskStatus.PROCESSING,
+          taskId: 'provider-task-1',
+        })),
+      getDefaultProvider: () => undefined,
+      getMediaTypes: () => [],
+    }),
     rateLimiter: new CooldownLimiter({
       bucket: LimiterBucket.API_AI_QUERY,
       minIntervalMs: 0,
@@ -262,7 +283,6 @@ test('ai/query 路由按一致性模式切换 cached/fresh settings reader', asy
   assert.equal(freshResponse.status, 200);
   assert.deepEqual(modes, ['cached', 'fresh']);
 });
-
 test('verify-code 路由限流契约: 达到失败上限后返回 429', async () => {
   const handler = createVerifyCodePostHandler({
     getApiContext: () =>

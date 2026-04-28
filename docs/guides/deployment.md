@@ -95,6 +95,37 @@ SITE=<site-key> pnpm cf:typegen
 SITE=<site-key> pnpm cf:typegen:check
 ```
 
+GitHub Actions is the Cloudflare acceptance gate only. Production releases run
+from a local operator session after the exact `main` commit has passed
+`Cloudflare Deploy Acceptance`.
+
+Create a local `.env.production` file for production-only release inputs:
+
+```bash
+SITE=mamamiya
+DATABASE_PROVIDER=postgresql
+RELEASE_TEST_DATABASE_URL=postgresql://user:password@localhost:5432/aooi_release_test
+PRODUCTION_DATABASE_URL=postgresql://user:password@db-host:5432/aooi
+CLOUDFLARE_ACCOUNT_ID=...
+CLOUDFLARE_API_TOKEN=...
+STORAGE_PUBLIC_BASE_URL=https://assets.example.com/assets/
+RESEND_API_KEY=...
+BETTER_AUTH_SECRET=...
+```
+
+For an already initialized production topology, run the production release
+explicitly:
+
+```bash
+SITE=mamamiya pnpm release:cf
+```
+
+The release command loads `.env.production`, verifies `HEAD == origin/main`,
+requires a successful `Cloudflare Deploy Acceptance` run for the exact commit,
+runs local gates with `RELEASE_TEST_DATABASE_URL`, migrates
+`PRODUCTION_DATABASE_URL`, deploys state and app workers, and finishes with
+`pnpm test:cf-app-smoke`.
+
 Deploy order for a new or partially initialized environment:
 
 ```bash
@@ -141,15 +172,18 @@ Use this order for the first production deploy:
 
 ```bash
 pnpm install
-DATABASE_URL="postgresql://user:password@db-host:5432/your_db" pnpm db:migrate
-SITE=<site-key> pnpm cf:check
-SITE=<site-key> pnpm cf:build
-SITE=<site-key> pnpm cf:typegen
-SITE=<site-key> pnpm cf:typegen:check
-SITE=<site-key> pnpm cf:deploy:state
-SITE=<site-key> pnpm cf:deploy
-SITE=<site-key> pnpm test:cf-app-smoke
+set -a
+. ./.env.production
+set +a
+SITE=mamamiya pnpm cf:check
+SITE=mamamiya pnpm cf:build
+DATABASE_URL="$PRODUCTION_DATABASE_URL" SITE=mamamiya pnpm db:migrate
+SITE=mamamiya pnpm cf:deploy:state
+SITE=mamamiya pnpm cf:deploy
+SITE=mamamiya pnpm test:cf-app-smoke
 ```
 
-After the smoke passes, open the production domain and manually verify sign-up,
-sign-in, sign-out, and one protected route redirect.
+After the first production topology is initialized, use
+`SITE=mamamiya pnpm release:cf` for later production releases. After the smoke
+passes, open the production domain and manually verify sign-up, sign-in,
+sign-out, and one protected route redirect.
