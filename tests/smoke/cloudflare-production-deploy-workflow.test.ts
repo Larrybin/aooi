@@ -7,7 +7,15 @@ const workflowPath = path.resolve(
   process.cwd(),
   '.github/workflows/cloudflare-production-deploy.yaml'
 );
+const acceptanceWorkflowPath = path.resolve(
+  process.cwd(),
+  '.github/workflows/cloudflare-acceptance.yaml'
+);
 const workflowContent = fs.readFileSync(workflowPath, 'utf8');
+const acceptanceWorkflowContent = fs.readFileSync(
+  acceptanceWorkflowPath,
+  'utf8'
+);
 const readmeContent = fs.readFileSync(
   path.resolve(process.cwd(), 'README.md'),
   'utf8'
@@ -63,6 +71,20 @@ test('cloudflare production workflow 总是以 app deploy 收尾', () => {
     /deploy-app:\n[\s\S]*?env:\n[\s\S]*?SITE:\s*mamamiya/
   );
   assert.doesNotMatch(workflowContent, /cf:deploy:rollout|cf:deploy:migration/);
+});
+
+test('cloudflare acceptance workflow 为 auth email provider 提供 CI binding', () => {
+  assert.match(
+    acceptanceWorkflowContent,
+    /env:\n[\s\S]*?RESEND_API_KEY:\s*ci-resend-api-key-not-for-production[\s\S]*?Run Cloudflare config gate[\s\S]*?run:\s*pnpm cf:check/
+  );
+});
+
+test('cloudflare production app deploy 注入 auth email provider secret', () => {
+  assert.match(
+    workflowContent,
+    /deploy-app:\n[\s\S]*?env:\n[\s\S]*?RESEND_API_KEY:\s*\$\{\{\s*secrets\.RESEND_API_KEY\s*\}\}[\s\S]*?Deploy Cloudflare app workers[\s\S]*?run:\s*pnpm cf:deploy/
+  );
 });
 
 test('cloudflare production workflow 在 app deploy 后显式运行生产 smoke', () => {
