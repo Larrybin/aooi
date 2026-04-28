@@ -300,27 +300,6 @@ export function buildRouterDirectDeployArgs({
   ];
 }
 
-export function resolvePostDeploySmokeUrl({
-  processEnv = process.env,
-  contract = resolveDeployContract(),
-} = {}) {
-  return processEnv.CF_APP_SMOKE_URL?.trim() || contract.appUrl;
-}
-
-export function buildPostDeploySmokeEnv({
-  processEnv = process.env,
-  contract = resolveDeployContract(),
-} = {}) {
-  return {
-    ...processEnv,
-    SITE: contract.siteKey || resolveRequiredSiteKey(processEnv),
-    CF_APP_SMOKE_URL: resolvePostDeploySmokeUrl({
-      processEnv,
-      contract,
-    }),
-  };
-}
-
 export function determineDeployMode(currentVersions) {
   if (!currentVersions.router) {
     return 'missing-deployments';
@@ -436,24 +415,6 @@ async function deployWorkerVersionSet({
     createDeployMessage('app-rollout'),
     '--yes',
   ]);
-}
-
-async function runPostDeploySmoke(contract) {
-  log('running post-deploy smoke');
-  const smokeExitCode = await new Promise((resolve) => {
-    const child = spawn('pnpm', ['test:cf-app-smoke'], {
-      cwd: rootDir,
-      env: buildPostDeploySmokeEnv({ contract }),
-      stdio: 'inherit',
-    });
-
-    child.once('error', () => resolve(1));
-    child.once('exit', (code) => resolve(code ?? 1));
-  });
-
-  if (smokeExitCode !== 0) {
-    throw new Error('post-deploy Cloudflare smoke failed');
-  }
 }
 
 async function collectCurrentVersions(contract = resolveDeployContract()) {
@@ -579,7 +540,6 @@ async function deploySteadyState(
     });
 
     await refreshCloudflareTypes();
-    await runPostDeploySmoke(contract);
   } finally {
     for (const artifacts of serverArtifacts) {
       await artifacts.cleanup();

@@ -5,7 +5,6 @@ import test from 'node:test';
 
 import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
 import {
-  buildPostDeploySmokeEnv,
   buildRouterAppVersionIds,
   buildRouterDeployConfigContent,
   buildRouterDirectDeployArgs,
@@ -14,7 +13,6 @@ import {
   deployCloudflareApp,
   determineDeployMode,
   parseWranglerJsonPayload,
-  resolvePostDeploySmokeUrl,
 } from '../../scripts/run-cf-app-deploy.mjs';
 import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-splits';
 
@@ -78,30 +76,6 @@ test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
-test('resolvePostDeploySmokeUrl 在未显式传 env 时回退到当前 site app url', () => {
-  const smokeUrl = resolvePostDeploySmokeUrl({
-    processEnv: {},
-    contract,
-  });
-
-  assert.equal(smokeUrl, contract.appUrl);
-});
-
-test('buildPostDeploySmokeEnv 为 smoke 透传当前 SITE 与显式 smoke url', () => {
-  const env = buildPostDeploySmokeEnv({
-    processEnv: {
-      SITE: 'dev-local',
-      CF_APP_SMOKE_URL: 'https://smoke.example.com',
-      OTHER_ENV: 'keep-me',
-    },
-    contract,
-  });
-
-  assert.equal(env.SITE, 'mamamiya');
-  assert.equal(env.CF_APP_SMOKE_URL, 'https://smoke.example.com');
-  assert.equal(env.OTHER_ENV, 'keep-me');
-});
 
 test('determineDeployMode 在 router 或任一 server 缺 deployment 时标记为 missing-deployments', () => {
   const servers = Object.fromEntries(

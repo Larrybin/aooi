@@ -213,9 +213,8 @@ Read `sites/<site-key>/content/docs` to start your AI SaaS project.
 - `SITE=<site-key> pnpm test:cf-local-smoke` -> `run-with-site.mjs` -> `scripts/smoke.mjs cf-local`
 - `SITE=<site-key> pnpm test:cf-app-smoke` -> `run-with-site.mjs` -> `scripts/smoke.mjs cf-app`
 - `SITE=<site-key> pnpm test:cf-admin-settings-smoke` -> `pnpm cf:build && run-with-site.mjs -> scripts/smoke.mjs cf-admin-settings`
-- The only authoritative production deploy channel is a hand-operated local `wrangler` session authenticated through Wrangler OAuth on the operator machine.
-- `.github/workflows/cloudflare-acceptance.yaml` remains a CI acceptance gate, but it is not a production deploy authority.
-- Any GitHub-side deploy or migrate workflow that still exists in the repo is informational or fallback-only; release authority stays with the local operator session.
+- GitHub Actions is the authoritative production deploy channel: after `Cloudflare Deploy Acceptance` passes on the current `main` head, `.github/workflows/cloudflare-production-deploy.yaml` prepares release metadata, runs required production migrations, deploys Cloudflare state/app workers, and finishes with `pnpm test:cf-app-smoke`.
+- Local Wrangler commands remain manual diagnostics and emergency operator tools; they must follow the same site-resolved deploy contract and post-deploy smoke discipline.
 - Cloudflare-only deployment governance is documented in `docs/architecture/cloudflare-deployment-governance.md`.
 - Production Wrangler routing is now explicit: `workers_dev = false`, `preview_urls = false`, and the router Worker is attached to the custom domain `mamamiya.pdfreprinting.net` via `[[routes]]`.
 - `SITE=<site-key> pnpm test:cf-app-smoke` is the Cloudflare full-app smoke. It validates public entrypoints plus protected-route same-origin redirects back to `/sign-in`, and it treats any cross-origin redirect as a failure.
@@ -236,7 +235,7 @@ Read `sites/<site-key>/content/docs` to start your AI SaaS project.
 
 Use this when you want to ship the full app to Cloudflare Workers through OpenNext.
 The supported contract is now multi-worker only: one router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers on one canonical origin.
-Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard local app-only build gate that dry-runs router/server Worker uploads, `SITE=<site-key> pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session for manual diagnosis only, and the only authoritative production release path is an authenticated local Wrangler OAuth session running `pnpm cf:deploy:state` first when Durable Object ownership changes, then `pnpm cf:deploy`, followed by `SITE=<site-key> pnpm test:cf-app-smoke`.
+Cloudflare preview is removed from the deploy contract. `pnpm cf:build` is the hard app-only build gate that dry-runs router/server Worker uploads, `SITE=<site-key> pnpm test:cf-local-smoke` boots the full split-worker topology through a single local `wrangler dev` multi-config session for manual diagnosis only, and the authoritative production release path is GitHub Actions running metadata preparation, production migrations when needed, state deploy when needed, app deploy, and `pnpm test:cf-app-smoke`.
 
 #### 1. Provision the external resources first
 
@@ -347,10 +346,9 @@ Run this before the first production deploy and before any later deploy that inc
 
 Deploy authority and migration discipline:
 
-- Production deploy authority is the local operator machine authenticated with Wrangler OAuth
-- Run `pnpm exec wrangler whoami` before deploy and confirm the expected account plus Workers write scopes
-- If the release changes `src/config/db/schema.ts`, run `pnpm db:migrate` against production before `pnpm cf:deploy:state` or `pnpm cf:deploy`
-- If you keep GitHub workflows around, do not treat them as the release authority or as the canonical source of deploy intent
+- Production deploy authority is `.github/workflows/cloudflare-production-deploy.yaml`.
+- If the release changes `src/config/db/schema.ts`, the production deploy workflow runs `.github/workflows/cloudflare-production-migrate.yaml` before any Cloudflare worker deploy.
+- Manual `pnpm db:migrate`, `pnpm cf:deploy:state`, and `pnpm cf:deploy` runs are operator diagnostics or emergency procedures; run `pnpm exec wrangler whoami` first and finish with `SITE=<site-key> pnpm test:cf-app-smoke`.
 
 #### 5. Run the build gates
 
@@ -371,31 +369,21 @@ pnpm cf:check -- --workers=state
 
 #### 6. Deploy
 
-The authoritative production app release command is:
+The authoritative production app release path is the GitHub Actions workflow:
 
-```bash
-pnpm cf:deploy
-```
-
-Before running it, confirm your local Wrangler OAuth session with:
-
-```bash
-pnpm exec wrangler whoami
-```
-
-Then run:
-
-```bash
-pnpm cf:deploy:state
-pnpm cf:deploy
-```
+1. `Cloudflare Deploy Acceptance` passes on the current `main` head.
+2. `Cloudflare Production Deploy` verifies the release metadata belongs to that same `main` head.
+3. If DB schema or migrations changed, GitHub runs production `pnpm db:migrate`.
+4. If state inputs changed, GitHub runs `pnpm cf:deploy:state`.
+5. GitHub runs `pnpm cf:deploy`.
+6. GitHub runs `pnpm test:cf-app-smoke` against the production app origin.
 
 `pnpm cf:deploy:state` always uses `wrangler deploy`, runs only the state-scoped Cloudflare preflight, and is the only command allowed to apply Durable Object migrations.
 `pnpm cf:deploy` remains a convenience alias for `pnpm cf:deploy:app`.
 `pnpm cf:deploy:app` is a pure app release command. It does not bootstrap router/server workers, and it fails fast if any app worker deployment is missing.
 For a brand-new or partially initialized production environment, the required order is always `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 `SITE=<site-key> pnpm test:cf-app-smoke` belongs after the full state-plus-app release sequence, not after a standalone state deploy.
-This local authenticated path is the release authority. Do not treat GitHub Actions automation as the canonical production deploy mechanism.
+For manual emergency deploys, use the same order after confirming `pnpm exec wrangler whoami`, then run `SITE=<site-key> pnpm test:cf-app-smoke`.
 
 #### 7. Verify production immediately
 
@@ -432,6 +420,7 @@ pnpm cf:typegen
 pnpm cf:typegen:check
 pnpm cf:deploy:state
 pnpm cf:deploy
+SITE=<site-key> pnpm test:cf-app-smoke
 ```
 
 If that succeeds, open the production domain and complete one real auth flow before calling the release done.

@@ -229,3 +229,6 @@ jobs:
 
       - name: Deploy Cloudflare app workers
         run: pnpm cf:deploy
+
+      - name: Run production Cloudflare smoke
+        run: pnpm test:cf-app-smoke
