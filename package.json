@@ -182,6 +182,7 @@
       "path-to-regexp@8": "8.4.2",
       "picomatch@2": "2.3.2",
       "picomatch@4.0.3": "4.0.4",
+      "postcss": "8.5.12",
       "uuid": "14.0.0",
       "@types/react": "19.2.14",
       "@types/react-dom": "19.2.3"
