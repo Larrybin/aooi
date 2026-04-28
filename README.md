@@ -241,6 +241,8 @@ GitHub Actions are pinned to full commit SHAs with `# pinned from vX` comments.
 Keep `dependency-review` and `cloudflare acceptance` configured as required
 checks in repository settings.
 
+GitHub Actions is the authoritative production deploy channel.
+
 ## Feedback
 
 Submit feedback via GitHub Issues.
