@@ -116,21 +116,3 @@ test('run-with-site 对未知 SITE 输出可修复的配置错误', async () => 
   assert.doesNotMatch(result.stderr, /Error: site "__missing_site__"/);
   assert.doesNotMatch(result.stderr, /at readCurrentSiteConfig/);
 });
-
-test('run-with-site 对 release metadata 只生成 site module，不预生成 content source', async () => {
-  const result = await runWithSite(
-    [
-      'node',
-      'scripts/create-cloudflare-release-metadata.mjs',
-      '--head-sha=HEAD',
-      '--out=.tmp/test-release-metadata.json',
-    ],
-    {
-      SITE: 'mamamiya',
-    }
-  );
-
-  assert.equal(result.ok, true, result.stderr);
-  assert.match(result.stdout, /\[site\] generated mamamiya/);
-  assert.doesNotMatch(result.stdout, /\[content\] generated/);
-});

@@ -3,10 +3,10 @@
 import { useMemo } from 'react';
 import GithubSlugger from 'github-slugger';
 
-import { renderMarkdown } from '@/shared/lib/markdown/render-markdown';
-
 import 'github-markdown-css/github-markdown-light.css';
 import '@/shared/blocks/common/markdown.css';
+
+import { renderMarkdown } from './render-markdown';
 
 export interface TocItem {
   id: string;

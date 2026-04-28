@@ -41,6 +41,8 @@ jobs:
       - name: Checkout repository
         # pinned from v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         # pinned from v5
@@ -61,6 +63,18 @@ jobs:
       - name: Run database migrations
         run: pnpm db:migrate
 
+      - name: Run release input guard
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+          fi
+
+          node scripts/check-release-inputs.mjs \
+            --base-sha="$base_sha" \
+            --head-sha="${{ github.sha }}"
+
       - name: Run lint
         run: pnpm lint
 
@@ -75,42 +89,3 @@ jobs:
 
       - name: Run Cloudflare build gate
         run: pnpm cf:build
-
-  prepare-cloudflare-release:
-    name: Prepare Cloudflare release metadata
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: acceptance
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      SITE: mamamiya
-
-    steps:
-      - name: Checkout repository
-        # pinned from v6
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        # pinned from v6
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version: 22
-
-      - name: Build release metadata
-        run: >
-          node scripts/run-with-site.mjs node scripts/create-cloudflare-release-metadata.mjs
-          --base-sha="${{ github.event.before }}"
-          --head-sha="${{ github.sha }}"
-          --out=".tmp/release-metadata.json"
-
-      - name: Upload release metadata artifact
-        # pinned from v7
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: release-metadata
-          path: .tmp/release-metadata.json
-          if-no-files-found: error
-          retention-days: 7
