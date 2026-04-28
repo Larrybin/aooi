@@ -2,7 +2,6 @@
 // cache: no-store (request-bound auth)
 // reason: user-specific billing history and actions
 import { notFound } from 'next/navigation';
-import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import {
   MEMBER_BILLING_ACTIVE_STATUSES,
   readMemberBillingOverviewQuery,
@@ -10,12 +9,13 @@ import {
 } from '@/domains/billing/application/member-billing.query';
 import { PaymentCallbackHandler } from '@/domains/billing/ui/payment-callback';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import moment from 'moment';
 import { getTranslations } from 'next-intl/server';
 
+import { resolveSitePaymentCapability } from '@/config/payment-capability';
 import { Empty } from '@/shared/blocks/common/empty';
 import { PanelCard } from '@/shared/blocks/panel';
 import { TableCard } from '@/shared/blocks/table';
+import { formatYmd } from '@/shared/lib/date/format-ymd';
 import type { Button as ButtonType, Tab } from '@/shared/types/blocks/common';
 import { type Table } from '@/shared/types/blocks/table';
 
@@ -122,9 +122,9 @@ export default async function BillingPage({
         callback: function (item) {
           const period = (
             <div>
-              {`${moment(item.currentPeriodStart).format('YYYY-MM-DD')}`} ~
+              {`${formatYmd(item.currentPeriodStart)} ~`}
               <br />
-              {`${moment(item.currentPeriodEnd).format('YYYY-MM-DD')}`}
+              {formatYmd(item.currentPeriodEnd)}
             </div>
           );
 
@@ -135,7 +135,7 @@ export default async function BillingPage({
         title: t('fields.end_time'),
         callback: function (item) {
           if (item.canceledEndAt) {
-            return <div>{moment(item.canceledEndAt).format('YYYY-MM-DD')}</div>;
+            return <div>{formatYmd(item.canceledEndAt)}</div>;
           }
           return '-';
         },
@@ -265,17 +265,13 @@ export default async function BillingPage({
             ) ? (
               <div className="text-muted-foreground mt-4 text-sm font-normal">
                 {t('view.tip', {
-                  date: moment(currentSubscription?.currentPeriodEnd).format(
-                    'YYYY-MM-DD'
-                  ),
+                  date: formatYmd(currentSubscription?.currentPeriodEnd ?? ''),
                 })}
               </div>
             ) : (
               <div className="text-destructive mt-4 text-sm font-normal">
                 {t('view.end_tip', {
-                  date: moment(currentSubscription?.canceledEndAt).format(
-                    'YYYY-MM-DD'
-                  ),
+                  date: formatYmd(currentSubscription?.canceledEndAt ?? ''),
                 })}
               </div>
             )}
