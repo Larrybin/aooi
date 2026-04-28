@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "dev": "node scripts/run-with-site.mjs pnpm exec next dev --turbopack",
+    "dev:local": "SITE=dev-local node scripts/run-with-site.mjs pnpm exec next dev --turbopack",
     "build": "node scripts/run-with-site.mjs node scripts/next-build.mjs",
     "build:fast": "node scripts/run-with-site.mjs node scripts/next-build.mjs --max-old-space-size=4096",
     "start": "node scripts/run-with-site.mjs pnpm exec next start",
