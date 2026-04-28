@@ -5,7 +5,7 @@ description: Run YourAppName locally with minimal setup (dev, database, admin RB
 
 Before you start, make sure you have:
 
-- Node.js 18+
+- Node.js 20+
 - pnpm
 - PostgreSQL (required for auth/admin/payment features)
 
@@ -31,13 +31,13 @@ pnpm install
 3. Start the dev server
 
 ```bash
-pnpm dev
+SITE=dev-local pnpm dev
 ```
 
 Default port is `3000`: `http://localhost:3000`. Custom port example:
 
 ```bash
-pnpm dev --port 8080
+SITE=dev-local pnpm dev --port 8080
 ```
 
 ### Environment Variables
@@ -52,7 +52,7 @@ cp ".env.example" ".env.development"
 
 Required:
 
-- `sites/<site-key>/site.config.json`: build-time site identity. In this repo, `sites/dev-local/site.config.json` is the local default for development/tests and `sites/mamamiya/site.config.json` is the production site. Production commands must set `SITE=mamamiya`.
+- `SITE=dev-local`: selects the local development site at `sites/dev-local/site.config.json`. Production commands must set the intended site explicitly, for example `SITE=mamamiya`.
 - `site.brand.appUrl`: canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated from it for Cloudflare infra and is not an identity source.
 
 If you need auth/admin/payment:
