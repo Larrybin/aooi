@@ -147,6 +147,14 @@
 - Server log 标准 meta 字段：`requestId`、`domain`、`useCase`、`operation`、`route`、`method`、`actorUserId`。
 - 自动测试负责结构边界；code review 负责判断 fan-out 依赖、settings 解释、orchestration 例外是否语义合理。
 
+### Client 组件可下沉判定（`use client` 审计）
+
+- 仅在组件本身存在交互责任时保留 `use client`：事件处理（`onClick/onChange`）、浏览器 API（`window/document/localStorage`）、状态/副作用 hooks（`useState/useEffect/useRef`）或必须运行在客户端的第三方库。
+- 优先把展示壳层下沉为 Server Component：如果组件仅做数据拼装、文案渲染、条件分支与静态结构输出，应移除 `use client`，把交互点收敛到叶子 Client 子组件。
+- 若组件同时含展示与交互，先拆分为“Server 外壳 + 小型 Client 子组件”；Client 子组件只接收最小化 props（字符串、布尔、枚举、轻量对象），避免把整页数据都拖入客户端。
+- 审计结论需附带依赖检查：标注是否依赖 client-only 库（图表、动画、Radix 交互原语、DOM listener 等），以及是否可替换为 server-safe 渲染路径。
+- 每次批量下沉建议 2–5 个低风险组件：逐个验证渲染不变、关键交互路径不回归，并记录关键路由的客户端 JS 体积变化，防止“回弹式”重新 client 化。
+
 ## 更新触发条件（保持索引不过期）
 
 以下变更应同步更新本文件（只需新增/调整索引入口，不要复制整段规则）：
