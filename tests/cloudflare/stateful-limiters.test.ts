@@ -19,6 +19,11 @@ type FakeStorage = {
   putCalls: Array<{ key: string; value: unknown }>;
 };
 
+type StatefulLimiterNamespace = Pick<
+  DurableObjectNamespace,
+  'idFromName' | 'get'
+>;
+
 function createFakeStorage(
   initialEntries: Array<[string, unknown]> = []
 ): DurableObjectStorage & FakeStorage {
@@ -56,7 +61,7 @@ function createFakeStorage(
       listCallCount += 1;
       return new Map(map);
     },
-  } as unknown as DurableObjectStorage & FakeStorage;
+  } as DurableObjectStorage & FakeStorage;
 }
 
 function createDurableObject(storage: DurableObjectStorage) {
@@ -76,18 +81,19 @@ function createRequest(body: Record<string, unknown>) {
   });
 }
 
-function createNamespaceBackedByStateWorker() {
+function createNamespaceBackedByStateWorker(): StatefulLimiterNamespace {
   const storages = new Map<string, DurableObjectStorage & FakeStorage>();
 
   return {
     idFromName(name: string) {
-      return name;
+      return name as DurableObjectId;
     },
-    get(id: string) {
-      let storage = storages.get(id);
+    get(id: DurableObjectId) {
+      const objectName = String(id);
+      let storage = storages.get(objectName);
       if (!storage) {
         storage = createFakeStorage();
-        storages.set(id, storage);
+        storages.set(objectName, storage);
       }
 
       const durableObject = createDurableObject(storage);
@@ -99,9 +105,9 @@ function createNamespaceBackedByStateWorker() {
           );
           return await durableObject.fetch(request);
         },
-      };
+      } as DurableObjectStub;
     },
-  } as unknown as DurableObjectNamespace;
+  };
 }
 
 test('buildStatefulLimiterObjectName 为单 key 与 bucket 级 limiter 生成不同 DO 名称', () => {
