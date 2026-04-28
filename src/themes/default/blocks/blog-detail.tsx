@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { MarkdownPreview } from '@/domains/content/ui/markdown-preview';
