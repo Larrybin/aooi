@@ -136,12 +136,13 @@ Read `sites/<site-key>/content/docs` to start your AI SaaS project.
 
 ### Code Quality
 
-| Document                                           | Description                                              |
-| -------------------------------------------------- | -------------------------------------------------------- |
-| [Conventions Index](docs/CONVENTIONS.md)           | Entry point for repository conventions and code patterns |
-| [Code Review](docs/CODE_REVIEW.md)                 | Full code review guide                                   |
-| [Architecture Review](docs/ARCHITECTURE_REVIEW.md) | Architecture audit report                                |
-| [Contributing](CONTRIBUTING.md)                    | Contribution guidelines                                  |
+| Document                                               | Description                                              |
+| ------------------------------------------------------ | -------------------------------------------------------- |
+| [Conventions Index](docs/CONVENTIONS.md)               | Entry point for repository conventions and code patterns |
+| [Code Review](docs/CODE_REVIEW.md)                     | Full code review guide                                   |
+| [Architecture Overview](docs/architecture/overview.md) | Current architecture baseline                            |
+| [Architecture Review](docs/ARCHITECTURE_REVIEW.md)     | Historical architecture audit snapshot                   |
+| [Contributing](CONTRIBUTING.md)                        | Contribution guidelines                                  |
 
 ### CI Guardrails
 

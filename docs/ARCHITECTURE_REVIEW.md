@@ -1,4 +1,11 @@
-# 架构审查报告（roller-rabbit，对外版）
+# 历史架构审查报告（roller-rabbit，对外版）
+
+> Historical report: this document is a point-in-time architecture audit
+> snapshot, not the current architecture baseline. For current repository
+> structure, dependency direction, and module ownership, use
+> `docs/architecture/overview.md` together with `architecture-rules.cjs`.
+> Legacy paths or layer names mentioned below, such as `src/core`,
+> `src/shared/models`, and `src/shared/services`, are historical context only.
 
 更新时间：2025-12-20  
 审查基线：本报告生成时的仓库代码（静态审阅）  
