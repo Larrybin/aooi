@@ -147,7 +147,7 @@ async function runCheckCloudflareConfig({
           ...isolatedEnv,
           SITE: 'mamamiya',
           ...env,
-        },
+        } as unknown as NodeJS.ProcessEnv,
       }
     );
 

@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {
+  BillingRuntimeSettings,
+  PaymentRuntimeBindings,
+} from '@/domains/settings/application/settings-runtime.contracts';
 import { site } from '@/site';
 
 import {
   confirmPaymentCallbackUseCase,
   resolvePaymentCallbackPricingFallbackUrl,
   resolvePaymentCallbackRedirectQuery,
-  type BillingRuntimeSettings,
-  type PaymentRuntimeBindings,
 } from './payment-callback';
 
 function createLog() {

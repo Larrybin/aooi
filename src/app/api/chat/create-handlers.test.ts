@@ -75,7 +75,7 @@ test('chat/messages route 返回统一 json envelope 和 no-store header', async
           falApiKey: '',
           kieApiKey: '',
         }),
-        consumeCredits: async () => ({ id: 'credit_1' }),
+        consumeCredits: async () => ({ id: 'credit_1' }) as never,
         refundConsumedCreditById: async () => ({ refunded: true }),
       },
     })

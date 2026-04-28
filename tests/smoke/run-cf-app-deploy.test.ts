@@ -301,7 +301,7 @@ Proxy environment variables detected. We'll use your proxy for fetch requests.
 });
 
 test('deployCloudflareApp 在 steady-state 时走 app rollout 分支', async () => {
-  const calls = [];
+  const calls: Array<['steady-state', unknown, unknown]> = [];
 
   await deployCloudflareApp({
     contract,

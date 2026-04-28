@@ -57,14 +57,14 @@ const AI_BINDINGS_ENABLED: AiProviderBindings = {
 };
 
 test('createChatUseCase 生成 chat 标题和初始内容', async () => {
-  let created: Record<string, unknown> | null = null;
+  const created: Record<string, unknown>[] = [];
 
   const result = await createChatUseCase(
     {
       generateId: () => 'chat_1',
       now: () => new Date('2026-01-01T00:00:00.000Z'),
       createChat: async (chat) => {
-        created = chat as Record<string, unknown>;
+        created.push(chat);
         return chat as never;
       },
     },
@@ -76,8 +76,8 @@ test('createChatUseCase 生成 chat 标题和初始内容', async () => {
   );
 
   assert.equal(result.id, 'chat_1');
-  assert.equal(created?.provider, 'openrouter');
-  assert.equal(created?.title, 'hello world');
+  assert.equal(created[0]?.provider, 'openrouter');
+  assert.equal(created[0]?.title, 'hello world');
 });
 
 test('listChatsUseCase 返回分页元信息', async () => {
@@ -164,7 +164,7 @@ test('streamChatUseCase 缺 provider key 时不扣 credits 并返回 service una
         {
           generateId: () => 'msg_1',
           now: () => new Date(),
-          createProvider: () => ({ chat: () => ({}) }),
+          createProvider: () => ({ chat: () => ({}) as never }) as never,
           streamText: () => {
             throw new Error('should not stream');
           },
@@ -215,14 +215,18 @@ test('streamChatUseCase 在 provider failure 时退款', async () => {
     {
       generateId: () => `id_${persisted.length + refunds.length + 1}`,
       now: () => new Date('2026-01-01T00:00:00.000Z'),
-      createProvider: () => ({ chat: () => ({ provider: 'openrouter' }) }),
-      streamText: () => ({
-        toUIMessageStreamResponse: (options) => {
-          onError = options.onError;
-          return new Response('stream');
-        },
-      }),
-      convertToModelMessages: (messages) => messages,
+      createProvider: () =>
+        ({ chat: () => ({ provider: 'openrouter' }) as never }) as never,
+      streamText: () =>
+        ({
+          toUIMessageStreamResponse: (options: {
+            onError?: (error: unknown) => string;
+          }) => {
+            onError = options.onError ?? null;
+            return new Response('stream');
+          },
+        }) as never,
+      convertToModelMessages: (messages) => messages as never,
       findChatById: async () =>
         ({
           id: 'chat_1',
@@ -261,7 +265,9 @@ test('streamChatUseCase 在 provider failure 时退款', async () => {
   );
   assert.deepEqual(persisted, ['user']);
 
-  onError?.(new Error('provider failed'));
+  const handleError = onError as ((error: unknown) => string) | null;
+  assert.ok(handleError);
+  handleError(new Error('provider failed'));
 
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(refunds, ['credit_1']);
@@ -284,14 +290,21 @@ test('streamChatUseCase 在 assistant message 持久化失败时退款', async (
         return () => `id_${++counter}`;
       })(),
       now: () => new Date('2026-01-01T00:00:00.000Z'),
-      createProvider: () => ({ chat: () => ({ provider: 'openrouter' }) }),
-      streamText: () => ({
-        toUIMessageStreamResponse: (options) => {
-          finish = options.onFinish;
-          return new Response('stream');
-        },
-      }),
-      convertToModelMessages: (messages) => messages,
+      createProvider: () =>
+        ({ chat: () => ({ provider: 'openrouter' }) as never }) as never,
+      streamText: () =>
+        ({
+          toUIMessageStreamResponse: (options: {
+            onFinish?: (event: {
+              messages: UIMessage[];
+              finishReason?: string | null;
+            }) => Promise<void>;
+          }) => {
+            finish = options.onFinish ?? null;
+            return new Response('stream');
+          },
+        }) as never,
+      convertToModelMessages: (messages) => messages as never,
       findChatById: async () =>
         ({
           id: 'chat_1',
@@ -326,7 +339,14 @@ test('streamChatUseCase 在 assistant message 持久化失败时退款', async (
     }
   );
 
-  await finish?.({
+  const handleFinish = finish as
+    | ((event: {
+        messages: UIMessage[];
+        finishReason?: string | null;
+      }) => Promise<void>)
+    | null;
+  assert.ok(handleFinish);
+  await handleFinish({
     finishReason: 'stop',
     messages: [
       {

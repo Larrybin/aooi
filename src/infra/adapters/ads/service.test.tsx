@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ReactElement } from 'react';
+import type { AdsRuntimeSettings } from '@/domains/settings/application/settings-runtime.contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { adsterraSnippetLog } from '@/extensions/ads/adsterra-snippet.server';
@@ -9,7 +10,7 @@ import { getAdsTxtBody, resolveAdsRuntime } from './runtime';
 
 function createAdsSettings(
   overrides: Partial<Parameters<typeof resolveAdsRuntime>[0]>
-) {
+): AdsRuntimeSettings {
   return {
     adsEnabled: false,
     adsProvider: '',

@@ -17,7 +17,7 @@ const baseConfig = defineCloudflareConfig({
   queue: doQueue,
 });
 
-const config: OpenNextConfig = {
+const config = {
   ...baseConfig,
   default: {
     ...baseConfig.default,
@@ -47,6 +47,6 @@ const config: OpenNextConfig = {
           originResolver: 'pattern-env',
         }
       : baseConfig.middleware,
-};
+} as OpenNextConfig;
 
 export default config;

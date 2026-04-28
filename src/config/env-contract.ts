@@ -1,5 +1,5 @@
 type EnvValue = string | null | undefined;
-type EnvLike = Record<string, EnvValue>;
+export type EnvLike = Record<string, EnvValue>;
 
 export const PUBLIC_ENV_KEYS = [
   'NEXT_PUBLIC_APP_URL',

@@ -1,10 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import {
-  handlePaymentNotifyRequest,
-  type PaymentNotifyFlowDeps,
-} from './payment-notify-flow';
 import {
   PaymentEventType,
   WebhookPayloadError,
@@ -15,6 +10,11 @@ import { PayPalProvider } from '@/infra/adapters/payment/paypal';
 import { StripeProvider } from '@/infra/adapters/payment/stripe';
 
 import { PayloadTooLargeError, UpstreamError } from '@/shared/lib/api/errors';
+
+import {
+  handlePaymentNotifyRequest,
+  type PaymentNotifyFlowDeps,
+} from './payment-notify-flow';
 
 function createInboxRecord(overrides: Record<string, unknown> = {}) {
   return {
@@ -38,10 +38,11 @@ function createDeps(
 ): PaymentNotifyFlowDeps {
   return {
     findOrderByInvoiceId: async () => null,
-    findOrderByOrderNo: async () => ({
-      orderNo: 'order_1',
-      status: 'created',
-    }),
+    findOrderByOrderNo: async () =>
+      ({
+        orderNo: 'order_1',
+        status: 'created',
+      }) as never,
     findOrderByTransactionId: async () => null,
     findSubscriptionByProviderSubscriptionId: async () => null,
     recordUnknownWebhookEvent: async () => undefined,
@@ -491,10 +492,11 @@ test('payment notify flow 通过真实 PayPal provider 处理 renewal payment su
     deps: createDeps({
       getPaymentEvent: async (req: Request) =>
         await provider.getPaymentEvent({ req }),
-      findSubscriptionByProviderSubscriptionId: async () => ({
-        subscriptionNo: 'sub_no_1',
-        status: 'active',
-      }),
+      findSubscriptionByProviderSubscriptionId: async () =>
+        ({
+          subscriptionNo: 'sub_no_1',
+          status: 'active',
+        }) as never,
       handleSubscriptionRenewal: async ({ session }) => {
         renewalSubscriptionId = session.subscriptionId || '';
         renewalTransactionId = session.paymentInfo?.transactionId || '';
@@ -591,10 +593,11 @@ test('payment notify flow 通过真实 PayPal provider 处理 renewal sale succe
     deps: createDeps({
       getPaymentEvent: async (req: Request) =>
         await provider.getPaymentEvent({ req }),
-      findSubscriptionByProviderSubscriptionId: async () => ({
-        subscriptionNo: 'sub_no_sale_1',
-        status: 'active',
-      }),
+      findSubscriptionByProviderSubscriptionId: async () =>
+        ({
+          subscriptionNo: 'sub_no_sale_1',
+          status: 'active',
+        }) as never,
       handleSubscriptionRenewal: async ({ session }) => {
         renewalSubscriptionId = session.subscriptionId || '';
         renewalTransactionId = session.paymentInfo?.transactionId || '';

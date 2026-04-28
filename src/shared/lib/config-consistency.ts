@@ -1,6 +1,8 @@
 import { isRuntimeEnvEnabled } from '@/infra/runtime/env.server';
 import { isCloudflareLocalWorkersDevRuntime } from '@/infra/runtime/runtime-mode';
 
+import type { EnvLike } from '@/config/env-contract';
+
 export const CONFIG_CONSISTENCY_HEADER = 'x-aooi-config-consistency';
 export const CONFIG_CONSISTENCY_FRESH_VALUE = 'fresh';
 
@@ -8,7 +10,7 @@ export type ConfigConsistencyMode = 'cached' | 'fresh';
 
 export function resolveConfigConsistencyMode(
   request: Pick<Request, 'headers'>,
-  env?: NodeJS.ProcessEnv
+  env?: EnvLike
 ): ConfigConsistencyMode {
   const isLocalSmokeRuntime = env
     ? isCloudflareLocalWorkersDevRuntime(env)

@@ -37,6 +37,10 @@ const ROUTER_RUNTIME_ARTIFACTS = [
   '.open-next/.build/durable-objects/sharded-tag-cache.js',
 ];
 
+/**
+ * @typedef {Record<string, string | undefined>} EnvLike
+ */
+
 function buildLocalTopologyRuntimeVars(routerBaseUrl) {
   return {
     NEXT_PUBLIC_APP_URL: routerBaseUrl,
@@ -135,6 +139,9 @@ function getRequiredLocalBuildArtifactPaths(processEnv = process.env) {
   ];
 }
 
+/**
+ * @param {{rootPath?: string, processEnv?: EnvLike}} [options]
+ */
 export async function assertCloudflareLocalBuildArtifactsReady({
   rootPath = rootDir,
   processEnv = process.env,
@@ -162,6 +169,17 @@ export async function assertCloudflareLocalBuildArtifactsReady({
   );
 }
 
+/**
+ * @param {{
+ *   databaseUrl?: string,
+ *   routerTemplatePath?: string | null,
+ *   routerBaseUrl?: string,
+ *   authSecret?: string,
+ *   extraVars?: EnvLike,
+ *   processEnv?: EnvLike,
+ *   devVarsPath?: string | null,
+ * }} [options]
+ */
 export async function prepareCloudflareLocalTopologyArtifacts({
   databaseUrl,
   routerTemplatePath = null,
@@ -309,6 +327,18 @@ export function renderCloudflareLocalTopologyLogs(topology) {
 }
 
 export async function startCloudflareLocalDevTopology(
+  /**
+   * @type {{
+   *   databaseUrl?: string,
+   *   routerTemplatePath?: string | null,
+   *   routerBaseUrl?: string,
+   *   authSecret?: string,
+   *   extraVars?: EnvLike,
+   *   processEnv?: EnvLike,
+   *   logger?: Console,
+   *   devVarsPath?: string | null,
+   * }}
+   */
   {
     databaseUrl,
     routerTemplatePath = null,

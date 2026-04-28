@@ -43,7 +43,7 @@ test('buildStateDeployWranglerArgs 固定使用 wrangler deploy 与 keep-vars', 
 });
 
 test('deployCloudflareState 只走 wrangler deploy 并在成功后 cleanup', async () => {
-  const calls = [];
+  const calls: string[][] = [];
   let cleanedUp = false;
 
   await deployCloudflareState({

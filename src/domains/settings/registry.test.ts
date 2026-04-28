@@ -44,11 +44,13 @@ test('settings registry: public settings 精确来自 visibility=public', () => 
 });
 
 test('settings registry: public settings 契约不应误公开敏感或仅服务端消费的 key', () => {
-  assert.equal(PUBLIC_SETTING_NAMES.includes('google_client_id'), false);
-  assert.equal(PUBLIC_SETTING_NAMES.includes('github_client_id'), false);
-  assert.equal(PUBLIC_SETTING_NAMES.includes('google_client_secret'), false);
-  assert.equal(PUBLIC_SETTING_NAMES.includes('github_client_secret'), false);
-  assert.equal(PUBLIC_SETTING_NAMES.includes('stripe_secret_key'), false);
+  const publicSettingNames: readonly string[] = PUBLIC_SETTING_NAMES;
+
+  assert.equal(publicSettingNames.includes('google_client_id'), false);
+  assert.equal(publicSettingNames.includes('github_client_id'), false);
+  assert.equal(publicSettingNames.includes('google_client_secret'), false);
+  assert.equal(publicSettingNames.includes('github_client_secret'), false);
+  assert.equal(publicSettingNames.includes('stripe_secret_key'), false);
 });
 
 test('settings registry: group 顺序与首次出现顺序一致', () => {

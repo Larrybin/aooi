@@ -7,6 +7,12 @@ import {
   normalizeAdminSearchParams,
 } from './create-admin-table-page.helpers';
 
+type AdminTabConfig<TQuery extends Record<string, unknown>> = {
+  name: string;
+  titleKey: string;
+  queryPatch?: Partial<TQuery>;
+};
+
 test('normalizeAdminSearchParams: 展平数组并保留字符串值', () => {
   assert.deepEqual(
     normalizeAdminSearchParams({
@@ -52,7 +58,7 @@ test('buildAdminQueryUrl: 切换 tab 时清空同组 query 并重置 page', () =
 });
 
 test('isAdminTabActive: all tab 仅在分组字段为空时激活', () => {
-  const tabs = [
+  const tabs: AdminTabConfig<{ type: string | undefined }>[] = [
     { name: 'all', titleKey: 'list.tabs.all' },
     {
       name: 'subscription',

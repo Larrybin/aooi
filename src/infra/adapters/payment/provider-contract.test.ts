@@ -103,7 +103,7 @@ test('payment providers: SUCCESS 事件缺失 paymentAmount 时严格报错', ()
         paymentStatus: PaymentStatus.SUCCESS,
         paymentInfo: {
           paymentCurrency: 'USD',
-        },
+        } as never,
       }),
     (error: unknown) =>
       error instanceof WebhookPayloadError &&

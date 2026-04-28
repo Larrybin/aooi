@@ -1,6 +1,7 @@
 import { assertPostgresOnlyDatabaseProvider } from '@/infra/runtime/database-provider';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
+import type { EnvLike } from '@/config/env-contract';
 import {
   resolvePublicEnvConfigs,
   type PublicEnvConfigs,
@@ -41,7 +42,7 @@ export type CloudflareBindings = {
 } & Record<string, unknown>;
 
 type RuntimeEnvOptions = {
-  env?: NodeJS.ProcessEnv;
+  env?: EnvLike;
   bindings?: CloudflareBindings | null;
 };
 

@@ -1,6 +1,8 @@
 import { isRuntimeEnvEnabled } from '@/infra/runtime/env.server';
 import { isCloudflareLocalWorkersDevRuntime } from '@/infra/runtime/runtime-mode';
 
+import type { EnvLike } from '@/config/env-contract';
+
 function normalizeAuthOrigin(value: string, label: string): string {
   try {
     const url = new URL(value);
@@ -188,7 +190,7 @@ export function isLocalAuthRuntimeOrigin(origin: string): boolean {
 
 export function isExplicitLocalAuthRuntimeEnabled(
   params: {
-    env?: NodeJS.ProcessEnv;
+    env?: EnvLike;
     preferRequestOrigin?: boolean;
   } = {}
 ): boolean {
@@ -264,7 +266,7 @@ export function buildTrustedAuthOrigins(params: {
   additionalAllowedOrigins?: string[];
   request?: Request;
   preferRequestOrigin?: boolean;
-  env?: NodeJS.ProcessEnv;
+  env?: EnvLike;
 }): string[] {
   const allowedOrigins = normalizeAllowedAuthOrigins(
     params.appUrl,
@@ -310,7 +312,7 @@ export function resolveRuntimeAuthBaseUrl(params: {
   additionalAllowedOrigins?: string[];
   preferRequestOrigin?: boolean;
   request?: Request;
-  env?: NodeJS.ProcessEnv;
+  env?: EnvLike;
 }): string {
   const allowedOrigins = normalizeAllowedAuthOrigins(
     params.defaultBaseUrl,

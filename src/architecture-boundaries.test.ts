@@ -91,7 +91,7 @@ const importPatterns = {
 };
 
 const dirtyImportRules: DirtyImportRule[] = ARCHITECTURE_RULES.dirtyImports.map(
-  (label) => {
+  (label: string) => {
     switch (label) {
       case '@/shared/models':
         return { label, pattern: importPatterns.sharedModels, baseline: 0 };
@@ -109,31 +109,33 @@ const dirtyImportRules: DirtyImportRule[] = ARCHITECTURE_RULES.dirtyImports.map(
 
 const publicCompositionPathPatterns =
   ARCHITECTURE_RULES.publicCompositionPathPatterns.map(
-    (pattern) => new RegExp(pattern)
+    (pattern: string) => new RegExp(pattern)
   );
 const domainForbiddenImportPatterns =
   ARCHITECTURE_RULES.domainForbiddenImports.map(
-    (pattern) => new RegExp(pattern)
+    (pattern: string) => new RegExp(pattern)
   );
 const applicationAllowedPlatformImportPatterns =
   ARCHITECTURE_RULES.applicationAllowedPlatformImports.map(
-    (pattern) => new RegExp(pattern)
+    (pattern: string) => new RegExp(pattern)
   );
 const appOnlyFacadeImportPatterns =
   ARCHITECTURE_RULES.appOnlyFacadeImportPatterns.map(
-    (pattern) => new RegExp(pattern)
+    (pattern: string) => new RegExp(pattern)
   );
 const applicationPlatformImportExceptions =
-  ARCHITECTURE_RULES.applicationPlatformImportExceptions.map((exception) => ({
-    file: exception.file,
-    imports: exception.imports.map((pattern) => new RegExp(pattern)),
-  }));
+  ARCHITECTURE_RULES.applicationPlatformImportExceptions.map(
+    (exception: { file: string; imports: string[] }) => ({
+      file: exception.file,
+      imports: exception.imports.map((pattern: string) => new RegExp(pattern)),
+    })
+  );
 const queryViewAllowedSameDomainApplicationPathPattern = new RegExp(
   ARCHITECTURE_RULES.queryViewAllowedSameDomainApplicationPathPattern
 );
 const sharedLibAllowedPathPatterns =
   ARCHITECTURE_RULES.sharedLibAllowedPathPatterns.map(
-    (pattern) => new RegExp(pattern)
+    (pattern: string) => new RegExp(pattern)
   );
 const aggregationPathPattern = new RegExp(
   ARCHITECTURE_RULES.aggregation.pathPattern
@@ -143,7 +145,7 @@ const orchestrationPathPattern = new RegExp(
 );
 
 function isPublicCompositionFile(repoPath: string) {
-  return publicCompositionPathPatterns.some((pattern) =>
+  return publicCompositionPathPatterns.some((pattern: RegExp) =>
     pattern.test(repoPath)
   );
 }
@@ -223,11 +225,11 @@ function isAllowedApplicationPlatformException(
   specifier: string
 ) {
   const exception = applicationPlatformImportExceptions.find(
-    (item) => item.file === repoPath
+    (item: { file: string; imports: RegExp[] }) => item.file === repoPath
   );
   if (!exception) return false;
 
-  return exception.imports.some((pattern) => pattern.test(specifier));
+  return exception.imports.some((pattern: RegExp) => pattern.test(specifier));
 }
 
 test('architecture: 目标收敛目录必须存在', async () => {
@@ -482,7 +484,7 @@ test('architecture: 新目标 domain 层不依赖入站层、adapter 或 HTTP sc
   for (const file of files) {
     for (const specifier of readImportSpecifiers(file.content)) {
       assert.equal(
-        domainForbiddenImportPatterns.some((pattern) =>
+        domainForbiddenImportPatterns.some((pattern: RegExp) =>
           pattern.test(specifier)
         ),
         false,
@@ -640,8 +642,7 @@ test('architecture: settings 内部边界保持单向且 index 仅做聚合导�
         './settings-form-mapper',
         './settings-normalizers',
         './types',
-      ]
-        .includes(specifier)
+      ].includes(specifier)
     ),
     true,
     'settings/index.ts 只允许聚合导出受控子模块'
@@ -734,7 +735,9 @@ test('architecture: app-only facade 只有两个 runtime-deps 且仅限 app 导�
   for (const file of files) {
     for (const specifier of readImportSpecifiers(file.content)) {
       if (
-        !appOnlyFacadeImportPatterns.some((pattern) => pattern.test(specifier))
+        !appOnlyFacadeImportPatterns.some((pattern: RegExp) =>
+          pattern.test(specifier)
+        )
       ) {
         continue;
       }
@@ -817,7 +820,7 @@ test('architecture: application 只能使用受控 platform 入口', async () =>
       }
 
       assert.equal(
-        applicationAllowedPlatformImportPatterns.some((pattern) =>
+        applicationAllowedPlatformImportPatterns.some((pattern: RegExp) =>
           pattern.test(specifier)
         ),
         true,
@@ -1085,7 +1088,7 @@ test('architecture: shared/lib 只保留 allowlist 纯工具', async () => {
   for (const file of files) {
     const sharedLibPath = file.repoPath.replace(/^src\/shared\/lib\//, '');
     assert.equal(
-      sharedLibAllowedPathPatterns.some((pattern) =>
+      sharedLibAllowedPathPatterns.some((pattern: RegExp) =>
         pattern.test(sharedLibPath)
       ),
       true,

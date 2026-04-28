@@ -1,5 +1,9 @@
 const DNS_RESULT_ORDER_IPV4_FIRST = '--dns-result-order=ipv4first';
 
+/**
+ * @typedef {Record<string, string | undefined>} EnvLike
+ */
+
 function tokenizeNodeOptions(value) {
   return String(value || '')
     .split(/\s+/)
@@ -24,6 +28,10 @@ export function ensureNodeOptionsInclude(
   return options.join(' ');
 }
 
+/**
+ * @param {EnvLike} [env]
+ * @returns {EnvLike}
+ */
 export function withIpv4FirstNodeOptions(env = process.env) {
   return {
     ...env,

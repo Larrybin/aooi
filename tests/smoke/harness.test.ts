@@ -76,7 +76,9 @@ test('writeReportArtifacts 同时写入时间戳文件和 latest 指针文件', 
   await writeReportArtifacts({
     paths,
     report,
-    renderMarkdown: (value) => `# ${value.harnessStatus}\n`,
+    renderMarkdown: (value: { harnessStatus: string }) =>
+      `# ${value.harnessStatus}\n`,
+    sanitizeReport: (value: unknown) => value,
   });
 
   const timestampedJson = await readFile(paths.reportJsonPath, 'utf8');

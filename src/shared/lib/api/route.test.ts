@@ -16,7 +16,7 @@ test('withApi: internalMeta 只进日志不进响应 JSON', async () => {
   }) as typeof console.info;
 
   try {
-    const handler = withApi(async () => {
+    const handler = withApi(async (_request: Request): Promise<Response> => {
       throw new NotFoundError('not found', undefined, {
         internalMeta: { reason: 'capability_disabled' },
       });

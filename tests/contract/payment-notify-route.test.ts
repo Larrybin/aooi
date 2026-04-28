@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
-import {
-  WebhookPayloadError,
-  WebhookVerificationError,
-  type PaymentEvent,
-  PaymentEventType,
-} from '@/domains/billing/domain/payment';
-import { site } from '@/site';
-
 import {
   buildPaymentNotifyPostLogic,
   type PaymentNotifyRouteDeps,
 } from '@/app/api/payment/notify/route-logic';
+import {
+  PaymentEventType,
+  WebhookPayloadError,
+  WebhookVerificationError,
+  type PaymentEvent,
+} from '@/domains/billing/domain/payment';
+import { site } from '@/site';
 
 function createRequest() {
   return new Request('https://example.com/api/payment/notify', {
@@ -25,7 +23,11 @@ function createRequest() {
   });
 }
 
-function createUnknownEvent(provider: 'stripe' | 'creem' | 'paypal'): PaymentEvent {
+type PaymentCapability = 'none' | 'stripe' | 'creem' | 'paypal';
+
+function createUnknownEvent(
+  provider: 'stripe' | 'creem' | 'paypal'
+): PaymentEvent {
   return {
     eventType: PaymentEventType.UNKNOWN,
     eventResult: { event: 'unknown' },
@@ -39,9 +41,7 @@ function createUnknownEvent(provider: 'stripe' | 'creem' | 'paypal'): PaymentEve
   };
 }
 
-function createRouteHandler(
-  overrides: Partial<PaymentNotifyRouteDeps> = {}
-) {
+function createRouteHandler(overrides: Partial<PaymentNotifyRouteDeps> = {}) {
   return buildPaymentNotifyPostLogic({
     createApiContext: () => ({
       log: {
@@ -56,7 +56,7 @@ function createRouteHandler(
       if (capability === 'none') {
         throw new Error('requirePaymentCapability override required');
       }
-      return capability;
+      return capability as Exclude<PaymentCapability, 'none'>;
     },
     readBillingRuntimeSettingsCached: async () => ({
       provider: 'stripe',
@@ -118,15 +118,18 @@ function createRouteHandler(
 }
 
 async function withPaymentCapability<T>(
-  capability: typeof site.capabilities.payment,
+  capability: PaymentCapability,
   run: () => Promise<T>
 ): Promise<T> {
   const originalCapability = site.capabilities.payment;
-  site.capabilities.payment = capability;
+  const mutableCapabilities = site.capabilities as {
+    payment: PaymentCapability;
+  };
+  mutableCapabilities.payment = capability;
   try {
     return await run();
   } finally {
-    site.capabilities.payment = originalCapability;
+    mutableCapabilities.payment = originalCapability;
   }
 }
 
@@ -328,43 +331,43 @@ test('payment notify route: provider 严格来自 site capability，而不是 UR
     const { withApi } = await import('@/shared/lib/api/route');
     const handler = withApi(
       createRouteHandler({
-      readBillingRuntimeSettingsCached: async () => ({
-        provider: 'paypal',
-        paymentCapability: 'paypal',
-        locale: 'en',
-        defaultLocale: 'en',
-        paypalEnvironment: 'sandbox',
-      }),
-      readBillingRuntimeSettingsFresh: async () => ({
-        provider: 'paypal',
-        paymentCapability: 'paypal',
-        locale: 'en',
-        defaultLocale: 'en',
-        paypalEnvironment: 'sandbox',
-      }),
-      readPaymentRuntimeBindings: () => ({
-        provider: 'paypal',
-        paymentCapability: 'paypal',
-        paypalClientId: 'client',
-        paypalClientSecret: 'secret',
-        paypalWebhookId: 'wh_123',
-      }),
-      createPaymentService: async () => ({
-        getProvider: () => undefined,
-        getDefaultProvider: () => {
-          throw new Error('not needed in route contract test');
+        readBillingRuntimeSettingsCached: async () => ({
+          provider: 'paypal',
+          paymentCapability: 'paypal',
+          locale: 'en',
+          defaultLocale: 'en',
+          paypalEnvironment: 'sandbox',
+        }),
+        readBillingRuntimeSettingsFresh: async () => ({
+          provider: 'paypal',
+          paymentCapability: 'paypal',
+          locale: 'en',
+          defaultLocale: 'en',
+          paypalEnvironment: 'sandbox',
+        }),
+        readPaymentRuntimeBindings: () => ({
+          provider: 'paypal',
+          paymentCapability: 'paypal',
+          paypalClientId: 'client',
+          paypalClientSecret: 'secret',
+          paypalWebhookId: 'wh_123',
+        }),
+        createPaymentService: async () => ({
+          getProvider: () => undefined,
+          getDefaultProvider: () => {
+            throw new Error('not needed in route contract test');
+          },
+          createPayment: async () => {
+            throw new Error('not needed in route contract test');
+          },
+          getPaymentSession: async () => {
+            throw new Error('not needed in route contract test');
+          },
+          getPaymentEvent: async () => createUnknownEvent('paypal'),
+        }),
+        recordUnknownWebhookEvent: async ({ provider }) => {
+          observedProvider = provider;
         },
-        createPayment: async () => {
-          throw new Error('not needed in route contract test');
-        },
-        getPaymentSession: async () => {
-          throw new Error('not needed in route contract test');
-        },
-        getPaymentEvent: async () => createUnknownEvent('paypal'),
-      }),
-      recordUnknownWebhookEvent: async ({ provider }) => {
-        observedProvider = provider;
-      },
       })
     );
 

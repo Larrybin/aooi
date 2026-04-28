@@ -7,9 +7,7 @@ import {
 } from './session-reader';
 
 function createMemoizedCache() {
-  return <Args extends [string | null], Result>(
-    fn: (...args: Args) => Result
-  ) => {
+  return <Args extends unknown[], Result>(fn: (...args: Args) => Result) => {
     const entries = new Map<string, Result>();
 
     return (...args: Args) => {

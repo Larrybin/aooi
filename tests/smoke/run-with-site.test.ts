@@ -5,7 +5,10 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-async function runWithSite(args: string[], env: NodeJS.ProcessEnv = {}) {
+async function runWithSite(
+  args: string[],
+  env: Partial<NodeJS.ProcessEnv> = {}
+) {
   try {
     const result = await execFileAsync(
       process.execPath,

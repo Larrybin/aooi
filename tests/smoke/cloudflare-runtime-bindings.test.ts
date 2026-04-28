@@ -21,7 +21,7 @@ test('cloudflare runtime bindings: emailProvider 只分配到 auth/admin worker'
   });
   const requirements = getRequiredRuntimeBindingsByWorker(
     contract.bindingRequirements
-  );
+  ) as Map<string, Array<{ name: string; worker: string }>>;
 
   const authSecrets = requirements
     .get('auth')

@@ -20,9 +20,7 @@ test('ai/capabilities 路由返回 no-store 能力列表', async () => {
     ],
   });
 
-  const response = await handler(
-    new Request('http://localhost/api/ai/capabilities', { method: 'GET' })
-  );
+  const response = await handler();
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
 

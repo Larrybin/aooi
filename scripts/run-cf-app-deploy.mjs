@@ -252,7 +252,7 @@ export function buildRouterAppVersionIds(currentVersions, nextVersions) {
 
 export async function buildRouterDeployConfigContent({
   contract = resolveDeployContract(),
-  versionIds,
+  versionIds = {},
   rootPath = rootDir,
 }) {
   const routerConfigPath = resolveRouterConfigPath(contract, rootPath);
@@ -314,7 +314,7 @@ export async function createTempDeployArtifacts({
   name,
   templatePath,
   workerKeys,
-  versionIds,
+  versionIds = {},
   contract = resolveDeployContract(),
 }) {
   const workerSlot = workerKeys.length === 1 ? workerKeys[0] : null;

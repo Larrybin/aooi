@@ -190,33 +190,34 @@ test('startCloudflareLocalDevTopology 只创建一个 unified manager，并在 s
       assertCloudflareLocalBuildArtifactsReadyImpl: async () => {
         events.push('preflight:build-artifacts');
       },
-      prepareCloudflareLocalTopologyArtifactsImpl: async () => ({
-        router: {
-          configPath: '/tmp/router.toml',
-          label: 'Cloudflare local topology',
-          baseUrl: 'http://127.0.0.1:8787',
-          port: 8787,
-        },
-        serverWorkers: CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => ({
-          target,
-          label: `Cloudflare server worker ${target}`,
-          configPath: `/tmp/${target}.toml`,
-          workerName: target,
-        })),
-        wranglerConfigPaths: [
-          '/tmp/router.toml',
-          ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
-            (target) => `/tmp/${target}.toml`
-          ),
-        ],
-        persistDir: '/tmp/state/local-topology',
-        devVars: {
-          devVarsPath: '/tmp/.dev.vars',
-        },
-        async cleanup() {
-          cleanupCount += 1;
-        },
-      }),
+      prepareCloudflareLocalTopologyArtifactsImpl: async () =>
+        ({
+          router: {
+            configPath: '/tmp/router.toml',
+            label: 'Cloudflare local topology',
+            baseUrl: 'http://127.0.0.1:8787',
+            port: 8787,
+          },
+          serverWorkers: CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => ({
+            target,
+            label: `Cloudflare server worker ${target}`,
+            configPath: `/tmp/${target}.toml`,
+            workerName: target,
+          })),
+          wranglerConfigPaths: [
+            '/tmp/router.toml',
+            ...CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map(
+              (target) => `/tmp/${target}.toml`
+            ),
+          ],
+          persistDir: '/tmp/state/local-topology',
+          devVars: {
+            devVarsPath: '/tmp/.dev.vars',
+          },
+          async cleanup() {
+            cleanupCount += 1;
+          },
+        }) as never,
       createWranglerMultiConfigDevManagerImpl: ({
         label,
         wranglerConfigPaths,
@@ -235,12 +236,13 @@ test('startCloudflareLocalDevTopology 只创建一个 unified manager，并在 s
 
         return {
           label,
+          child: null,
           recentLogs: [],
           readyUrlPromise: Promise.resolve('http://127.0.0.1:8787'),
           async stop() {
             events.push(`stop:${label}`);
           },
-        };
+        } as never;
       },
     }
   );
@@ -284,29 +286,32 @@ test('startCloudflareLocalDevTopology 在 unified manager ready 前失败时返�
       },
       {
         assertCloudflareLocalBuildArtifactsReadyImpl: async () => undefined,
-        prepareCloudflareLocalTopologyArtifactsImpl: async () => ({
-          router: {
-            configPath: '/tmp/router.toml',
-            label: 'Cloudflare local topology',
-            baseUrl: 'http://127.0.0.1:8787',
-            port: 8787,
-          },
-          serverWorkers: [],
-          wranglerConfigPaths: ['/tmp/router.toml'],
-          persistDir: '/tmp/state/local-topology',
-          devVars: {
-            devVarsPath: '/tmp/.dev.vars',
-          },
-          async cleanup() {
-            cleanupCount += 1;
-          },
-        }),
-        createWranglerMultiConfigDevManagerImpl: ({ label }) => ({
-          label,
-          recentLogs: ['boom\n'],
-          readyUrlPromise: Promise.reject(new Error('exited before ready')),
-          async stop() {},
-        }),
+        prepareCloudflareLocalTopologyArtifactsImpl: async () =>
+          ({
+            router: {
+              configPath: '/tmp/router.toml',
+              label: 'Cloudflare local topology',
+              baseUrl: 'http://127.0.0.1:8787',
+              port: 8787,
+            },
+            serverWorkers: [],
+            wranglerConfigPaths: ['/tmp/router.toml'],
+            persistDir: '/tmp/state/local-topology',
+            devVars: {
+              devVarsPath: '/tmp/.dev.vars',
+            },
+            async cleanup() {
+              cleanupCount += 1;
+            },
+          }) as never,
+        createWranglerMultiConfigDevManagerImpl: ({ label }) =>
+          ({
+            label,
+            child: null,
+            recentLogs: ['boom\n'],
+            readyUrlPromise: Promise.reject(new Error('exited before ready')),
+            async stop() {},
+          }) as never,
       }
     ),
     /Cloudflare local topology failed to start: exited before ready/

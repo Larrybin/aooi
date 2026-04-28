@@ -13,7 +13,10 @@ test('site-aware settings: payment=none 时 payment tab 不存在', async () => 
     const settings = await mod.getSettings();
 
     assert.equal(tabs.includes('payment'), false);
-    assert.equal(settings.some((setting) => setting.tab === 'payment'), false);
+    assert.equal(
+      settings.some((setting) => setting.tab === 'payment'),
+      false
+    );
   } finally {
     if (originalSite === undefined) {
       delete process.env.SITE;
@@ -61,11 +64,11 @@ test('site-aware settings: 测试站点 payment!=none 时只暴露当前 provide
         }),
       });
       const paymentGroups = settings
-        .filter((setting) => setting.tab === 'payment')
-        .map((setting) => setting.group.id);
+        .filter((setting: { tab: string }) => setting.tab === 'payment')
+        .map((setting: { group: { id: string } }) => setting.group.id);
       const paymentGroupNames = groups
-        .filter((group) => group.tab === 'payment')
-        .map((group) => group.name);
+        .filter((group: { tab: string }) => group.tab === 'payment')
+        .map((group: { name: string }) => group.name);
       const paymentFormProviders = forms.map((form) => {
         const passby = form.passby as { provider?: string } | undefined;
         return passby?.provider ?? '';
@@ -75,13 +78,16 @@ test('site-aware settings: 测试站点 payment!=none 时只暴露当前 provide
       assert.deepEqual([...new Set(paymentGroups)], ['stripe']);
       assert.deepEqual(paymentGroupNames, ['stripe']);
       assert.deepEqual(paymentFormProviders, ['stripe']);
-      assert.equal(forms.every((form) => form.fields.length > 0), true);
+      assert.equal(
+        forms.every((form) => form.fields.length > 0),
+        true
+      );
     } finally {
       siteModule.site.capabilities.payment = originalCapability;
     }
   } finally {
     if (originalGeneratedSite === undefined) {
-      delete process.env.NODE_ENV;
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
     }
     if (originalSite === undefined) {
       delete process.env.SITE;

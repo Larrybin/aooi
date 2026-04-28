@@ -13,6 +13,10 @@ import { resolveRootRuntimeInjections } from './root-runtime-injections';
 
 function createRuntimeProvider(prefix: string) {
   return {
+    name: 'adsense' as const,
+    supportsZone: () => false,
+    renderZone: () => null,
+    getAdsTxtEntry: () => null,
     getMetaTags: () =>
       createElement('meta', {
         key: `${prefix}-meta`,
@@ -94,7 +98,13 @@ test('root runtime injections: typed cached readers feed the matching factories 
     createAdsRuntime: (settings) => {
       assert.equal(settings, adsSettings);
       calls.push('factory:ads');
-      return { enabled: true, provider: createRuntimeProvider('ads') };
+      return {
+        enabled: true,
+        providerName: 'adsense',
+        provider: createRuntimeProvider('ads'),
+        supportedZones: new Set(),
+        adsTxtEntry: null,
+      };
     },
     createAnalyticsManager: (settings) => {
       assert.equal(settings, analyticsSettings);

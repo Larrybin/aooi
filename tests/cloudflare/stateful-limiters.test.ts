@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { site } from '@/site';
 
 import {
   buildSiteScopedLimiterBucket,
@@ -7,7 +8,6 @@ import {
   CloudflareDualConcurrencyLimiter,
   CloudflareQuotaLimiter,
 } from '@/shared/platform/cloudflare/stateful-limiters';
-import { site } from '@/site';
 
 import { StatefulLimitersDurableObject } from '../../cloudflare/workers/stateful-limiters';
 
@@ -26,13 +26,16 @@ function createFakeStorage(
   const getCalls: string[] = [];
   const putCalls: Array<{ key: string; value: unknown }> = [];
   const deleteCalls: string[][] = [];
+  let listCallCount = 0;
 
   return {
     map,
     getCalls,
     putCalls,
     deleteCalls,
-    listCallCount: 0,
+    get listCallCount() {
+      return listCallCount;
+    },
     async get(key: string) {
       getCalls.push(key);
       return map.get(key);
@@ -47,12 +50,13 @@ function createFakeStorage(
       for (const key of list) {
         map.delete(key);
       }
+      return list.length;
     },
     async list() {
-      this.listCallCount += 1;
+      listCallCount += 1;
       return new Map(map);
     },
-  } as DurableObjectStorage & FakeStorage;
+  } as unknown as DurableObjectStorage & FakeStorage;
 }
 
 function createDurableObject(storage: DurableObjectStorage) {
@@ -97,7 +101,7 @@ function createNamespaceBackedByStateWorker() {
         },
       };
     },
-  } as DurableObjectNamespace;
+  } as unknown as DurableObjectNamespace;
 }
 
 test('buildStatefulLimiterObjectName 为单 key 与 bucket 级 limiter 生成不同 DO 名称', () => {

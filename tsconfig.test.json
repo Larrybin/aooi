@@ -1,11 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "tsBuildInfoFile": ".next/cache/tsconfig.test.tsbuildinfo"
   },
   "include": [
     "next-env.d.ts",
-    "src/shared/types/global.d.ts",
+    "src/shared/types/**/*.d.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.spec.ts",

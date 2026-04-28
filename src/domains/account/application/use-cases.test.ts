@@ -14,6 +14,7 @@ import {
   renameOwnApikeyUseCase,
   requireOwnedApikeyUseCase,
   updateProfileUseCase,
+  type AccountApikeyRecord,
 } from './use-cases';
 
 test('readSelfUserDetailsUseCase 聚合成员详情', async () => {
@@ -25,6 +26,8 @@ test('readSelfUserDetailsUseCase 聚合成员详情', async () => {
     }),
     getCurrentSubscription: async () => ({ productId: 'pro_monthly' }),
     getRemainingCredits: async () => 7,
+    getCredits: async () => [],
+    getCreditsCount: async () => 0,
   });
 
   assert.deepEqual(details, {
@@ -152,7 +155,7 @@ test('requireOwnedApikeyUseCase 拒绝非本人 apikey', async () => {
 });
 
 test('createOwnApikeyUseCase 创建 key 并返回 action result', async () => {
-  let created: Record<string, unknown> | null = null;
+  const created: AccountApikeyRecord[] = [];
 
   const result = await createOwnApikeyUseCase(
     {
@@ -161,8 +164,8 @@ test('createOwnApikeyUseCase 创建 key 并返回 action result', async () => {
     },
     {
       createApikey: async (record) => {
-        created = record as Record<string, unknown>;
-        return record as never;
+        created.push(record);
+        return record;
       },
       createId: () => 'id_1',
       createSecretKey: () => 'sk-secret',
@@ -171,8 +174,8 @@ test('createOwnApikeyUseCase 创建 key 并返回 action result', async () => {
     '/settings/apikeys'
   );
 
-  assert.equal(created?.id, 'id_1');
-  assert.equal(created?.key, 'sk-secret');
+  assert.equal(created[0]?.id, 'id_1');
+  assert.equal(created[0]?.key, 'sk-secret');
   assert.deepEqual(result, {
     status: 'success',
     message: 'API Key created',
@@ -181,7 +184,7 @@ test('createOwnApikeyUseCase 创建 key 并返回 action result', async () => {
 });
 
 test('renameOwnApikeyUseCase 更新 title', async () => {
-  let updated: Record<string, unknown> | null = null;
+  const updated: Array<Partial<AccountApikeyRecord>> = [];
 
   const result = await renameOwnApikeyUseCase(
     {
@@ -196,7 +199,7 @@ test('renameOwnApikeyUseCase 更新 title', async () => {
           userId: 'user_1',
         }) as never,
       updateApikey: async (_id, payload) => {
-        updated = payload;
+        updated.push(payload);
         return {} as never;
       },
     },
@@ -204,12 +207,12 @@ test('renameOwnApikeyUseCase 更新 title', async () => {
     '/settings/apikeys'
   );
 
-  assert.deepEqual(updated, { title: 'new title' });
+  assert.deepEqual(updated[0], { title: 'new title' });
   assert.equal(result?.message, 'API Key updated');
 });
 
 test('deleteOwnApikeyUseCase 软删除 key', async () => {
-  let updated: Record<string, unknown> | null = null;
+  const updated: Array<Partial<AccountApikeyRecord>> = [];
 
   const result = await deleteOwnApikeyUseCase(
     {
@@ -223,7 +226,7 @@ test('deleteOwnApikeyUseCase 软删除 key', async () => {
           userId: 'user_1',
         }) as never,
       updateApikey: async (_id, payload) => {
-        updated = payload;
+        updated.push(payload);
         return {} as never;
       },
     },
@@ -231,6 +234,6 @@ test('deleteOwnApikeyUseCase 软删除 key', async () => {
     '/settings/apikeys'
   );
 
-  assert.equal(updated?.status, 'deleted');
+  assert.equal(updated[0]?.status, 'deleted');
   assert.equal(result?.message, 'API Key deleted');
 });

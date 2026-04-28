@@ -152,7 +152,7 @@ test('runCloudflareAppSmoke 对生产只读 smoke 路由逐项校验', async () 
     ],
   ]);
 
-  const visited = [];
+  const visited: string[] = [];
 
   await runCloudflareAppSmoke({
     baseUrl: 'https://mamamiya.pdfreprinting.net',
@@ -163,7 +163,7 @@ test('runCloudflareAppSmoke 对生产只读 smoke 路由逐项校验', async () 
       assert(response, `unexpected smoke request: ${url.pathname}`);
       return response;
     },
-    logger: { log() {} },
+    logger: console,
   });
 
   assert.deepEqual(visited, [

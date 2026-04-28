@@ -5,8 +5,8 @@ import { site } from '@/site';
 import { resolveServerAuthBaseUrl } from '@/config/server-auth-base-url';
 
 function createEnv(
-  overrides: Partial<NodeJS.ProcessEnv> = {}
-): NodeJS.ProcessEnv {
+  overrides: Record<string, string | undefined> = {}
+): Record<string, string | undefined> {
   return {
     ...overrides,
     NODE_ENV: overrides.NODE_ENV ?? 'test',

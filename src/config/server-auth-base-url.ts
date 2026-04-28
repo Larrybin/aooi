@@ -1,5 +1,7 @@
 import { site } from '@/site';
 
+import type { EnvLike } from '@/config/env-contract';
+
 function normalizeOrigin(value: string, label: string): string {
   try {
     const url = new URL(value);
@@ -13,7 +15,7 @@ function normalizeOrigin(value: string, label: string): string {
 }
 
 type ServerAuthBaseUrlEnv = Partial<
-  Pick<NodeJS.ProcessEnv, 'BETTER_AUTH_URL' | 'AUTH_URL'>
+  Pick<EnvLike, 'BETTER_AUTH_URL' | 'AUTH_URL'>
 >;
 
 export function resolveServerAuthBaseUrl(env?: ServerAuthBaseUrlEnv): string {

@@ -4,7 +4,10 @@ import test from 'node:test';
 import { AIMediaType } from '@/extensions/ai';
 import { BadRequestError } from '@/shared/lib/api/errors';
 
-import { createAiGeneratePostHandler } from './create-handler';
+import {
+  createAiGeneratePostHandler,
+  type AiGenerateRouteDeps,
+} from './create-handler';
 
 function createApiContextStub(body: {
   provider: string;
@@ -24,11 +27,11 @@ function createApiContextStub(body: {
       },
       parseJson: async () => body,
       requireUser: async () => ({ id: 'user_1' }),
-    }) as never;
+    }) as any;
 }
 
 test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredits', async () => {
-  let createdTask: Record<string, unknown> | null = null;
+  let createdTask: Record<string, unknown> | undefined;
 
   const handler = createAiGeneratePostHandler({
     requireAiEnabled: async () => undefined,
@@ -40,7 +43,7 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
       prompt: 'hello',
       options: { image_input: ['https://example.com/a.png'] },
     }),
-    readAiRuntimeSettings: async () => ({ aiEnabled: true }) as never,
+    readAiRuntimeSettings: async () => ({ aiEnabled: true }),
     readAiProviderBindings: () => ({
       openrouterApiKey: '',
       replicateApiToken: 'token_1',
@@ -64,7 +67,9 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
             taskInfo: { step: 'queued' },
           }),
         }),
-      }) as never,
+        getDefaultProvider: () => undefined,
+        getMediaTypes: () => [],
+      }) as any,
     getUuid: () => 'db-task-1',
     createAITask: async (task) => {
       createdTask = task as Record<string, unknown>;
@@ -72,13 +77,13 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
         ...task,
         id: 'db-task-1',
         creditId: 'credit-1',
-      } as never;
+      } as any;
     },
     updateAITaskById: async (_id, patch) =>
       ({
         id: 'db-task-1',
         ...patch,
-      }) as never,
+      }) as any,
   });
 
   const response = await handler(
@@ -87,10 +92,11 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
-  assert.equal(createdTask?.scene, 'image-to-image');
-  assert.equal(createdTask?.costCredits, 4);
-  assert.equal(createdTask?.provider, 'replicate');
-  assert.equal(createdTask?.model, 'google/nano-banana');
+  assert.ok(createdTask);
+  assert.equal(createdTask.scene, 'image-to-image');
+  assert.equal(createdTask.costCredits, 4);
+  assert.equal(createdTask.provider, 'replicate');
+  assert.equal(createdTask.model, 'google/nano-banana');
 
   const body = (await response.json()) as {
     data: { taskId: string; taskInfo: string };
@@ -109,7 +115,7 @@ test('ai/generate 路由非法 capability 统一返回 400', async () => {
       model: 'V5',
       prompt: 'hello',
     }),
-    readAiRuntimeSettings: async () => ({ aiEnabled: true }) as never,
+    readAiRuntimeSettings: async () => ({ aiEnabled: true }),
     readAiProviderBindings: () => ({
       openrouterApiKey: '',
       replicateApiToken: '',
@@ -119,8 +125,20 @@ test('ai/generate 路由非法 capability 统一返回 400', async () => {
     resolveConfiguredAICapability: () => {
       throw new BadRequestError('invalid ai capability');
     },
-    getAIService: () => ({ getProvider: () => undefined }) as never,
-  });
+    getAIService: () =>
+      ({
+        getProvider: () => undefined,
+        getDefaultProvider: () => undefined,
+        getMediaTypes: () => [],
+      }) as any,
+    getUuid: () => 'db-task-1',
+    createAITask: async () => {
+      throw new Error('should not create task');
+    },
+    updateAITaskById: async () => {
+      throw new Error('should not update task');
+    },
+  } satisfies AiGenerateRouteDeps);
 
   const response = await handler(
     new Request('http://localhost/api/ai/generate', { method: 'POST' })

@@ -28,7 +28,8 @@ test('router 转发会把 canonicalized middleware request 归一化回本地 pr
   const forwardedRequest = buildForwardedWorkerRequest(
     originalRequest,
     middlewareRequest,
-    {} as never
+    {} as never,
+    'public-web'
   );
 
   assert.equal(
@@ -52,7 +53,8 @@ test('router 转发会保留 middleware 决定的 rewrite path 和 query', () =>
   const forwardedRequest = buildForwardedWorkerRequest(
     originalRequest,
     middlewareRequest,
-    {} as never
+    {} as never,
+    'public-web'
   );
 
   assert.equal(

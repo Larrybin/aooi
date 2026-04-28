@@ -133,7 +133,12 @@ test('storage/upload-image 路由会把 fresh 模式闭包传给 getStorageServi
     resolveConfigConsistencyMode: () => 'fresh',
     getApiContext: async () => ({
       log: createLog(),
-      requireUser: async () => ({ id: 'u1' }),
+      requireUser: async () => ({
+        id: 'u1',
+        name: null,
+        email: 'u1@example.com',
+        image: null,
+      }),
     }),
     readUploadRequestInput: async () => ({
       entries: [createPngFile()],

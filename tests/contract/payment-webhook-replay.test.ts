@@ -11,7 +11,7 @@ import {
 import { PAYMENT_WEBHOOK_OPERATION_KIND } from '@/domains/billing/infra/payment-webhook-inbox.shared';
 
 function createInboxRow(
-  overrides: Partial<PaymentWebhookReplayRow> = {}
+  overrides: Partial<PaymentWebhookReplayRow> & Record<string, unknown> = {}
 ): PaymentWebhookReplayRow {
   return {
     id: 'inbox_1',
@@ -100,6 +100,18 @@ test('runPaymentWebhookReplay 对缺失 canonical event 的行直接跳过', asy
         attempted = true;
         return createInboxRow();
       },
+      deserializePaymentWebhookCanonicalEvent: () => {
+        throw new Error('should not deserialize skipped row');
+      },
+      processPaymentNotifyEvent: async () => {
+        throw new Error('should not process skipped row');
+      },
+      markPaymentWebhookInboxProcessed: async () => {
+        throw new Error('should not mark processed');
+      },
+      markPaymentWebhookInboxProcessFailed: async () => {
+        throw new Error('should not mark failed');
+      },
     },
   });
 
@@ -140,6 +152,9 @@ test('runPaymentWebhookReplay 在处理失败时标记 failed', async () => {
           status: 'process_failed',
           lastError: String(error),
         });
+      },
+      markPaymentWebhookInboxProcessed: async () => {
+        throw new Error('should not mark processed');
       },
     },
   });

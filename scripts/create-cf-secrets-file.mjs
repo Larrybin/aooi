@@ -17,6 +17,20 @@ const rootDir = process.cwd();
 
 export const CLOUDFLARE_SECRET_NAMES = [...CLOUDFLARE_SECRET_ENV_KEYS];
 
+/**
+ * @typedef {Record<string, string | undefined>} EnvLike
+ * @typedef {{
+ *   fallbackAuthSecret?: string;
+ *   workerKeys?: string[];
+ *   runtimeSettings?: unknown;
+ *   rootDir?: string;
+ * }} CloudflareSecretsOptions
+ */
+
+/**
+ * @param {EnvLike} [processEnv]
+ * @param {{ fallbackAuthSecret?: string }} [options]
+ */
 export function resolveCloudflareAuthSecretValue(
   processEnv = process.env,
   { fallbackAuthSecret } = {}
@@ -40,6 +54,11 @@ export function resolveCloudflareAuthSecretValue(
   );
 }
 
+/**
+ * @param {EnvLike} processEnv
+ * @param {string} name
+ * @param {string | undefined} fallbackValue
+ */
 function resolveRequiredSecretValue(processEnv, name, fallbackValue) {
   const value = processEnv[name]?.trim();
   if (value) {
@@ -53,6 +72,10 @@ function resolveRequiredSecretValue(processEnv, name, fallbackValue) {
   throw new Error(`${name} is required to build Cloudflare secrets`);
 }
 
+/**
+ * @param {EnvLike} processEnv
+ * @param {string[]} workerKeys
+ */
 function buildCloudflareContext(processEnv, workerKeys) {
   return {
     site: processEnv.SITE?.trim() || 'unknown',
@@ -62,6 +85,11 @@ function buildCloudflareContext(processEnv, workerKeys) {
   };
 }
 
+/**
+ * @param {Array<{ name?: string; names?: string[] }>} requiredRequirements
+ * @param {EnvLike} processEnv
+ * @param {{ fallbackAuthSecret?: string }} options
+ */
 function buildSecretFallbacks(requiredRequirements, processEnv, options) {
   const secretFallbacks = new Map();
   const needsAuthSecret = requiredRequirements.some((requirement) =>
@@ -80,6 +108,10 @@ function buildSecretFallbacks(requiredRequirements, processEnv, options) {
   return secretFallbacks;
 }
 
+/**
+ * @param {EnvLike} [processEnv]
+ * @param {CloudflareSecretsOptions} [options]
+ */
 export function buildCloudflareSecretsEnv(
   processEnv = process.env,
   options = {}
@@ -115,7 +147,11 @@ export function buildCloudflareSecretsEnv(
       try {
         return [
           name,
-          resolveRequiredSecretValue(processEnv, name, secretFallbacks.get(name)),
+          resolveRequiredSecretValue(
+            processEnv,
+            name,
+            secretFallbacks.get(name)
+          ),
         ];
       } catch (error) {
         const context = buildCloudflareContext(processEnv, workerKeys);

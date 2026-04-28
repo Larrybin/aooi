@@ -17,7 +17,7 @@ test('handleAuthSpikeOAuthMockRequest 返回 Google token mock 响应', async ()
   );
 
   assert(response);
-  const body = await response.json();
+  const body = (await response.json()) as Record<string, string>;
 
   assert.equal(body.token_type, 'Bearer');
   assert.equal(body.scope, 'openid email profile');
@@ -35,7 +35,7 @@ test('handleAuthSpikeOAuthMockRequest 返回 GitHub profile mock 响应', async 
   );
 
   assert(response);
-  const body = await response.json();
+  const body = (await response.json()) as Record<string, string>;
 
   assert.equal(body.login, 'oauth-spike-github-user');
   assert.equal(body.email, 'oauth-spike-github@example.com');

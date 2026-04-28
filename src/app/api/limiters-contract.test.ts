@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AITaskStatus } from '@/extensions/ai';
+import type { EmailSendResult } from '@/extensions/email';
 import {
   CooldownLimiter,
   DualConcurrencyLimiter,
@@ -36,9 +37,14 @@ function createApiContextStub(input: { body: unknown; userId?: string }) {
     parseJson: async () => input.body,
     parseQuery: () => ({}),
     parseParams: async () => ({}),
-    requireUser: async () => ({ id: input.userId ?? 'u1' }),
+    requireUser: async () => ({
+      id: input.userId ?? 'u1',
+      name: 'Test User',
+      email: 'test@example.com',
+      image: null,
+    }),
     requirePermission: async () => undefined,
-  };
+  } as any;
 }
 
 function createSuccessUploadResult() {
@@ -152,14 +158,17 @@ test('ai/query 路由限流契约: 间隔不足时阻止 provider query', async 
         kieApiKey: '',
       };
     },
-    getAIService: async () => ({
-      getProvider: () => ({
-        query: async () => {
-          queryCalls += 1;
-          return { taskStatus: AITaskStatus.PROCESSING };
-        },
-      }),
-    }),
+    getAIService: async () =>
+      ({
+        getProvider: () => ({
+          query: async () => {
+            queryCalls += 1;
+            return { taskStatus: AITaskStatus.PROCESSING };
+          },
+        }),
+        getDefaultProvider: () => undefined,
+        getMediaTypes: () => [],
+      }) as any,
     rateLimiter: new CooldownLimiter({
       bucket: LimiterBucket.API_AI_QUERY,
       minIntervalMs: 4_000,
@@ -220,11 +229,14 @@ test('ai/query 路由按一致性模式切换 cached/fresh settings reader', asy
       falApiKey: '',
       kieApiKey: '',
     }),
-    getAIService: async () => ({
-      getProvider: () => ({
-        query: async () => ({ taskStatus: AITaskStatus.PROCESSING }),
-      }),
-    }),
+    getAIService: async () =>
+      ({
+        getProvider: () => ({
+          query: async () => ({ taskStatus: AITaskStatus.PROCESSING }),
+        }),
+        getDefaultProvider: () => undefined,
+        getMediaTypes: () => [],
+      }) as any,
     rateLimiter: new CooldownLimiter({
       bucket: LimiterBucket.API_AI_QUERY,
       minIntervalMs: 0,
@@ -290,7 +302,7 @@ test('verify-code 路由限流契约: 达到失败上限后返回 429', async ()
 });
 
 test('email/test 路由限流契约: 并发优先，其次窗口次数', async () => {
-  let releaseFirst: ((value: unknown) => void) | null = null;
+  let releaseFirst: ((value: EmailSendResult) => void) | null = null;
   let holdFirst = true;
 
   const handler = createEmailTestPostHandler({
@@ -310,7 +322,7 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
           success: true,
           provider: 'resend',
           messageId: 'ok',
-        };
+        } satisfies EmailSendResult;
       },
     }),
     buildVerificationCodeEmailPayload: async () => ({}),
@@ -338,7 +350,9 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
   const concurrencyDenied = await handler(req);
   assert.equal(concurrencyDenied.status, 429);
 
-  releaseFirst?.({
+  const release = releaseFirst as ((value: EmailSendResult) => void) | null;
+  assert.ok(release);
+  release({
     success: true,
     provider: 'resend',
     messageId: 'first',
@@ -359,7 +373,9 @@ test('email/test 路由限流契约: 并发优先，其次窗口次数', async (
 });
 
 test('storage/upload-image 路由并发契约: 全局与单用户上限同时生效', async () => {
-  const pendingResolvers: Array<(value: unknown) => void> = [];
+  const pendingResolvers: Array<
+    (value: ReturnType<typeof createSuccessUploadResult>) => void
+  > = [];
   let activeUploads = 0;
   const concurrencyLimiter = new DualConcurrencyLimiter({
     bucket: LimiterBucket.API_STORAGE_UPLOAD,

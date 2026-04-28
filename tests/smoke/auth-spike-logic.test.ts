@@ -242,6 +242,7 @@ test('deriveParityResult 忽略固定 whitelist 头差异', () => {
 
   const parity = deriveParityResult(report);
 
+  assert(parity);
   assert.equal(parity.status, 'passed');
 });
 

@@ -25,6 +25,10 @@ const defaultDevVarsPath = path.resolve(rootDir, '.dev.vars');
 const defaultBaseUrl = 'http://localhost:8787';
 const defaultLocalSmokeSecret = 'local-cloudflare-smoke-secret-0123456789';
 
+/**
+ * @typedef {Record<string, string | undefined>} EnvLike
+ */
+
 function resolveDefaultTemplatePath() {
   return path.resolve(
     rootDir,
@@ -69,6 +73,10 @@ export function parseEnvFileContent(content) {
   return entries;
 }
 
+/**
+ * @param {EnvLike} [processEnv]
+ * @param {{devVarsPath?: string, readFileSyncImpl?: (path: string, encoding: BufferEncoding) => string}} [options]
+ */
 export function injectCloudflareLocalSmokeDevVars(
   processEnv = process.env,
   {
@@ -105,6 +113,9 @@ export function injectCloudflareLocalSmokeDevVars(
 
 injectCloudflareLocalSmokeDevVars();
 
+/**
+ * @param {EnvLike} [processEnv]
+ */
 export function resolveLocalSmokeDatabaseUrl(processEnv = process.env) {
   return (
     processEnv.DATABASE_URL?.trim() ||

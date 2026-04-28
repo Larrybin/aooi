@@ -99,10 +99,13 @@ test('runCloudflareLocalSmoke 先等待 preview ready，再执行 app smoke，�
             steps.push('get-router-base-url');
             return 'http://127.0.0.1:9787';
           },
+          getRecentLogs() {
+            return '';
+          },
           async stop() {
             steps.push('stop-topology');
           },
-        };
+        } as never;
       },
       waitForPreviewReadyImpl: async ({ baseUrl }) => {
         steps.push(`wait-preview:${baseUrl}`);

@@ -353,6 +353,23 @@ function replaceVars(content, vars) {
   return nextContent;
 }
 
+/**
+ * @param {{
+ *   template: string,
+ *   contract: any,
+ *   workerSlot: string,
+ *   databaseUrl?: string,
+ *   appUrl?: string,
+ *   storagePublicBaseUrl?: string,
+ *   deployTarget?: string,
+ *   devHost?: string,
+ *   devUpstreamProtocol?: string,
+ *   templatePath: string,
+ *   outputPath: string,
+ *   versionVars?: Record<string, string>,
+ *   validateTemplateContract?: boolean,
+ * }} options
+ */
 export function buildCloudflareWranglerConfig({
   template,
   contract,

@@ -16,6 +16,10 @@ const rootDir = path.resolve(
   '../..'
 );
 
+/**
+ * @typedef {Record<string, string | undefined>} EnvLike
+ */
+
 export function normalizePreviewBaseUrl(input) {
   const raw = input?.trim() || 'http://localhost:8787';
   const url = new URL(raw);
@@ -203,6 +207,13 @@ export function createReadyProcessManager({
   };
 }
 
+/**
+ * @param {{
+ *   wranglerConfigPaths: string[];
+ *   port?: number;
+ *   persistTo?: string;
+ * }} options
+ */
 export function buildWranglerMultiConfigDevArgs({
   wranglerConfigPaths,
   port,
@@ -231,6 +242,17 @@ export function buildWranglerMultiConfigDevArgs({
   return args;
 }
 
+/**
+ * @param {{
+ *   label?: string;
+ *   cwd?: string;
+ *   env?: EnvLike;
+ *   logger?: Console;
+ *   wranglerConfigPaths: string[];
+ *   port?: number;
+ *   persistTo?: string;
+ * }} options
+ */
 export function createWranglerMultiConfigDevManager({
   label = 'Cloudflare local topology',
   cwd = rootDir,
@@ -255,6 +277,10 @@ export function createWranglerMultiConfigDevManager({
   });
 }
 
+/**
+ * @param {EnvLike} [processEnv]
+ * @param {string} [fallbackAuthSecret]
+ */
 export function resolveAuthSecret(
   processEnv = process.env,
   fallbackAuthSecret = 'ci-auth-secret-not-for-production'

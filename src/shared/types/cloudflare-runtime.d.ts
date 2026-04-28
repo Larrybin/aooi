@@ -25,6 +25,17 @@ interface DurableObjectNamespace {
   get(id: DurableObjectId): DurableObjectStub;
 }
 
+interface DurableObjectStorage {
+  get<T = unknown>(key: string): Promise<T | undefined>;
+  put<T = unknown>(key: string, value: T): Promise<void>;
+  delete(key: string | string[]): Promise<number>;
+  list<T = unknown>(): Promise<Map<string, T>>;
+}
+
+interface DurableObjectState {
+  storage: DurableObjectStorage;
+}
+
 type R2PutValue =
   | ArrayBuffer
   | ArrayBufferView
