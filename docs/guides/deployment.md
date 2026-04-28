@@ -22,11 +22,13 @@ The detailed governance rules live in
 Use the local site with the Next.js dev server:
 
 ```bash
-SITE=dev-local pnpm dev
+pnpm dev:local
 ```
 
 This path does not require Wrangler login, R2 buckets, Hyperdrive, or local
 multi-worker emulation.
+
+Use `SITE=<site-key> pnpm dev` only when you need to run a different local site.
 
 ## Required Production Resources
 

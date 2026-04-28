@@ -31,13 +31,13 @@ pnpm install
 3. Start the dev server
 
 ```bash
-SITE=dev-local pnpm dev
+pnpm dev:local
 ```
 
 Default port is `3000`: `http://localhost:3000`. Custom port example:
 
 ```bash
-SITE=dev-local pnpm dev --port 8080
+pnpm dev:local --port 8080
 ```
 
 ### Environment Variables
@@ -52,7 +52,7 @@ cp ".env.example" ".env.development"
 
 Required:
 
-- `SITE=dev-local`: selects the local development site at `sites/dev-local/site.config.json`. Production commands must set the intended site explicitly, for example `SITE=mamamiya`.
+- `pnpm dev:local`: selects the local development site at `sites/dev-local/site.config.json`. To run another site locally, use `SITE=<site-key> pnpm dev`. Production commands must set the intended site explicitly, for example `SITE=mamamiya`.
 - `site.brand.appUrl`: canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated from it for Cloudflare infra and is not an identity source.
 
 If you need auth/admin/payment:

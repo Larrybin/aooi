@@ -31,13 +31,13 @@ pnpm install
 3. 启动开发服务器
 
 ```bash
-SITE=dev-local pnpm dev
+pnpm dev:local
 ```
 
 默认端口为 `3000`：`http://localhost:3000`。自定义端口示例：
 
 ```bash
-SITE=dev-local pnpm dev --port 8080
+pnpm dev:local --port 8080
 ```
 
 ### 配置环境变量
@@ -52,7 +52,7 @@ cp ".env.example" ".env.development"
 
 必填项：
 
-- `SITE=dev-local`：选择 `sites/dev-local/site.config.json` 作为本地开发站点。生产命令必须显式设置目标站点，例如 `SITE=mamamiya`。
+- `pnpm dev:local`：选择 `sites/dev-local/site.config.json` 作为本地开发站点。如需本地运行其他站点，使用 `SITE=<site-key> pnpm dev`。生产命令必须显式设置目标站点，例如 `SITE=mamamiya`。
 - `site.brand.appUrl`：canonical app/auth origin。`NEXT_PUBLIC_APP_URL` 由它生成给 Cloudflare infra 使用，不是 identity 来源。
 
 如果你需要登录/管理后台/支付：

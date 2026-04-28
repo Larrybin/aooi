@@ -99,28 +99,29 @@ Apply migrations and start the local site:
 
 ```bash
 pnpm db:migrate
-SITE=dev-local pnpm dev
+pnpm dev:local
 ```
 
 Visit http://localhost:3000.
 
-`SITE=dev-local` selects `sites/dev-local/site.config.json`, the local
-development site. Production-like, Cloudflare, smoke, build, and deploy commands
-must pass the intended `SITE=<site-key>` explicitly.
+`pnpm dev:local` selects `sites/dev-local/site.config.json`, the local
+development site. To run another site locally, use `SITE=<site-key> pnpm dev`.
+Production-like, Cloudflare, smoke, build, and deploy commands must pass the
+intended `SITE=<site-key>` explicitly.
 
 ## Common Commands
 
-| Command                   | Purpose                                  |
-| ------------------------- | ---------------------------------------- |
-| `SITE=dev-local pnpm dev` | Start local Next.js development server   |
-| `pnpm test`               | Run unit and contract tests              |
-| `pnpm lint`               | Run ESLint and env/process guards        |
-| `pnpm arch:check`         | Run dependency graph and boundary checks |
-| `pnpm format:check`       | Check Prettier formatting                |
-| `pnpm db:generate`        | Generate Drizzle migrations              |
-| `pnpm db:migrate`         | Apply database migrations                |
-| `pnpm db:studio`          | Open Drizzle Studio                      |
-| `SITE=<site> pnpm build`  | Build the selected site                  |
+| Command                  | Purpose                                  |
+| ------------------------ | ---------------------------------------- |
+| `pnpm dev:local`         | Start local Next.js development server   |
+| `pnpm test`              | Run unit and contract tests              |
+| `pnpm lint`              | Run ESLint and env/process guards        |
+| `pnpm arch:check`        | Run dependency graph and boundary checks |
+| `pnpm format:check`      | Check Prettier formatting                |
+| `pnpm db:generate`       | Generate Drizzle migrations              |
+| `pnpm db:migrate`        | Apply database migrations                |
+| `pnpm db:studio`         | Open Drizzle Studio                      |
+| `SITE=<site> pnpm build` | Build the selected site                  |
 
 Cloudflare commands live in the
 [Deployment Guide](docs/guides/deployment.md).
@@ -153,8 +154,8 @@ secret allowlist source. Runtime files should read env through the approved
 helpers instead of touching `process.env` directly.
 
 `.env.example` is a local template with empty secret placeholders. The production
-deploy target is Cloudflare; local `SITE=dev-local pnpm dev` still runs through
-Next.js and does not require Wrangler.
+deploy target is Cloudflare; local `pnpm dev:local` still runs through Next.js
+and does not require Wrangler.
 
 ## Documentation
 
