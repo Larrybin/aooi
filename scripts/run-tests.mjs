@@ -11,7 +11,10 @@ const coverageEnabled = args.includes('--coverage');
 const TEST_FILE_PATTERN = /\.(test|spec)\.(t|j)sx?$/;
 const SERVER_TEST_FILE_PATTERN = /\.server\.(test|spec)\.(t|j)sx?$/;
 const IGNORED_DIRS = new Set(['.git', '.next', 'dist', 'node_modules', 'out']);
-const EXCLUDED_TEST_FILES = new Set(['src/architecture-boundaries.test.ts']);
+const EXCLUDED_TEST_FILES = new Set([
+  'src/architecture-boundaries.test.ts',
+  'tests/smoke/auth-dual-runtime.test.ts',
+]);
 
 async function isDirectory(path) {
   try {
@@ -46,7 +49,7 @@ async function main() {
   process.chdir(ROOT_DIR);
 
   const candidateRoots = [];
-  for (const name of ['src', 'test', 'tests']) {
+  for (const name of ['src', 'test', 'tests', 'scripts']) {
     const path = resolve(ROOT_DIR, name);
     if (await isDirectory(path)) candidateRoots.push(path);
   }

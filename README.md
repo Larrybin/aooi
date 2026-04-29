@@ -111,18 +111,19 @@ intended `SITE=<site-key>` explicitly.
 
 ## Common Commands
 
-| Command                  | Purpose                                  |
-| ------------------------ | ---------------------------------------- |
-| `pnpm dev:local`         | Start local Next.js development server   |
-| `pnpm test`              | Run unit and contract tests              |
-| `pnpm lint`              | Run ESLint and env/process guards        |
-| `pnpm arch:check`        | Run dependency graph and boundary checks |
-| `pnpm format:check`      | Check Prettier formatting                |
-| `pnpm db:generate`       | Generate Drizzle migrations              |
-| `pnpm db:migrate`        | Apply database migrations                |
-| `pnpm db:studio`         | Open Drizzle Studio                      |
-| `SITE=<site> pnpm build` | Build the selected site                  |
-| `SITE=<site> pnpm analyze` | Build with bundle analyzer reports     |
+| Command                    | Purpose                                     |
+| -------------------------- | ------------------------------------------- |
+| `pnpm dev:local`           | Start local Next.js development server      |
+| `pnpm test`                | Run fast unit and contract tests            |
+| `pnpm test:extended`       | Run external or environment-dependent tests |
+| `pnpm lint`                | Run ESLint and env/process guards           |
+| `pnpm arch:check`          | Run dependency graph and boundary checks    |
+| `pnpm format:check`        | Check Prettier formatting                   |
+| `pnpm db:generate`         | Generate Drizzle migrations                 |
+| `pnpm db:migrate`          | Apply database migrations                   |
+| `pnpm db:studio`           | Open Drizzle Studio                         |
+| `SITE=<site> pnpm build`   | Build the selected site                     |
+| `SITE=<site> pnpm analyze` | Build with bundle analyzer reports          |
 
 Cloudflare commands live in the
 [Deployment Guide](docs/guides/deployment.md).

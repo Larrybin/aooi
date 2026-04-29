@@ -53,6 +53,7 @@ test('package scripts: public smoke command names stay stable', async () => {
     packageJson.scripts['test:auth-spike'],
     'node --import tsx scripts/smoke.mjs auth-spike'
   );
+  assert.equal(packageJson.scripts['test:extended'], 'pnpm test:auth-spike');
   assert.equal(
     packageJson.scripts['test:cf-app-smoke'],
     'node scripts/run-with-site.mjs node --import tsx scripts/smoke.mjs cf-app'

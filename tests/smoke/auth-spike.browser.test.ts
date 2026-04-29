@@ -6,6 +6,7 @@ import {
   isTerminalAuthErrorUrl,
   waitForTerminalAuthErrorPage,
 } from '../../src/testing/auth-spike.browser';
+import { terminalAuthErrorUrlCases } from './auth-error-url-cases';
 
 function createFakeResponse({
   status,
@@ -112,30 +113,9 @@ test('getSessionViaAuthApi 会对本地 preview 的空体 500 做重试', async 
 });
 
 test('isTerminalAuthErrorUrl 只接受最终错误页，不接受 auth 中间态', () => {
-  assert.equal(
-    isTerminalAuthErrorUrl(
-      'http://localhost:8787/api/auth/callback/google?error=access_denied'
-    ),
-    false
-  );
-  assert.equal(
-    isTerminalAuthErrorUrl(
-      'http://localhost:8787/api/auth/error?error=access_denied'
-    ),
-    false
-  );
-  assert.equal(
-    isTerminalAuthErrorUrl(
-      'http://localhost:8787/sign-in?callbackUrl=%2Fsettings%2Fprofile&error=access_denied'
-    ),
-    true
-  );
-  assert.equal(
-    isTerminalAuthErrorUrl(
-      'http://localhost:8787/?error=please_restart_the_process'
-    ),
-    true
-  );
+  for (const { url, expected } of terminalAuthErrorUrlCases) {
+    assert.equal(isTerminalAuthErrorUrl(url), expected, url);
+  }
 });
 
 test('waitForTerminalAuthErrorPage 不会在 callback 中间态提前通过', async () => {

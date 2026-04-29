@@ -22,6 +22,7 @@
     "analyze": "ANALYZE=true node scripts/run-with-site.mjs node scripts/next-build.mjs",
     "start": "node scripts/run-with-site.mjs pnpm exec next start",
     "test": "node scripts/run-with-site.mjs node scripts/run-tests.mjs",
+    "test:extended": "pnpm test:auth-spike",
     "test:auth-spike": "node --import tsx scripts/smoke.mjs auth-spike",
     "test:cf-app-smoke": "node scripts/run-with-site.mjs node --import tsx scripts/smoke.mjs cf-app",
     "test:cf-admin-settings-smoke": "pnpm cf:build && node scripts/run-with-site.mjs node --import tsx scripts/smoke.mjs cf-admin-settings",
