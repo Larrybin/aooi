@@ -135,7 +135,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 ### 品牌配置（推荐）
 
-登录管理后台后，在 `Admin -> Settings -> General -> Brand` 配置：
+构建期的站点身份默认值保存在 `sites/mamamiya/site.config.json`。登录管理后台后，可通过 `Admin -> Settings -> General -> Brand` 在运行时查看或更新当前站点的品牌信息：
 
 - `App Name`：用于站点标题、文档/SEO、邮件标题等
 - `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
@@ -144,28 +144,19 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 注意：`sites/<site-key>/site.config.json` 是站点 identity 来源。生产环境如果设置 `NEXT_PUBLIC_APP_URL`，需要与 `App URL (Origin)` 保持一致。
 
-## 自定义配置
+## 下一步
 
-按「最小可上线」优先级，通常需要改这些：
+- 定制站点身份信息：[定制 / 应用信息](./customize/app-info)
+- 替换品牌素材：[定制 / 品牌素材](./customize/branding-assets)
+- 编辑法律与落地页内容：[定制 / 内容页面](./customize/content-pages)
+- 准备部署：[部署 / 概览](./deploy)
+- 了解核心系统：[核心能力 / 概览](./core)
 
-- 环境变量：`.env.development` / `.env.production`（或平台的环境变量面板）
-- 站点图标：`public/logo.png`、`public/favicon.ico`
-- 应用信息说明：`sites/<site-key>/content/docs/customize-app-info*.mdx`
-- 法律页面：`sites/<site-key>/content/pages/privacy-policy*.mdx`、`sites/<site-key>/content/pages/terms-of-service*.mdx`
-- 文案与落地页：`src/config/locale/messages/{locale}/common.json`、`src/config/locale/messages/{locale}/landing.json`
-- 主题样式：`src/config/style/theme.css`
-- 多语言：`src/config/locale/index.ts`
-- SEO：`src/app/sitemap.ts`、`src/app/robots.ts`
+## 部署路径
 
-## 发布上线
-
-上线前务必完成：
-
-- 仅支持 Cloudflare Workers：配置受版本控制的 Wrangler 模板、`HYPERDRIVE`、`NEXT_PUBLIC_APP_URL`、`AUTH_SECRET`/`BETTER_AUTH_SECRET`、共享的 `NEXT_INC_CACHE_R2_BUCKET`、业务上传 `APP_STORAGE_R2_BUCKET`、router `IMAGES`，以及 runtime binding `STORAGE_PUBLIC_BASE_URL`；本地 runtime smoke 需要生成临时 Wrangler 配置并注入 `localConnectionString`，deploy 仍要求真实的 `hyperdrive.id`
-
-部署流程：
-
-- Cloudflare Workers（使用受版本控制的 Wrangler 模板；可执行 `pnpm cf:check`、`pnpm cf:build`、`pnpm test:cf-local-smoke`、`pnpm test:cf-admin-settings-smoke`、`pnpm cf:deploy`；数据库需配置 Hyperdrive。受控模板中的 `localConnectionString` 固定为空，local/CI runtime smoke 会通过生成的临时配置注入真实 DSN。`pnpm test:cf-local-smoke` 现在会通过单个本地 `wrangler dev` 多配置 session 启动完整的 router + split-worker topology。`pnpm test:cf-admin-settings-smoke` 现在是更小的本地验收链：直接预写数据库配置、通过真实 Cloudflare runtime 上传资源，并在同一个本地 runtime session 内验证公开配置投影和缺失 `STORAGE_PUBLIC_BASE_URL` 的显式失败路径。支付/上传已分别由 `pnpm test:creem-webhook-spike` 与 `pnpm test:r2-upload-spike` 正式 gate）
+- 从 [部署 / 本地开发](./deploy/local-development) 开始
+- 在 [部署 / 环境变量](./deploy/environment-variables) 中检查必填项
+- 在 [部署 / Cloudflare 部署](./deploy/cloudflare-deployment) 中完成正式发布
 
 ## 功能配置
 

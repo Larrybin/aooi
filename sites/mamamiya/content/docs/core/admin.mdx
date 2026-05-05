@@ -1,0 +1,15 @@
+---
+title: Admin
+description: Access the admin area, seed RBAC, and grant super admin access.
+---
+
+## Required Setup
+
+Admin entry route: `/admin`.
+First visit redirects to sign-in.
+Create a user before running `pnpm rbac:assign`.
+
+```bash
+pnpm rbac:init
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```

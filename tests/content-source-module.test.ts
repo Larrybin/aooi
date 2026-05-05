@@ -38,6 +38,16 @@ async function readGeneratedContentSource() {
   return await readFile(generatedContentSourcePath, 'utf8');
 }
 
+async function readGeneratedArtifactIndex(siteKey: string) {
+  const pointer = parseGeneratedPointer(await readGeneratedContentSource());
+  assert.equal(pointer.siteKey, siteKey);
+
+  return await readFile(
+    path.resolve(rootDir, '.source', siteKey, pointer.versionId, 'index.ts'),
+    'utf8'
+  );
+}
+
 function parseGeneratedPointer(source: string) {
   const match = source.match(/\.source\/([^/]+)\/([^/]+)\/index/);
   assert.ok(match, `expected generated source pointer, got: ${source}`);
@@ -76,6 +86,35 @@ test('@/content-source: SITE=mamamiya points to versioned .source/mamamiya artif
 
   assert.equal(pointer.siteKey, 'mamamiya');
   assert.match(pointer.versionId, /^build-\d+-\d+$/);
+});
+
+test('@/content-source: SITE=mamamiya includes grouped docs entrypoints', async () => {
+  await runGenerateContentSource('mamamiya');
+
+  const artifactIndex = await readGeneratedArtifactIndex('mamamiya');
+
+  assert.match(artifactIndex, /docs\/quick-start\.mdx\?collection=docs/);
+  assert.match(artifactIndex, /docs\/quick-start\.zh\.mdx\?collection=docs/);
+  assert.match(artifactIndex, /docs\/customize\/index\.mdx\?collection=docs/);
+  assert.match(
+    artifactIndex,
+    /docs\/customize\/app-info\.zh\.mdx\?collection=docs/
+  );
+  assert.match(
+    artifactIndex,
+    /docs\/deploy\/local-development\.mdx\?collection=docs/
+  );
+  assert.match(
+    artifactIndex,
+    /docs\/deploy\/cloudflare-deployment\.zh\.mdx\?collection=docs/
+  );
+  assert.match(artifactIndex, /docs\/core\/auth\.mdx\?collection=docs/);
+  assert.match(artifactIndex, /docs\/core\/settings\.zh\.mdx\?collection=docs/);
+  assert.match(artifactIndex, /docs\/extensions\/logging\.mdx\?collection=docs/);
+  assert.match(
+    artifactIndex,
+    /docs\/extensions\/code-review-checklist\.zh\.mdx\?collection=docs/
+  );
 });
 
 test('@/content-source: generation failure keeps previous pointer', async () => {

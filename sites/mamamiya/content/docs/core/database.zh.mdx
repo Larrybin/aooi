@@ -1,0 +1,18 @@
+---
+title: 数据库
+description: 配置 PostgreSQL、运行迁移，并验证 Mamamiya 的表结构健康状况。
+---
+
+## 命令
+
+```bash
+pnpm db:migrate
+pnpm db:check
+pnpm db:studio
+```
+
+## 要求
+
+- 仅支持 PostgreSQL
+- 有效的 `DATABASE_URL`
+- Cloudflare 生产环境使用 Hyperdrive

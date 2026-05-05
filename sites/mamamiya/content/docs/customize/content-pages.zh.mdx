@@ -1,0 +1,17 @@
+---
+title: 内容页面
+description: 更新 Mamamiya 的法律页面、落地页文案，以及按语言区分的公开内容。
+---
+
+## 主要内容路径
+
+- `sites/mamamiya/content/pages/privacy-policy.mdx`
+- `sites/mamamiya/content/pages/privacy-policy.zh.mdx`
+- `sites/mamamiya/content/pages/terms-of-service.mdx`
+- `sites/mamamiya/content/pages/terms-of-service.zh.mdx`
+- `src/config/locale/messages/{locale}/common.json`
+- `src/config/locale/messages/{locale}/landing.json`
+
+## 说明
+
+法律页面的 MDX 文件是站点级别的，路径固定在 `sites/mamamiya/content/pages`。多语言消息文件负责 landing 和 common 文案，品牌占位符会在渲染时按需替换。

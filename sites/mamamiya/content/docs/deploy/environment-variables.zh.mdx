@@ -1,0 +1,17 @@
+---
+title: 环境变量
+description: 配置 Mamamiya 在本地和生产环境运行所需的最小环境变量集合。
+---
+
+## 必需项
+
+- `DATABASE_URL`
+- `AUTH_SECRET` 或 `BETTER_AUTH_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_THEME`
+
+## 部署说明
+
+- `NEXT_PUBLIC_APP_URL` 必须与 Mamamiya 站点源站一致
+- `DATABASE_PROVIDER=postgresql`
+- `DB_SINGLETON_ENABLED=true`

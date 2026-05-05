@@ -1,0 +1,17 @@
+---
+title: Environment Variables
+description: Configure the minimum required environment variables for Mamamiya local and production runs.
+---
+
+## Required
+
+- `DATABASE_URL`
+- `AUTH_SECRET` or `BETTER_AUTH_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_THEME`
+
+## Deployment Notes
+
+- `NEXT_PUBLIC_APP_URL` must match the Mamamiya site origin
+- `DATABASE_PROVIDER=postgresql`
+- `DB_SINGLETON_ENABLED=true`

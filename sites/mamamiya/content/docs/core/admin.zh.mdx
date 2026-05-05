@@ -1,0 +1,15 @@
+---
+title: 管理后台
+description: 访问管理后台、初始化 RBAC，并授予超级管理员权限。
+---
+
+## 必要设置
+
+管理后台入口是 `/admin`。
+首次访问会跳转到登录页。
+先创建用户，再运行 `pnpm rbac:assign`。
+
+```bash
+pnpm rbac:init
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```
