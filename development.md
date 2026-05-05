@@ -45,18 +45,13 @@ Setting up PostgreSQL database with Drizzle ORM
 # .env configuration
 DATABASE_URL = "postgresql://user:password@127.0.0.1:5432/my_project"
 DATABASE_PROVIDER = "postgresql"
-
-# Traditional server (Docker/VPS): enable pooling
-DB_SINGLETON_ENABLED = "true"
-
-# Serverless Node runtime: disable pooling (max=1 cached client)
-# DB_SINGLETON_ENABLED = "false"
 ```
 
 Notes:
 
 - `DATABASE_PROVIDER` currently supports `postgresql` only.
 - Cloudflare Workers runtime uses Hyperdrive (`HYPERDRIVE.connectionString`) and ignores `DATABASE_URL`. Ensure `nodejs_compat` is enabled and configure it in the tracked Wrangler templates, but keep `localConnectionString = ""` there and inject local DSNs only through generated temporary configs.
+- The governed runtime posture is Cloudflare-only. Do not treat Docker, GHCR, or VPS deployment paths as supported release targets for this repo.
 - Production `src/instrumentation.ts` now validates auth secret presence only. Database readiness and schema validation are enforced at query time inside `src/core/db/index.ts`; there is no longer a production DB startup probe in instrumentation.
 - Cloudflare preview is removed from the supported contract. The repo now targets a router Worker plus the canonical `public-web/auth/payment/member/chat/admin` server Workers with version affinity.
 - `pnpm cf:check` validates the router + server Wrangler configs against `src/shared/config/cloudflare-worker-splits.ts`.
