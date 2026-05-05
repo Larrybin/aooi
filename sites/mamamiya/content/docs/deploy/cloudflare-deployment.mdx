@@ -1,6 +1,22 @@
 ---
 title: Cloudflare Deployment
-description: Deploy the Mamamiya site to Cloudflare.
+description: Deploy Mamamiya with the repository's tracked Cloudflare Workers workflow.
 ---
 
-This page covers Mamamiya Cloudflare deployment settings and workflow.
+## Required Commands
+
+```bash
+SITE=mamamiya pnpm cf:check
+SITE=mamamiya pnpm cf:build
+SITE=mamamiya pnpm test:cf-local-smoke
+SITE=mamamiya pnpm cf:deploy
+```
+
+## Required Services
+
+- Hyperdrive
+- tracked Wrangler templates
+- `NEXT_INC_CACHE_R2_BUCKET`
+- `APP_STORAGE_R2_BUCKET`
+- `IMAGES`
+- `STORAGE_PUBLIC_BASE_URL`

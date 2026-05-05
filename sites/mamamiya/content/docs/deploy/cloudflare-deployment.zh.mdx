@@ -1,6 +1,22 @@
 ---
 title: Cloudflare 部署
-description: 将 Mamamiya 站点部署到 Cloudflare。
+description: 使用仓库中已跟踪的 Cloudflare Workers 流程部署 Mamamiya。
 ---
 
-此页介绍 Mamamiya 的 Cloudflare 部署设置和流程。
+## 必需命令
+
+```bash
+SITE=mamamiya pnpm cf:check
+SITE=mamamiya pnpm cf:build
+SITE=mamamiya pnpm test:cf-local-smoke
+SITE=mamamiya pnpm cf:deploy
+```
+
+## 必需服务
+
+- Hyperdrive
+- 已跟踪的 Wrangler 模板
+- `NEXT_INC_CACHE_R2_BUCKET`
+- `APP_STORAGE_R2_BUCKET`
+- `IMAGES`
+- `STORAGE_PUBLIC_BASE_URL`

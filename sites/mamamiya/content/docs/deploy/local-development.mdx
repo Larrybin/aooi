@@ -1,6 +1,16 @@
 ---
 title: Local Development
-description: Run the Mamamiya site locally during development.
+description: Run the Mamamiya site locally with the correct site key and local environment file.
 ---
 
-This page covers Mamamiya local development setup and runtime commands.
+## Start Mamamiya Locally
+
+```bash
+SITE=mamamiya pnpm dev
+```
+
+## Local Defaults
+
+- local default test site is `dev-local`
+- explicit `SITE=mamamiya` is required when validating Mamamiya content
+- use `.env.development` for local runtime values
