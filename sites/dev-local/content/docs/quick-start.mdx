@@ -1,13 +1,13 @@
 ---
 title: Quick Start
-description: Run YourAppName locally with minimal setup (dev, database, admin RBAC, deployment).
+description: Run Roller Rabbit locally with minimal setup (dev, database, admin RBAC, deployment).
 ---
 
 Before you start, make sure you have:
 
 - Node.js 20+
 - pnpm
-- PostgreSQL (required for auth/admin/payment features)
+- PostgreSQL, if you need auth, admin, RBAC, settings, or payment features
 
 ## Local Development
 
@@ -50,22 +50,23 @@ cp ".env.example" ".env.development"
 
 2. Edit `.env.development`
 
-Required:
+How local configuration works:
 
-- `pnpm dev:local`: selects the local development site at `sites/dev-local/site.config.json`. To run another site locally, use `SITE=<site-key> pnpm dev`. Production commands must set the intended site explicitly, for example `SITE=mamamiya`.
-- `site.brand.appUrl`: canonical app/auth origin. `NEXT_PUBLIC_APP_URL` is generated from it for Cloudflare infra and is not an identity source.
+- `pnpm dev:local` selects the local development site at `sites/dev-local/site.config.json`.
+- The local site origin is `http://localhost:3000`.
+- To run another site locally, use `SITE=<site-key> pnpm dev`.
+- Production-like, Cloudflare, smoke, build, and deploy commands must set the intended site explicitly, for example `SITE=mamamiya`.
 
-If you need auth/admin/payment:
+Required when you need database-backed features such as auth, admin, RBAC, settings, or payments:
 
 - `DATABASE_URL`: PostgreSQL connection string
-- `AUTH_SECRET`: auth secret (required in production; recommended locally too)
+- `DATABASE_PROVIDER=postgresql`
+- `DB_SINGLETON_ENABLED=true`
+- `BETTER_AUTH_SECRET` and `AUTH_SECRET`: shared auth secrets. `pnpm dev:local` injects local fallback secrets when both are missing, but setting them keeps local scripts and the app explicit.
 
 Example (replace values as needed):
 
 ```bash
-# theme
-NEXT_PUBLIC_THEME="default"
-
 # database
 DATABASE_URL="postgresql://user:password@127.0.0.1:5432/my_app"
 DATABASE_PROVIDER="postgresql"
@@ -73,6 +74,7 @@ DB_SINGLETON_ENABLED="true"
 
 # auth secret
 # openssl rand -base64 32
+BETTER_AUTH_SECRET="your-secret"
 AUTH_SECRET="your-secret"
 ```
 
@@ -85,12 +87,13 @@ openssl rand -base64 32
 Notes:
 
 - `DATABASE_PROVIDER` only supports `postgresql` for now.
-- `DB_SINGLETON_ENABLED=true` is the canonical production setting for this Cloudflare-only repo.
-- In production, prefer `BETTER_AUTH_SECRET` (overrides `AUTH_SECRET`). You can override auth base URL via `BETTER_AUTH_URL/AUTH_URL` (defaults to `NEXT_PUBLIC_APP_URL`).
+- `DB_SINGLETON_ENABLED=true` applies to local and other non-Workers Node runtimes. Cloudflare Workers uses the `HYPERDRIVE` binding instead.
+- `BETTER_AUTH_SECRET` takes precedence over `AUTH_SECRET`; keep both set to the same value unless you have a specific reason not to.
+- Site identity comes from `sites/<site-key>/site.config.json`. Keep `NEXT_PUBLIC_APP_URL`, when set in production, aligned with `site.brand.appUrl`.
 
 ### Database
 
-If you need auth/admin features, you must configure the database.
+If you need auth, admin, RBAC, settings, or payment features, configure the database first.
 
 1. Create a PostgreSQL database and put the connection string into `DATABASE_URL`.
 
@@ -139,7 +142,7 @@ After signing in, configure `Admin -> Settings -> General -> Brand`:
 - `Support Email`
 - `App Logo` / `Favicon` / `Preview Image` (upload directly in admin; requires `Storage` to be configured first)
 
-Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it consistent with `App URL (Origin)`.
+Note: `sites/<site-key>/site.config.json` is the source for site identity. Keep production `NEXT_PUBLIC_APP_URL`, when set, consistent with `App URL (Origin)`.
 
 ## Customization
 

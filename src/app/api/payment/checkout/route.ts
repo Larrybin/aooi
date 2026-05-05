@@ -16,7 +16,7 @@ export const POST = withApi(async (req: Request) => {
   requirePaymentCapability();
   const api = createApiContext(req);
   const { log } = api;
-  const { product_id, currency, locale, metadata } = await api.parseJson(
+  const { product_id, currency, locale } = await api.parseJson(
     PaymentCheckoutBodySchema
   );
 
@@ -49,7 +49,6 @@ export const POST = withApi(async (req: Request) => {
     bindings,
     currency,
     locale,
-    metadata,
     log,
   });
 

@@ -42,8 +42,65 @@ const ATTRIBUTE_ALIASES: Record<string, string> = {
   httpequiv: 'httpEquiv',
 };
 
+const ALLOWED_TAGS = new Set(['script', 'div', 'ins']);
+const ALLOWED_COMMON_ATTRIBUTES = new Set([
+  'className',
+  'data-cfasync',
+  'data-zone',
+  'id',
+  'style',
+]);
+const ALLOWED_SCRIPT_ATTRIBUTES = new Set([
+  ...ALLOWED_COMMON_ATTRIBUTES,
+  'async',
+  'charset',
+  'crossOrigin',
+  'defer',
+  'src',
+  'type',
+]);
+const ALLOWED_ADSTERRA_SCRIPT_HOSTS = new Set([
+  'adsterra.com',
+  'www.adsterra.com',
+  'highperformanceformat.com',
+  'www.highperformanceformat.com',
+  'highcpmrevenuenetwork.com',
+  'www.highcpmrevenuenetwork.com',
+]);
+
 function toCamelCase(value: string) {
   return value.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase());
+}
+
+function isSafeUrlValue(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'https:') return false;
+    return ALLOWED_ADSTERRA_SCRIPT_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedInlineScript(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+
+  if (
+    /(?:document|window|eval|Function|fetch|XMLHttpRequest|import\s*\(|localStorage|sessionStorage|cookie|location|onerror|onload)/i.test(
+      trimmed
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    /^atOptions\s*=\s*\{[\s\S]*\}\s*;?$/.test(trimmed) ||
+    /^var\s+atOptions\s*=\s*\{[\s\S]*\}\s*;?$/.test(trimmed)
+  );
 }
 
 function parseStyleAttribute(value: string) {
@@ -105,9 +162,32 @@ function getElementChildren(node: DefaultTreeAdapterTypes.Element) {
 
 function createElementProps(node: DefaultTreeAdapterTypes.Element) {
   const props: Record<string, unknown> = {};
+  const allowedAttributes =
+    node.tagName === 'script'
+      ? ALLOWED_SCRIPT_ATTRIBUTES
+      : ALLOWED_COMMON_ATTRIBUTES;
 
   for (const attr of node.attrs) {
     const name = normalizeAttributeName(attr.name);
+    const lowerName = attr.name.toLowerCase();
+    const value = attr.value.trim();
+
+    if (lowerName.startsWith('on')) {
+      return null;
+    }
+    if (!allowedAttributes.has(name)) {
+      return null;
+    }
+    if (
+      (name === 'src' || name === 'href') &&
+      (!value || !isSafeUrlValue(value))
+    ) {
+      return null;
+    }
+    if (/javascript:/i.test(value)) {
+      return null;
+    }
+
     if (name === 'style') {
       props.style = parseStyleAttribute(attr.value);
       continue;
@@ -135,8 +215,17 @@ function renderNode(
     return null;
   }
 
+  if (!ALLOWED_TAGS.has(node.tagName)) {
+    return null;
+  }
+
+  const elementProps = createElementProps(node);
+  if (!elementProps) {
+    return null;
+  }
+
   const props = {
-    ...createElementProps(node),
+    ...elementProps,
     key,
   } as Record<string, unknown>;
 
@@ -145,6 +234,10 @@ function renderNode(
       .filter(isTextNode)
       .map((child: DefaultTreeAdapterTypes.TextNode) => child.value)
       .join('');
+
+    if (!isAllowedInlineScript(scriptBody)) {
+      return null;
+    }
 
     if (scriptBody) {
       props.dangerouslySetInnerHTML = {

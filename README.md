@@ -84,18 +84,25 @@ Run locally:
 
 ```bash
 pnpm install
-cp .env.example .env
+cp .env.example .env.development
 ```
 
-Edit `.env` and set at least:
+`pnpm dev:local` runs the `dev-local` site through the normal Next.js dev
+server. It also injects local fallback auth secrets when neither
+`BETTER_AUTH_SECRET` nor `AUTH_SECRET` is set.
+
+If you need database-backed features such as auth, admin, RBAC, settings, or
+payments, edit `.env.development` and set at least:
 
 ```bash
 DATABASE_URL="postgresql://user:password@localhost:5432/aooi"
+DATABASE_PROVIDER="postgresql"
+DB_SINGLETON_ENABLED="true"
 BETTER_AUTH_SECRET="replace-with-a-local-secret"
 AUTH_SECRET="replace-with-the-same-local-secret"
 ```
 
-Apply migrations and start the local site:
+Apply migrations when `DATABASE_URL` is configured, then start the local site:
 
 ```bash
 pnpm db:migrate
@@ -104,10 +111,10 @@ pnpm dev:local
 
 Visit http://localhost:3000.
 
-`pnpm dev:local` selects `sites/dev-local/site.config.json`, the local
-development site. To run another site locally, use `SITE=<site-key> pnpm dev`.
-Production-like, Cloudflare, smoke, build, and deploy commands must pass the
-intended `SITE=<site-key>` explicitly.
+`pnpm dev:local` selects `sites/dev-local/site.config.json`, whose local origin
+is `http://localhost:3000`. To run another site locally, use
+`SITE=<site-key> pnpm dev`. Production-like, Cloudflare, smoke, build, and
+deploy commands must pass the intended `SITE=<site-key>` explicitly.
 
 ## Common Commands
 
@@ -156,10 +163,10 @@ SITE=<site> pnpm analyze
 - 三个关键页面共享 chunk（交集，总和）：`534,522 bytes`（≈ `522.0 KiB`）。
 - 主要路由 chunk（路由级 app chunks 总和）：
 
-| 页面 | 路由级 chunk 总量 |
-| --- | ---: |
-| 首页 `(/[locale])` | `33,812 bytes` (≈ `33.0 KiB`) |
-| 登录 `(/[locale]/sign-in)` | `41,819 bytes` (≈ `40.8 KiB`) |
+| 页面                                |             路由级 chunk 总量 |
+| ----------------------------------- | ----------------------------: |
+| 首页 `(/[locale])`                  | `33,812 bytes` (≈ `33.0 KiB`) |
+| 登录 `(/[locale]/sign-in)`          | `41,819 bytes` (≈ `40.8 KiB`) |
 | 账单 `(/[locale]/settings/billing)` | `35,939 bytes` (≈ `35.1 KiB`) |
 
 ## Site Configuration
@@ -189,9 +196,9 @@ To add another site, follow
 secret allowlist source. Runtime files should read env through the approved
 helpers instead of touching `process.env` directly.
 
-`.env.example` is a local template with empty secret placeholders. The production
-deploy target is Cloudflare; local `pnpm dev:local` still runs through Next.js
-and does not require Wrangler.
+`.env.example` is the template for local `.env.development` and production
+operator `.env.production` files. The production deploy target is Cloudflare;
+local `pnpm dev:local` still runs through Next.js and does not require Wrangler.
 
 ## Documentation
 

@@ -38,6 +38,7 @@ export type CloudflareBindings = {
   REPLICATE_API_TOKEN?: string;
   FAL_API_KEY?: string;
   KIE_API_KEY?: string;
+  AI_NOTIFY_WEBHOOK_SECRET?: string;
   STORAGE_PUBLIC_BASE_URL?: string;
 } & Record<string, unknown>;
 
