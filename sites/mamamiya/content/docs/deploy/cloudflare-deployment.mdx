@@ -6,11 +6,19 @@ description: Deploy Mamamiya with the repository's tracked Cloudflare Workers wo
 ## Required Commands
 
 ```bash
+pnpm install
+set -a
+. ./.env.production
+set +a
 SITE=mamamiya pnpm cf:check
 SITE=mamamiya pnpm cf:build
-SITE=mamamiya pnpm test:cf-local-smoke
+DATABASE_URL="$PRODUCTION_DATABASE_URL" SITE=mamamiya pnpm db:migrate
+SITE=mamamiya pnpm cf:deploy:state
 SITE=mamamiya pnpm cf:deploy
+SITE=mamamiya pnpm test:cf-app-smoke
 ```
+
+Later production releases should prefer `SITE=mamamiya pnpm release:cf`.
 
 ## Required Services
 

@@ -6,11 +6,19 @@ description: 使用仓库中已跟踪的 Cloudflare Workers 流程部署 Mamamiy
 ## 必需命令
 
 ```bash
+pnpm install
+set -a
+. ./.env.production
+set +a
 SITE=mamamiya pnpm cf:check
 SITE=mamamiya pnpm cf:build
-SITE=mamamiya pnpm test:cf-local-smoke
+DATABASE_URL="$PRODUCTION_DATABASE_URL" SITE=mamamiya pnpm db:migrate
+SITE=mamamiya pnpm cf:deploy:state
 SITE=mamamiya pnpm cf:deploy
+SITE=mamamiya pnpm test:cf-app-smoke
 ```
+
+后续生产发布应优先使用 `SITE=mamamiya pnpm release:cf`。
 
 ## 必需服务
 
