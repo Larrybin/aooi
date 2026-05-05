@@ -59,6 +59,12 @@ export type AiGenerateRouteDeps = {
   createAITask: typeof createAITask;
   updateAITaskById: typeof updateAITaskById;
   getUuid: typeof getUuid;
+  getAiNotifyWebhookSecret: () => string;
+  signAiNotifyCallback: (input: {
+    provider: string;
+    taskId: string;
+    secret: string;
+  }) => Promise<string>;
 };
 
 export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
@@ -87,12 +93,10 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
 
     const user = await api.requireUser();
     const appUrl = resolveAppUrlOrigin('');
-    const callbackUrl = `${appUrl}/api/ai/notify/${capability.provider}`;
     const params: AIGenerateParams = {
       mediaType,
       model,
       prompt,
-      callbackUrl,
       options,
     };
 
@@ -123,6 +127,22 @@ export function createAiGeneratePostAction(deps: AiGenerateRouteDeps) {
         throw new ForbiddenError('insufficient credits');
       }
       throw error;
+    }
+
+    const notifySecret = deps.getAiNotifyWebhookSecret();
+    if (notifySecret) {
+      const signature = await deps.signAiNotifyCallback({
+        provider: capability.provider,
+        taskId: task.id,
+        secret: notifySecret,
+      });
+      const callbackUrl = new URL(
+        `/api/ai/notify/${capability.provider}`,
+        appUrl
+      );
+      callbackUrl.searchParams.set('task_id', task.id);
+      callbackUrl.searchParams.set('sig', signature);
+      params.callbackUrl = callbackUrl.toString();
     }
 
     let result: Awaited<ReturnType<typeof aiProvider.generate>>;

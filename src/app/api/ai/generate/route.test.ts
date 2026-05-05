@@ -72,6 +72,21 @@ function createAiGenerateProvider(): AIProvider {
   };
 }
 
+function createAiNotifyDeps(secret = '') {
+  return {
+    getAiNotifyWebhookSecret: () => secret,
+    signAiNotifyCallback: async ({
+      provider,
+      taskId,
+      secret,
+    }: {
+      provider: string;
+      taskId: string;
+      secret: string;
+    }) => `signed-${provider}-${taskId}-${secret}`,
+  };
+}
+
 function createEmptyAiService() {
   return {
     getProvider: () => undefined,
@@ -134,6 +149,7 @@ test('ai/generate 路由使用 resolver 返回的 canonical scene 和 costCredit
         },
         patch
       ),
+    ...createAiNotifyDeps(),
   });
 
   const response = await handler(
@@ -183,6 +199,7 @@ test('ai/generate 路由非法 capability 统一返回 400', async () => {
     updateAITaskById: async () => {
       throw new Error('should not update task');
     },
+    ...createAiNotifyDeps(),
   } satisfies AiGenerateRouteDeps);
 
   const response = await handler(
@@ -197,4 +214,142 @@ test('ai/generate 路由非法 capability 统一返回 400', async () => {
   };
   assert.equal(body.code, -1);
   assert.equal(body.message, 'invalid ai capability');
+});
+
+test('ai/generate 未配置 notify secret 时不传 callbackUrl', async () => {
+  let callbackUrl: string | undefined;
+  const handler = createAiGeneratePostHandler({
+    requireAiEnabled: async () => undefined,
+    createApiContext: createApiContextStub({
+      mediaType: AIMediaType.IMAGE,
+      provider: 'replicate',
+      model: 'raw-model',
+      prompt: 'hello',
+    }),
+    readAiRuntimeSettings: async () => ({ aiEnabled: true }),
+    readAiProviderBindings: () => ({
+      openrouterApiKey: '',
+      replicateApiToken: 'token_1',
+      falApiKey: '',
+      kieApiKey: '',
+    }),
+    resolveConfiguredAICapability: () => ({
+      mediaType: AIMediaType.IMAGE,
+      scene: 'text-to-image',
+      provider: 'replicate',
+      model: 'google/nano-banana',
+      label: 'Nano Banana',
+      costCredits: 4,
+      isDefault: true,
+    }),
+    getAIService: () => ({
+      getProvider: () => ({
+        ...createAiGenerateProvider(),
+        generate: async ({ params }) => {
+          callbackUrl = params.callbackUrl;
+          return {
+            taskStatus: AITaskStatus.PROCESSING,
+            taskId: 'provider-task-1',
+          };
+        },
+      }),
+      getDefaultProvider: () => undefined,
+      getMediaTypes: () => [],
+    }),
+    getUuid: () => 'db-task-1',
+    createAITask: async (task) => createAiTaskRecord(task),
+    updateAITaskById: async (_id, patch) =>
+      createAiTaskRecord(
+        {
+          id: 'db-task-1',
+          userId: 'user_1',
+          mediaType: AIMediaType.IMAGE,
+          provider: 'replicate',
+          model: 'google/nano-banana',
+          prompt: 'hello',
+          status: AITaskStatus.PENDING,
+        },
+        patch
+      ),
+    ...createAiNotifyDeps(),
+  });
+
+  const response = await handler(
+    new Request('http://localhost/api/ai/generate', { method: 'POST' })
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(callbackUrl, undefined);
+});
+
+test('ai/generate 配置 notify secret 时传签名 callbackUrl', async () => {
+  let callbackUrl = '';
+  const handler = createAiGeneratePostHandler({
+    requireAiEnabled: async () => undefined,
+    createApiContext: createApiContextStub({
+      mediaType: AIMediaType.IMAGE,
+      provider: 'replicate',
+      model: 'raw-model',
+      prompt: 'hello',
+    }),
+    readAiRuntimeSettings: async () => ({ aiEnabled: true }),
+    readAiProviderBindings: () => ({
+      openrouterApiKey: '',
+      replicateApiToken: 'token_1',
+      falApiKey: '',
+      kieApiKey: '',
+    }),
+    resolveConfiguredAICapability: () => ({
+      mediaType: AIMediaType.IMAGE,
+      scene: 'text-to-image',
+      provider: 'replicate',
+      model: 'google/nano-banana',
+      label: 'Nano Banana',
+      costCredits: 4,
+      isDefault: true,
+    }),
+    getAIService: () => ({
+      getProvider: () => ({
+        ...createAiGenerateProvider(),
+        generate: async ({ params }) => {
+          callbackUrl = params.callbackUrl || '';
+          return {
+            taskStatus: AITaskStatus.PROCESSING,
+            taskId: 'provider-task-1',
+          };
+        },
+      }),
+      getDefaultProvider: () => undefined,
+      getMediaTypes: () => [],
+    }),
+    getUuid: () => 'db-task-1',
+    createAITask: async (task) => createAiTaskRecord(task),
+    updateAITaskById: async (_id, patch) =>
+      createAiTaskRecord(
+        {
+          id: 'db-task-1',
+          userId: 'user_1',
+          mediaType: AIMediaType.IMAGE,
+          provider: 'replicate',
+          model: 'google/nano-banana',
+          prompt: 'hello',
+          status: AITaskStatus.PENDING,
+        },
+        patch
+      ),
+    ...createAiNotifyDeps('secret_1'),
+  });
+
+  const response = await handler(
+    new Request('http://localhost/api/ai/generate', { method: 'POST' })
+  );
+
+  assert.equal(response.status, 200);
+  const parsed = new URL(callbackUrl);
+  assert.equal(parsed.pathname, '/api/ai/notify/replicate');
+  assert.equal(parsed.searchParams.get('task_id'), 'db-task-1');
+  assert.equal(
+    parsed.searchParams.get('sig'),
+    'signed-replicate-db-task-1-secret_1'
+  );
 });

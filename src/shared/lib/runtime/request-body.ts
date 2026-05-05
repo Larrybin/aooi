@@ -1,5 +1,25 @@
 import { PayloadTooLargeError } from '@/shared/lib/api/errors';
 
+function contentLength(req: Request): number | null {
+  const value = req.headers.get('content-length')?.trim();
+  if (!value) return null;
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function assertContentLengthWithinLimit(req: Request, limitBytes: number): void {
+  const length = contentLength(req);
+  if (length !== null && length > limitBytes) {
+    throw new PayloadTooLargeError('payload too large');
+  }
+}
+
+function isMultipartFormDataRequest(req: Request): boolean {
+  const contentType = req.headers.get('content-type')?.toLowerCase() || '';
+  return contentType.startsWith('multipart/form-data');
+}
+
 export async function readRequestTextWithLimit(
   req: Request,
   limitBytes: number
@@ -82,6 +102,18 @@ export async function readRequestBodyByteCountUpTo(
   };
 }
 
-export async function readRequestFormData(req: Request): Promise<FormData> {
+export async function readRequestFormData(
+  req: Request,
+  limitBytes?: number
+): Promise<FormData> {
+  if (limitBytes !== undefined) {
+    assertContentLengthWithinLimit(req, limitBytes);
+    if (contentLength(req) === null && isMultipartFormDataRequest(req)) {
+      throw new PayloadTooLargeError(
+        'multipart payload requires content-length'
+      );
+    }
+  }
+
   return req.formData();
 }

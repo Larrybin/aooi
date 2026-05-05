@@ -165,7 +165,6 @@ function buildCheckoutOrder({
   orderNo,
   callbackUrl,
   callbackBaseUrl,
-  metadata,
   paymentProductId,
   checkoutPrice,
 }: {
@@ -176,7 +175,6 @@ function buildCheckoutOrder({
   orderNo: string;
   callbackUrl: string;
   callbackBaseUrl: string;
-  metadata: Record<string, unknown> | null | undefined;
   paymentProductId: string;
   checkoutPrice: PaymentPrice;
 }): PaymentOrder {
@@ -188,7 +186,6 @@ function buildCheckoutOrder({
     },
     type: paymentType,
     metadata: {
-      ...(metadata || {}),
       appName: site.brand.appName,
       order_no: orderNo,
       user_id: user.id,
@@ -279,7 +276,6 @@ export async function createPaymentCheckoutSession({
   bindings,
   currency,
   locale,
-  metadata,
   log,
 }: {
   pricingItem: PricingItem;
@@ -288,7 +284,6 @@ export async function createPaymentCheckoutSession({
   bindings: PaymentRuntimeBindings;
   currency: string | null | undefined;
   locale: string | null | undefined;
-  metadata: Record<string, unknown> | null | undefined;
   log: LogLike;
 }): Promise<CheckoutInfo> {
   if (!user.email) {
@@ -349,7 +344,6 @@ export async function createPaymentCheckoutSession({
     orderNo,
     callbackUrl,
     callbackBaseUrl,
-    metadata,
     paymentProductId,
     checkoutPrice,
   });

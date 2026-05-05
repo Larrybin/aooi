@@ -12,3 +12,23 @@ test('PaymentCheckoutBodySchema 不再接受 payment_provider', () => {
   assert.equal(result.success, false);
   assert.match(JSON.stringify(result.error?.issues ?? []), /unrecognized_keys/i);
 });
+
+test('PaymentCheckoutBodySchema 不再接受客户端 metadata', () => {
+  const result = PaymentCheckoutBodySchema.safeParse({
+    product_id: 'starter',
+    metadata: {
+      user_id: 'attacker',
+    },
+  });
+
+  assert.equal(result.success, false);
+  assert.match(JSON.stringify(result.error?.issues ?? []), /unrecognized_keys/i);
+});
+
+test('PaymentCheckoutBodySchema 接受最小 checkout body', () => {
+  const result = PaymentCheckoutBodySchema.safeParse({
+    product_id: 'starter',
+  });
+
+  assert.equal(result.success, true);
+});

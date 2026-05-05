@@ -8,7 +8,7 @@ import {
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per file
-const MAX_TOTAL_FILES_SIZE_BYTES = 20 * 1024 * 1024; // 20MB per request
+export const MAX_TOTAL_FILES_SIZE_BYTES = 20 * 1024 * 1024; // 20MB per request
 
 const IMAGE_EXT_BY_MIME = {
   'image/jpeg': 'jpg',

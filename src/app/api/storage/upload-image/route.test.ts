@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
+import {
+  BadRequestError,
+  PayloadTooLargeError,
+  UpstreamError,
+} from '@/shared/lib/api/errors';
+import { readUploadRequestInput } from '@/shared/lib/runtime/upload';
 
 import { createStorageUploadImagePostHandler } from './route';
 import { detectAllowedImageMime, uploadImageFiles } from './upload-image-files';
@@ -173,4 +178,66 @@ test('storage/upload-image 路由会把 fresh 模式闭包传给 getStorageServi
 
   assert.equal(response.status, 200);
   assert.deepEqual(receivedModes, ['fresh']);
+});
+
+test('readUploadRequestInput 在解析 multipart 前拒绝超大 Content-Length', async () => {
+  const request = new Request('http://localhost/api/storage/upload-image', {
+    method: 'POST',
+    headers: {
+      'content-length': String(20 * 1024 * 1024 + 1),
+      'content-type': 'multipart/form-data; boundary=unused',
+    },
+    body: '',
+  });
+
+  await assert.rejects(
+    readUploadRequestInput(request),
+    (error: unknown) =>
+      error instanceof PayloadTooLargeError &&
+      error.status === 413 &&
+      error.message === 'payload too large'
+  );
+});
+
+test('readUploadRequestInput 接受小 multipart 请求', async () => {
+  const formData = new FormData();
+  formData.append('files', createPngFile());
+  const requestBody = new Request('http://localhost/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  const bodyText = await requestBody.text();
+
+  const request = new Request('http://localhost/api/storage/upload-image', {
+    method: 'POST',
+    headers: {
+      'content-type':
+        requestBody.headers.get('content-type') ?? 'multipart/form-data',
+      'content-length': String(new TextEncoder().encode(bodyText).byteLength),
+    },
+    body: bodyText,
+  });
+
+  const input = await readUploadRequestInput(request);
+
+  assert.equal(input.entries.length, 1);
+  assert.equal(input.files.length, 1);
+});
+
+test('readUploadRequestInput 拒绝缺少 Content-Length 的 multipart 请求', async () => {
+  const request = new Request('http://localhost/api/storage/upload-image', {
+    method: 'POST',
+    headers: {
+      'content-type': 'multipart/form-data; boundary=unused',
+    },
+    body: '--unused--',
+  });
+
+  await assert.rejects(
+    readUploadRequestInput(request),
+    (error: unknown) =>
+      error instanceof PayloadTooLargeError &&
+      error.status === 413 &&
+      error.message === 'multipart payload requires content-length'
+  );
 });

@@ -10,6 +10,10 @@ import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
 
 import { createAiGeneratePostAction } from './create-handler';
+import {
+  getAiNotifyWebhookSecret,
+  signAiNotifyCallback,
+} from '../notify/signature';
 
 export const POST = withApi(
   createAiGeneratePostAction({
@@ -22,5 +26,7 @@ export const POST = withApi(
     createAITask,
     updateAITaskById,
     getUuid,
+    getAiNotifyWebhookSecret,
+    signAiNotifyCallback,
   })
 );
