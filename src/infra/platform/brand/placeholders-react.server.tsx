@@ -54,7 +54,7 @@ export function replaceBrandPlaceholdersInReactNode(
   }
 
   if (Array.isArray(node)) {
-    return node.map((child) =>
+    return React.Children.map(node, (child) =>
       replaceBrandPlaceholdersInReactNode(child, brand)
     );
   }
