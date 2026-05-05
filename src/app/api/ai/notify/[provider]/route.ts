@@ -1,9 +1,15 @@
 import { createApiContext } from '@/app/api/_lib/context';
 
+import { ForbiddenError, ServiceUnavailableError } from '@/shared/lib/api/errors';
 import { jsonOk } from '@/shared/lib/api/response';
 import { withApi } from '@/shared/lib/api/route';
 import { readRequestBodyByteCountUpTo } from '@/shared/lib/runtime/request-body';
 import { AiNotifyParamsSchema } from '@/shared/schemas/api/ai/notify';
+
+import {
+  getAiNotifyWebhookSecret,
+  verifyAiNotifyCallbackSignature,
+} from '../signature';
 
 const MAX_AI_NOTIFY_BODY_BYTES = 64 * 1024;
 
@@ -15,6 +21,25 @@ export const POST = withApi(
     const api = createApiContext(req);
     const { log } = api;
     const { provider } = await api.parseParams(params, AiNotifyParamsSchema);
+    const url = new URL(req.url);
+    const taskId = url.searchParams.get('task_id')?.trim() || '';
+    const signature = url.searchParams.get('sig')?.trim() || '';
+    const secret = getAiNotifyWebhookSecret();
+
+    if (!secret) {
+      throw new ServiceUnavailableError('ai notify webhook is not configured');
+    }
+    if (
+      !taskId ||
+      !(await verifyAiNotifyCallbackSignature({
+        provider,
+        taskId,
+        signature,
+        secret,
+      }))
+    ) {
+      throw new ForbiddenError('invalid ai notify signature');
+    }
 
     const contentType = req.headers.get('content-type') || null;
     const contentLengthHeader = req.headers.get('content-length') || null;
@@ -34,6 +59,7 @@ export const POST = withApi(
 
     log.info('ai: notify received', {
       provider,
+      taskId,
       contentType,
       contentLengthHeader,
       bodyBytesRead,

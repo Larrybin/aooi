@@ -43,6 +43,7 @@ export const CLOUDFLARE_SECRET_WORKER_ALLOWLIST = Object.freeze({
   PAYPAL_CLIENT_SECRET: ['payment', 'member'],
   PAYPAL_WEBHOOK_ID: ['payment', 'member'],
   OPENROUTER_API_KEY: ['chat'],
+  AI_NOTIFY_WEBHOOK_SECRET: ['chat'],
 });
 
 const ALLOWED_WORKER_KEYS = new Set(CLOUDFLARE_ALL_WORKER_SCOPE);

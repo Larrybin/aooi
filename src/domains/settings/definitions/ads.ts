@@ -111,7 +111,7 @@ const adsterraSettings = defineSettingsGroup(
         rows: 8,
       },
       placeholder: `<script type="text/javascript" src="https://example.com/adsterra-global.js"></script>`,
-      tip: 'Paste the exact Adsterra code snippet for Social Bar or Popunder. The snippet is rendered into the SSR HTML as-is.',
+      tip: 'Paste a supported Adsterra Social Bar or Popunder snippet. Only restricted Adsterra script markup is rendered.',
     },
     {
       name: 'adsterra_zone_landing_inline_primary_snippet',
@@ -121,7 +121,7 @@ const adsterraSettings = defineSettingsGroup(
         rows: 8,
       },
       placeholder: `<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script type="text/javascript" src="https://example.com/invoke.js"></script>`,
-      tip: 'Paste the exact Adsterra zone snippet for this landing placement.',
+      tip: 'Paste a supported Adsterra zone snippet for this landing placement.',
     },
     {
       name: 'adsterra_zone_blog_post_inline_snippet',
@@ -131,7 +131,7 @@ const adsterraSettings = defineSettingsGroup(
         rows: 8,
       },
       placeholder: `<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script type="text/javascript" src="https://example.com/invoke.js"></script>`,
-      tip: 'Paste the exact Adsterra zone snippet for the inline blog post placement.',
+      tip: 'Paste a supported Adsterra zone snippet for the inline blog post placement.',
     },
     {
       name: 'adsterra_zone_blog_post_footer_snippet',
@@ -141,7 +141,7 @@ const adsterraSettings = defineSettingsGroup(
         rows: 8,
       },
       placeholder: `<script type="text/javascript">\n  atOptions = { ... };\n</script>\n<script type="text/javascript" src="https://example.com/invoke.js"></script>`,
-      tip: 'Paste the exact Adsterra zone snippet for the footer blog post placement.',
+      tip: 'Paste a supported Adsterra zone snippet for the footer blog post placement.',
     },
     {
       name: 'adsterra_ads_txt_entry',

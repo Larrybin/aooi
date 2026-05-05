@@ -309,10 +309,6 @@ State Worker migrations must stay state-safe. Router request dispatch changes be
 
 `Cloudflare Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
 
-### Traditional Server (Docker, VPS)
-
-Set `DB_SINGLETON_ENABLED=true` for connection pooling.
-
 ## Best Practices
 
 1. **Always use Drizzle ORM** - Avoid raw SQL unless absolutely necessary

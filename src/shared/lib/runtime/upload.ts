@@ -5,6 +5,8 @@ import {
 
 import { readRequestFormData } from './request-body';
 
+export const MAX_UPLOAD_REQUEST_BYTES = 20 * 1024 * 1024;
+
 export function isFileUploadValue(value: FormDataEntryValue): value is File {
   return typeof File !== 'undefined' && value instanceof File;
 }
@@ -18,7 +20,7 @@ export async function readUploadRequestInput(
   entries: FormDataEntryValue[];
   files: File[];
 }> {
-  const formData = await readRequestFormData(req);
+  const formData = await readRequestFormData(req, MAX_UPLOAD_REQUEST_BYTES);
   const entries = formData.getAll(fieldName);
 
   return {

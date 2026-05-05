@@ -71,7 +71,7 @@ test('resolveAdsRuntime: Adsterra zone mode 只启用有脚本的 zone', () => {
       adsProvider: 'adsterra',
       adsterraMode: 'native_banner',
       adsterraZoneBlogPostInlineSnippet:
-        '<script src="https://cdn.example.com/inline.js"></script>',
+        '<script src="https://www.highperformanceformat.com/inline.js"></script>',
       adsterraAdsTxtEntry: 'adsterra.com, publisher-id, DIRECT',
     })
   );
@@ -93,7 +93,7 @@ test('resolveAdsRuntime: Adsterra zone mode 只启用有脚本的 zone', () => {
     }) as ReactElement
   );
   assert.match(markup, /<script/);
-  assert.match(markup, /https:\/\/cdn\.example\.com\/inline\.js/);
+  assert.match(markup, /https:\/\/www\.highperformanceformat\.com\/inline\.js/);
 });
 
 test('resolveAdsRuntime: Adsterra zone mode 通过 SSR 直出 snippet', () => {
@@ -103,7 +103,7 @@ test('resolveAdsRuntime: Adsterra zone mode 通过 SSR 直出 snippet', () => {
       adsProvider: 'adsterra',
       adsterraMode: 'display_banner',
       adsterraZoneBlogPostFooterSnippet:
-        '<div class="ad-shell"></div><script src="https://cdn.example.com/footer.js"></script>',
+        '<div class="ad-shell"></div><script src="https://www.highperformanceformat.com/footer.js"></script>',
     })
   );
 
@@ -122,7 +122,7 @@ test('resolveAdsRuntime: Adsterra zone mode 通过 SSR 直出 snippet', () => {
     }) as ReactElement
   );
   assert.match(markup, /class="ad-shell"/);
-  assert.match(markup, /https:\/\/cdn\.example\.com\/footer\.js/);
+  assert.match(markup, /https:\/\/www\.highperformanceformat\.com\/footer\.js/);
 });
 
 test('resolveAdsRuntime: Popunder 通过 head SSR 直出 global snippet', () => {
@@ -132,7 +132,7 @@ test('resolveAdsRuntime: Popunder 通过 head SSR 直出 global snippet', () => 
       adsProvider: 'adsterra',
       adsterraMode: 'popunder',
       adsterraGlobalSnippet:
-        '<script src="https://cdn.example.com/popunder.js"></script>',
+        '<script src="https://www.highcpmrevenuenetwork.com/popunder.js"></script>',
     })
   );
 
@@ -148,7 +148,10 @@ test('resolveAdsRuntime: Popunder 通过 head SSR 直出 global snippet', () => 
     runtime.provider.getHeadScripts() as ReactElement
   );
   assert.match(markup, /<script/);
-  assert.match(markup, /https:\/\/cdn\.example\.com\/popunder\.js/);
+  assert.match(
+    markup,
+    /https:\/\/www\.highcpmrevenuenetwork\.com\/popunder\.js/
+  );
 });
 
 test('resolveAdsRuntime: Social Bar 通过 body SSR 直出 global snippet', () => {
@@ -158,7 +161,7 @@ test('resolveAdsRuntime: Social Bar 通过 body SSR 直出 global snippet', () =
       adsProvider: 'adsterra',
       adsterraMode: 'social_bar',
       adsterraGlobalSnippet:
-        '<script src="https://cdn.example.com/social-bar.js"></script>',
+        '<script src="https://www.highcpmrevenuenetwork.com/social-bar.js"></script>',
     })
   );
 
@@ -172,7 +175,10 @@ test('resolveAdsRuntime: Social Bar 通过 body SSR 直出 global snippet', () =
     runtime.provider.getBodyScripts() as ReactElement
   );
   assert.match(markup, /<script/);
-  assert.match(markup, /https:\/\/cdn\.example\.com\/social-bar\.js/);
+  assert.match(
+    markup,
+    /https:\/\/www\.highcpmrevenuenetwork\.com\/social-bar\.js/
+  );
 });
 
 test('resolveAdsRuntime: malformed Adsterra snippet 会记录日志并禁用 runtime', () => {
