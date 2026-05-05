@@ -1,13 +1,13 @@
 ---
 title: 快速开始
-description: 用最少配置把 YourAppName 跑起来（本地开发、数据库、管理员权限、上线）。
+description: 用最少配置把 Roller Rabbit 跑起来（本地开发、数据库、管理员权限、上线）。
 ---
 
 在开始之前，请确保你已准备好：
 
 - Node.js 20+
 - pnpm
-- PostgreSQL（如果你需要登录/管理后台/支付等功能）
+- PostgreSQL（如果你需要登录、管理后台、RBAC、设置或支付等功能）
 
 ## 本地开发
 
@@ -50,22 +50,23 @@ cp ".env.example" ".env.development"
 
 2. 修改 `.env.development`
 
-必填项：
+本地配置的实际规则：
 
-- `pnpm dev:local`：选择 `sites/dev-local/site.config.json` 作为本地开发站点。如需本地运行其他站点，使用 `SITE=<site-key> pnpm dev`。生产命令必须显式设置目标站点，例如 `SITE=mamamiya`。
-- `site.brand.appUrl`：canonical app/auth origin。`NEXT_PUBLIC_APP_URL` 由它生成给 Cloudflare infra 使用，不是 identity 来源。
+- `pnpm dev:local`：选择 `sites/dev-local/site.config.json` 作为本地开发站点。
+- 本地站点 origin 是 `http://localhost:3000`。
+- 如需本地运行其他站点，使用 `SITE=<site-key> pnpm dev`。
+- 生产态、Cloudflare、smoke、build、deploy 命令必须显式设置目标站点，例如 `SITE=mamamiya`。
 
-如果你需要登录/管理后台/支付：
+如果你需要登录、管理后台、RBAC、设置或支付等数据库功能，必须配置：
 
 - `DATABASE_URL`：PostgreSQL 连接串
-- `AUTH_SECRET`：鉴权密钥（生产环境必填；本地建议也配置）
+- `DATABASE_PROVIDER=postgresql`
+- `DB_SINGLETON_ENABLED=true`
+- `BETTER_AUTH_SECRET` 和 `AUTH_SECRET`：共享鉴权密钥。`pnpm dev:local` 会在两者都缺失时注入本地 fallback secret，但显式设置更利于本地脚本和应用保持一致。
 
 示例（按需替换为你的值）：
 
 ```bash
-# theme
-NEXT_PUBLIC_THEME="default"
-
 # database
 DATABASE_URL="postgresql://user:password@127.0.0.1:5432/my_app"
 DATABASE_PROVIDER="postgresql"
@@ -73,6 +74,7 @@ DB_SINGLETON_ENABLED="true"
 
 # auth secret
 # openssl rand -base64 32
+BETTER_AUTH_SECRET="your-secret"
 AUTH_SECRET="your-secret"
 ```
 
@@ -85,12 +87,13 @@ openssl rand -base64 32
 说明：
 
 - `DATABASE_PROVIDER` 当前仅支持 `postgresql`。
-- `DB_SINGLETON_ENABLED=true` 是这个 Cloudflare-only 仓库的标准生产配置。
-- 生产环境推荐使用 `BETTER_AUTH_SECRET`（优先级高于 `AUTH_SECRET`）；鉴权 Base URL 可通过 `BETTER_AUTH_URL/AUTH_URL` 覆盖（默认使用 `NEXT_PUBLIC_APP_URL`）。
+- `DB_SINGLETON_ENABLED=true` 只作用于本地和其他非 Workers Node 运行时。Cloudflare Workers 运行时使用 `HYPERDRIVE` binding。
+- `BETTER_AUTH_SECRET` 优先级高于 `AUTH_SECRET`；除非有明确原因，建议两者使用同一个值。
+- 站点 identity 来自 `sites/<site-key>/site.config.json`。生产环境如果设置 `NEXT_PUBLIC_APP_URL`，需要与 `site.brand.appUrl` 保持一致。
 
 ### 配置数据库
 
-如果你的项目需要用户登录/管理后台等功能，必须配置数据库。
+如果你的项目需要登录、管理后台、RBAC、设置或支付等功能，必须先配置数据库。
 
 1. 创建 PostgreSQL 数据库，拿到连接串后写入 `DATABASE_URL`。
 
@@ -139,7 +142,7 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 - `Support Email`：用于法律页面与联系入口
 - `App Logo` / `Favicon` / `Preview Image`：可直接在后台上传（需先配置 `Storage`）
 
-注意：生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致。
+注意：`sites/<site-key>/site.config.json` 是站点 identity 来源。生产环境如果设置 `NEXT_PUBLIC_APP_URL`，需要与 `App URL (Origin)` 保持一致。
 
 ## 自定义配置
 
