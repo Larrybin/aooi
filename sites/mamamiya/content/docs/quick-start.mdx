@@ -132,14 +132,14 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 ### Branding (Recommended)
 
-After signing in, configure `Admin -> Settings -> General -> Brand`:
+Build-time default site identity lives in `sites/mamamiya/site.config.json`. After signing in, use `Admin -> Settings -> General -> Brand` to review or update the active site brand at runtime:
 
 - `App Name`
 - `App URL (Origin)`
 - `Support Email`
 - `App Logo` / `Favicon` / `Preview Image` (upload directly in admin; requires `Storage` to be configured first)
 
-Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it consistent with `App URL (Origin)`.
+Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it aligned with the site origin in `site.config.json`.
 
 ## Next Steps
 

@@ -132,14 +132,14 @@ pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
 
 ### 品牌配置（推荐）
 
-登录管理后台后，在 `Admin -> Settings -> General -> Brand` 配置：
+构建期的站点身份默认值保存在 `sites/mamamiya/site.config.json`。登录管理后台后，可通过 `Admin -> Settings -> General -> Brand` 在运行时查看或更新当前站点的品牌信息：
 
 - `App Name`：用于站点标题、文档/SEO、邮件标题等
 - `App URL (Origin)`：用于 canonical / sitemap / callback 等 URL 生成（必须是纯 origin）
 - `Support Email`：用于法律页面与联系入口
 - `App Logo` / `Favicon` / `Preview Image`：可直接在后台上传（需先配置 `Storage`）
 
-注意：生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；推荐与 `App URL (Origin)` 保持一致。
+注意：生产环境仍需设置 `NEXT_PUBLIC_APP_URL`（会被 Next.js 在 build 阶段内联）；请保持它与 `site.config.json` 中的站点 origin 一致。
 
 ## 下一步
 
