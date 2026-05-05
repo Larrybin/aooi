@@ -1,6 +1,11 @@
 ---
 title: 管理后台
-description: 配置 Mamamiya 的管理后台体验。
+description: 访问管理后台、初始化 RBAC，并授予超级管理员权限。
 ---
 
-此页介绍 Mamamiya 的管理后台及其核心配置。
+## 必要设置
+
+```bash
+pnpm rbac:init
+pnpm rbac:assign -- --email="admin@your-domain.com" --role="super_admin"
+```

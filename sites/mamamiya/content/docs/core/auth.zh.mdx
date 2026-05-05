@@ -1,6 +1,14 @@
 ---
 title: 认证
-description: 配置 Mamamiya 的认证流程。
+description: 了解 Mamamiya 中的登录、认证密钥和提供方配置。
 ---
 
-此页介绍 Mamamiya 的认证流程及相关配置。
+## 关键文件
+
+- `src/infra/platform/auth/index.ts`
+- `src/app/api/auth/[...all]/route.ts`
+
+## 需要配置
+
+- `AUTH_SECRET` 或 `BETTER_AUTH_SECRET`
+- `/admin/settings/auth` 中的认证提供方设置

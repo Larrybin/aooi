@@ -1,6 +1,18 @@
 ---
 title: Database
-description: Configure Mamamiya database access and migrations.
+description: Configure PostgreSQL, run migrations, and validate schema health for Mamamiya.
 ---
 
-This page covers Mamamiya database access, schema, and migration paths.
+## Commands
+
+```bash
+pnpm db:migrate
+pnpm db:check
+pnpm db:studio
+```
+
+## Requirements
+
+- PostgreSQL only
+- valid `DATABASE_URL`
+- Cloudflare production uses Hyperdrive

@@ -1,6 +1,14 @@
 ---
 title: Auth
-description: Configure Mamamiya authentication flows.
+description: Understand how sign-in, auth secrets, and provider configuration work in Mamamiya.
 ---
 
-This page covers Mamamiya authentication flows and related setup.
+## Key Files
+
+- `src/infra/platform/auth/index.ts`
+- `src/app/api/auth/[...all]/route.ts`
+
+## What To Configure
+
+- `AUTH_SECRET` or `BETTER_AUTH_SECRET`
+- auth provider settings in `/admin/settings/auth`
