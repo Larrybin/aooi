@@ -141,28 +141,19 @@ After signing in, configure `Admin -> Settings -> General -> Brand`:
 
 Note: you still need `NEXT_PUBLIC_APP_URL` in production (it is inlined at build time). Keep it consistent with `App URL (Origin)`.
 
-## Customization
+## Next Steps
 
-Minimal "go-live" checklist:
+- Customize site identity: [Customize / App Info](./customize/app-info)
+- Replace assets and visuals: [Customize / Branding Assets](./customize/branding-assets)
+- Edit legal and landing content: [Customize / Content Pages](./customize/content-pages)
+- Prepare deployment: [Deploy / Overview](./deploy)
+- Learn the core systems: [Core / Overview](./core)
 
-- Env vars: `.env.development` / `.env.production` (or your platform env settings)
-- Icons: `public/logo.png`, `public/favicon.ico`
-- App info guide: `sites/<site-key>/content/docs/customize-app-info*.mdx`
-- Legal pages: `sites/<site-key>/content/pages/privacy-policy*.mdx`, `sites/<site-key>/content/pages/terms-of-service*.mdx`
-- Copy & landing: `src/config/locale/messages/{locale}/common.json`, `src/config/locale/messages/{locale}/landing.json`
-- Theme styles: `src/config/style/theme.css`
-- Locales: `src/config/locale/index.ts`
-- SEO: `src/app/sitemap.ts`, `src/app/robots.ts`
+## Deployment Path
 
-## Deploy
-
-Before deploying:
-
-- Cloudflare Workers only: configure the tracked Wrangler templates, `HYPERDRIVE`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`/`BETTER_AUTH_SECRET`, shared `NEXT_INC_CACHE_R2_BUCKET`, business `APP_STORAGE_R2_BUCKET`, router `IMAGES`, and `STORAGE_PUBLIC_BASE_URL`; local runtime smoke requires a generated temporary Wrangler config with `localConnectionString`, and deploy requires a real `hyperdrive.id`
-
-Deployment flow:
-
-- Cloudflare Workers only (managed via tracked Wrangler templates; use `pnpm cf:check`, `pnpm cf:build`, `pnpm test:cf-local-smoke`, `pnpm test:cf-admin-settings-smoke`, `pnpm cf:deploy`; requires Hyperdrive for database. Tracked templates keep `localConnectionString = ""`, and local/CI runtime smoke injects the real DSN through generated temporary configs. `pnpm test:cf-local-smoke` now starts the full router + split-worker topology through one local `wrangler dev` multi-config session. `pnpm test:cf-admin-settings-smoke` is a small local acceptance chain for storage settings: it seeds DB config rows directly, uploads through the real Cloudflare runtime API, and validates public config projection plus the explicit missing-`STORAGE_PUBLIC_BASE_URL` failure path in the same local runtime session. Payment/upload are formally gated by `pnpm test:creem-webhook-spike` and `pnpm test:r2-upload-spike`.)
+- Start with [Deploy / Local Development](./deploy/local-development)
+- Check required env vars in [Deploy / Environment Variables](./deploy/environment-variables)
+- Follow the release flow in [Deploy / Cloudflare Deployment](./deploy/cloudflare-deployment)
 
 ## Feature Configuration
 

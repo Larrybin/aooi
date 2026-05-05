@@ -1,6 +1,23 @@
 ---
 title: App Info
-description: Configure Mamamiya app identity and brand fields.
+description: Configure Mamamiya site identity, app URL, support email, and SEO-facing brand fields.
 ---
 
-This page covers Mamamiya app identity, brand fields, and related configuration paths.
+## Primary Config File
+
+`sites/mamamiya/site.config.json`
+
+## Fields
+
+- `brand.appName`
+- `brand.appUrl`
+- `brand.supportEmail`
+- `brand.logo`
+- `brand.favicon`
+- `brand.previewImage`
+
+## Rules
+
+- `brand.appUrl` must stay a pure origin
+- production commands must explicitly set `SITE=mamamiya`
+- `NEXT_PUBLIC_APP_URL` follows `brand.appUrl` for deployment and infra use
