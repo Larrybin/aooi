@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import * as nextEnvModule from '@next/env';
 
-import siteEnvModule from './lib/site-env.cjs';
+import siteEnvModule from '../src/config/site-env.cjs';
 
 const args = process.argv.slice(2);
 const TEST_SITE_KEY = 'dev-local';

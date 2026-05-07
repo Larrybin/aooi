@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
 
-import siteEnvModule from '../../scripts/lib/site-env.cjs';
+import siteEnvModule from '../../src/config/site-env.cjs';
 
 const execFileAsync = promisify(execFile);
 const loadDotenvPath = path.resolve(process.cwd(), 'src/config/load-dotenv.ts');

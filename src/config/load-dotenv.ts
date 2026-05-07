@@ -1,6 +1,6 @@
 import { loadEnvConfig } from '@next/env';
 
-import siteEnvModule from '../../scripts/lib/site-env.cjs';
+import siteEnvModule from './site-env.cjs';
 
 const { applySiteLocalEnvOverlay } = siteEnvModule;
 
