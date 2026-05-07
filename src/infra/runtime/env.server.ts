@@ -11,10 +11,20 @@ import { isCloudflareWorker } from '@/shared/lib/env';
 
 export type RuntimePlatform = 'node' | 'cloudflare-workers';
 
+export type CloudflareAIBinding = {
+  run(
+    model: string,
+    inputs: Record<string, unknown>,
+    options?: Record<string, unknown>
+  ): Promise<unknown>;
+};
+
 export type CloudflareBindings = {
   HYPERDRIVE?: {
     connectionString?: string;
   };
+  AI?: CloudflareAIBinding;
+  IMAGES?: ImagesBinding;
   NEXT_INC_CACHE_R2_BUCKET?: R2Bucket;
   APP_STORAGE_R2_BUCKET?: R2Bucket;
   NEXT_CACHE_DO_QUEUE?: unknown;
@@ -62,6 +72,16 @@ export function getCloudflareBindings(): CloudflareBindings | null {
   } catch {
     return null;
   }
+}
+
+export function getCloudflareAIBinding(): CloudflareAIBinding | null {
+  const binding = getCloudflareBindings()?.AI;
+  return binding && typeof binding.run === 'function' ? binding : null;
+}
+
+export function getCloudflareImagesBinding(): ImagesBinding | null {
+  const binding = getCloudflareBindings()?.IMAGES;
+  return binding && typeof binding.input === 'function' ? binding : null;
 }
 
 function getBindingsValue(
