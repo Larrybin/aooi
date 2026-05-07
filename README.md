@@ -111,6 +111,17 @@ pnpm dev:local
 
 Visit http://localhost:3000.
 
+The root `.env.development` file is the repository-level local fallback. For a
+specific SaaS site, add a private `sites/<site-key>/.env.local` file to override
+those local values only when running with `SITE=<site-key>`. For example,
+`SITE=ai-remover pnpm dev` reads `sites/ai-remover/.env.local` after the root
+env files, while shell values passed directly to the command still win.
+
+Do not put database connection strings in `.dev.vars`. Local Cloudflare smoke
+and spike commands read `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL` from the
+process env after the root/site env files are loaded, then write only a
+temporary Wrangler config for Hyperdrive.
+
 `pnpm dev:local` selects `sites/dev-local/site.config.json`, whose local origin
 is `http://localhost:3000`. To run another site locally, use
 `SITE=<site-key> pnpm dev`. Production-like, Cloudflare, smoke, build, and

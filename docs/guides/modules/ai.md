@@ -15,6 +15,7 @@ AI is an optional product module layered on top of the mainline shell:
 
 ## External Services
 
+- Cloudflare Workers AI
 - OpenRouter
 - Replicate
 - Fal
@@ -24,6 +25,8 @@ AI is an optional product module layered on top of the mainline shell:
 
 - `pnpm test`
 - `pnpm test:cf-app-smoke`
+- AI Remover Workers AI runtime spike:
+  `SITE=ai-remover pnpm test:remover-workers-ai-spike`
 
 ## Common Failure Modes
 
