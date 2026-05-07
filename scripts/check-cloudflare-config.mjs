@@ -173,6 +173,7 @@ function assertSharedSettings(content, label, options = {}) {
     requiresR2Buckets = true,
     requiresHyperdrive = true,
     requiresStoragePublicBaseUrl = true,
+    requiresWorkersAi = false,
     expectedAppOrigin,
     expectedIncrementalCacheBucket,
     expectedAppStorageBucket,
@@ -302,6 +303,24 @@ function assertSharedSettings(content, label, options = {}) {
     }
   } else if (hyperdriveTables.length > 0) {
     fail(`${label} must not define [[hyperdrive]]`);
+  }
+
+  const aiSection = readOptionalSection(content, 'ai');
+  if (requiresWorkersAi) {
+    if (!aiSection) {
+      fail(`${label} missing [ai] binding = "AI"`);
+    }
+
+    const aiBinding = readQuotedValue(
+      aiSection,
+      `${label}.ai.binding`,
+      /^\s*binding\s*=\s*"([^"\n]+)"/m
+    );
+    if (aiBinding !== 'AI') {
+      fail(`${label}.ai.binding must equal AI`);
+    }
+  } else if (aiSection) {
+    fail(`${label} must not define [ai]`);
   }
 
   const varsSection = readSection(content, 'vars');
@@ -646,6 +665,9 @@ function assertServerConfig(
     expectedAppOrigin: contract.appOrigin,
     expectedIncrementalCacheBucket: contract.resources.incrementalCacheBucket,
     expectedAppStorageBucket: contract.resources.appStorageBucket,
+    requiresWorkersAi:
+      target === 'public-web' &&
+      contract.bindingRequirements.bindings?.workersAi === true,
   });
   assertRequiredRuntimeBindings(`${target}`, target, requiredBindingsByWorker);
 
@@ -701,8 +723,37 @@ function assertServerConfig(
   }
 
   const imagesSection = readOptionalSection(content, 'images');
-  if (imagesSection) {
+  if (target === 'public-web') {
+    if (!imagesSection) {
+      fail(`${target} missing [images] binding = "IMAGES"`);
+    }
+    const imagesBinding = readQuotedValue(
+      imagesSection,
+      `${target}.images.binding`,
+      /^\s*binding\s*=\s*"([^"\n]+)"/m
+    );
+    if (imagesBinding !== 'IMAGES') {
+      fail(`${target}.images.binding must equal IMAGES`);
+    }
+  } else if (imagesSection) {
     fail(`${target} must not define [images]`);
+  }
+
+  const triggersSection = readOptionalSection(content, 'triggers');
+  const requiresRemoverCleanup =
+    target === 'public-web' &&
+    contract.bindingRequirements.secrets?.removerCleanup === true;
+  if (requiresRemoverCleanup) {
+    if (!triggersSection) {
+      fail(`${target} missing [triggers] cleanup cron`);
+    }
+    if (
+      !/^\s*crons\s*=\s*\[[^\]]*"17 3 \* \* \*"[^\]]*\]/m.test(triggersSection)
+    ) {
+      fail(`${target}.triggers.crons must include AI Remover cleanup cron`);
+    }
+  } else if (triggersSection) {
+    fail(`${target} must not define [triggers]`);
   }
 
   const doTables = readArrayTable(content, 'durable_objects.bindings');

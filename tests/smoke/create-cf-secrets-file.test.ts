@@ -147,6 +147,53 @@ test('buildCloudflareSecretsEnv 不会把 RESEND_API_KEY 扩散到非 allowlist 
   assert.doesNotMatch(content, /RESEND_API_KEY=/);
 });
 
+test('buildCloudflareSecretsEnv 只向 public-web 输出 remover cleanup secret', () => {
+  const publicWebContent = buildCloudflareSecretsEnv(
+    {
+      SITE: 'ai-remover',
+      BETTER_AUTH_SECRET: 'better-secret',
+      REMOVER_CLEANUP_SECRET: 'cleanup-secret',
+    },
+    {
+      workerKeys: ['public-web'],
+    }
+  );
+
+  assert.match(publicWebContent, /REMOVER_CLEANUP_SECRET=cleanup-secret/);
+
+  const authContent = buildCloudflareSecretsEnv(
+    {
+      SITE: 'ai-remover',
+      BETTER_AUTH_SECRET: 'better-secret',
+      RESEND_API_KEY: 'resend-key',
+      GOOGLE_CLIENT_ID: 'google-id',
+      GOOGLE_CLIENT_SECRET: 'google-secret',
+      REMOVER_CLEANUP_SECRET: 'cleanup-secret',
+    },
+    {
+      workerKeys: ['auth'],
+    }
+  );
+
+  assert.doesNotMatch(authContent, /REMOVER_CLEANUP_SECRET=/);
+});
+
+test('buildCloudflareSecretsEnv 缺少 remover cleanup secret 时失败', () => {
+  assert.throws(
+    () =>
+      buildCloudflareSecretsEnv(
+        {
+          SITE: 'ai-remover',
+          BETTER_AUTH_SECRET: 'better-secret',
+        },
+        {
+          workerKeys: ['public-web'],
+        }
+      ),
+    /REMOVER_CLEANUP_SECRET is required/
+  );
+});
+
 test('buildCloudflareSecretsEnv 仅输出当前启用能力所需 secrets', () => {
   const content = buildCloudflareSecretsEnv(
     {

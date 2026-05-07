@@ -35,6 +35,7 @@ const requiredSecretEnvNames = [
   'REPLICATE_API_TOKEN',
   'FAL_API_KEY',
   'KIE_API_KEY',
+  'REMOVER_CLEANUP_SECRET',
 ] as const;
 
 async function copyCloudflareConfigFixture(tempDir: string) {
@@ -407,6 +408,30 @@ test('cf:check 接受显式 storage public runtime binding', async () => {
 
     assert.equal(result.ok, true, result.stderr);
     assert.match(result.stdout, /Cloudflare config structure looks good/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 对 AI Remover public-web 要求 cleanup secret', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await copySiteFixture(fixtureDir, 'ai-remover');
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=public-web'],
+      env: {
+        SITE: 'ai-remover',
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /REMOVER_CLEANUP_SECRET/);
+    assert.match(result.stderr, /AI Remover expiration cleanup/i);
   } finally {
     await fixture.cleanup();
   }

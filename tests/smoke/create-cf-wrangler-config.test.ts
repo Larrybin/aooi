@@ -9,6 +9,10 @@ const contract = resolveSiteDeployContract({
   rootDir: process.cwd(),
   siteKey: 'mamamiya',
 });
+const aiRemoverContract = resolveSiteDeployContract({
+  rootDir: process.cwd(),
+  siteKey: 'ai-remover',
+});
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -193,6 +197,129 @@ STORAGE_PUBLIC_BASE_URL = ""
       `name = "${escapeRegExp(contract.serverWorkers['public-web'].workerName)}"`
     )
   );
+  assert.match(config, /\[images\]\nbinding = "IMAGES"/);
+});
+
+test('buildCloudflareWranglerConfig 为需要 Workers AI 的 server worker 注入 [ai] binding', () => {
+  const template = `
+name = "public-web-template"
+main = "workers/server-public-web.ts"
+
+[assets]
+directory = "../.open-next/assets"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "d208cd72765b46a7b0849fc687e2fb61"
+localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
+
+[vars]
+DEPLOY_TARGET = "cloudflare"
+NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
+`;
+
+  const config = buildCloudflareWranglerConfig({
+    template,
+    contract: aiRemoverContract,
+    workerSlot: 'public-web',
+    templatePath: '/repo/cloudflare/wrangler.server-public-web.toml',
+    outputPath: '/repo/.tmp/server/default.toml',
+  });
+
+  assert.match(config, /\[ai\]\nbinding = "AI"/);
+  assert.match(config, /\[images\]\nbinding = "IMAGES"/);
+
+  const authConfig = buildCloudflareWranglerConfig({
+    template,
+    contract: aiRemoverContract,
+    workerSlot: 'auth',
+    templatePath: '/repo/cloudflare/wrangler.server-auth.toml',
+    outputPath: '/repo/.tmp/server/auth.toml',
+  });
+
+  assert.doesNotMatch(authConfig, /\[ai\]\nbinding = "AI"/);
+  assert.doesNotMatch(authConfig, /\[images\]\nbinding = "IMAGES"/);
+});
+
+test('buildCloudflareWranglerConfig 为 AI Remover public-web 注入 cleanup cron', () => {
+  const template = `
+name = "public-web-template"
+main = "workers/server-public-web.ts"
+
+[assets]
+directory = "../.open-next/assets"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "d208cd72765b46a7b0849fc687e2fb61"
+localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
+
+[vars]
+DEPLOY_TARGET = "cloudflare"
+NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
+`;
+
+  const config = buildCloudflareWranglerConfig({
+    template,
+    contract: aiRemoverContract,
+    workerSlot: 'public-web',
+    templatePath: '/repo/cloudflare/wrangler.server-public-web.toml',
+    outputPath: '/repo/.tmp/server/default.toml',
+  });
+
+  assert.match(config, /\[triggers\]\ncrons = \["17 3 \* \* \*"\]/);
+
+  const authConfig = buildCloudflareWranglerConfig({
+    template,
+    contract: aiRemoverContract,
+    workerSlot: 'auth',
+    templatePath: '/repo/cloudflare/wrangler.server-auth.toml',
+    outputPath: '/repo/.tmp/server/auth.toml',
+  });
+
+  assert.doesNotMatch(authConfig, /\[triggers\]/);
 });
 
 test('buildCloudflareWranglerConfig 会在已有 [dev] 段内覆盖 host 并补齐 upstream_protocol', () => {

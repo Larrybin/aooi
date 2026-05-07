@@ -31,11 +31,14 @@ export const CLOUDFLARE_SECRET_REQUIREMENT_KEYS = Object.freeze([
   'authSharedSecret',
   'googleOauth',
   'githubOauth',
+  'removerCleanup',
 ]);
 
 export const CLOUDFLARE_VAR_REQUIREMENT_KEYS = Object.freeze([
   'storagePublicBaseUrl',
 ]);
+
+export const CLOUDFLARE_BINDING_REQUIREMENT_KEYS = Object.freeze(['workersAi']);
 
 const FORBIDDEN_TOP_LEVEL_KEYS = Object.freeze([
   'payment',
@@ -126,9 +129,14 @@ function assertBindingRequirements(bindingRequirements) {
   assertClosedObject(
     bindingRequirements,
     'site deploy settings.bindingRequirements',
-    ['secrets', 'vars']
+    ['bindings', 'secrets', 'vars']
   );
 
+  assertClosedObject(
+    bindingRequirements.bindings,
+    'site deploy settings.bindingRequirements.bindings',
+    CLOUDFLARE_BINDING_REQUIREMENT_KEYS
+  );
   assertClosedObject(
     bindingRequirements.secrets,
     'site deploy settings.bindingRequirements.secrets',
@@ -139,6 +147,13 @@ function assertBindingRequirements(bindingRequirements) {
     'site deploy settings.bindingRequirements.vars',
     CLOUDFLARE_VAR_REQUIREMENT_KEYS
   );
+
+  for (const key of CLOUDFLARE_BINDING_REQUIREMENT_KEYS) {
+    assertBoolean(
+      bindingRequirements.bindings[key],
+      `site deploy settings.bindingRequirements.bindings.${key}`
+    );
+  }
 
   for (const key of CLOUDFLARE_SECRET_REQUIREMENT_KEYS) {
     assertBoolean(

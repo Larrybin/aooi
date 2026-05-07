@@ -44,6 +44,7 @@ export const CLOUDFLARE_SECRET_WORKER_ALLOWLIST = Object.freeze({
   PAYPAL_WEBHOOK_ID: ['payment', 'member'],
   OPENROUTER_API_KEY: ['chat'],
   AI_NOTIFY_WEBHOOK_SECRET: ['chat'],
+  REMOVER_CLEANUP_SECRET: ['public-web'],
 });
 
 const ALLOWED_WORKER_KEYS = new Set(CLOUDFLARE_ALL_WORKER_SCOPE);
@@ -166,6 +167,17 @@ function buildDeploySecretRequirementMap(contract) {
         capability: 'Email delivery provider',
       });
     }
+  }
+
+  if (secrets.removerCleanup) {
+    assertSecretWorkerAllowed('REMOVER_CLEANUP_SECRET', ['public-web']);
+    pushRequirement(requirements.get('public-web'), {
+      kind: 'runtime-secret',
+      worker: 'public-web',
+      name: 'REMOVER_CLEANUP_SECRET',
+      requirement: 'removerCleanup',
+      capability: 'AI Remover expiration cleanup',
+    });
   }
 
   if (payment.provider === 'stripe') {
