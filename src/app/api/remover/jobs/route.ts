@@ -1,9 +1,7 @@
 import { createApiContext } from '@/app/api/_lib/context';
 import { createQueuedRemoverJob } from '@/domains/remover/application/jobs';
-import { resolveRemoverActor } from '@/domains/remover/application/actor';
 import { storeRemoverOutputImage } from '@/domains/remover/application/output';
 import { submitRemoverJobToProvider } from '@/domains/remover/application/processing';
-import { resolveRemoverProviderAdapter } from '@/domains/remover/application/provider';
 import { getStorageService } from '@/infra/adapters/storage/service';
 import {
   createRemoverImageAssets,
@@ -26,7 +24,9 @@ import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { withApi } from '@/shared/lib/api/route';
 
 import { requireRemoverSite } from '../_lib/guard';
+import { resolveRemoverActor } from '../actor.server';
 import { acquireRemoverGuestIpLimit } from '../guest-ip-limit';
+import { resolveRemoverProviderAdapter } from '../provider-adapter.server';
 import { createRemoverJobsPostAction } from './action';
 
 const postAction = createRemoverJobsPostAction({

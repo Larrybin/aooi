@@ -1,18 +1,17 @@
 import 'server-only';
 
 import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
-import { getRuntimeEnvString } from '@/infra/runtime/env.server';
+import {
+  REMOVER_ANONYMOUS_SESSION_COOKIE,
+  resolveAnonymousSessionForRequest,
+} from '@/domains/remover/application/actor-session';
+import type { RemoverActor } from '@/domains/remover/domain/types';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
+import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 import { cookies } from 'next/headers';
 
 import { assertCsrf } from '@/shared/lib/api/csrf.server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
-
-import type { RemoverActor } from '../domain/types';
-import {
-  REMOVER_ANONYMOUS_SESSION_COOKIE,
-  resolveAnonymousSessionForRequest,
-} from './actor-session';
 
 const ANONYMOUS_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 

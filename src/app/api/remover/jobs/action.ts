@@ -1,10 +1,7 @@
 import type { ApiContext } from '@/app/api/_lib/context';
 import type { createQueuedRemoverJob } from '@/domains/remover/application/jobs';
 import type { submitRemoverJobToProvider } from '@/domains/remover/application/processing';
-import type {
-  RemoverProviderAdapter,
-  resolveRemoverProviderAdapter,
-} from '@/domains/remover/application/provider';
+import type { RemoverProviderAdapter } from '@/domains/remover/application/provider';
 import { serializeRemoverJobForClient } from '@/domains/remover/application/job-response';
 import type { RemoverActor } from '@/domains/remover/domain/types';
 
@@ -15,7 +12,7 @@ type JobsActionDeps = {
   createApiContext: (req: Request) => ApiContext;
   resolveActor: (req: Request) => Promise<RemoverActor>;
   createQueuedRemoverJob: typeof createQueuedRemoverJob;
-  resolveProviderAdapter: typeof resolveRemoverProviderAdapter;
+  resolveProviderAdapter: () => Promise<RemoverProviderAdapter>;
   submitRemoverJobToProvider: typeof submitRemoverJobToProvider;
   jobDeps: Parameters<typeof createQueuedRemoverJob>[0]['deps'];
   submitDeps: Omit<

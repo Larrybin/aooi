@@ -1,6 +1,4 @@
 import {
-  getCloudflareAIBinding,
-  getRuntimeEnvString,
   type CloudflareAIBinding,
 } from '@/infra/runtime/env.server';
 
@@ -15,8 +13,8 @@ import { getUuid } from '@/shared/lib/hash';
 
 import type { RemoverJobStatus } from '../domain/types';
 
-const CLOUDFLARE_WORKERS_AI_PROVIDER = 'cloudflare-workers-ai';
-const DEFAULT_CLOUDFLARE_INPAINTING_MODEL =
+export const CLOUDFLARE_WORKERS_AI_PROVIDER = 'cloudflare-workers-ai';
+export const DEFAULT_CLOUDFLARE_INPAINTING_MODEL =
   '@cf/runwayml/stable-diffusion-v1-5-inpainting';
 const MAX_PROVIDER_INPUT_BYTES = 25 * 1024 * 1024;
 const MAX_WORKERS_AI_OUTPUT_BYTES = 25 * 1024 * 1024;
@@ -304,40 +302,4 @@ export function createCloudflareWorkersAIRemoverAdapter({
       );
     },
   };
-}
-
-export async function resolveRemoverProviderAdapter() {
-  const providerName =
-    getRuntimeEnvString('REMOVER_AI_PROVIDER')?.trim() ||
-    CLOUDFLARE_WORKERS_AI_PROVIDER;
-  const configuredModel = getRuntimeEnvString('REMOVER_AI_MODEL')?.trim();
-  const model =
-    configuredModel ||
-    (providerName === CLOUDFLARE_WORKERS_AI_PROVIDER
-      ? DEFAULT_CLOUDFLARE_INPAINTING_MODEL
-      : '');
-  if (!model) {
-    throw new ServiceUnavailableError('REMOVER_AI_MODEL is not configured');
-  }
-
-  if (providerName === CLOUDFLARE_WORKERS_AI_PROVIDER) {
-    const ai = getCloudflareAIBinding();
-    if (!ai) {
-      throw new ServiceUnavailableError('Cloudflare Workers AI is not bound');
-    }
-
-    return createCloudflareWorkersAIRemoverAdapter({ ai, model });
-  }
-
-  const { getConfiguredAIService } =
-    await import('@/domains/ai/application/service');
-  const aiService = await getConfiguredAIService();
-  const provider = aiService.getProvider(providerName);
-  if (!provider) {
-    throw new ServiceUnavailableError(
-      `AI provider '${providerName}' is not configured`
-    );
-  }
-
-  return createAIProviderRemoverAdapter({ provider, model });
 }

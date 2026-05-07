@@ -3,44 +3,7 @@ import test from 'node:test';
 
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 
-import {
-  createCloudflareWorkersAIRemoverAdapter,
-  resolveRemoverProviderAdapter,
-} from './provider';
-
-function withRemoverProviderEnv(
-  env: {
-    provider?: string;
-    model?: string;
-  },
-  fn: () => Promise<void>
-) {
-  const previousProvider = process.env.REMOVER_AI_PROVIDER;
-  const previousModel = process.env.REMOVER_AI_MODEL;
-  if (env.provider === undefined) {
-    delete process.env.REMOVER_AI_PROVIDER;
-  } else {
-    process.env.REMOVER_AI_PROVIDER = env.provider;
-  }
-  if (env.model === undefined) {
-    delete process.env.REMOVER_AI_MODEL;
-  } else {
-    process.env.REMOVER_AI_MODEL = env.model;
-  }
-
-  return fn().finally(() => {
-    if (previousProvider === undefined) {
-      delete process.env.REMOVER_AI_PROVIDER;
-    } else {
-      process.env.REMOVER_AI_PROVIDER = previousProvider;
-    }
-    if (previousModel === undefined) {
-      delete process.env.REMOVER_AI_MODEL;
-    } else {
-      process.env.REMOVER_AI_MODEL = previousModel;
-    }
-  });
-}
+import { createCloudflareWorkersAIRemoverAdapter } from './provider';
 
 test('createCloudflareWorkersAIRemoverAdapter calls Workers AI with image and mask bytes', async () => {
   const calls: Array<{ model: string; inputs: Record<string, unknown> }> = [];
@@ -127,22 +90,4 @@ test('createCloudflareWorkersAIRemoverAdapter rejects oversized Workers AI respo
       }),
     /Workers AI output image is too large/
   );
-});
-
-test('resolveRemoverProviderAdapter defaults to Cloudflare Workers AI', async () => {
-  await withRemoverProviderEnv({}, async () => {
-    await assert.rejects(
-      () => resolveRemoverProviderAdapter(),
-      /Cloudflare Workers AI is not bound/
-    );
-  });
-});
-
-test('resolveRemoverProviderAdapter requires model for explicit non-Cloudflare provider', async () => {
-  await withRemoverProviderEnv({ provider: 'replicate' }, async () => {
-    await assert.rejects(
-      () => resolveRemoverProviderAdapter(),
-      /REMOVER_AI_MODEL is not configured/
-    );
-  });
 });

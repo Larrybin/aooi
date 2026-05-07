@@ -3,13 +3,11 @@ import {
   claimRemoverJobForActor,
   getRemoverJobForActor,
 } from '@/domains/remover/application/jobs';
-import { resolveRemoverActor } from '@/domains/remover/application/actor';
 import { storeRemoverOutputImage } from '@/domains/remover/application/output';
 import {
   refreshRemoverJobStatus,
   submitRemoverJobToProvider,
 } from '@/domains/remover/application/processing';
-import { resolveRemoverProviderAdapter } from '@/domains/remover/application/provider';
 import { getStorageService } from '@/infra/adapters/storage/service';
 import {
   claimRemoverImageAssetsByKeys,
@@ -31,6 +29,8 @@ import {
 import { withApi } from '@/shared/lib/api/route';
 
 import { requireRemoverSite } from '../../_lib/guard';
+import { resolveRemoverActor } from '../../actor.server';
+import { resolveRemoverProviderAdapter } from '../../provider-adapter.server';
 import { createRemoverJobGetAction } from './action';
 
 const getAction = createRemoverJobGetAction({

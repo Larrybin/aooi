@@ -8,7 +8,7 @@ import type {
   refreshRemoverJobStatus,
   submitRemoverJobToProvider,
 } from '@/domains/remover/application/processing';
-import type { resolveRemoverProviderAdapter } from '@/domains/remover/application/provider';
+import type { RemoverProviderAdapter } from '@/domains/remover/application/provider';
 import type { RemoverActor } from '@/domains/remover/domain/types';
 
 import { jsonOk } from '@/shared/lib/api/response';
@@ -19,7 +19,7 @@ type JobStatusActionDeps = {
   resolveActor: (req: Request) => Promise<RemoverActor>;
   getRemoverJobForActor: typeof getRemoverJobForActor;
   refreshRemoverJobStatus: typeof refreshRemoverJobStatus;
-  resolveProviderAdapter: typeof resolveRemoverProviderAdapter;
+  resolveProviderAdapter: () => Promise<RemoverProviderAdapter>;
   jobDeps: Parameters<typeof getRemoverJobForActor>[0]['deps'];
   claimDeps: Parameters<typeof claimRemoverJobForActor>[0]['deps'];
   claimRemoverJobForActor: typeof claimRemoverJobForActor;

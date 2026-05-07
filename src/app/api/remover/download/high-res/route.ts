@@ -1,5 +1,4 @@
 import { createApiContext } from '@/app/api/_lib/context';
-import { resolveRemoverActor } from '@/domains/remover/application/actor';
 import {
   reserveHighResDownloadQuota,
   resolveRemoverDownload,
@@ -15,6 +14,7 @@ import { getStorageService } from '@/infra/adapters/storage/service';
 import { withApi } from '@/shared/lib/api/route';
 
 import { requireRemoverSite } from '../../_lib/guard';
+import { resolveRemoverActor } from '../../actor.server';
 import { createRemoverDownloadPostAction } from '../action';
 
 const postAction = createRemoverDownloadPostAction(
