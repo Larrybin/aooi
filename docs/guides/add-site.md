@@ -208,6 +208,9 @@ sites/my-site/content/pages/
 {
   "configVersion": 1,
   "bindingRequirements": {
+    "bindings": {
+      "workersAi": false
+    },
     "secrets": {
       "authSharedSecret": true,
       "googleOauth": false,
@@ -240,6 +243,7 @@ sites/my-site/content/pages/
 
 字段规则：
 
+- `bindingRequirements.bindings.workersAi` 表示 app server workers 是否需要 Cloudflare Workers AI `[ai] binding = "AI"`。
 - `bindingRequirements.secrets.authSharedSecret`、`googleOauth`、`githubOauth` 是 operator-declared deploy requirements。
 - Email provider secret requirement 由 `site.config.json.capabilities.auth` 派生，不允许在 `deploy.settings.json` 里手写 `emailProvider`。
 - AI provider secret requirement 由 `site.config.json.capabilities.ai` 派生，不允许在 `deploy.settings.json` 里手写 `openrouter`。
@@ -298,6 +302,7 @@ SITE=my-site pnpm exec tsx scripts/upsert-configs.ts \
 | `bindingRequirements.secrets.authSharedSecret=true`  | `BETTER_AUTH_SECRET` 或 `AUTH_SECRET`                                  |
 | `capabilities.auth=true`                             | `RESEND_API_KEY`                                                       |
 | `bindingRequirements.vars.storagePublicBaseUrl=true` | `STORAGE_PUBLIC_BASE_URL`                                              |
+| `bindingRequirements.bindings.workersAi=true`        | Cloudflare Workers AI `[ai] binding = "AI"`                            |
 | `capabilities.ai=true`                               | `OPENROUTER_API_KEY`                                                   |
 | `capabilities.payment=stripe`                        | `STRIPE_PUBLISHABLE_KEY`、`STRIPE_SECRET_KEY`、`STRIPE_SIGNING_SECRET` |
 | `capabilities.payment=creem`                         | `CREEM_API_KEY`、`CREEM_SIGNING_SECRET`                                |

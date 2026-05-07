@@ -52,6 +52,12 @@ function sortObject(value) {
 function buildCanonicalBindingShape(contract) {
   return {
     bindingRequirements: {
+      bindings: Object.fromEntries(
+        Object.keys(contract.bindingRequirements.bindings).map((key) => [
+          key,
+          'boolean',
+        ])
+      ),
       secrets: Object.fromEntries(
         Object.keys(contract.bindingRequirements.secrets).map((key) => [
           key,

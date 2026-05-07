@@ -19,6 +19,7 @@ import {
   OrderStatus,
   updateOrderByOrderNo,
   type NewOrder,
+  type UpdateOrder,
 } from '@/domains/billing/infra/order';
 import type {
   BillingRuntimeSettings,
@@ -269,6 +270,15 @@ function buildPendingOrder({
   };
 }
 
+export function buildFailedCheckoutOrderUpdate(
+  checkoutOrder: PaymentOrder
+): UpdateOrder {
+  return {
+    status: OrderStatus.FAILED,
+    checkoutInfo: JSON.stringify(checkoutOrder),
+  };
+}
+
 export async function createPaymentCheckoutSession({
   pricingItem,
   user,
@@ -324,10 +334,12 @@ export async function createPaymentCheckoutSession({
     currency: pricingContext.checkoutCurrency,
   };
 
+  if (!checkoutPrice.amount || !checkoutPrice.currency) {
+    throw new BadRequestError('invalid checkout price');
+  }
+
   if (!paymentProductId) {
-    if (!checkoutPrice.amount || !checkoutPrice.currency) {
-      throw new BadRequestError('invalid checkout price');
-    }
+    throw new BadRequestError('payment product id is not configured');
   }
 
   const { callbackUrl, callbackBaseUrl } = buildCallbackUrl({
@@ -389,10 +401,10 @@ export async function createPaymentCheckoutSession({
 
     return result.checkoutInfo;
   } catch (e: unknown) {
-    await updateOrderByOrderNo(orderNo, {
-      status: OrderStatus.COMPLETED,
-      checkoutInfo: JSON.stringify(checkoutOrder),
-    });
+    await updateOrderByOrderNo(
+      orderNo,
+      buildFailedCheckoutOrderUpdate(checkoutOrder)
+    );
 
     log.error('payment: checkout failed', {
       orderNo,

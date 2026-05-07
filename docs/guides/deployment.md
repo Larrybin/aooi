@@ -79,7 +79,7 @@ Storage-related runtime bindings:
 
 - `NEXT_INC_CACHE_R2_BUCKET`: shared OpenNext ISR/data cache bucket
 - `APP_STORAGE_R2_BUCKET`: business upload bucket
-- `IMAGES`: router-side Cloudflare Images binding
+- `IMAGES`: router/public-web Cloudflare Images binding
 - `STORAGE_PUBLIC_BASE_URL`: public base URL for uploaded assets
 
 Do not put real database DSNs or secrets into tracked Wrangler templates.

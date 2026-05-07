@@ -14,11 +14,13 @@ test('site deploy settings 读取当前闭合 manifest', () => {
   });
 
   assert.equal(settings.configVersion, 1);
+  assert.equal(settings.bindingRequirements.bindings.workersAi, false);
   assert.equal(settings.bindingRequirements.secrets.authSharedSecret, true);
   assert.equal('emailProvider' in settings.bindingRequirements.secrets, false);
   assert.equal('openrouter' in settings.bindingRequirements.secrets, false);
   assert.equal(settings.bindingRequirements.secrets.googleOauth, false);
   assert.equal(settings.bindingRequirements.secrets.githubOauth, false);
+  assert.equal(settings.bindingRequirements.secrets.removerCleanup, false);
   assert.equal(settings.workers.router, 'roller-rabbit');
   assert.equal(settings.state.schemaVersion, 1);
 });
@@ -35,10 +37,14 @@ test('site deploy settings 拒绝未知嵌套字段', () => {
         {
           configVersion: 1,
           bindingRequirements: {
+            bindings: {
+              workersAi: false,
+            },
             secrets: {
               authSharedSecret: true,
               googleOauth: false,
               githubOauth: false,
+              removerCleanup: false,
               extraSecret: false,
             },
             vars: {
@@ -82,10 +88,14 @@ test('site deploy settings 不接受派生 secret requirement 双写字段', () 
         {
           configVersion: 1,
           bindingRequirements: {
+            bindings: {
+              workersAi: false,
+            },
             secrets: {
               authSharedSecret: true,
               googleOauth: false,
               githubOauth: false,
+              removerCleanup: false,
               emailProvider: true,
               stripe: true,
               openrouter: false,
@@ -137,10 +147,14 @@ test('site deploy settings allow site-specific capability-derived contract to st
   const settings = {
     configVersion: 1,
     bindingRequirements: {
+      bindings: {
+        workersAi: false,
+      },
       secrets: {
         authSharedSecret: true,
         googleOauth: false,
         githubOauth: false,
+        removerCleanup: false,
       },
       vars: {
         storagePublicBaseUrl: true,

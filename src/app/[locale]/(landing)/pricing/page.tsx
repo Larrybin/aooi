@@ -1,27 +1,57 @@
-// data: pricing translations + public configs + theme page
+// data: site-scoped pricing + theme page
 // cache: static (generateStaticParams) + cached public configs
 // reason: marketing pricing page should stay statically prerenderable
+import type { Metadata } from 'next';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
 import { getLocaleStaticParams } from '@/infra/platform/i18n/static-params';
-import { getMetadata } from '@/surfaces/public/seo/metadata';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import {
+  buildCanonicalUrl,
+  buildLanguageAlternates,
+  buildMetadataBaseUrl,
+} from '@/infra/url/canonical';
+import { site, sitePricing } from '@/site';
+import { setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
 
 import { locales } from '@/config/locale';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
-import type {
-  FAQ as FAQType,
-  Testimonials as TestimonialsType,
-} from '@/shared/types/blocks/landing';
-import type { Pricing as PricingType } from '@/shared/types/blocks/pricing';
+import type { SitePricing } from '@/shared/types/blocks/pricing';
 import PricingPageView from '@/themes/default/pages/pricing';
 
-export const generateMetadata = getMetadata({
-  metadataKey: 'pricing.metadata',
-  canonicalUrl: '/pricing',
-});
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+
+  const title = sitePricing?.metadata?.title ?? 'Pricing';
+  const description =
+    sitePricing?.metadata?.description ?? `Choose a ${site.brand.appName} plan.`;
+
+  return {
+    metadataBase: buildMetadataBaseUrl(),
+    title: {
+      absolute: title,
+    },
+    description,
+    alternates: {
+      canonical: buildCanonicalUrl('/pricing', locale),
+      languages: buildLanguageAlternates('/pricing'),
+    },
+    openGraph: {
+      type: 'website',
+      locale,
+      url: buildCanonicalUrl('/pricing', locale),
+      title,
+      description,
+      siteName: site.brand.appName,
+    },
+  };
+}
 
 export function generateStaticParams() {
   return getLocaleStaticParams(locales);
@@ -35,23 +65,15 @@ export default async function PricingPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // load landing data
-  const tl = await getTranslations('landing');
-  // loading pricing data
-  const t = await getTranslations('pricing');
+  if (!sitePricing) {
+    notFound();
+  }
 
   const brand = buildBrandPlaceholderValues();
-
-  // build sections
-  const pricing: PricingType = replaceBrandPlaceholdersDeep(
-    t.raw('pricing'),
+  const pricingContent = replaceBrandPlaceholdersDeep(
+    sitePricing,
     brand
-  );
-  const faq: FAQType = replaceBrandPlaceholdersDeep(tl.raw('faq'), brand);
-  const testimonials: TestimonialsType = replaceBrandPlaceholdersDeep(
-    tl.raw('testimonials'),
-    brand
-  );
+  ) as SitePricing;
 
   return (
     <ScopedIntlProvider
@@ -60,9 +82,9 @@ export default async function PricingPage({
     >
       <PricingPageView
         locale={locale}
-        pricing={pricing}
-        faq={faq}
-        testimonials={testimonials}
+        pricing={pricingContent.pricing}
+        faq={pricingContent.faq}
+        testimonials={pricingContent.testimonials}
       />
     </ScopedIntlProvider>
   );
