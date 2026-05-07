@@ -326,5 +326,98 @@
         "plan_name": "Premium"
       }
     ]
+  },
+  "faq": {
+    "id": "faq",
+    "title": "Questions founders usually ask before buying",
+    "description": "If you still need details, ask before you lose a week rebuilding the obvious parts.",
+    "tip": "Can't find what you're looking for? Contact our <a href='https://discord.gg/HQNnrzjZQS' target='_blank' rel='nofollow noopener noreferrer' class='text-primary font-medium hover:underline'>customer support team</a>",
+    "items": [
+      {
+        "question": "What exactly is Roller Rabbit and how does it work?",
+        "answer": "Roller Rabbit is a comprehensive Next.js boilerplate designed specifically for building AI SaaS startups. It provides ready-to-use templates, infrastructure setup, and deployment tools that help you launch your AI business in hours instead of days."
+      },
+      {
+        "question": "Do I need advanced technical skills to use Roller Rabbit?",
+        "answer": "While basic programming knowledge is helpful, Roller Rabbit is designed to be developer-friendly. Our templates and documentation make it easy to get started, even if you're not an expert in AI or cloud infrastructure."
+      },
+      {
+        "question": "What types of AI SaaS can I build with Roller Rabbit?",
+        "answer": "Roller Rabbit supports a wide range of AI applications, from content generation to data analysis tools. Our templates cover popular use cases like AI chatbots, content generators, image processing apps, and more."
+      },
+      {
+        "question": "How long does it typically take to launch with Roller Rabbit?",
+        "answer": "With Roller Rabbit, you can have a working prototype in hours and a production-ready application in hours. Our one-click deployment and pre-configured infrastructure significantly reduce the traditional months-long development cycle."
+      },
+      {
+        "question": "What's included in the Roller Rabbit infrastructure?",
+        "answer": "Roller Rabbit provides a complete infrastructure stack including authentication, database setup, API integration, payment processing, and scalable cloud deployment. Everything is pre-configured following industry best practices."
+      },
+      {
+        "question": "Can I customize the templates to match my brand?",
+        "answer": "Absolutely! All Roller Rabbit templates are fully customizable. You can modify the design, features, and functionality to match your brand identity and specific business requirements while maintaining the robust underlying infrastructure."
+      }
+    ]
+  },
+  "testimonials": {
+    "id": "testimonials",
+    "title": "What teams say after launch",
+    "description": "Founders use Roller Rabbit when they want the first shipped version to feel real, not provisional.",
+    "items": [
+      {
+        "name": "David Chen",
+        "role": "Founder of AIWallpaper.shop",
+        "quote": "Roller Rabbit saved us months of development time. We launched our AI wallpaper business in just 2 days and got our first paying customer within a week!",
+        "image": {
+          "src": "/imgs/avatars/1.png",
+          "alt": "david"
+        }
+      },
+      {
+        "name": "Rachel Kim",
+        "role": "CTO at HeyBeauty.ai",
+        "quote": "The pre-built AI infrastructure is a game-changer. We didn't have to worry about architecture - just focused on our AI beauty tech and went live fast.",
+        "image": {
+          "src": "/imgs/avatars/2.png",
+          "alt": "rachel"
+        }
+      },
+      {
+        "name": "Marcus Thompson",
+        "role": "Solo Developer",
+        "quote": "As a solo developer, Roller Rabbit gave me everything I needed - auth, payments, AI integration, and beautiful UI. Launched my SaaS in a weekend!",
+        "image": {
+          "src": "/imgs/avatars/3.png",
+          "alt": "marcus"
+        }
+      },
+      {
+        "name": "Sofia Garcia",
+        "role": "CEO of Melodisco",
+        "quote": "The templates are production-ready and highly customizable. We built our AI music platform in hours instead of months. Incredible time-to-market!",
+        "image": {
+          "src": "/imgs/avatars/4.png",
+          "alt": "sofia"
+        }
+      },
+      {
+        "name": "James Wilson",
+        "role": "Tech Lead at GPTs.works",
+        "quote": "Roller Rabbit's infrastructure is rock-solid. We scaled from 0 to 10k users without touching the backend. Best investment for our AI startup.",
+        "image": {
+          "src": "/imgs/avatars/5.png",
+          "alt": "james"
+        }
+      },
+      {
+        "name": "Anna Zhang",
+        "role": "Startup Founder",
+        "quote": "From idea to launch in 3 days! Roller Rabbit's templates and deployment tools made it possible to test our AI business concept incredibly fast.",
+        "image": {
+          "src": "/imgs/avatars/6.png",
+          "alt": "anna"
+        }
+      }
+    ]
   }
 }

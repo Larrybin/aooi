@@ -79,6 +79,8 @@ async function readSitePricingFile(siteKey: string) {
     'utf8'
   );
   return JSON.parse(source) as {
+    faq?: unknown;
+    testimonials?: unknown;
     pricing: {
       groups?: Array<{ name?: string }>;
       items: Array<{ product_id: string }>;
@@ -99,6 +101,20 @@ async function readLegacyEnglishPricingMessages() {
       groups?: Array<{ name?: string }>;
       items: Array<{ product_id: string }>;
     };
+  };
+}
+
+async function readLegacyEnglishLandingMessages() {
+  const source = await readFile(
+    path.resolve(
+      process.cwd(),
+      'src/config/locale/messages/en/landing.json'
+    ),
+    'utf8'
+  );
+  return JSON.parse(source) as {
+    faq?: unknown;
+    testimonials?: unknown;
   };
 }
 
@@ -145,6 +161,7 @@ test('@/site: SITE=ai-remover exports site-scoped pricing', async () => {
 
 test('existing sites keep the full legacy pricing catalog after migration', async () => {
   const legacyEnglishPricingMessages = await readLegacyEnglishPricingMessages();
+  const legacyEnglishLandingMessages = await readLegacyEnglishLandingMessages();
   const legacyPricing = legacyEnglishPricingMessages.pricing;
   const expectedGroups = legacyPricing.groups?.map((group) => group.name);
   const expectedProductIds = legacyPricing.items.map((item) => item.product_id);
@@ -159,6 +176,11 @@ test('existing sites keep the full legacy pricing catalog after migration', asyn
     assert.deepEqual(
       sitePricing.pricing.items.map((item) => item.product_id),
       expectedProductIds
+    );
+    assert.deepEqual(sitePricing.faq, legacyEnglishLandingMessages.faq);
+    assert.deepEqual(
+      sitePricing.testimonials,
+      legacyEnglishLandingMessages.testimonials
     );
   }
 });
