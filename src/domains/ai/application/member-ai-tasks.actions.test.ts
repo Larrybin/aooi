@@ -3,6 +3,18 @@ import test from 'node:test';
 
 import { refreshMemberAiTaskUseCase } from './member-ai-tasks.actions';
 
+function createTaskCreditDeps(refunds: string[] = []) {
+  return {
+    refundConsumedCreditById: async (creditId: string) => {
+      refunds.push(creditId);
+      return { refunded: true as const };
+    },
+    log: {
+      error: () => undefined,
+    },
+  };
+}
+
 test('refreshMemberAiTaskUseCase 对不存在或越权任务返回 hidden', async () => {
   assert.deepEqual(
     await refreshMemberAiTaskUseCase(
@@ -11,6 +23,7 @@ test('refreshMemberAiTaskUseCase 对不存在或越权任务返回 hidden', asyn
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () => undefined as never,
         updateAITaskById: async () => {
           throw new Error('should not update');
@@ -28,6 +41,7 @@ test('refreshMemberAiTaskUseCase 对不存在或越权任务返回 hidden', asyn
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -54,6 +68,7 @@ test('refreshMemberAiTaskUseCase 对 provider 缺失返回 invalid_provider', as
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -80,6 +95,7 @@ test('refreshMemberAiTaskUseCase 对不支持 query 的 provider 返回 query_fa
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -115,6 +131,7 @@ test('refreshMemberAiTaskUseCase 对 pending/processing 查询 provider 并更�
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -143,6 +160,11 @@ test('refreshMemberAiTaskUseCase 对 pending/processing 查询 provider 并更�
 
   assert.equal(updates.length, 1);
   assert.equal(updates[0]?.id, 'task_1');
+  assert.deepEqual(updates[0]?.update, {
+    status: 'success',
+    taskInfo: JSON.stringify({ foo: 'bar' }),
+    taskResult: JSON.stringify({ id: 'result_1' }),
+  });
 });
 
 test('refreshMemberAiTaskUseCase 在 provider 只返回 taskStatus 时仍更新状态并清空 taskInfo/taskResult', async () => {
@@ -155,6 +177,7 @@ test('refreshMemberAiTaskUseCase 在 provider 只返回 taskStatus 时仍更新�
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -187,8 +210,58 @@ test('refreshMemberAiTaskUseCase 在 provider 只返回 taskStatus 时仍更新�
     status: 'success',
     taskInfo: null,
     taskResult: null,
-    creditId: 'credit_1',
   });
+});
+
+test('refreshMemberAiTaskUseCase 在 provider 失败状态下显式退款且更新不携带 creditId', async () => {
+  const refunds: string[] = [];
+  const updates: Array<{ id: string; update: Record<string, unknown> }> = [];
+
+  assert.deepEqual(
+    await refreshMemberAiTaskUseCase(
+      {
+        taskId: 'task_1',
+        actorUserId: 'user_1',
+      },
+      {
+        ...createTaskCreditDeps(refunds),
+        findAITaskById: async () =>
+          ({
+            id: 'task_1',
+            userId: 'user_1',
+            taskId: 'provider_task_1',
+            provider: 'kie',
+            status: 'processing',
+            taskInfo: null,
+            taskResult: null,
+            creditId: 'credit_1',
+          }) as never,
+        updateAITaskById: async (id, update) => {
+          updates.push({ id, update: update as Record<string, unknown> });
+          return { id, ...update } as never;
+        },
+        getProvider: async () =>
+          ({
+            query: async () => ({
+              taskStatus: 'failed',
+            }),
+          }) as never,
+      }
+    ),
+    { status: 'ok' }
+  );
+
+  assert.deepEqual(refunds, ['credit_1']);
+  assert.deepEqual(updates, [
+    {
+      id: 'task_1',
+      update: {
+        status: 'failed',
+        taskInfo: null,
+        taskResult: null,
+      },
+    },
+  ]);
 });
 
 test('refreshMemberAiTaskUseCase 在 provider 返回无效 payload 时返回 query_failed', async () => {
@@ -199,6 +272,7 @@ test('refreshMemberAiTaskUseCase 在 provider 返回无效 payload 时返回 que
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -231,6 +305,7 @@ test('refreshMemberAiTaskUseCase 在 provider query 抛错时返回 query_failed
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',
@@ -265,6 +340,7 @@ test('refreshMemberAiTaskUseCase 对非待处理状态不查询 provider', async
         actorUserId: 'user_1',
       },
       {
+        ...createTaskCreditDeps(),
         findAITaskById: async () =>
           ({
             id: 'task_1',

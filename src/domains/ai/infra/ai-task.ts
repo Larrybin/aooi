@@ -21,7 +21,13 @@ export type AITask = typeof aiTask.$inferSelect & {
   user?: User;
 };
 export type NewAITask = typeof aiTask.$inferInsert;
-export type UpdateAITask = Partial<Omit<NewAITask, 'id' | 'createdAt'>>;
+export type UpdateAITask = Partial<
+  Omit<NewAITask, 'id' | 'createdAt' | 'creditId'>
+>;
+
+type TransitionalUpdateAITask = UpdateAITask & {
+  creditId?: string | null;
+};
 
 export async function createAITask(newAITask: NewAITask) {
   const result = await db().transaction(async (tx) => {
@@ -65,14 +71,18 @@ export async function findAITaskById(id: string) {
 
 export async function updateAITaskById(id: string, updateAITask: UpdateAITask) {
   const result = await db().transaction(async (tx) => {
-    // task failed, Revoke credit consumption record
-    if (updateAITask.status === AITaskStatus.FAILED && updateAITask.creditId) {
-      const refund = await refundConsumedCreditById(updateAITask.creditId, tx);
+    const transitionalCreditId = (updateAITask as TransitionalUpdateAITask)
+      .creditId;
+
+    // Transitional fallback for stale untyped callers. New typed callers cannot
+    // pass creditId here; failed-task refunds belong in application orchestration.
+    if (updateAITask.status === AITaskStatus.FAILED && transitionalCreditId) {
+      const refund = await refundConsumedCreditById(transitionalCreditId, tx);
       if (!refund.refunded && refund.reason === 'invalid_consumed_detail') {
         log.error('credit: invalid consumedDetail payload, skip refund', {
           operation: 'refund-failed-task-credit',
           aiTaskId: id,
-          creditId: updateAITask.creditId,
+          creditId: transitionalCreditId,
         });
       }
     }

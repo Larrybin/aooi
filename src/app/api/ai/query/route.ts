@@ -1,5 +1,9 @@
 import type { createApiContext } from '@/app/api/_lib/context';
 import type { getAIService as getAIServiceFn } from '@/domains/ai/application/service';
+import {
+  refundFailedAITaskCredit,
+  type RefundConsumedCreditById,
+} from '@/domains/ai/application/task-credit-refund';
 import type { UpdateAITask } from '@/domains/ai/infra/ai-task';
 import type {
   AiProviderBindings,
@@ -52,6 +56,7 @@ type AiQueryRouteDeps = {
     id: string,
     updateAITask: UpdateAITask
   ) => Promise<unknown>;
+  refundConsumedCreditById: RefundConsumedCreditById;
   readAiRuntimeSettings: (
     mode: ConfigConsistencyMode
   ) => Promise<AiRuntimeSettings>;
@@ -91,6 +96,10 @@ function getDefaultAiQueryRouteDeps(): AiQueryRouteDeps {
     updateAITaskById: async (id, updateAITask) => {
       const mod = await import('@/domains/ai/infra/ai-task');
       return await mod.updateAITaskById(id, updateAITask);
+    },
+    refundConsumedCreditById: async (creditId) => {
+      const mod = await import('@/domains/account/infra/credit');
+      return await mod.refundConsumedCreditById(creditId);
     },
     readAiRuntimeSettings: async (_mode) => {
       const mod =
@@ -217,7 +226,6 @@ function buildAiQueryPostLogic(overrides: Partial<AiQueryRouteDeps> = {}) {
       status: result.taskStatus,
       taskInfo: nextTaskInfo,
       taskResult: nextTaskResult,
-      creditId: task.creditId, // credit consumption record id
     };
 
     const shouldUpdate =
@@ -226,6 +234,12 @@ function buildAiQueryPostLogic(overrides: Partial<AiQueryRouteDeps> = {}) {
       updateAITask.taskResult !== task.taskResult;
 
     if (shouldUpdate) {
+      if (updateAITask.status === AITaskStatus.FAILED) {
+        await refundFailedAITaskCredit(
+          { taskId: task.id, creditId: task.creditId, log },
+          { refundConsumedCreditById: deps.refundConsumedCreditById }
+        );
+      }
       await deps.updateAITaskById(task.id, updateAITask);
     }
 

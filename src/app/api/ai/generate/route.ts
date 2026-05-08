@@ -1,5 +1,6 @@
 import { createApiContext } from '@/app/api/_lib/context';
 import { requireAiEnabled } from '@/app/api/ai/_lib/guard';
+import { refundConsumedCreditById } from '@/domains/account/infra/credit';
 import { resolveConfiguredAICapability } from '@/domains/ai/application/capabilities';
 import { getAiProviderBindings } from '@/domains/ai/application/provider-bindings';
 import { getAIService } from '@/domains/ai/application/service';
@@ -9,11 +10,11 @@ import { readAiRuntimeSettingsCached } from '@/domains/settings/application/sett
 import { withApi } from '@/shared/lib/api/route';
 import { getUuid } from '@/shared/lib/hash';
 
-import { createAiGeneratePostAction } from './create-handler';
 import {
   getAiNotifyWebhookSecret,
   signAiNotifyCallback,
 } from '../notify/signature';
+import { createAiGeneratePostAction } from './create-handler';
 
 export const POST = withApi(
   createAiGeneratePostAction({
@@ -25,6 +26,7 @@ export const POST = withApi(
     resolveConfiguredAICapability,
     createAITask,
     updateAITaskById,
+    refundConsumedCreditById,
     getUuid,
     getAiNotifyWebhookSecret,
     signAiNotifyCallback,
