@@ -367,6 +367,16 @@ SITE=my-site pnpm cf:deploy
 SITE=my-site pnpm test:cf-app-smoke
 ```
 
+如果需要 workers.dev staging runtime，不要创建 `my-site-preview` 站点。添加
+`sites/my-site/deploy.preview.settings.json`，只放 preview Hyperdrive ID，然
+后使用 preview profile：
+
+```bash
+SITE=my-site CF_WORKERS_DEV_SUBDOMAIN=<subdomain> CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true pnpm cf:preview:deploy:state
+SITE=my-site CF_WORKERS_DEV_SUBDOMAIN=<subdomain> CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true pnpm cf:preview:bootstrap
+SITE=my-site CF_WORKERS_DEV_SUBDOMAIN=<subdomain> pnpm cf:preview:deploy
+```
+
 部署前需要确保：
 
 - operator 机器上的 Wrangler OAuth 已登录，并且 `pnpm exec wrangler whoami` 通过。

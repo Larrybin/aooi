@@ -259,6 +259,32 @@ SITE=ai-remover pnpm cf:deploy:state
 SITE=ai-remover pnpm cf:deploy
 ```
 
+For a real staging runtime on workers.dev, use the preview deploy profile.
+Preview is not a separate `SITE`; it is `SITE=ai-remover` plus
+`CF_DEPLOY_PROFILE=preview`.
+
+Before the first preview deploy, replace
+`sites/ai-remover/deploy.preview.settings.json` with the preview Hyperdrive ID.
+The file intentionally contains only the preview Hyperdrive overlay; preview
+worker names, R2 bucket names, and app origin are derived automatically.
+
+First preview deploy:
+
+```bash
+SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true pnpm cf:preview:deploy:state
+SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true pnpm cf:preview:bootstrap
+```
+
+Later preview updates:
+
+```bash
+SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> pnpm cf:preview:deploy
+```
+
+`CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true` is only a deployment convenience for
+missing staging secrets. OAuth, auth, payment, email, cleanup, and AI flows are
+not accepted until their real staging values are configured.
+
 For later production releases, prefer:
 
 ```bash

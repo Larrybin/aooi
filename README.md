@@ -167,6 +167,11 @@ bindings in Cloudflare; do not put secrets in `site.config.json`,
 Cloudflare commands live in the
 [Deployment Guide](docs/guides/deployment.md).
 
+Cloudflare preview deploys use the same `SITE=<site-key>` plus
+`CF_DEPLOY_PROFILE=preview`. Preview is a deploy profile, not a separate site.
+Use it when local Cloudflare topology is not enough and you need a real
+workers.dev runtime before production.
+
 ## Bundle 分析
 
 使用分析构建（与现有 build 包装器一致）：
