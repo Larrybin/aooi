@@ -14,6 +14,10 @@ test('package cf:deploy:state 只跑 state-scoped check 且不串完整 cf:build
   const command = manifest.scripts['cf:deploy:state'];
 
   assert.match(command, /check-cloudflare-config\.mjs --workers=state/);
+  assert.match(
+    command,
+    /run-with-site\.mjs node --import tsx scripts\/run-cf-state-deploy\.mjs/
+  );
   assert.doesNotMatch(command, /pnpm cf:check(?!-)/);
   assert.doesNotMatch(command, /pnpm cf:build/);
 });

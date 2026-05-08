@@ -114,6 +114,26 @@ function upsertTomlTableStringValue(content, tableName, key, value) {
   return lines.join('\n');
 }
 
+function upsertTopLevelBooleanValue(content, key, value) {
+  const entryLine = `${key} = ${value ? 'true' : 'false'}`;
+  const pattern = new RegExp(`^\\s*${key}\\s*=\\s*(true|false)`, 'm');
+  if (pattern.test(content)) {
+    return content.replace(pattern, entryLine);
+  }
+
+  const lines = content.split('\n');
+  const firstTableIndex = lines.findIndex((line) =>
+    line.trim().startsWith('[')
+  );
+  if (firstTableIndex === -1) {
+    lines.push(entryLine);
+    return lines.join('\n');
+  }
+
+  lines.splice(firstTableIndex, 0, entryLine);
+  return lines.join('\n');
+}
+
 function replaceOrInsertArrayTable(content, tableName, rows) {
   const pattern = new RegExp(
     String.raw`\n?\[\[${tableName}\]\]\s*[\s\S]*?(?=\n\[\[|\n\[[^\[]|$)`,
@@ -339,12 +359,15 @@ function applyWorkerSpecificBindings(content, contract, workerSlot) {
   );
 
   if (workerSlot === 'router') {
-    nextContent = replaceOrInsertArrayTable(nextContent, 'routes', [
-      {
-        pattern: contract.route.pattern,
-        custom_domain: String(contract.route.customDomain),
-      },
-    ]).replace(/custom_domain = "true"/g, 'custom_domain = true');
+    nextContent =
+      contract.route.mode === 'workers-dev'
+        ? replaceOrInsertArrayTable(nextContent, 'routes', [])
+        : replaceOrInsertArrayTable(nextContent, 'routes', [
+            {
+              pattern: contract.route.pattern,
+              custom_domain: String(contract.route.customDomain),
+            },
+          ]).replace(/custom_domain = "true"/g, 'custom_domain = true');
 
     nextContent = replaceOrInsertArrayTable(
       nextContent,
@@ -416,6 +439,16 @@ function applyWorkerSpecificBindings(content, contract, workerSlot) {
   );
   nextContent = replaceOrInsertAiBinding(nextContent, requiresWorkersAi);
   nextContent = replaceOrInsertCronTriggers(nextContent, cleanupCrons);
+  nextContent = upsertTopLevelBooleanValue(
+    nextContent,
+    'workers_dev',
+    workerSlot === 'router' && contract.route.mode === 'workers-dev'
+  );
+  nextContent = upsertTopLevelBooleanValue(
+    nextContent,
+    'preview_urls',
+    workerSlot === 'router' && contract.route.mode === 'workers-dev'
+  );
 
   return nextContent;
 }

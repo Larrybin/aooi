@@ -4,7 +4,9 @@ import test from 'node:test';
 import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 import {
   readSiteDeploySettings,
+  readSitePreviewDeploySettings,
   validateSiteDeploySettings,
+  validateSitePreviewDeploySettings,
 } from '../../scripts/lib/site-deploy-settings.mjs';
 
 test('site deploy settings 读取当前闭合 manifest', () => {
@@ -23,6 +25,33 @@ test('site deploy settings 读取当前闭合 manifest', () => {
   assert.equal(settings.bindingRequirements.secrets.removerCleanup, false);
   assert.equal(settings.workers.router, 'roller-rabbit');
   assert.equal(settings.state.schemaVersion, 1);
+});
+
+test('site deploy preview settings 只接受 Hyperdrive overlay', () => {
+  const settings = readSitePreviewDeploySettings({
+    rootDir: process.cwd(),
+    siteKey: 'ai-remover',
+  });
+
+  assert.equal(settings.configVersion, 1);
+  assert.equal(
+    settings.resources.hyperdriveId,
+    '00000000000000000000000000000003'
+  );
+});
+
+test('site deploy preview settings 拒绝非 Hyperdrive 字段', () => {
+  assert.throws(
+    () =>
+      validateSitePreviewDeploySettings({
+        configVersion: 1,
+        resources: {
+          hyperdriveId: '00000000000000000000000000000003',
+          appStorageBucket: 'preview-storage',
+        },
+      }),
+    /preview settings\.resources must contain exactly/i
+  );
 });
 
 test('site deploy settings 拒绝未知嵌套字段', () => {

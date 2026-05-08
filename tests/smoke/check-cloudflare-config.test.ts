@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -71,6 +72,18 @@ async function copySiteFixture(tempDir: string, siteKey: string) {
     path.join(rootDir, 'sites', siteKey, 'deploy.settings.json'),
     path.join(targetDir, 'deploy.settings.json')
   );
+  const previewSettingsPath = path.join(
+    rootDir,
+    'sites',
+    siteKey,
+    'deploy.preview.settings.json'
+  );
+  if (existsSync(previewSettingsPath)) {
+    await cp(
+      previewSettingsPath,
+      path.join(targetDir, 'deploy.preview.settings.json')
+    );
+  }
 }
 
 async function withFixture(
@@ -228,6 +241,31 @@ test('cf:check 在仅设置 BETTER_AUTH_SECRET 时通过 auth shared secret requ
     });
 
     assert.equal(result.ok, true, result.stderr);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check preview profile 使用 workers.dev router 且允许 placeholder secrets', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await copySiteFixture(fixtureDir, 'ai-remover');
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=router,public-web'],
+      env: {
+        SITE: 'ai-remover',
+        CF_DEPLOY_PROFILE: 'preview',
+        CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+        CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS: 'true',
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+    assert.match(result.stdout, /workers: router, public-web/);
   } finally {
     await fixture.cleanup();
   }

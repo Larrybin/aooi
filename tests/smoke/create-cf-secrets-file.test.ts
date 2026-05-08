@@ -116,6 +116,70 @@ test('buildCloudflareSecretsEnv 在 server worker 缺少 auth secret 时失败',
   );
 });
 
+test('buildCloudflareSecretsEnv 仅在 preview profile 允许缺失 secret 占位', () => {
+  const runtimeSettings = {
+    secrets: {
+      authSharedSecret: true,
+      googleOauth: true,
+      githubOauth: false,
+      emailProvider: true,
+      openrouter: false,
+      removerCleanup: false,
+    },
+    vars: {
+      storagePublicBaseUrl: false,
+    },
+    payment: {
+      provider: null,
+    },
+  };
+
+  const content = buildCloudflareSecretsEnv(
+    {
+      SITE: 'ai-remover',
+      CF_DEPLOY_PROFILE: 'preview',
+      CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS: 'true',
+    },
+    {
+      workerKeys: ['auth'],
+      runtimeSettings,
+    }
+  );
+
+  assert.match(
+    content,
+    /BETTER_AUTH_SECRET=preview-placeholder-auth-shared-secret-not-for-production/
+  );
+  assert.match(
+    content,
+    /AUTH_SECRET=preview-placeholder-auth-shared-secret-not-for-production/
+  );
+  assert.match(
+    content,
+    /GOOGLE_CLIENT_ID=preview-placeholder-google-client-id-not-for-production/
+  );
+  assert.match(
+    content,
+    /RESEND_API_KEY=preview-placeholder-resend-api-key-not-for-production/
+  );
+
+  assert.throws(
+    () =>
+      buildCloudflareSecretsEnv(
+        {
+          SITE: 'ai-remover',
+          CF_DEPLOY_PROFILE: 'production',
+          CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS: 'true',
+        },
+        {
+          workerKeys: ['auth'],
+          runtimeSettings,
+        }
+      ),
+    /BETTER_AUTH_SECRET or AUTH_SECRET/i
+  );
+});
+
 test('buildCloudflareSecretsEnv 在 auth/admin worker 缺少 RESEND_API_KEY 时失败', () => {
   assert.throws(
     () =>

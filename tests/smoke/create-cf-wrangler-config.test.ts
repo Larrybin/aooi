@@ -13,6 +13,14 @@ const aiRemoverContract = resolveSiteDeployContract({
   rootDir: process.cwd(),
   siteKey: 'ai-remover',
 });
+const aiRemoverPreviewContract = resolveSiteDeployContract({
+  rootDir: process.cwd(),
+  siteKey: 'ai-remover',
+  deployProfile: 'preview',
+  processEnv: {
+    CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+  },
+});
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -128,6 +136,127 @@ ADMIN_WORKER_NAME = ""
   );
   assert.match(config, /\[dev\][\s\S]*host = "127\.0\.0\.1"/);
   assert.match(config, /\[dev\][\s\S]*upstream_protocol = "http"/);
+});
+
+test('buildCloudflareWranglerConfig 为 preview router 启用 workers.dev 且不生成 routes', () => {
+  const template = `
+name = "router-template"
+main = "cloudflare/workers/router.ts"
+workers_dev = false
+preview_urls = false
+
+[assets]
+directory = ".open-next/assets"
+
+[images]
+binding = "IMAGES"
+
+[[routes]]
+pattern = "old.example.com"
+custom_domain = true
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "d208cd72765b46a7b0849fc687e2fb61"
+localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
+
+[vars]
+DEPLOY_TARGET = "cloudflare"
+NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
+`;
+
+  const config = buildCloudflareWranglerConfig({
+    template,
+    contract: aiRemoverPreviewContract,
+    workerSlot: 'router',
+    templatePath: '/repo/wrangler.cloudflare.toml',
+    outputPath: '/repo/.tmp/router.toml',
+  });
+
+  assert.match(config, /name = "aooi-ai-remover-preview-router"/);
+  assert.match(config, /workers_dev = true/);
+  assert.match(config, /preview_urls = true/);
+  assert.doesNotMatch(config, /\[\[routes\]\]/);
+  assert.match(
+    config,
+    /NEXT_PUBLIC_APP_URL = "https:\/\/aooi-ai-remover-preview-router\.aooi-preview\.workers\.dev"/
+  );
+});
+
+test('buildCloudflareWranglerConfig 为 preview server worker 仍禁用 workers.dev', () => {
+  const template = `
+name = "public-web-template"
+main = "workers/server-public-web.ts"
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = "../.open-next/assets"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "placeholder-cache"
+
+[[r2_buckets]]
+binding = "APP_STORAGE_R2_BUCKET"
+bucket_name = "placeholder-storage"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "placeholder-router"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "d208cd72765b46a7b0849fc687e2fb61"
+localConnectionString = ""
+
+[[durable_objects.bindings]]
+name = "STATEFUL_LIMITERS"
+class_name = "StatefulLimitersDurableObject"
+script_name = "placeholder-state"
+
+[observability]
+enabled = true
+
+[vars]
+DEPLOY_TARGET = "cloudflare"
+NEXT_PUBLIC_APP_URL = "https://example.com"
+STORAGE_PUBLIC_BASE_URL = ""
+`;
+
+  const config = buildCloudflareWranglerConfig({
+    template,
+    contract: aiRemoverPreviewContract,
+    workerSlot: 'public-web',
+    templatePath: '/repo/cloudflare/wrangler.server-public-web.toml',
+    outputPath: '/repo/.tmp/server/default.toml',
+  });
+
+  assert.match(config, /name = "aooi-ai-remover-preview-public-web"/);
+  assert.match(config, /workers_dev = false/);
+  assert.match(config, /preview_urls = false/);
+  assert.doesNotMatch(config, /\[\[routes\]\]/);
 });
 
 test('buildCloudflareWranglerConfig 为 server 模板重写相对 main 与 assets 路径', () => {

@@ -32,7 +32,26 @@ test('package cf:deploy:app 只跑 app-scoped check', async () => {
   const command = manifest.scripts['cf:deploy:app'];
 
   assert.match(command, /pnpm cf:check -- --workers=app/);
+  assert.match(
+    command,
+    /run-with-site\.mjs node --import tsx scripts\/run-cf-app-deploy\.mjs/
+  );
   assert.doesNotMatch(command, /pnpm cf:check &&/);
+});
+
+test('package exposes Cloudflare preview deploy scripts', async () => {
+  const manifest = JSON.parse(await readFile('package.json', 'utf8')) as {
+    scripts: Record<string, string>;
+  };
+
+  assert.equal(
+    manifest.scripts['cf:preview:check'],
+    'CF_DEPLOY_PROFILE=preview pnpm cf:check'
+  );
+  assert.equal(
+    manifest.scripts['cf:preview:bootstrap'],
+    'CF_DEPLOY_PROFILE=preview CF_DEPLOY_BOOTSTRAP_MISSING=true pnpm cf:deploy'
+  );
 });
 
 test('buildRouterDeployConfigContent 将 router 入口、assets 与 version ids 改写为部署态配置', async () => {
@@ -347,5 +366,77 @@ test('deployCloudflareApp 在缺少部署版本时直接失败并要求先跑 st
         },
       }),
     /Run "pnpm cf:deploy:state" first, then run "pnpm cf:deploy:app" or "pnpm cf:deploy"/i
+  );
+});
+
+test('deployCloudflareApp 在 production 下禁止 bootstrap missing app workers', async () => {
+  await assert.rejects(
+    () =>
+      deployCloudflareApp({
+        contract,
+        processEnv: {
+          CF_DEPLOY_BOOTSTRAP_MISSING: 'true',
+        },
+        async collectCurrentVersionsImpl() {
+          throw new Error('should not inspect current versions');
+        },
+      }),
+    /only allowed with CF_DEPLOY_PROFILE=preview/i
+  );
+});
+
+test('deployCloudflareApp 在 preview bootstrap flag 下初始化缺失 app workers', async () => {
+  const calls: Array<['bootstrap', unknown]> = [];
+  const previewContract = {
+    ...contract,
+    deployProfile: 'preview',
+  };
+
+  await deployCloudflareApp({
+    contract: previewContract,
+    processEnv: {
+      CF_DEPLOY_BOOTSTRAP_MISSING: 'true',
+    },
+    async collectCurrentVersionsImpl() {
+      return {
+        router: null,
+        servers: Object.fromEntries(
+          CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [target, null])
+        ),
+      };
+    },
+    async deployInitialAppTopologyImpl(resolvedContract) {
+      calls.push(['bootstrap', resolvedContract]);
+    },
+    async deploySteadyStateImpl() {
+      throw new Error('should not reach steady-state deploy');
+    },
+  });
+
+  assert.deepEqual(calls, [['bootstrap', previewContract]]);
+});
+
+test('deployCloudflareApp 在 preview 但没有 bootstrap flag 时仍要求已有 workers', async () => {
+  await assert.rejects(
+    () =>
+      deployCloudflareApp({
+        contract: {
+          ...contract,
+          deployProfile: 'preview',
+        },
+        processEnv: {},
+        async collectCurrentVersionsImpl() {
+          return {
+            router: null,
+            servers: Object.fromEntries(
+              CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => [
+                target,
+                null,
+              ])
+            ),
+          };
+        },
+      }),
+    /Run "pnpm cf:preview:deploy:state" first, then run "pnpm cf:preview:bootstrap"/i
   );
 });
