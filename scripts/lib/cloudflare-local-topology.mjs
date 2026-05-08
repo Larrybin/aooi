@@ -234,6 +234,27 @@ export async function prepareCloudflareLocalTopologyArtifacts({
   await writeFile(routerConfigPath, routerConfig, 'utf8');
   await mkdir(persistDir, { recursive: true });
 
+  const stateTemplatePath = path.resolve(
+    rootDir,
+    contract.stateWorker.wranglerConfigRelativePath
+  );
+  const stateTemplate = await readFile(stateTemplatePath, 'utf8');
+  const stateConfigPath = path.join(tempDir, 'wrangler.state.local.toml');
+  const stateConfig = buildCloudflareWranglerConfig({
+    template: stateTemplate,
+    contract,
+    workerSlot: 'state',
+    appUrl: ports.routerBaseUrl,
+    storagePublicBaseUrl,
+    deployTarget: 'cloudflare',
+    devHost: routerDevOrigin.hostname,
+    devUpstreamProtocol: routerDevOrigin.protocol.replace(/:$/, ''),
+    templatePath: stateTemplatePath,
+    outputPath: stateConfigPath,
+    validateTemplateContract: true,
+  });
+  await writeFile(stateConfigPath, stateConfig, 'utf8');
+
   const serverWorkers = [];
   for (const [target, metadata] of Object.entries(contract.serverWorkers)) {
     const templatePath = path.resolve(
@@ -286,9 +307,15 @@ export async function prepareCloudflareLocalTopologyArtifacts({
       port: ports.routerPort,
       baseUrl: ports.routerBaseUrl,
     },
+    stateWorker: {
+      label: 'Cloudflare state worker',
+      configPath: stateConfigPath,
+      workerName: contract.stateWorker.workerName,
+    },
     serverWorkers,
     wranglerConfigPaths: [
       routerConfigPath,
+      stateConfigPath,
       ...serverWorkers.map((worker) => worker.configPath),
     ],
     devVars,
