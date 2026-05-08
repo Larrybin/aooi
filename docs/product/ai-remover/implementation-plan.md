@@ -135,13 +135,13 @@ Current implementation note:
   assets; guest low-res downloads use the thumbnail key, while high-res
   downloads remain quota-gated.
 - Runtime spike command:
-  `SITE=ai-remover pnpm test:remover-workers-ai-spike`. Run
-  `SITE=ai-remover pnpm cf:build` first when using the local topology. The spike
-  uploads a generated original/mask pair through `/api/remover/upload`, creates
-  a real `/api/remover/jobs` job, verifies that Workers AI output is stored, and
-  downloads the low-res result through the controlled download route. To run
-  against an already-running environment, set `REMOVER_WORKERS_AI_SPIKE_BASE_URL`.
-  Local topology mode requires `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL`.
+  `SITE=ai-remover pnpm test:remover-workers-ai-spike`. The command first builds
+  the selected AI Remover Cloudflare output, then uploads a generated
+  original/mask pair through `/api/remover/upload`, creates a real
+  `/api/remover/jobs` job, verifies the public job status DTO, and downloads the
+  low-res result through the controlled download route. To run against an
+  already-running environment, set `REMOVER_WORKERS_AI_SPIKE_BASE_URL`. Local
+  topology mode requires `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL`.
   For AI Remover-only local values, copy `sites/ai-remover/.env.example` to
   `sites/ai-remover/.env.local`; this site env overlays root `.env.development`
   only when running with `SITE=ai-remover`. Do not put the database URL in

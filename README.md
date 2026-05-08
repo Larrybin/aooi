@@ -127,6 +127,27 @@ is `http://localhost:3000`. To run another site locally, use
 `SITE=<site-key> pnpm dev`. Production-like, Cloudflare, smoke, build, and
 deploy commands must pass the intended `SITE=<site-key>` explicitly.
 
+AI Remover's real upload / remove / download flow needs Cloudflare bindings.
+Use `pnpm dev:ai-remover:cloudflare` and open the printed `localhost:8787` URL
+instead of `localhost:3000` when testing that flow in a browser.
+
+### Feature Configuration
+
+Use env files and Cloudflare secrets for values required before the app can
+boot: database URLs, auth secrets, OAuth client secrets, payment provider
+secrets, storage URL prefixes, provider API keys, cleanup secrets, and deploy
+operator credentials.
+
+Use Admin Settings only after the app is running with a database. Admin Settings
+is for non-secret operational switches and mappings such as auth provider
+enablement, sender email, payment environment, Creem product ID mappings, AI
+feature enablement, and display/support values.
+
+For site-specific local values, prefer `sites/<site-key>/.env.local` over the
+root `.env.development`. For production, configure runtime secrets, vars, and
+bindings in Cloudflare; do not put secrets in `site.config.json`,
+`deploy.settings.json`, pricing JSON, or content files.
+
 ## Common Commands
 
 | Command                    | Purpose                                     |
@@ -189,6 +210,7 @@ Current sites:
 
 - `dev-local`: local development and tests
 - `mamamiya`: production site
+- `ai-remover`: AI Object Remover SaaS product site
 
 Important fields:
 

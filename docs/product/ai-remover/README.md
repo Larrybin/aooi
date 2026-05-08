@@ -14,6 +14,8 @@ MVP in this repository.
   the smallest useful release sequence.
 - [Acceptance Checklist](./acceptance-checklist.md): product, AI job, quota,
   billing, storage, SEO, and technical verification gates.
+- [Deployment Setup](./deployment-setup.md): local env, production Cloudflare
+  resources, runtime secrets/vars, and Admin Settings boundaries.
 
 ## Working Assumptions
 
@@ -30,4 +32,3 @@ MVP in this repository.
 AI Remover should be implemented as an aooi site/product workflow, not as a
 fork of the platform modules. Reuse the existing Auth, Billing, Storage, AI,
 Admin Settings, and Cloudflare deploy contract.
-
