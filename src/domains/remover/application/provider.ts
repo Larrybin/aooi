@@ -1,6 +1,4 @@
-import {
-  type CloudflareAIBinding,
-} from '@/infra/runtime/env.server';
+import { type CloudflareAIBinding } from '@/infra/runtime/env.server';
 
 import {
   AIMediaType,
@@ -77,38 +75,62 @@ function toRemoverProviderTaskResult(
   };
 }
 
-async function fetchImageBytes(url: string): Promise<number[]> {
-  const { safeFetch } = await import('@/shared/lib/fetch/server');
-  const response = await safeFetch(
-    url,
-    {
-      headers: {
-        Accept: 'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8',
+export function createRemoverInputImageFetcher({
+  allowLocalHttp = false,
+  safeFetchImpl,
+}: {
+  allowLocalHttp?: boolean;
+  safeFetchImpl?: (
+    url: string,
+    init?: RequestInit,
+    options?: Record<string, unknown>
+  ) => Promise<Response>;
+} = {}) {
+  return async function fetchImageBytes(url: string): Promise<number[]> {
+    const safeFetch =
+      safeFetchImpl ?? (await import('@/shared/lib/fetch/server')).safeFetch;
+    const response = await safeFetch(
+      url,
+      {
+        headers: {
+          Accept: 'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8',
+        },
       },
-    },
-    {
-      timeoutMs: 15000,
+      {
+        timeoutMs: 15000,
+        allowInsecureHttp: allowLocalHttp,
+        allowPrivateNetwork: allowLocalHttp,
+      }
+    );
+    if (!response.ok) {
+      throw new ServiceUnavailableError(
+        'failed to fetch remover provider input'
+      );
     }
-  );
-  if (!response.ok) {
-    throw new ServiceUnavailableError('failed to fetch remover provider input');
-  }
 
-  const mimeType = response.headers.get('content-type')?.split(';')[0]?.trim();
-  if (!mimeType?.startsWith('image/')) {
-    throw new ServiceUnavailableError('remover provider input is not an image');
-  }
+    const mimeType = response.headers
+      .get('content-type')
+      ?.split(';')[0]
+      ?.trim();
+    if (!mimeType?.startsWith('image/')) {
+      throw new ServiceUnavailableError(
+        'remover provider input is not an image'
+      );
+    }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.byteLength <= 0) {
-    throw new ServiceUnavailableError('remover provider input is empty');
-  }
-  if (buffer.byteLength > MAX_PROVIDER_INPUT_BYTES) {
-    throw new ServiceUnavailableError('remover provider input is too large');
-  }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength <= 0) {
+      throw new ServiceUnavailableError('remover provider input is empty');
+    }
+    if (buffer.byteLength > MAX_PROVIDER_INPUT_BYTES) {
+      throw new ServiceUnavailableError('remover provider input is too large');
+    }
 
-  return Array.from(buffer);
+    return Array.from(buffer);
+  };
 }
+
+const fetchImageBytes = createRemoverInputImageFetcher();
 
 function dataUrlFromBuffer(mimeType: string, buffer: Buffer): string {
   return `data:${mimeType};base64,${buffer.toString('base64')}`;
@@ -154,7 +176,9 @@ async function readWorkersAIOutputStream(
       totalBytes += value.byteLength;
       if (totalBytes > MAX_WORKERS_AI_OUTPUT_BYTES) {
         await reader.cancel().catch(() => undefined);
-        throw new ServiceUnavailableError('Workers AI output image is too large');
+        throw new ServiceUnavailableError(
+          'Workers AI output image is too large'
+        );
       }
       chunks.push(Buffer.from(value));
     }
@@ -165,7 +189,9 @@ async function readWorkersAIOutputStream(
   return Buffer.concat(chunks, totalBytes);
 }
 
-async function readWorkersAIResponseBuffer(response: Response): Promise<Buffer> {
+async function readWorkersAIResponseBuffer(
+  response: Response
+): Promise<Buffer> {
   assertWorkersAIOutputContentLength(response);
 
   if (response.body) {

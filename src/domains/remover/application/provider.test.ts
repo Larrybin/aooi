@@ -3,7 +3,10 @@ import test from 'node:test';
 
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 
-import { createCloudflareWorkersAIRemoverAdapter } from './provider';
+import {
+  createCloudflareWorkersAIRemoverAdapter,
+  createRemoverInputImageFetcher,
+} from './provider';
 
 test('createCloudflareWorkersAIRemoverAdapter calls Workers AI with image and mask bytes', async () => {
   const calls: Array<{ model: string; inputs: Record<string, unknown> }> = [];
@@ -39,6 +42,34 @@ test('createCloudflareWorkersAIRemoverAdapter calls Workers AI with image and ma
     result.outputImageUrl,
     `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
   );
+});
+
+test('createRemoverInputImageFetcher can explicitly allow local smoke asset URLs', async () => {
+  const calls: Array<{ url: string; options?: Record<string, unknown> }> = [];
+  const fetchImageBytes = createRemoverInputImageFetcher({
+    allowLocalHttp: true,
+    safeFetchImpl: async (url, _init, options) => {
+      calls.push({ url, options });
+      return new Response(Buffer.from([1, 2, 3]), {
+        headers: { 'content-type': 'image/png' },
+      });
+    },
+  });
+
+  assert.deepEqual(
+    await fetchImageBytes('http://127.0.0.1:8787/assets/asset.png'),
+    [1, 2, 3]
+  );
+  assert.deepEqual(calls, [
+    {
+      url: 'http://127.0.0.1:8787/assets/asset.png',
+      options: {
+        timeoutMs: 15000,
+        allowInsecureHttp: true,
+        allowPrivateNetwork: true,
+      },
+    },
+  ]);
 });
 
 test('createCloudflareWorkersAIRemoverAdapter rejects unsupported Workers AI output', async () => {

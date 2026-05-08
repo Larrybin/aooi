@@ -10,7 +10,7 @@ import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { waitForPreviewReady } from './lib/cloudflare-preview-smoke.mjs';
+import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
 import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import {
   injectCloudflareLocalSmokeDevVars,
@@ -21,6 +21,16 @@ const defaultBaseUrl = 'http://localhost:8787';
 const defaultAuthSecret = 'local-cloudflare-ai-remover-spike-0123456789';
 const defaultModel = '@cf/runwayml/stable-diffusion-v1-5-inpainting';
 const imageSize = 512;
+const removerApiReadyTimeoutMs = Number.parseInt(
+  process.env.REMOVER_WORKERS_AI_SPIKE_READY_TIMEOUT_MS ||
+    process.env.CF_LOCAL_SMOKE_READY_TIMEOUT_MS ||
+    '90000',
+  10
+);
+const removerApiReadyRequestTimeoutMs = Number.parseInt(
+  process.env.CF_LOCAL_SMOKE_REQUEST_TIMEOUT_MS || '30000',
+  10
+);
 
 function crc32(buffer) {
   let crc = 0xffffffff;
@@ -52,9 +62,7 @@ function pngChunk(type, data) {
 }
 
 function createPng({ width, height, pixelAt }) {
-  const header = Buffer.from([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-  ]);
+  const header = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
@@ -95,11 +103,16 @@ export function createRemoverWorkersAISpikeImages() {
     width: imageSize,
     height: imageSize,
     pixelAt(x, y) {
-      if (x >= objectMin && x <= objectMax && y >= objectMin && y <= objectMax) {
+      if (
+        x >= objectMin &&
+        x <= objectMax &&
+        y >= objectMin &&
+        y <= objectMax
+      ) {
         return [207, 73, 55, 255];
       }
 
-      const shade = 222 + Math.floor((x + y) / 64) % 18;
+      const shade = 222 + (Math.floor((x + y) / 64) % 18);
       return [shade, shade + 4, 235, 255];
     },
   });
@@ -139,12 +152,116 @@ async function readApiEnvelope(response, label) {
   return payload.data;
 }
 
-function createHeaders({ baseUrl, userAgent, clientIp }) {
-  return {
+function createHeaders({ baseUrl, userAgent, clientIp, cookie = '' }) {
+  const headers = {
     Origin: baseUrl,
     Referer: `${baseUrl}/`,
     'User-Agent': userAgent,
     'X-Real-IP': clientIp,
+  };
+  if (cookie) {
+    headers.Cookie = cookie;
+  }
+  return headers;
+}
+
+function readSetCookieHeaders(headers) {
+  if (typeof headers.getSetCookie === 'function') {
+    return headers.getSetCookie();
+  }
+
+  const value = headers.get('set-cookie');
+  return value ? [value] : [];
+}
+
+function mergeCookieHeader(currentCookieHeader, setCookieHeaders) {
+  const cookies = new Map();
+
+  for (const item of currentCookieHeader.split(/;\s*/u)) {
+    if (!item) {
+      continue;
+    }
+    const equalsIndex = item.indexOf('=');
+    if (equalsIndex <= 0) {
+      continue;
+    }
+    cookies.set(item.slice(0, equalsIndex), item.slice(equalsIndex + 1));
+  }
+
+  for (const header of setCookieHeaders) {
+    const [cookiePair] = String(header).split(';');
+    const equalsIndex = cookiePair.indexOf('=');
+    if (equalsIndex <= 0) {
+      continue;
+    }
+    cookies.set(
+      cookiePair.slice(0, equalsIndex),
+      cookiePair.slice(equalsIndex + 1)
+    );
+  }
+
+  return [...cookies.entries()]
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+}
+
+function assertNoInternalJobFields(job, label) {
+  const forbiddenFields = [
+    'provider',
+    'model',
+    'providerTaskId',
+    'outputImageKey',
+    'outputImageUrl',
+    'thumbnailKey',
+    'inputImageKey',
+    'maskImageKey',
+  ];
+  const leakedField = forbiddenFields.find((field) => field in job);
+  if (leakedField) {
+    throw new Error(`${label} exposed internal job field: ${leakedField}`);
+  }
+}
+
+export function createRemoverUploadMultipartBody({
+  kind,
+  fileName,
+  image,
+  width,
+  height,
+}) {
+  const boundary = `----aooi-remover-${randomUUID().replace(/-/gu, '')}`;
+  const chunks = [];
+
+  for (const [name, value] of [
+    ['kind', kind],
+    ['width', String(width)],
+    ['height', String(height)],
+  ]) {
+    chunks.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
+        'utf8'
+      )
+    );
+  }
+
+  chunks.push(
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${fileName}"\r\nContent-Type: image/png\r\n\r\n`,
+      'utf8'
+    ),
+    Buffer.from(image),
+    Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8')
+  );
+
+  const bodyBytes = Buffer.concat(chunks);
+  return {
+    body: new Blob([bodyBytes], {
+      type: `multipart/form-data; boundary=${boundary}`,
+    }),
+    contentType: `multipart/form-data; boundary=${boundary}`,
+    contentLength: String(bodyBytes.byteLength),
+    bodyBytes,
   };
 }
 
@@ -158,20 +275,21 @@ async function uploadRemoverAsset({
   height,
   headers,
 }) {
-  const formData = new FormData();
-  formData.set('kind', kind);
-  formData.set('width', String(width));
-  formData.set('height', String(height));
-  formData.set(
-    'image',
-    new Blob([new Uint8Array(image)], { type: 'image/png' }),
-    fileName
-  );
+  const multipart = createRemoverUploadMultipartBody({
+    kind,
+    fileName,
+    image,
+    width,
+    height,
+  });
 
   const response = await fetchImpl(`${baseUrl}/api/remover/upload`, {
     method: 'POST',
-    headers,
-    body: formData,
+    headers: {
+      ...headers,
+      'Content-Type': multipart.contentType,
+    },
+    body: multipart.body,
   });
   const data = await readApiEnvelope(response, `upload ${kind}`);
 
@@ -179,7 +297,10 @@ async function uploadRemoverAsset({
     throw new Error(`upload ${kind} did not return an asset id`);
   }
 
-  return data;
+  return {
+    ...data,
+    setCookieHeaders: readSetCookieHeaders(response.headers),
+  };
 }
 
 async function createRemoverJob({
@@ -202,7 +323,14 @@ async function createRemoverJob({
       idempotencyKey,
     }),
   });
-  return readApiEnvelope(response, 'create remover job');
+  const data = await readApiEnvelope(response, 'create remover job');
+
+  if (!data?.job?.id) {
+    throw new Error('create remover job did not return a job');
+  }
+  assertNoInternalJobFields(data.job, 'create remover job');
+
+  return data;
 }
 
 async function fetchRemoverJob({ baseUrl, fetchImpl, jobId, headers }) {
@@ -215,6 +343,7 @@ async function fetchRemoverJob({ baseUrl, fetchImpl, jobId, headers }) {
   if (!data?.job?.id) {
     throw new Error('get remover job did not return a job');
   }
+  assertNoInternalJobFields(data.job, 'get remover job');
 
   return data.job;
 }
@@ -241,7 +370,9 @@ async function downloadLowResRemoverResult({
 
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.startsWith('image/')) {
-    throw new Error(`download low-res returned ${contentType || 'no content-type'}`);
+    throw new Error(
+      `download low-res returned ${contentType || 'no content-type'}`
+    );
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());
@@ -259,6 +390,65 @@ async function sleep(ms) {
   await new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+export async function waitForRemoverApiReady({
+  baseUrl,
+  fetchImpl = fetch,
+  timeoutMs = removerApiReadyTimeoutMs,
+  userAgent = 'aooi-remover-workers-ai-spike/1.0',
+  clientIp = '127.0.0.1',
+  logger = console,
+} = {}) {
+  if (!baseUrl) {
+    throw new Error('baseUrl is required');
+  }
+
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '');
+  const headers = createHeaders({
+    baseUrl: normalizedBaseUrl,
+    userAgent,
+    clientIp,
+  });
+  const startedAt = Date.now();
+  let lastError = null;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetchImpl(
+        `${normalizedBaseUrl}/api/remover/jobs`,
+        {
+          method: 'POST',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+          },
+          body: '{}',
+          signal: AbortSignal.timeout(removerApiReadyRequestTimeoutMs),
+        }
+      );
+      await response.text();
+
+      if (response.status === 400 || response.status === 422) {
+        logger.log(`✓ Remover API ready: ${normalizedBaseUrl}`);
+        return;
+      }
+
+      lastError = new Error(
+        `remover API readiness returned ${response.status}`
+      );
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+
+    await sleep(1000);
+  }
+
+  throw new Error(
+    `Remover API not ready within ${timeoutMs}ms: ${
+      lastError?.message || 'unknown error'
+    }`
+  );
 }
 
 async function waitForRemoverJob({
@@ -291,7 +481,6 @@ async function waitForRemoverJob({
 export async function runRemoverWorkersAISpikeAgainstBaseUrl({
   baseUrl,
   fetchImpl = fetch,
-  model = defaultModel,
   timeoutMs = 90000,
   userAgent = 'aooi-remover-workers-ai-spike/1.0',
   clientIp = '127.0.0.1',
@@ -302,11 +491,14 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
 
   const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '');
   const images = createRemoverWorkersAISpikeImages();
-  const headers = createHeaders({
-    baseUrl: normalizedBaseUrl,
-    userAgent,
-    clientIp,
-  });
+  let cookieHeader = '';
+  const buildHeaders = () =>
+    createHeaders({
+      baseUrl: normalizedBaseUrl,
+      userAgent,
+      clientIp,
+      cookie: cookieHeader,
+    });
   const inputUpload = await uploadRemoverAsset({
     baseUrl: normalizedBaseUrl,
     fetchImpl,
@@ -315,8 +507,9 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
     image: images.original,
     width: images.width,
     height: images.height,
-    headers,
+    headers: buildHeaders(),
   });
+  cookieHeader = mergeCookieHeader(cookieHeader, inputUpload.setCookieHeaders);
   const maskUpload = await uploadRemoverAsset({
     baseUrl: normalizedBaseUrl,
     fetchImpl,
@@ -325,8 +518,10 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
     image: images.mask,
     width: images.width,
     height: images.height,
-    headers,
+    headers: buildHeaders(),
   });
+  cookieHeader = mergeCookieHeader(cookieHeader, maskUpload.setCookieHeaders);
+  const headers = buildHeaders();
   const created = await createRemoverJob({
     baseUrl: normalizedBaseUrl,
     fetchImpl,
@@ -349,16 +544,14 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
     );
   }
 
-  if (job.provider !== 'cloudflare-workers-ai') {
-    throw new Error(`expected cloudflare-workers-ai provider, got ${job.provider}`);
+  if (!job.lowResDownloadAvailable) {
+    throw new Error('succeeded remover job did not advertise low-res download');
   }
 
-  if (job.model !== model) {
-    throw new Error(`expected model ${model}, got ${job.model}`);
-  }
-
-  if (!job.outputImageKey) {
-    throw new Error('succeeded remover job did not store outputImageKey');
+  if (!job.highResDownloadRequiresSignIn) {
+    throw new Error(
+      'anonymous remover job did not require sign-in for high-res download'
+    );
   }
 
   const lowResDownload = await downloadLowResRemoverResult({
@@ -370,15 +563,87 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
 
   return {
     jobId: job.id,
-    provider: job.provider,
-    model: job.model,
-    outputImageKey: job.outputImageKey,
+    status: job.status,
     lowResContentType: lowResDownload.contentType,
     lowResBytes: lowResDownload.bytes.length,
     highResDownloadRequiresSignIn: Boolean(job.highResDownloadRequiresSignIn),
     anonymousSessionId:
       inputUpload.anonymousSessionId || maskUpload.anonymousSessionId || '',
   };
+}
+
+export function buildRemoverWorkersAILocalTopologyExtraVars({
+  model = defaultModel,
+  authBaseUrl = getCurrentSiteAppUrl(),
+} = {}) {
+  return {
+    AUTH_URL: authBaseUrl,
+    BETTER_AUTH_URL: authBaseUrl,
+    REMOVER_AI_PROVIDER: 'cloudflare-workers-ai',
+    REMOVER_AI_MODEL: model,
+  };
+}
+
+function formatTopologyExit(code, signal) {
+  if (code !== null && code !== undefined) {
+    return `code=${code}`;
+  }
+
+  return `signal=${signal || 'unknown'}`;
+}
+
+export async function runWithRemoverTopologyExitGuard(topology, action) {
+  const child = topology?.manager?.child;
+  if (!child) {
+    return await action();
+  }
+
+  if (child.exitCode !== null) {
+    throw new Error(
+      `Cloudflare local topology exited during remover Workers AI spike (${formatTopologyExit(
+        child.exitCode,
+        child.signalCode
+      )})`
+    );
+  }
+
+  let removeExitListener = () => undefined;
+  const exitPromise = new Promise((_, reject) => {
+    const onExit = (code, signal) => {
+      reject(
+        new Error(
+          `Cloudflare local topology exited during remover Workers AI spike (${formatTopologyExit(
+            code,
+            signal
+          )})`
+        )
+      );
+    };
+
+    child.once('exit', onExit);
+    removeExitListener = () => child.off('exit', onExit);
+  });
+
+  try {
+    return await Promise.race([action(), exitPromise]);
+  } finally {
+    removeExitListener();
+  }
+}
+
+function createLocalTopologyFailure(error, recentLogs) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    /\btail\.developers\.workers\.dev\b/u.test(recentLogs) ||
+    /\bECONNRESET\b/u.test(recentLogs) ||
+    /\bNetwork connection lost\b/u.test(recentLogs)
+  ) {
+    return new Error(
+      `Cloudflare Workers AI remote connection failed during the local remover spike: ${message}. Re-run after Wrangler can keep its remote AI/tail connection open.`
+    );
+  }
+
+  return error;
 }
 
 export async function runLocalRemoverWorkersAISpike({
@@ -399,33 +664,31 @@ export async function runLocalRemoverWorkersAISpike({
     databaseUrl,
     routerBaseUrl: baseUrl,
     authSecret,
-    extraVars: {
-      REMOVER_AI_PROVIDER: 'cloudflare-workers-ai',
-      REMOVER_AI_MODEL: model,
-    },
+    extraVars: buildRemoverWorkersAILocalTopologyExtraVars({ model }),
   });
   const resolvedBaseUrl = topology.getRouterBaseUrl();
 
   try {
     let result;
-    await runPhaseSequence({
-      phases: [
-        {
-          label: 'preview-ready',
-          action: async () => {
-            await waitForPreviewReady({ baseUrl: resolvedBaseUrl });
+    await runWithRemoverTopologyExitGuard(topology, async () => {
+      await runPhaseSequence({
+        phases: [
+          {
+            label: 'remover-api-ready',
+            action: async () => {
+              await waitForRemoverApiReady({ baseUrl: resolvedBaseUrl });
+            },
           },
-        },
-        {
-          label: 'remover-workers-ai',
-          action: async () => {
-            result = await runRemoverWorkersAISpikeAgainstBaseUrl({
-              baseUrl: resolvedBaseUrl,
-              model,
-            });
+          {
+            label: 'remover-workers-ai',
+            action: async () => {
+              result = await runRemoverWorkersAISpikeAgainstBaseUrl({
+                baseUrl: resolvedBaseUrl,
+              });
+            },
           },
-        },
-      ],
+        ],
+      });
     });
 
     return result;
@@ -434,7 +697,7 @@ export async function runLocalRemoverWorkersAISpike({
     if (recentLogs) {
       console.error(recentLogs);
     }
-    throw error;
+    throw createLocalTopologyFailure(error, recentLogs);
   } finally {
     await topology.stop();
   }
@@ -449,7 +712,6 @@ async function main() {
   const result = externalBaseUrl
     ? await runRemoverWorkersAISpikeAgainstBaseUrl({
         baseUrl: externalBaseUrl,
-        model,
       })
     : await runLocalRemoverWorkersAISpike({
         baseUrl: process.env.CF_LOCAL_SMOKE_URL?.trim() || defaultBaseUrl,
