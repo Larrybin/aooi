@@ -46,6 +46,12 @@ type LogLike = {
   error(message: string, meta?: unknown): void;
 };
 
+export function requiresPaymentProductId(
+  provider: BillingRuntimeSettings['provider']
+): boolean {
+  return provider === 'creem';
+}
+
 function normalizeLocaleValue(
   value: string | null | undefined
 ): Locale | undefined {
@@ -338,7 +344,7 @@ export async function createPaymentCheckoutSession({
     throw new BadRequestError('invalid checkout price');
   }
 
-  if (!paymentProductId) {
+  if (!paymentProductId && requiresPaymentProductId(paymentProviderName)) {
     throw new BadRequestError('payment product id is not configured');
   }
 
