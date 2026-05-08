@@ -117,6 +117,7 @@ export function getServerRuntimeEnv(
   options: RuntimeEnvOptions = {}
 ): ServerRuntimeEnv {
   const envLike = {
+    NEXT_PUBLIC_APP_URL: getRuntimeEnvString('NEXT_PUBLIC_APP_URL', options),
     BETTER_AUTH_URL: getRuntimeEnvString('BETTER_AUTH_URL', options),
     AUTH_URL: getRuntimeEnvString('AUTH_URL', options),
   };

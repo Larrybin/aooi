@@ -26,9 +26,11 @@ import type {
   PaymentRuntimeBindings,
 } from '@/domains/settings/application/settings-runtime.contracts';
 import { getPaymentService } from '@/infra/adapters/payment/service';
+import { getRuntimeEnvString } from '@/infra/runtime/env.server';
 import { site } from '@/site';
 
 import { defaultLocale, locales, type Locale } from '@/config/locale';
+import { resolveRuntimeAppUrl } from '@/config/runtime-app-url';
 import {
   BadRequestError,
   ServiceUnavailableError,
@@ -63,29 +65,16 @@ function normalizeLocaleValue(
     : undefined;
 }
 
-function assertAppUrlOrigin(appUrl: string): string {
-  const trimmed = (appUrl || '').trim();
-  if (!trimmed) {
-    throw new ServiceUnavailableError('site.brand.appUrl is not configured');
-  }
-
-  let origin: string;
+function resolveCheckoutRuntimeAppUrl(): string {
   try {
-    const url = new URL(trimmed);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error('site.brand.appUrl must use http or https');
-    }
-    origin = url.origin;
+    return resolveRuntimeAppUrl({
+      NEXT_PUBLIC_APP_URL: getRuntimeEnvString('NEXT_PUBLIC_APP_URL'),
+    });
   } catch (error) {
-    throw new ServiceUnavailableError(
-      'invalid site.brand.appUrl configuration',
-      {
-        error,
-      }
-    );
+    throw new ServiceUnavailableError('invalid runtime app URL configuration', {
+      error,
+    });
   }
-
-  return origin;
 }
 
 async function getPaymentProductIdFromProviderConfig({
@@ -136,7 +125,7 @@ async function getPaymentProductIdFromProviderConfig({
   }
 }
 
-function buildCallbackUrl({
+export function buildCallbackUrl({
   settings,
   locale,
   paymentType,
@@ -145,7 +134,7 @@ function buildCallbackUrl({
   locale: string | null | undefined;
   paymentType: PaymentType;
 }): { callbackUrl: string; callbackBaseUrl: string } {
-  const appUrl = assertAppUrlOrigin(site.brand.appUrl);
+  const appUrl = resolveCheckoutRuntimeAppUrl();
   const activeLocale =
     normalizeLocaleValue(locale) ??
     normalizeLocaleValue(settings.locale) ??
