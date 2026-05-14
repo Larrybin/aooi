@@ -38,7 +38,7 @@
 - For brand-new or partially initialized production environments, the only valid release order is `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 - If app deploy detects a missing router/server deployment, it must fail fast and instruct the operator to run `pnpm cf:deploy:state` first.
 - Preview bootstrap is the only exception: `CF_DEPLOY_PROFILE=preview CF_DEPLOY_BOOTSTRAP_MISSING=true pnpm cf:deploy` may initialize missing preview app workers after preview state has been deployed.
-- `pnpm cf:deploy:state` runs a state-scoped preflight only. It must not be blocked by `public-web/auth/payment/member/chat/admin` secrets, and it must not run the full OpenNext app build.
+- `pnpm cf:deploy:state` runs a state-scoped preflight only. It may verify the Durable Object artifacts imported by the state worker, but it must not be blocked by `public-web/auth/payment/member/chat/admin` secrets or router/server worker bundles, and it must not run the full OpenNext app build.
 
 ## Test Gates
 

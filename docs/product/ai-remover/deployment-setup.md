@@ -178,6 +178,14 @@ upload them.
 | `REMOVER_AI_PROVIDER`                 | Runtime var | Optional                        | Defaults to `cloudflare-workers-ai`.                                                                                             |
 | `REMOVER_AI_MODEL`                    | Runtime var | Optional                        | Defaults to `@cf/runwayml/stable-diffusion-v1-5-inpainting` for Workers AI.                                                      |
 
+Cloudflare multi-worker auth boundary:
+
+- `public-web` renders `/sign-in`, `/sign-up`, and related auth entry pages.
+- `auth` handles `/api/auth/**` and OAuth callback/token exchange.
+- Google/GitHub button visibility follows Admin Settings, not whether the page worker holds provider secrets.
+- Only Google One Tap needs `GOOGLE_CLIENT_ID` on the Auth UI worker.
+- The auth handler worker still requires the full provider credentials.
+
 For Google OAuth, configure the Google client with:
 
 ```text
