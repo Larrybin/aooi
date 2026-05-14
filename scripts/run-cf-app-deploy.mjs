@@ -8,6 +8,7 @@ import topology from '../src/shared/config/cloudflare-worker-topology.ts';
 import { createCanonicalTypegenWranglerConfig } from './check-cf-typegen.mjs';
 import { writeCloudflareSecretsFile } from './create-cf-secrets-file.mjs';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
+import { assertCloudflareBuildArtifactsReady } from './lib/cloudflare-build-artifacts.mjs';
 import { resolveRequiredSiteKey } from './lib/site-config.mjs';
 import { resolveSiteDeployContract } from './lib/site-deploy-contract.mjs';
 
@@ -285,7 +286,7 @@ export function buildRouterDirectDeployArgs({
   secretsPath,
   message = createDeployMessage('app-router-deploy'),
 }) {
-  return [
+  const args = [
     'deploy',
     '--config',
     configPath,
@@ -295,9 +296,13 @@ export function buildRouterDirectDeployArgs({
     message,
     '--experimental-autoconfig=false',
     '--keep-vars',
-    '--secrets-file',
-    secretsPath,
   ];
+
+  if (secretsPath) {
+    args.push('--secrets-file', secretsPath);
+  }
+
+  return args;
 }
 
 export function determineDeployMode(currentVersions) {
@@ -351,7 +356,7 @@ export async function createTempDeployArtifacts({
   });
 
   await writeFile(tempConfigPath, content, 'utf8');
-  await writeCloudflareSecretsFile({
+  const { content: secretsContent } = await writeCloudflareSecretsFile({
     outputPath: secretsPath,
     workerKeys,
   });
@@ -359,7 +364,8 @@ export async function createTempDeployArtifacts({
   return {
     tempDir,
     tempConfigPath,
-    secretsPath,
+    secretsFilePath: secretsPath,
+    secretsPath: secretsContent.trim() ? secretsPath : null,
     async cleanup() {
       await rm(tempDir, { recursive: true, force: true });
     },
@@ -379,7 +385,7 @@ async function deployRouterDirect({ name, configPath, secretsPath }) {
 
 async function uploadWorkerVersion({ name, configPath, secretsPath }) {
   log(`uploading version for ${name}`);
-  const result = await runWrangler([
+  const args = [
     'versions',
     'upload',
     '--config',
@@ -388,9 +394,11 @@ async function uploadWorkerVersion({ name, configPath, secretsPath }) {
     name,
     '--message',
     createDeployMessage('app-version-upload'),
-    '--secrets-file',
-    secretsPath,
-  ]);
+  ];
+  if (secretsPath) {
+    args.push('--secrets-file', secretsPath);
+  }
+  const result = await runWrangler(args);
   const versionId = parseUploadedVersionId(
     `${result.stdout}\n${result.stderr}`
   );
@@ -631,8 +639,18 @@ export async function deployCloudflareApp({
     deploySteadyState(currentVersions, resolvedContract),
   deployInitialAppTopologyImpl = (resolvedContract) =>
     deployInitialAppTopology(resolvedContract),
+  assertBuildArtifactsReadyImpl = () =>
+    assertCloudflareBuildArtifactsReady({
+      rootPath: rootDir,
+      processEnv: process.env,
+      contextMessage:
+        'Cloudflare app deploy requires built OpenNext artifacts.',
+      nextStepMessage:
+        'Run `pnpm cf:build` before `pnpm cf:preview:deploy`, `pnpm cf:preview:bootstrap`, `pnpm cf:deploy`, or `pnpm cf:deploy:app`.',
+    }),
   processEnv = process.env,
 } = {}) {
+  await assertBuildArtifactsReadyImpl();
   const bootstrapMissing = isBootstrapMissingEnabled(processEnv);
   if (bootstrapMissing && contract.deployProfile !== 'preview') {
     throw new Error(
