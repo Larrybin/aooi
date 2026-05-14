@@ -464,6 +464,7 @@ test('cf:check 对 AI Remover public-web 要求 cleanup secret', async () => {
         SITE: 'ai-remover',
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
+        GOOGLE_CLIENT_ID: 'google-client-id',
       },
     });
 
@@ -567,6 +568,7 @@ test('cf:check 仅对已启用 auth provider 要求对应 bindings', async () =>
         [storagePublicBaseUrlName]: 'https://assets.example.com/',
         BETTER_AUTH_SECRET: 'better-secret',
         RESEND_API_KEY: 'resend-key',
+        GOOGLE_CLIENT_ID: 'google-client-id',
         GITHUB_CLIENT_ID: 'github-client-id',
         GITHUB_CLIENT_SECRET: 'github-client-secret',
       },
@@ -575,6 +577,42 @@ test('cf:check 仅对已启用 auth provider 要求对应 bindings', async () =>
     assert.equal(result.ok, false);
     assert.match(result.stderr, /GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET/);
     assert.match(result.stderr, /Google auth provider/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check 在 public-web worker 场景只要求 Google client id，不要求 Google secret', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await writeDeploySettings(fixtureDir, (current) => ({
+      ...current,
+      bindingRequirements: {
+        ...(current.bindingRequirements as Record<string, unknown>),
+        secrets: {
+          ...((
+            current.bindingRequirements as DeployBindingRequirements | undefined
+          )?.secrets ?? {}),
+          googleOauth: true,
+          githubOauth: false,
+        },
+      },
+    }));
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=public-web'],
+      env: {
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+      },
+    });
+
+    assert.equal(result.ok, false);
+    assert.match(result.stderr, /GOOGLE_CLIENT_ID/);
+    assert.doesNotMatch(result.stderr, /GOOGLE_CLIENT_SECRET/);
+    assert.match(result.stderr, /Google One Tap auth UI/);
   } finally {
     await fixture.cleanup();
   }

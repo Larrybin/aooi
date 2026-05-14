@@ -216,6 +216,7 @@ test('buildCloudflareSecretsEnv 只向 public-web 输出 remover cleanup secret'
     {
       SITE: 'ai-remover',
       BETTER_AUTH_SECRET: 'better-secret',
+      GOOGLE_CLIENT_ID: 'google-id',
       REMOVER_CLEANUP_SECRET: 'cleanup-secret',
     },
     {
@@ -223,6 +224,7 @@ test('buildCloudflareSecretsEnv 只向 public-web 输出 remover cleanup secret'
     }
   );
 
+  assert.match(publicWebContent, /GOOGLE_CLIENT_ID=google-id/);
   assert.match(publicWebContent, /REMOVER_CLEANUP_SECRET=cleanup-secret/);
 
   const authContent = buildCloudflareSecretsEnv(
@@ -249,6 +251,7 @@ test('buildCloudflareSecretsEnv 缺少 remover cleanup secret 时失败', () => 
         {
           SITE: 'ai-remover',
           BETTER_AUTH_SECRET: 'better-secret',
+          GOOGLE_CLIENT_ID: 'google-id',
         },
         {
           workerKeys: ['public-web'],
@@ -368,6 +371,99 @@ test('buildCloudflareSecretsEnv 按 deploy.settings.json 与 workerKeys 限定 s
       assert.match(content, /GOOGLE_CLIENT_SECRET=google-secret/);
       assert.doesNotMatch(content, /STRIPE_PUBLISHABLE_KEY=pk/);
       assert.doesNotMatch(content, /STRIPE_SECRET_KEY=sk/);
+    } finally {
+      process.chdir(originalCwd);
+      if (originalSite === undefined) {
+        delete process.env.SITE;
+      } else {
+        process.env.SITE = originalSite;
+      }
+    }
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('buildCloudflareSecretsEnv 对 public-web 仅输出 Google One Tap 所需 client id', async () => {
+  const tempDir = await mkdtemp(
+    path.join(os.tmpdir(), 'cf-secrets-site-public-web-')
+  );
+  const sourcePath = resolveSiteDeploySettingsPath({
+    rootDir: process.cwd(),
+    siteKey: 'mamamiya',
+  });
+  const targetDir = path.join(tempDir, 'sites/mamamiya');
+  const targetPath = path.join(targetDir, 'deploy.settings.json');
+
+  try {
+    await mkdir(targetDir, { recursive: true });
+    await writeFile(
+      path.join(targetDir, 'site.config.json'),
+      JSON.stringify(
+        {
+          ...readCurrentSiteConfig({ siteKey: 'mamamiya' }),
+          capabilities: {
+            ...readCurrentSiteConfig({ siteKey: 'mamamiya' }).capabilities,
+            auth: true,
+            ai: false,
+            payment: 'none',
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+    await writeFile(
+      targetPath,
+      JSON.stringify(
+        {
+          ...readSiteDeploySettings({ siteKey: 'mamamiya' }),
+          bindingRequirements: {
+            ...readSiteDeploySettings({ siteKey: 'mamamiya' })
+              .bindingRequirements,
+            secrets: {
+              ...readSiteDeploySettings({ siteKey: 'mamamiya' })
+                .bindingRequirements.secrets,
+              googleOauth: true,
+            },
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+  } catch {
+    await rm(tempDir, { recursive: true, force: true });
+    throw new Error(
+      `failed to prepare deploy settings fixture from ${sourcePath}`
+    );
+  }
+
+  try {
+    const originalSite = process.env.SITE;
+    delete process.env.SITE;
+    const originalCwd = process.cwd();
+    process.chdir(tempDir);
+
+    try {
+      const content = buildCloudflareSecretsEnv(
+        {
+          BETTER_AUTH_SECRET: 'better-secret',
+          SITE: 'mamamiya',
+          GOOGLE_CLIENT_ID: 'google-id',
+          GOOGLE_CLIENT_SECRET: 'google-secret',
+        },
+        {
+          workerKeys: ['public-web'],
+        }
+      );
+
+      assert.match(content, /GOOGLE_CLIENT_ID=google-id/);
+      assert.doesNotMatch(content, /GOOGLE_CLIENT_SECRET=google-secret/);
+      assert.doesNotMatch(content, /GITHUB_CLIENT_ID=/);
+      assert.doesNotMatch(content, /GITHUB_CLIENT_SECRET=/);
     } finally {
       process.chdir(originalCwd);
       if (originalSite === undefined) {

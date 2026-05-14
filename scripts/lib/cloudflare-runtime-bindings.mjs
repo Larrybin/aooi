@@ -2,7 +2,11 @@ import cloudflareWorkerSplits from '../../src/shared/config/cloudflare-worker-sp
 import { resolveRequiredSiteKey } from './site-config.mjs';
 import { resolveSiteDeployContract } from './site-deploy-contract.mjs';
 
-const { CLOUDFLARE_ALL_SERVER_WORKER_TARGETS } = cloudflareWorkerSplits;
+const {
+  AUTH_HANDLER_WORKER_TARGETS,
+  AUTH_UI_WORKER_TARGETS,
+  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
+} = cloudflareWorkerSplits;
 
 export const CLOUDFLARE_STATE_WORKER_SCOPE = Object.freeze(['state']);
 export const CLOUDFLARE_APP_WORKER_SCOPE = Object.freeze([
@@ -29,10 +33,12 @@ export const CLOUDFLARE_SECRET_WORKER_ALLOWLIST = Object.freeze({
     'public-web',
   ],
   AUTH_SECRET: ['auth', 'payment', 'member', 'chat', 'admin', 'public-web'],
-  GOOGLE_CLIENT_ID: ['auth'],
-  GOOGLE_CLIENT_SECRET: ['auth'],
-  GITHUB_CLIENT_ID: ['auth'],
-  GITHUB_CLIENT_SECRET: ['auth'],
+  GOOGLE_CLIENT_ID: [
+    ...new Set([...AUTH_HANDLER_WORKER_TARGETS, ...AUTH_UI_WORKER_TARGETS]),
+  ],
+  GOOGLE_CLIENT_SECRET: [...AUTH_HANDLER_WORKER_TARGETS],
+  GITHUB_CLIENT_ID: [...AUTH_HANDLER_WORKER_TARGETS],
+  GITHUB_CLIENT_SECRET: [...AUTH_HANDLER_WORKER_TARGETS],
   RESEND_API_KEY: ['auth', 'admin'],
   STRIPE_PUBLISHABLE_KEY: ['payment', 'member'],
   STRIPE_SECRET_KEY: ['payment', 'member'],
@@ -131,28 +137,43 @@ function buildDeploySecretRequirementMap(contract) {
   }
 
   if (secrets.googleOauth) {
-    for (const name of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
-      assertSecretWorkerAllowed(name, ['auth']);
-      pushRequirement(requirements.get('auth'), {
+    for (const worker of AUTH_HANDLER_WORKER_TARGETS) {
+      for (const name of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
+        assertSecretWorkerAllowed(name, [worker]);
+        pushRequirement(requirements.get(worker), {
+          kind: 'runtime-secret',
+          worker,
+          name,
+          requirement: 'googleOauth',
+          capability: 'Google auth provider',
+        });
+      }
+    }
+
+    for (const worker of AUTH_UI_WORKER_TARGETS) {
+      assertSecretWorkerAllowed('GOOGLE_CLIENT_ID', [worker]);
+      pushRequirement(requirements.get(worker), {
         kind: 'runtime-secret',
-        worker: 'auth',
-        name,
+        worker,
+        name: 'GOOGLE_CLIENT_ID',
         requirement: 'googleOauth',
-        capability: 'Google auth provider',
+        capability: 'Google One Tap auth UI',
       });
     }
   }
 
   if (secrets.githubOauth) {
-    for (const name of ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']) {
-      assertSecretWorkerAllowed(name, ['auth']);
-      pushRequirement(requirements.get('auth'), {
-        kind: 'runtime-secret',
-        worker: 'auth',
-        name,
-        requirement: 'githubOauth',
-        capability: 'GitHub auth provider',
-      });
+    for (const worker of AUTH_HANDLER_WORKER_TARGETS) {
+      for (const name of ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']) {
+        assertSecretWorkerAllowed(name, [worker]);
+        pushRequirement(requirements.get(worker), {
+          kind: 'runtime-secret',
+          worker,
+          name,
+          requirement: 'githubOauth',
+          capability: 'GitHub auth provider',
+        });
+      }
     }
   }
 
