@@ -1,7 +1,8 @@
-// data: site-scoped pricing + theme page
+// data: site-scoped pricing + locale pricing copy + theme page
 // cache: static (generateStaticParams) + cached public configs
 // reason: marketing pricing page should stay statically prerenderable
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
@@ -13,13 +14,34 @@ import {
   buildMetadataBaseUrl,
 } from '@/infra/url/canonical';
 import { site, sitePricing } from '@/site';
-import { setRequestLocale } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { locales } from '@/config/locale';
 import { ScopedIntlProvider } from '@/shared/lib/i18n/scoped-intl-provider';
 import type { SitePricing } from '@/shared/types/blocks/pricing';
 import PricingPageView from '@/themes/default/pages/pricing';
+
+import { resolvePricingPageContent } from './pricing-content';
+
+async function getLocalizedPricingPageMessages() {
+  const [pricingMessages, landingMessages] = await Promise.all([
+    getTranslations('pricing'),
+    getTranslations('landing'),
+  ]);
+
+  return {
+    localizedPricingMessages: {
+      metadata: pricingMessages.raw('metadata') as SitePricing['metadata'],
+      pricing: pricingMessages.raw('pricing') as SitePricing['pricing'],
+    },
+    localizedLandingMessages: {
+      faq: landingMessages.raw('faq') as SitePricing['faq'],
+      testimonials: landingMessages.raw(
+        'testimonials'
+      ) as SitePricing['testimonials'],
+    },
+  };
+}
 
 export async function generateMetadata({
   params,
@@ -27,10 +49,26 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
 
-  const title = sitePricing?.metadata?.title ?? 'Pricing';
+  const brand = buildBrandPlaceholderValues();
+  const { localizedPricingMessages, localizedLandingMessages } =
+    await getLocalizedPricingPageMessages();
+  const pricingContent = sitePricing
+    ? (replaceBrandPlaceholdersDeep(
+        resolvePricingPageContent({
+          sitePricing,
+          localizedPricingMessages,
+          localizedLandingMessages,
+        }),
+        brand
+      ) as SitePricing)
+    : null;
+
+  const title = pricingContent?.metadata?.title ?? 'Pricing';
   const description =
-    sitePricing?.metadata?.description ?? `Choose a ${site.brand.appName} plan.`;
+    pricingContent?.metadata?.description ??
+    `Choose a ${site.brand.appName} plan.`;
 
   return {
     metadataBase: buildMetadataBaseUrl(),
@@ -70,8 +108,14 @@ export default async function PricingPage({
   }
 
   const brand = buildBrandPlaceholderValues();
+  const { localizedPricingMessages, localizedLandingMessages } =
+    await getLocalizedPricingPageMessages();
   const pricingContent = replaceBrandPlaceholdersDeep(
-    sitePricing,
+    resolvePricingPageContent({
+      sitePricing,
+      localizedPricingMessages,
+      localizedLandingMessages,
+    }),
     brand
   ) as SitePricing;
 
