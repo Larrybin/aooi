@@ -61,32 +61,19 @@ export function ChatHistory() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const totalPages = useMemo(() => {
-    if (limit <= 0) {
-      return 1;
-    }
-    const pages = Math.ceil(total / limit);
-    return pages > 0 ? pages : 1;
-  }, [limit, total]);
-
-  const handlePageChange = useCallback(
+  const buildPageTarget = useCallback(
     (nextPage: number) => {
-      const safePage = Math.min(Math.max(nextPage, 1), totalPages);
-      if (safePage === page) {
-        return;
-      }
       const params = new URLSearchParams(searchParams.toString());
-      if (safePage === 1) {
+      if (nextPage === 1) {
         params.delete('page');
       } else {
-        params.set('page', String(safePage));
+        params.set('page', String(nextPage));
       }
       params.set('limit', String(limit));
       const queryString = params.toString();
-      const target = queryString ? `${pathname}?${queryString}` : pathname;
-      router.push(target);
+      return queryString ? `${pathname}?${queryString}` : pathname;
     },
-    [limit, page, pathname, router, searchParams, totalPages]
+    [limit, pathname, searchParams]
   );
 
   const fetchChats = useCallback(async () => {
@@ -106,8 +93,16 @@ export function ChatHistory() {
         body: JSON.stringify({ page, limit }),
       });
 
-      setChats(data.list || []);
-      setTotal(data.total || 0);
+      const nextChats = data.list || [];
+      const nextTotal = data.total || 0;
+      setChats(nextChats);
+      setTotal(nextTotal);
+
+      const nextTotalPages =
+        limit <= 0 ? 1 : Math.max(Math.ceil(nextTotal / limit), 1);
+      if (nextTotal > 0 && nextChats.length === 0 && page > nextTotalPages) {
+        router.push(buildPageTarget(nextTotalPages));
+      }
     } catch (err) {
       console.error('fetch chat history failed:', err);
       setError(
@@ -116,34 +111,20 @@ export function ChatHistory() {
     } finally {
       setLoading(false);
     }
-  }, [limit, page, snapshot, t]);
+  }, [buildPageTarget, limit, page, router, snapshot, t]);
 
   useEffect(() => {
     if (!snapshot) {
       return;
     }
-    void fetchChats();
-  }, [fetchChats, snapshot]);
+    const timeout = setTimeout(() => {
+      void fetchChats();
+    }, 0);
 
-  useEffect(() => {
-    if (
-      !loading &&
-      snapshot &&
-      total > 0 &&
-      chats.length === 0 &&
-      page > totalPages
-    ) {
-      handlePageChange(totalPages);
-    }
-  }, [
-    chats.length,
-    handlePageChange,
-    loading,
-    page,
-    snapshot,
-    total,
-    totalPages,
-  ]);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [fetchChats, snapshot]);
 
   const handleRetry = () => {
     void fetchChats();

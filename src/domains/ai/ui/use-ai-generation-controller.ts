@@ -206,24 +206,6 @@ export function useAiGenerationController<
   );
 
   useEffect(() => {
-    setSceneState((current) =>
-      current === resolvedSelection.scene ? current : resolvedSelection.scene
-    );
-    setProviderState((current) =>
-      current === resolvedSelection.provider
-        ? current
-        : resolvedSelection.provider
-    );
-    setModelState((current) =>
-      current === resolvedSelection.model ? current : resolvedSelection.model
-    );
-  }, [
-    resolvedSelection.model,
-    resolvedSelection.provider,
-    resolvedSelection.scene,
-  ]);
-
-  useEffect(() => {
     let cancelled = false;
 
     const loadCapabilities = async () => {
@@ -515,9 +497,9 @@ export function useAiGenerationController<
     remainingCredits: details?.credits?.remainingCredits ?? 0,
     costCredits: resolvedSelection.capability?.costCredits ?? 0,
     capabilities: mediaCapabilities,
-    scene,
-    provider,
-    model,
+    scene: resolvedSelection.scene,
+    provider: resolvedSelection.provider,
+    model: resolvedSelection.model,
     setScene: (nextScene: string) => {
       setSceneState(nextScene);
       setProviderState('');

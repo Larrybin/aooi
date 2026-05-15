@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { signIn, withAuthJsonRequest } from '@/infra/platform/auth/client';
 import { Link, useRouter } from '@/infra/platform/i18n/navigation';
 import { Loader2 } from 'lucide-react';
@@ -22,6 +22,10 @@ import type { AuthErrorContext } from '@/shared/types/auth-callback';
 
 import { SocialProviders } from './social-providers';
 
+function subscribeToHydration() {
+  return () => undefined;
+}
+
 export function SignInForm({
   callbackUrl = '/',
   className,
@@ -34,8 +38,12 @@ export function SignInForm({
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [clientReady, setClientReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const clientReady = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false
+  );
 
   const { authSettings, setIsShowSignModal } = usePublicAppContext();
 
@@ -47,10 +55,6 @@ export function SignInForm({
     locale,
     defaultLocale,
   });
-
-  useEffect(() => {
-    setClientReady(true);
-  }, []);
 
   const handleSignIn = async () => {
     if (loading) {
