@@ -68,15 +68,22 @@ export function useAIGenerationTask({
   onPoll,
   onTimeout,
 }: UseAIGenerationTaskOptions) {
-  const [phase, setPhase] = useState<AIGenerationTaskPhase>('idle');
+  const [terminalState, setTerminalState] = useState<{
+    taskId: string;
+    phase: Exclude<AIGenerationTaskPhase, 'idle' | 'polling'>;
+  } | null>(null);
+  const isActiveTask = enabled && Boolean(taskId);
+  const phase: AIGenerationTaskPhase = !isActiveTask
+    ? 'idle'
+    : terminalState?.taskId === taskId
+      ? terminalState.phase
+      : 'polling';
 
   useEffect(() => {
     if (!enabled || !taskId) {
-      setPhase('idle');
       return;
     }
 
-    setPhase('polling');
     const startedAt = Date.now();
     let cancelled = false;
     let inFlight = false;
@@ -99,7 +106,7 @@ export function useAIGenerationTask({
       });
       if (timedOut) {
         cancelled = true;
-        setPhase('timeout');
+        setTerminalState({ taskId, phase: 'timeout' });
         onTimeout();
         return;
       }
@@ -112,7 +119,10 @@ export function useAIGenerationTask({
         }
 
         cancelled = true;
-        setPhase(result.terminalState || 'success');
+        setTerminalState({
+          taskId,
+          phase: result.terminalState || 'success',
+        });
       } finally {
         inFlight = false;
       }

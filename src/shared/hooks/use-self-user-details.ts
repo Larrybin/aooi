@@ -116,9 +116,6 @@ export function useSelfUserDetails({
   useEffect(() => {
     if (!enabled) {
       didLoadRef.current = false;
-      setData(null);
-      setError(null);
-      setIsLoading(false);
       return;
     }
 
@@ -131,9 +128,9 @@ export function useSelfUserDetails({
   }, [enabled, refresh]);
 
   return {
-    data,
-    error,
-    isLoading,
+    data: enabled ? data : null,
+    error: enabled ? error : null,
+    isLoading: enabled ? isLoading : false,
     refresh,
   };
 }
