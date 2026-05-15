@@ -2,23 +2,24 @@ import { createApiContext } from '@/app/api/_lib/context';
 import { createQueuedRemoverJob } from '@/domains/remover/application/jobs';
 import { storeRemoverOutputImage } from '@/domains/remover/application/output';
 import { submitRemoverJobToProvider } from '@/domains/remover/application/processing';
-import { getStorageService } from '@/infra/adapters/storage/service';
 import {
   createRemoverImageAssets,
   findActiveRemoverImageAssetById,
 } from '@/domains/remover/infra/image-asset';
 import {
-  createRemoverJobWithQuotaReservation,
   claimRemoverJobForProviderSubmission,
+  createRemoverJobWithQuotaReservation,
   findRemoverJobById,
   findRemoverJobByQuotaReservationId,
   updateRemoverJobById,
+  withRemoverJobOutputStorageLock,
 } from '@/domains/remover/infra/job';
 import {
-  findRemoverQuotaReservationByIdempotencyKey,
   commitRemoverQuotaReservation,
+  findRemoverQuotaReservationByIdempotencyKey,
   refundRemoverQuotaReservation,
 } from '@/domains/remover/infra/quota-reservation';
+import { getStorageService } from '@/infra/adapters/storage/service';
 
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { withApi } from '@/shared/lib/api/route';
@@ -37,7 +38,8 @@ const postAction = createRemoverJobsPostAction({
   submitRemoverJobToProvider,
   jobDeps: {
     findAsset: findActiveRemoverImageAssetById,
-    findReservationByIdempotencyKey: findRemoverQuotaReservationByIdempotencyKey,
+    findReservationByIdempotencyKey:
+      findRemoverQuotaReservationByIdempotencyKey,
     createJobWithReservation: createRemoverJobWithQuotaReservation,
     findJobByQuotaReservationId: findRemoverJobByQuotaReservationId,
     findJobById: async () => undefined,
@@ -49,6 +51,7 @@ const postAction = createRemoverJobsPostAction({
     claimJobForProviderSubmission: claimRemoverJobForProviderSubmission,
     commitReservation: commitRemoverQuotaReservation,
     refundReservation: refundRemoverQuotaReservation,
+    withOutputStorageLock: withRemoverJobOutputStorageLock,
     storeOutputImage: async ({ job, outputImageUrl }) => {
       const result = await storeRemoverOutputImage({
         job,

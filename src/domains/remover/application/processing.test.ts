@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type { RemoverActor } from '../domain/types';
+import type { RemoverImageAsset } from '../infra/image-asset';
+import type { RemoverJob, UpdateRemoverJob } from '../infra/job';
 import {
   refreshRemoverJobStatus,
   submitRemoverJobToProvider,
 } from './processing';
-
-import type { RemoverActor } from '../domain/types';
-import type { RemoverImageAsset } from '../infra/image-asset';
-import type { RemoverJob, UpdateRemoverJob } from '../infra/job';
 
 const actor = {
   kind: 'anonymous',
@@ -66,6 +65,7 @@ function createDeps(job: RemoverJob) {
   const updates: UpdateRemoverJob[] = [];
   let committed = false;
   let refundedReason: string | undefined;
+  let outputStoreCalls = 0;
 
   const deps = {
     findJobById: async () => job,
@@ -88,10 +88,13 @@ function createDeps(job: RemoverJob) {
     refundReservation: async ({ reason }: { reason?: string }) => {
       refundedReason = reason;
     },
-    storeOutputImage: async () => ({
-      outputStorageKey: 'output.png',
-      thumbnailStorageKey: 'thumbnail.webp',
-    }),
+    storeOutputImage: async () => {
+      outputStoreCalls += 1;
+      return {
+        outputStorageKey: 'output.png',
+        thumbnailStorageKey: 'thumbnail.webp',
+      };
+    },
     providerAdapter: {
       config: {
         provider: 'replicate',
@@ -118,6 +121,9 @@ function createDeps(job: RemoverJob) {
     get refundedReason() {
       return refundedReason;
     },
+    get outputStoreCalls() {
+      return outputStoreCalls;
+    },
   };
 }
 
@@ -134,6 +140,29 @@ test('submitRemoverJobToProvider sends input and mask URLs and stores provider t
   assert.equal(result.status, 'processing');
   assert.equal(result.providerTaskId, 'provider_task_1');
   assert.equal(state.committed, false);
+  assert.equal(state.refundedReason, undefined);
+});
+
+test('submitRemoverJobToProvider stores output when provider succeeds during submit', async () => {
+  const job = createJob();
+  const state = createDeps(job);
+  state.deps.providerAdapter.submitTask = async () => ({
+    providerTaskId: 'provider_task_1',
+    status: 'succeeded',
+    outputImageUrl: 'https://provider.example.com/output.png',
+  });
+
+  const result = await submitRemoverJobToProvider({
+    actor,
+    jobId: job.id,
+    deps: state.deps,
+  });
+
+  assert.equal(result.status, 'succeeded');
+  assert.equal(result.outputImageKey, 'output.png');
+  assert.equal(result.thumbnailKey, 'thumbnail.webp');
+  assert.equal(state.outputStoreCalls, 1);
+  assert.equal(state.committed, true);
   assert.equal(state.refundedReason, undefined);
 });
 
@@ -223,6 +252,48 @@ test('refreshRemoverJobStatus commits quota and stores output on success', async
   assert.notEqual(result.outputImageKey, result.thumbnailKey);
   assert.equal(state.committed, true);
   assert.equal(state.refundedReason, undefined);
+});
+
+test('refreshRemoverJobStatus stores successful output only once after a locked reread', async () => {
+  const job = createJob({
+    status: 'processing',
+    providerTaskId: 'provider_task_1',
+  });
+  const state = createDeps(job);
+  let findCalls = 0;
+  state.deps.findJobById = async () => {
+    findCalls += 1;
+    if (findCalls === 1 || findCalls === 3) {
+      return {
+        ...job,
+        status: 'processing',
+        outputImageKey: null,
+        thumbnailKey: null,
+      };
+    }
+    return job;
+  };
+  state.deps.withOutputStorageLock = async (_jobId, callback) => callback();
+  state.deps.providerAdapter.getTaskStatus = async () => ({
+    providerTaskId: 'provider_task_1',
+    status: 'succeeded',
+    outputImageUrl: 'https://provider.example.com/output.png',
+  });
+
+  const first = await refreshRemoverJobStatus({
+    actor,
+    jobId: job.id,
+    deps: state.deps,
+  });
+  const second = await refreshRemoverJobStatus({
+    actor,
+    jobId: job.id,
+    deps: state.deps,
+  });
+
+  assert.equal(first.status, 'succeeded');
+  assert.equal(second.status, 'succeeded');
+  assert.equal(state.outputStoreCalls, 1);
 });
 
 test('refreshRemoverJobStatus refunds quota on provider failure', async () => {

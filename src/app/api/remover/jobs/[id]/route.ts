@@ -8,23 +8,24 @@ import {
   refreshRemoverJobStatus,
   submitRemoverJobToProvider,
 } from '@/domains/remover/application/processing';
-import { getStorageService } from '@/infra/adapters/storage/service';
 import {
   claimRemoverImageAssetsByKeys,
   createRemoverImageAssets,
   findActiveRemoverImageAssetById,
 } from '@/domains/remover/infra/image-asset';
 import {
-  claimRemoverJobForProviderSubmission,
   claimRemoverJobById,
+  claimRemoverJobForProviderSubmission,
   findRemoverJobById,
   updateRemoverJobById,
+  withRemoverJobOutputStorageLock,
 } from '@/domains/remover/infra/job';
 import {
   claimRemoverQuotaReservationById,
   commitRemoverQuotaReservation,
   refundRemoverQuotaReservation,
 } from '@/domains/remover/infra/quota-reservation';
+import { getStorageService } from '@/infra/adapters/storage/service';
 
 import { withApi } from '@/shared/lib/api/route';
 
@@ -54,6 +55,7 @@ const getAction = createRemoverJobGetAction({
     updateJob: updateRemoverJobById,
     commitReservation: commitRemoverQuotaReservation,
     refundReservation: refundRemoverQuotaReservation,
+    withOutputStorageLock: withRemoverJobOutputStorageLock,
     storeOutputImage: async ({ job, outputImageUrl }) => {
       const result = await storeRemoverOutputImage({
         job,
@@ -76,6 +78,7 @@ const getAction = createRemoverJobGetAction({
     claimJobForProviderSubmission: claimRemoverJobForProviderSubmission,
     commitReservation: commitRemoverQuotaReservation,
     refundReservation: refundRemoverQuotaReservation,
+    withOutputStorageLock: withRemoverJobOutputStorageLock,
     storeOutputImage: async ({ job, outputImageUrl }) => {
       const result = await storeRemoverOutputImage({
         job,

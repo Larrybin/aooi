@@ -1,24 +1,34 @@
 import 'server-only';
 
 import { db } from '@/infra/adapters/db';
-import { and, desc, eq, inArray, isNull, lte, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 
-import { removerJob } from '@/config/db/schema';
-import { removerQuotaReservation } from '@/config/db/schema';
+import { removerJob, removerQuotaReservation } from '@/config/db/schema';
 import { ConflictError } from '@/shared/lib/api/errors';
-import type {
-  NewRemoverQuotaReservation,
-  QuotaReservationCheck,
-  RemoverQuotaReservation,
-} from './quota-reservation';
+
 import {
   insertRemoverQuotaReservationAfterQuotaCheck,
   lockRemoverQuotaReservationCreation,
+  type NewRemoverQuotaReservation,
+  type QuotaReservationCheck,
+  type RemoverQuotaReservation,
 } from './quota-reservation';
 
 export type RemoverJob = typeof removerJob.$inferSelect;
 export type NewRemoverJob = typeof removerJob.$inferInsert;
 export type UpdateRemoverJob = Partial<Omit<NewRemoverJob, 'id' | 'createdAt'>>;
+
+export async function withRemoverJobOutputStorageLock<T>(
+  jobId: string,
+  callback: () => Promise<T>
+): Promise<T> {
+  return db().transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('remover_job_output'), hashtext(${jobId}))`
+    );
+    return callback();
+  });
+}
 
 export async function createRemoverJobWithQuotaReservation({
   reservation,

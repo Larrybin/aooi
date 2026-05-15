@@ -35,6 +35,10 @@ type SubmitDeps = {
     job: RemoverJob;
     outputImageUrl: string;
   }) => Promise<{ outputStorageKey: string; thumbnailStorageKey: string }>;
+  withOutputStorageLock?: <T>(
+    jobId: string,
+    callback: () => Promise<T>
+  ) => Promise<T>;
   providerAdapter: RemoverProviderAdapter;
   now?: () => Date;
 };
@@ -57,6 +61,10 @@ type RefreshDeps = {
     job: RemoverJob;
     outputImageUrl: string;
   }) => Promise<{ outputStorageKey: string; thumbnailStorageKey: string }>;
+  withOutputStorageLock?: <T>(
+    jobId: string,
+    callback: () => Promise<T>
+  ) => Promise<T>;
   providerAdapter: Pick<RemoverProviderAdapter, 'getTaskStatus'>;
   now?: () => Date;
 };
@@ -100,6 +108,16 @@ function mapProviderUpdate(
     errorCode: result.errorCode ?? null,
     errorMessage: result.errorMessage ?? null,
   };
+}
+
+function withOutputStorageLock<T>(
+  deps: Pick<SubmitDeps | RefreshDeps, 'withOutputStorageLock'>,
+  jobId: string,
+  callback: () => Promise<T>
+) {
+  return deps.withOutputStorageLock
+    ? deps.withOutputStorageLock(jobId, callback)
+    : callback();
 }
 
 async function failJobAndRefund({
@@ -218,9 +236,11 @@ async function refreshSucceededJob({
   deps: Pick<
     RefreshDeps,
     | 'storeOutputImage'
+    | 'findJobById'
     | 'updateJob'
     | 'commitReservation'
     | 'refundReservation'
+    | 'withOutputStorageLock'
     | 'now'
   >;
 }) {
@@ -232,30 +252,45 @@ async function refreshSucceededJob({
     });
   }
 
-  try {
-    const output = await deps.storeOutputImage({
-      job,
-      outputImageUrl: result.outputImageUrl,
-    });
-    const succeeded = await deps.updateJob(job.id, {
-      status: 'succeeded',
-      outputImageKey: output.outputStorageKey,
-      thumbnailKey: output.thumbnailStorageKey,
-      errorCode: null,
-      errorMessage: null,
-    });
-    await deps.commitReservation({
-      reservationId: job.quotaReservationId,
-      now: deps.now?.(),
-    });
-    return succeeded;
-  } catch (error: unknown) {
-    return failJobAndRefund({
-      job,
-      reason: error instanceof Error ? error.message : 'output storage failed',
-      deps,
-    });
-  }
+  return withOutputStorageLock(deps, job.id, async () => {
+    const currentJob = (await deps.findJobById(job.id)) ?? job;
+    if (currentJob.status === 'failed') {
+      return currentJob;
+    }
+    if (
+      currentJob.status === 'succeeded' &&
+      currentJob.outputImageKey &&
+      currentJob.thumbnailKey
+    ) {
+      return currentJob;
+    }
+
+    try {
+      const output = await deps.storeOutputImage({
+        job: currentJob,
+        outputImageUrl: result.outputImageUrl,
+      });
+      const succeeded = await deps.updateJob(currentJob.id, {
+        status: 'succeeded',
+        outputImageKey: output.outputStorageKey,
+        thumbnailKey: output.thumbnailStorageKey,
+        errorCode: null,
+        errorMessage: null,
+      });
+      await deps.commitReservation({
+        reservationId: currentJob.quotaReservationId,
+        now: deps.now?.(),
+      });
+      return succeeded;
+    } catch (error: unknown) {
+      return failJobAndRefund({
+        job: currentJob,
+        reason:
+          error instanceof Error ? error.message : 'output storage failed',
+        deps,
+      });
+    }
+  });
 }
 
 export async function refreshRemoverJobStatus({
