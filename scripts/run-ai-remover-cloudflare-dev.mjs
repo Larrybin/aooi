@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 
 import { resolveCloudflareAuthSecretValue } from './create-cf-secrets-file.mjs';
 import { startCloudflareLocalDevTopology } from './lib/cloudflare-local-topology.mjs';
-import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
 import {
   injectCloudflareLocalSmokeDevVars,
   resolveLocalSmokeDatabaseUrl,
@@ -17,11 +16,8 @@ const defaultModel = '@cf/runwayml/stable-diffusion-v1-5-inpainting';
 
 export function buildAiRemoverCloudflareDevExtraVars({
   model = defaultModel,
-  authBaseUrl = getCurrentSiteAppUrl(),
 } = {}) {
   return {
-    AUTH_URL: authBaseUrl,
-    BETTER_AUTH_URL: authBaseUrl,
     REMOVER_AI_PROVIDER: 'cloudflare-workers-ai',
     REMOVER_AI_MODEL: model,
   };
@@ -47,7 +43,6 @@ export async function runAiRemoverCloudflareDev({
   baseUrl = process.env.CF_LOCAL_SMOKE_URL?.trim() || defaultBaseUrl,
   databaseUrl = resolveLocalSmokeDatabaseUrl(),
   authSecret,
-  authBaseUrl,
   model = process.env.REMOVER_AI_MODEL?.trim() || defaultModel,
   logger = console,
   waitUntilStopped = waitForShutdownSignal,
@@ -69,7 +64,7 @@ export async function runAiRemoverCloudflareDev({
     databaseUrl,
     routerBaseUrl: baseUrl,
     authSecret: resolvedAuthSecret,
-    extraVars: buildAiRemoverCloudflareDevExtraVars({ authBaseUrl, model }),
+    extraVars: buildAiRemoverCloudflareDevExtraVars({ model }),
   });
 
   try {

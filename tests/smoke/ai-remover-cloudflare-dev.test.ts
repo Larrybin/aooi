@@ -11,12 +11,9 @@ const model = '@cf/runwayml/stable-diffusion-v1-5-inpainting';
 test('buildAiRemoverCloudflareDevExtraVars pins remover to Workers AI', () => {
   assert.deepEqual(
     buildAiRemoverCloudflareDevExtraVars({
-      authBaseUrl: 'https://airemover.example.com',
       model,
     }),
     {
-      AUTH_URL: 'https://airemover.example.com',
-      BETTER_AUTH_URL: 'https://airemover.example.com',
       REMOVER_AI_PROVIDER: 'cloudflare-workers-ai',
       REMOVER_AI_MODEL: model,
     }
@@ -30,7 +27,6 @@ test('runAiRemoverCloudflareDev starts topology and stops it after shutdown sign
     baseUrl: 'http://localhost:8787',
     databaseUrl: 'postgresql://example',
     authSecret: 'secret',
-    authBaseUrl: 'https://airemover.example.com',
     logger: {
       log: (message: string) => logs.push(message),
     } as never,
@@ -39,8 +35,8 @@ test('runAiRemoverCloudflareDev starts topology and stops it after shutdown sign
         .extraVars;
       assert.equal(extraVars.REMOVER_AI_PROVIDER, 'cloudflare-workers-ai');
       assert.equal(extraVars.REMOVER_AI_MODEL, model);
-      assert.ok(extraVars.AUTH_URL);
-      assert.ok(extraVars.BETTER_AUTH_URL);
+      assert.equal(extraVars.AUTH_URL, undefined);
+      assert.equal(extraVars.BETTER_AUTH_URL, undefined);
       return {
         getRouterBaseUrl: () => 'http://localhost:8787',
         stop: async () => {
@@ -68,7 +64,6 @@ test('runAiRemoverCloudflareDev falls back to the local auth secret', async () =
     await runAiRemoverCloudflareDev({
       baseUrl: 'http://localhost:8787',
       databaseUrl: 'postgresql://example',
-      authBaseUrl: 'https://airemover.example.com',
       logger: {
         log: () => {},
       } as never,
