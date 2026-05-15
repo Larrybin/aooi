@@ -251,6 +251,7 @@ async function refreshSucceededJob({
       deps,
     });
   }
+  const outputImageUrl = result.outputImageUrl;
 
   return withOutputStorageLock(deps, job.id, async () => {
     const currentJob = (await deps.findJobById(job.id)) ?? job;
@@ -268,7 +269,7 @@ async function refreshSucceededJob({
     try {
       const output = await deps.storeOutputImage({
         job: currentJob,
-        outputImageUrl: result.outputImageUrl,
+        outputImageUrl,
       });
       const succeeded = await deps.updateJob(currentJob.id, {
         status: 'succeeded',
