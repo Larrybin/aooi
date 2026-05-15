@@ -117,7 +117,13 @@ export function ChatHistory() {
     if (!snapshot) {
       return;
     }
-    void fetchChats();
+    const timeout = setTimeout(() => {
+      void fetchChats();
+    }, 0);
+
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [fetchChats, snapshot]);
 
   const handleRetry = () => {
