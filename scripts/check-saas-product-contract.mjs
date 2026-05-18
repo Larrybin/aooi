@@ -21,7 +21,6 @@ const COMMON_ENTITLEMENT_KEYS = new Set([
   'max_upload_mb',
   'retention_days',
 ]);
-
 const ISSUE_LEVEL = {
   BLOCKER: 'blocker',
   WARNING: 'warning',
@@ -47,12 +46,28 @@ function section(status, value, sources, issues = []) {
   return { status, value, sources, issues };
 }
 
+function getErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function hasText(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
 function isCheckoutEnabled(item) {
   return item.checkout_enabled !== false && item.amount > 0;
+}
+
+function readTextIfExists(filePath) {
+  if (!existsSync(filePath)) {
+    return '';
+  }
+
+  return readFileSync(filePath, 'utf8');
+}
+
+function sourceTextIncludes(sourcePath, text) {
+  return readTextIfExists(sourcePath).includes(text);
 }
 
 function collectPricingItems(sitePricing) {
@@ -62,8 +77,7 @@ function collectPricingItems(sitePricing) {
 function collectEntitlementKeys(items) {
   const keys = new Set();
   for (const item of items) {
-    const entitlements = item.entitlements ?? {};
-    for (const key of Object.keys(entitlements)) {
+    for (const key of Object.keys(item.entitlements ?? {})) {
       keys.add(key);
     }
   }
@@ -80,18 +94,6 @@ function classifyEntitlementKey(key, siteKey) {
   }
 
   return 'raw_unknown';
-}
-
-function readTextIfExists(filePath) {
-  if (!existsSync(filePath)) {
-    return '';
-  }
-
-  return readFileSync(filePath, 'utf8');
-}
-
-function sourceTextIncludes(sourcePath, text) {
-  return readTextIfExists(sourcePath).includes(text);
 }
 
 function auditSite(site, sitePath) {
@@ -133,6 +135,31 @@ function auditSite(site, sitePath) {
     [source('site_config', sitePath)],
     issues
   );
+}
+
+function readPricingForReport({ rootDir, site, siteKey, pricingPath }) {
+  try {
+    return {
+      sitePricing: readCurrentSitePricing({
+        rootDir,
+        site,
+        siteKey,
+      }),
+      issues: [],
+    };
+  } catch (error) {
+    return {
+      sitePricing: null,
+      issues: [
+        issue(
+          ISSUE_LEVEL.BLOCKER,
+          'invalid_pricing_file',
+          `Pricing file could not be read or validated: ${getErrorMessage(error)}`,
+          [source('pricing', pricingPath)]
+        ),
+      ],
+    };
+  }
 }
 
 function resolveMappingOwnership({
@@ -186,11 +213,13 @@ function auditCommercial({
   sitePricing,
   sitePath,
   pricingPath,
+  pricingIssues,
   settingsSourcePath,
 }) {
   if (!sitePricing) {
-    const issues =
-      site.capabilities?.payment && site.capabilities.payment !== 'none'
+    const issues = pricingIssues.length
+      ? pricingIssues
+      : site.capabilities?.payment && site.capabilities.payment !== 'none'
         ? [
             issue(
               ISSUE_LEVEL.BLOCKER,
@@ -205,7 +234,13 @@ function auditCommercial({
       issues.length === 0 ? 'not_applicable' : 'missing',
       {
         billing: site.capabilities?.payment ?? 'none',
-        pricingFile: existsSync(pricingPath) ? 'resolved' : 'missing',
+        pricingFile: pricingIssues.length
+          ? 'invalid'
+          : existsSync(pricingPath)
+            ? 'resolved'
+            : 'missing',
+        planCount: 0,
+        paidCheckoutPlanCount: 0,
         plans: [],
       },
       [source('pricing', pricingPath)],
@@ -214,7 +249,6 @@ function auditCommercial({
   }
 
   const items = collectPricingItems(sitePricing);
-  const paidCheckoutItems = items.filter(isCheckoutEnabled);
   const planIssues = [];
   const plans = items.map((item) => {
     const mappingOwnership = isCheckoutEnabled(item)
@@ -261,7 +295,7 @@ function auditCommercial({
       billing: site.capabilities?.payment ?? 'none',
       pricingFile: 'resolved',
       planCount: items.length,
-      paidCheckoutPlanCount: paidCheckoutItems.length,
+      paidCheckoutPlanCount: items.filter(isCheckoutEnabled).length,
       plans,
     },
     [
@@ -423,7 +457,6 @@ function auditRuntimeOwnership({
       ],
     },
   ];
-
   const issues = entries
     .filter((entry) => entry.status === 'missing')
     .map((entry) =>
@@ -448,13 +481,12 @@ function auditRuntimeOwnership({
 }
 
 function collectLaunch(report) {
-  const sections = [
+  const issues = [
     report.site,
     report.commercial,
     report.entitlementKeys,
     report.runtimeOwnership,
-  ];
-  const issues = sections.flatMap((item) => item.issues);
+  ].flatMap((item) => item.issues);
 
   return {
     blockers: issues.filter((item) => item.level === ISSUE_LEVEL.BLOCKER),
@@ -480,10 +512,11 @@ function buildAuditReport(siteKey) {
   const envContractPath = path.resolve(ROOT_DIR, 'src/config/env-contract.ts');
 
   const site = readCurrentSiteConfig({ rootDir: ROOT_DIR, siteKey });
-  const sitePricing = readCurrentSitePricing({
+  const { sitePricing, issues: pricingIssues } = readPricingForReport({
     rootDir: ROOT_DIR,
     site,
     siteKey,
+    pricingPath,
   });
   const deploySettings = readSiteDeploySettings({
     rootDir: ROOT_DIR,
@@ -497,6 +530,7 @@ function buildAuditReport(siteKey) {
       sitePricing,
       sitePath,
       pricingPath,
+      pricingIssues,
       settingsSourcePath: paymentSettingsPath,
     }),
     entitlementKeys: auditEntitlementKeys({
@@ -519,14 +553,6 @@ function buildAuditReport(siteKey) {
   };
 }
 
-function formatIssueList(items) {
-  if (items.length === 0) {
-    return ['  none'];
-  }
-
-  return items.map((item) => `  ${item.level}  ${item.message}`);
-}
-
 function formatSourceRef(item) {
   const parts = [item.kind];
   if (item.path) {
@@ -536,6 +562,20 @@ function formatSourceRef(item) {
     parts.push(item.key);
   }
   return parts.join(':');
+}
+
+function formatIssueList(items) {
+  if (items.length === 0) {
+    return ['  none'];
+  }
+
+  return items.flatMap((item) => {
+    const lines = [`  ${item.level}  ${item.message}`];
+    for (const itemSource of item.sources) {
+      lines.push(`    source  ${formatSourceRef(itemSource)}`);
+    }
+    return lines;
+  });
 }
 
 function formatSectionSources(label, sources) {
@@ -620,7 +660,8 @@ function main() {
 try {
   main();
 } catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`SaaS contract audit failed: ${message}\n`);
+  process.stderr.write(
+    `SaaS contract audit failed: ${getErrorMessage(error)}\n`
+  );
   process.exit(1);
 }

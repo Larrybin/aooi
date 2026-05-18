@@ -36,20 +36,21 @@ toggles, public config, integration settings, and operator workflows.
 
 Admin Settings is not the full product configuration authority in stage one.
 
-### 2. Build A Typed Contract Resolver, Not A New Product Runtime
+### 2. Build A Source-Mapped Contract Audit, Not A New Product Runtime
 
 Accepted.
 
-The first implementation target is a resolved typed product contract:
+The first implementation target is a source-mapped audit report:
 
 ```text
 existing site/pricing/deploy/module/settings contracts
-  -> resolveSaaSProductContract()
-  -> typed contract + validation report + launch checklist
+  -> check-saas-product-contract
+  -> section status + source refs + launch blockers/warnings
 ```
 
-The resolver is report-first. It should expose gaps before changing runtime
-behavior.
+The audit is report-first. It should expose gaps before changing runtime
+behavior, and it must not pretend unresolved sections are complete platform
+contracts.
 
 ### 3. Do Not Refactor AI Remover First
 
@@ -72,7 +73,7 @@ enforcement and metering mechanisms.
 Stage one should define a controlled entitlement vocabulary and allow
 product-specific keys only through explicit namespacing.
 
-### 5. Billing Reversal Must Become Explicit
+### 5. Billing Reversal Must Become Explicit Later
 
 Accepted.
 
@@ -86,9 +87,10 @@ adjustments must be described as business events with clear effects:
 - audit record
 - operator action requirement
 
-Scattered one-off refund logic is not a complete platform contract.
+Scattered one-off refund logic is not a complete platform contract, but billing
+reversal is deferred out of the first Contract Audit Skeleton PR.
 
-### 6. Provider/Model Config Is A Platform Primitive
+### 6. Provider/Model Config Is A Later Platform Primitive
 
 Accepted.
 
@@ -96,7 +98,8 @@ The platform should describe provider capabilities, required bindings/secrets,
 models, cost mapping, task mode, and plan access policy.
 
 Product prompts, masks, transforms, editors, and workflow-specific parameters
-remain product code.
+remain product code. Provider readiness is deferred out of the first Contract
+Audit Skeleton PR.
 
 ### 7. Product Workflows Stay Flexible
 
@@ -136,14 +139,15 @@ until the contract is validated and another product confirms the shared shape.
 
 ## Stage-One Deliverables
 
-1. Typed SaaS product contract types.
-2. Contract resolver from current source-of-truth files.
+1. Minimal contract audit types.
+2. Source-mapped audit from current source-of-truth files.
 3. Entitlement vocabulary and validation.
-4. Usage, credits, and billing reversal report sections.
-5. Provider capability matrix.
-6. CLI contract check.
-7. Launch-readiness checklist.
-8. Documentation updates.
+4. Site summary.
+5. Commercial/pricing summary.
+6. Runtime-owned field report.
+7. Launch blockers and warnings.
+8. CLI contract check for `SITE=ai-remover`.
+9. Documentation updates.
 
 ## Guardrails
 
@@ -162,6 +166,15 @@ until the contract is validated and another product confirms the shared shape.
 4. Whether product templates should exist after the next real SaaS product.
 5. Whether generated asset history should become a platform-owned module.
 
+## Deferred Work
+
+1. Usage and credits mapping.
+2. Billing reversal report sections for refunds, cancellations, chargebacks,
+   failed-job compensation, and manual adjustments.
+3. Provider readiness report and ProviderCapabilityMatrix.
+4. Product template generator.
+5. Generic quota or usage table migration.
+
 ## Next Assignment
 
 Implement the first report-only contract pass:
@@ -169,7 +182,6 @@ Implement the first report-only contract pass:
 ```text
 src/config/saas-product-contract/**
 scripts/check-saas-product-contract.mjs
-docs/guides/saas-product-contract.md
 ```
 
 The first check should run against `SITE=ai-remover` and must not change runtime
