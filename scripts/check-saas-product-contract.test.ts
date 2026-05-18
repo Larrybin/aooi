@@ -589,7 +589,7 @@ test('contract audit reports missing payment failed and refunded handlers with s
   );
 });
 
-test('contract audit does not keep missing-handler warnings after failed and refunded handlers exist', async () => {
+test('contract audit keeps refund reversal warnings after placeholder handler exists', async () => {
   const rootDir = await createFixtureRoot({
     pricing: {
       items: [
@@ -642,10 +642,16 @@ test('contract audit does not keep missing-handler warnings after failed and ref
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /payment\.failed: handled/);
   assert.match(result.stdout, /payment\.refunded: partially_handled/);
-  assert.doesNotMatch(result.stdout, /missing_payment_failed_handler/);
-  assert.doesNotMatch(result.stdout, /missing_payment_refunded_handler/);
   assert.doesNotMatch(result.stdout, /payment\.failed is canonical/);
   assert.doesNotMatch(result.stdout, /payment\.refunded is canonical/);
+  assert.match(
+    result.stdout,
+    /warning  payment\.refunded has a notify handler but no source-mapped reversal coverage/
+  );
+  assert.match(
+    result.stdout,
+    /source  billing_domain:src\/domains\/billing\/domain\/payment\.ts:PaymentEventType\.PAYMENT_REFUNDED/
+  );
 });
 
 test('contract audit maps renewal to payment success with renewal cycle type', async () => {

@@ -1012,16 +1012,21 @@ function auditBillingReversal(paths) {
       auditEffect: 'writes_audit',
       idempotency: 'explicit',
       operatorAction: 'required',
-      issues:
-        paymentRefundedEnum && !paymentRefundedHandled
-          ? [
-              billingWarning(
-                'missing_payment_refunded_handler',
-                'payment.refunded is canonical but has no reversal handler for subscription, entitlement, credit, or usage effects',
-                paymentRefundedSources
-              ),
-            ]
-          : [],
+      issues: paymentRefundedEnum
+        ? [
+            paymentRefundedHandled
+              ? billingWarning(
+                  'missing_payment_refunded_reversal_effects',
+                  'payment.refunded has a notify handler but no source-mapped reversal coverage for subscription, entitlement, credit, or usage effects',
+                  paymentRefundedSources
+                )
+              : billingWarning(
+                  'missing_payment_refunded_handler',
+                  'payment.refunded is canonical but has no reversal handler for subscription, entitlement, credit, or usage effects',
+                  paymentRefundedSources
+                ),
+          ]
+        : [],
     }),
     billingEvent({
       eventName: 'subscribe.updated',
