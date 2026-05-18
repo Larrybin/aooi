@@ -109,7 +109,28 @@ fallback evidence, and provider source ownership. It does not implement a
 `ProviderCapabilityMatrix`, provider marketplace, fallback runtime, or
 plan-to-provider policy.
 
-### 7. Product Workflows Stay Flexible
+### 7. Usage/Credits Mapping Is Report-Only In Stage One
+
+Accepted.
+
+AI Remover proves product-owned quota reservation for processing and high-res
+downloads. The platform also has a separate credit ledger for billing/member
+credits.
+
+PR 4 maps those existing mechanisms in the audit report:
+
+- AI Remover processing quota
+- AI Remover high-res download quota
+- pricing entitlement semantics
+- platform credit ledger grant/consume/refund/expiration/admin visibility
+- reservation expiration and product retention
+- anonymous-to-user claim/transfer
+- generic usage table status as missing/deferred
+
+PR 4 does not implement a generic usage table, migrate quota storage, change
+credit behavior, or claim that a shared usage runtime exists.
+
+### 8. Product Workflows Stay Flexible
 
 Accepted.
 
@@ -157,7 +178,8 @@ until the contract is validated and another product confirms the shared shape.
 8. CLI contract check for `SITE=ai-remover`.
 9. Billing Reversal Report section.
 10. Provider Readiness Report section.
-11. Documentation updates.
+11. Usage / Credits Mapping Report section.
+12. Documentation updates.
 
 ## Guardrails
 
@@ -179,22 +201,25 @@ until the contract is validated and another product confirms the shared shape.
 
 ## Deferred Work
 
-1. Usage and credits mapping.
+1. Generic quota or usage table migration.
 2. ProviderCapabilityMatrix.
 3. Runtime billing reversal implementation for refunds, chargebacks,
    compensation, and entitlement revocation.
 4. Product template generator.
-5. Generic quota or usage table migration.
+5. Runtime usage/credits platform contract, if a second product proves the
+   shared shape.
 
 ## Next Assignment
 
-After Provider Readiness lands, extend the same audit with Usage/Credits
-Mapping:
+After Usage/Credits Mapping lands, do not migrate usage storage yet. The next
+shared runtime decision should wait for a second real SaaS product to prove the
+shape:
 
 ```text
-src/config/saas-product-contract/**
-scripts/check-saas-product-contract.mjs
+product-owned quota reservation
+platform credit ledger
+possible shared usage contract
 ```
 
-The check should run against `SITE=ai-remover` and must not change runtime
+Until then, the check should remain report-only and must not change runtime
 behavior.

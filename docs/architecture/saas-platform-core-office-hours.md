@@ -7,7 +7,9 @@ Historical office-hours note. Executable PR scopes are superseded by
 Contract Audit Skeleton, and PR 2 is limited to the report-only Billing
 Reversal Audit. PR 3 is limited to the report-only Provider Readiness technical
 audit and does not implement a ProviderCapabilityMatrix or provider policy
-runtime.
+runtime. PR 4 is limited to the report-only Usage / Credits Mapping Audit and
+does not implement a generic usage table, quota migration, or credit ledger
+refactor.
 
 ## Goal
 

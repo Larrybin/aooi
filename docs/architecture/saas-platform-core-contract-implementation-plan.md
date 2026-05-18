@@ -7,7 +7,7 @@ Date: 2026-05-18
 Implement the smallest useful contract audit for `aooi`: a source-mapped,
 report-only check that proves whether one site can safely resolve its site
 identity, pricing, plan entitlements, runtime-owned commercial settings, and
-billing/provider readiness.
+billing/provider/usage readiness.
 
 This replaces the broader SaaS Platform Core Contract plan. It must not create
 a full platform contract runtime.
@@ -32,7 +32,7 @@ PR 2 covered:
 3. Launch warnings for missing refund, chargeback, expiration, and manual
    compensation contracts.
 
-PR 3 only adds:
+PR 3 covered:
 
 1. Source-mapped Provider Readiness Report section.
 2. Static audit of existing AI Remover provider selection, model defaults,
@@ -41,18 +41,28 @@ PR 3 only adds:
 3. Launch warnings for missing provider registration or implicit fallback
    policy.
 
+PR 4 only adds:
+
+1. Source-mapped Usage / Credits Mapping Report section.
+2. Static audit of existing AI Remover product-owned quota reservation, high-res
+   download quota, pricing entitlement mappings, platform credit ledger,
+   reservation expiration, retention, and anonymous-to-user claim evidence.
+3. Explicit report that AI Remover quota reservation and platform credits are
+   separate, and that a generic usage table remains missing/deferred.
+
 Everything else is deferred.
 
 ## Non-Goals
 
-- No `UsageContract`.
-- No `CreditsContract`.
+- No generic `UsageContract` runtime.
+- No `CreditsContract` runtime.
+- No generic usage table.
+- No quota or credit ledger migration.
 - No `ProviderCapabilityMatrix`.
 - No provider marketplace.
 - No plan-to-provider access policy.
 - No entitlement-to-provider policy.
 - No product template generator.
-- No generic quota table.
 - No Admin pricing or entitlement editor.
 - No real refund, cancel, chargeback, or compensation runtime.
 - No Admin compensation UI.
@@ -114,6 +124,13 @@ type ContractSourceKind =
   | 'provider_extension'
   | 'provider_runtime'
   | 'provider_test'
+  | 'usage_product_domain'
+  | 'usage_product_application'
+  | 'usage_product_infra'
+  | 'usage_product_route'
+  | 'usage_platform_credit'
+  | 'usage_billing_credit'
+  | 'usage_db'
   | 'derived';
 
 type ContractSection<T> = {
@@ -140,6 +157,7 @@ type ContractAuditReport = {
   runtimeOwnership: ContractSection<RuntimeOwnershipSummary>;
   billingReversal: ContractSection<BillingReversalSummary>;
   providerReadiness: ContractSection<ProviderReadinessSummary>;
+  usageCredits: ContractSection<UsageCreditsSummary>;
   launch: {
     blockers: ContractValidationIssue[];
     warnings: ContractValidationIssue[];
@@ -295,6 +313,37 @@ Rules:
   call Cloudflare, call external providers, read secret values, or connect to
   the database.
 
+## PR 4 Usage / Credits Mapping Report
+
+The Usage / Credits section is a source-mapped mapping audit, not a generic
+usage runtime, quota migration, or credit ledger refactor.
+
+It audits:
+
+1. AI Remover processing quota reservation from job creation, quota domain,
+   quota reservation infra, processing commit/refund, and job routes/actions.
+2. AI Remover high-res download quota from download resolution, high-res
+   reservation, download action, and high/low-res routes.
+3. Pricing entitlement semantics for usage-like limits, access keys, retention,
+   upload guards, and product flags.
+4. Platform credit ledger support for grant, consume, refund consumed credits,
+   expiration, metadata, billing grant scenes, and admin visibility.
+5. Product-owned reservation expiration and job/asset retention.
+6. Anonymous-to-user claim/transfer evidence for jobs/assets/reservations.
+7. The relationship between product quota reservation and platform credits.
+8. Generic usage table status as missing/deferred.
+
+Rules:
+
+- AI Remover processing and high-res download limits remain product-owned.
+- Platform credits remain a separate ledger.
+- Pricing keys are classified but not rewritten.
+- Missing usage/credit source files should degrade into source-mapped issues
+  when possible.
+- The audit must not import runtime modules, execute routes/actions, connect to
+  the database, change quota behavior, change credit behavior, or create a DB
+  migration.
+
 ## CLI
 
 Expected usage:
@@ -344,6 +393,36 @@ Provider readiness:
   fal: partial
     secret=FAL_API_KEY binding_defined
 
+Usage / credits:
+  product quota:
+    processing: product_owned
+      subject=anonymous+user
+      unit=job
+      window=day/month
+      reserve=explicit_reservation
+      commit=output_storage_success
+      refund=provider_failure+output_storage_failure
+      idempotency=present
+      storage=remover_quota_reservation
+    high_res_download: product_owned
+      subject=user
+      unit=download
+      window=lifetime/month
+      reserve=explicit_reservation
+      commit=download_success
+      refund=missing
+      idempotency=present
+      storage=remover_quota_reservation
+  platform credit ledger:
+    grant=present
+    consume=present
+    refund consumed=present
+    expiration=present
+    admin visibility=present
+    manual compensation=partial
+  lifecycle:
+    generic usage table=deferred
+
 Launch blockers:
   none
 ```
@@ -374,7 +453,17 @@ For `SITE=ai-remover`:
 14. Kie, Replicate, OpenRouter, and Fal readiness are classified from existing
     source evidence.
 15. Plan access policy is explicitly not included.
-16. No runtime route, webhook handler, database write path, billing flow, quota
+16. Usage / credits mappings are listed with status and source refs.
+17. AI Remover processing quota is mapped as product-owned explicit
+    reservation.
+18. AI Remover high-res download quota is mapped as product-owned explicit
+    reservation.
+19. Platform credit ledger is mapped as separate from AI Remover quota
+    reservation.
+20. Entitlement keys are mapped to usage/access/product-flag semantics without
+    rewriting pricing.
+21. Generic usage table is explicitly reported as missing/deferred.
+22. No runtime route, webhook handler, database write path, billing flow, quota
     reservation path, or AI provider invocation path is modified.
 
 ## Verification Commands
@@ -388,7 +477,8 @@ SITE=ai-remover node scripts/check-saas-product-contract.mjs
 SITE=ai-remover pnpm contract:check
 pnpm exec eslint scripts/check-saas-product-contract.mjs scripts/check-saas-product-contract.test.ts src/config/saas-product-contract/types.ts src/config/saas-product-contract/index.ts --report-unused-disable-directives
 pnpm test src/config/product-modules/index.test.ts src/config/product-modules/doc-links.test.ts
-git diff --name-only -- src/app/api/remover src/domains/remover src/domains/ai src/extensions/ai src/infra/adapters/ai src/config/db
+git diff --name-only -- src/app/api/remover src/domains/remover src/domains/account src/domains/billing src/config/db src/infra/adapters/db
+git diff --check
 ```
 
 Do not run `run-with-site` commands in parallel because they generate
@@ -396,14 +486,17 @@ Do not run `run-with-site` commands in parallel because they generate
 
 ## Deferred Work
 
-### PR 4: Usage/Credits Mapping
-
-Map existing credit ledger and AI Remover quota reservation semantics.
+### Generic Usage Table Migration
 
 Do not migrate to a generic usage table until a second real product proves the
 shared shape.
 
-## PR 3 Boundary
+### Runtime Usage/Credits Platform Contract
+
+Decide later whether product-owned quota reservations and platform credits
+should converge into a shared runtime contract.
+
+## PR 4 Boundary
 
 Files likely in scope:
 
@@ -430,4 +523,4 @@ src/config/db/**
 ```
 
 These billing, remover, and provider runtime files may be read for static source
-mapping, but PR 3 must not change their behavior.
+mapping, but PR 4 must not change their behavior.

@@ -23,6 +23,13 @@ export type ContractSourceKind =
   | 'provider_extension'
   | 'provider_runtime'
   | 'provider_test'
+  | 'usage_product_domain'
+  | 'usage_product_application'
+  | 'usage_product_infra'
+  | 'usage_product_route'
+  | 'usage_platform_credit'
+  | 'usage_billing_credit'
+  | 'usage_db'
   | 'derived';
 
 export type ContractIssueLevel = 'blocker' | 'warning';
@@ -219,6 +226,111 @@ export interface ProviderReadinessSummary {
   warnings: ContractValidationIssue[];
 }
 
+export type UsageOwner = 'product_owned' | 'platform_owned' | 'unknown';
+
+export type UsageSubject = 'anonymous' | 'user' | 'organization' | 'unknown';
+
+export type UsageWindow = 'day' | 'month' | 'lifetime' | 'none' | 'unknown';
+
+export type UsageReserveMode =
+  | 'explicit_reservation'
+  | 'direct_consume'
+  | 'none'
+  | 'unknown';
+
+export type UsageCommitCondition =
+  | 'provider_success'
+  | 'output_storage_success'
+  | 'download_success'
+  | 'none'
+  | 'unknown';
+
+export type UsageRefundCondition =
+  | 'provider_failure'
+  | 'output_storage_failure'
+  | 'explicit_refund'
+  | 'missing'
+  | 'none'
+  | 'unknown';
+
+export type UsageMappingStatus =
+  | 'present'
+  | 'partial'
+  | 'missing'
+  | 'deferred'
+  | 'unknown';
+
+export type CreditMappingStatus = 'present' | 'partial' | 'missing' | 'unknown';
+
+export type UsageEntitlementClassification =
+  | 'usage_limit'
+  | 'access'
+  | 'product_flag'
+  | 'retention'
+  | 'upload_guard'
+  | 'unknown';
+
+export interface ProductQuotaMappingEntry {
+  meterId: string;
+  quotaType: string;
+  owner: UsageOwner;
+  subject: UsageSubject[];
+  unit: string;
+  window: UsageWindow[];
+  reserveMode: UsageReserveMode;
+  commitCondition: UsageCommitCondition;
+  refundCondition: UsageRefundCondition[];
+  idempotency: UsageMappingStatus;
+  storage:
+    | 'remover_quota_reservation'
+    | 'credit_ledger'
+    | 'product_table'
+    | 'unknown';
+  sources: ContractSourceRef[];
+  issues: ContractValidationIssue[];
+}
+
+export interface CreditLedgerMappingEntry {
+  ledgerName: string;
+  owner: UsageOwner;
+  supportsGrant: CreditMappingStatus;
+  supportsConsume: CreditMappingStatus;
+  supportsRefundConsumed: CreditMappingStatus;
+  supportsExpiration: CreditMappingStatus;
+  supportsMetadata: CreditMappingStatus;
+  supportsOperatorVisibility: CreditMappingStatus;
+  supportsManualCompensation: CreditMappingStatus;
+  scenes: string[];
+  sources: ContractSourceRef[];
+  issues: ContractValidationIssue[];
+}
+
+export interface UsageEntitlementMapping {
+  key: string;
+  classification: UsageEntitlementClassification;
+  mapsTo: string;
+  sources: ContractSourceRef[];
+}
+
+export interface UsageLifecycleMappings {
+  reserve: UsageMappingStatus;
+  commit: UsageMappingStatus;
+  refund: UsageMappingStatus;
+  expire: UsageMappingStatus;
+  idempotency: UsageMappingStatus;
+  subjectTransfer: UsageMappingStatus;
+  genericUsageTable: UsageMappingStatus;
+}
+
+export interface UsageCreditsSummary {
+  productOwnedQuota: ProductQuotaMappingEntry[];
+  platformCreditLedger: CreditLedgerMappingEntry[];
+  entitlementMappings: UsageEntitlementMapping[];
+  lifecycleMappings: UsageLifecycleMappings;
+  gaps: string[];
+  warnings: ContractValidationIssue[];
+}
+
 export interface ContractAuditReport {
   site: ContractSection<SiteSummary>;
   commercial: ContractSection<CommercialSummary>;
@@ -226,6 +338,7 @@ export interface ContractAuditReport {
   runtimeOwnership: ContractSection<RuntimeOwnershipSummary>;
   billingReversal: ContractSection<BillingReversalSummary>;
   providerReadiness: ContractSection<ProviderReadinessSummary>;
+  usageCredits: ContractSection<UsageCreditsSummary>;
   launch: {
     blockers: ContractValidationIssue[];
     warnings: ContractValidationIssue[];
