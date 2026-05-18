@@ -1924,6 +1924,557 @@ function auditProviderReadiness({
   );
 }
 
+function usageWarning(code, message, sources) {
+  return issue(ISSUE_LEVEL.WARNING, code, message, sources);
+}
+
+function collectMissingUsageCreditSourceIssues(sourceEntries) {
+  return sourceEntries
+    .filter((entry) => !existsSync(entry.path))
+    .map((entry) =>
+      usageWarning(
+        'missing_usage_credit_audit_source',
+        `Usage / credits audit source is missing: ${entry.label}`,
+        [source(entry.kind, entry.path)]
+      )
+    );
+}
+
+function creditStatus(condition) {
+  return condition ? 'present' : 'missing';
+}
+
+function quotaMappingEntry({
+  meterId,
+  quotaType,
+  owner,
+  subject,
+  unit,
+  window,
+  reserveMode,
+  commitCondition,
+  refundCondition,
+  idempotency,
+  storage,
+  sources,
+  issues = [],
+}) {
+  return {
+    meterId,
+    quotaType,
+    owner,
+    subject,
+    unit,
+    window,
+    reserveMode,
+    commitCondition,
+    refundCondition,
+    idempotency,
+    storage,
+    sources,
+    issues,
+  };
+}
+
+function usageEntitlementClassification(key) {
+  switch (key) {
+    case 'guest_daily_removals':
+      return {
+        classification: 'usage_limit',
+        mapsTo: 'anonymous processing daily limit',
+      };
+    case 'daily_removals':
+      return {
+        classification: 'usage_limit',
+        mapsTo: 'user free processing daily limit',
+      };
+    case 'monthly_removals':
+      return {
+        classification: 'usage_limit',
+        mapsTo: 'paid processing monthly limit',
+      };
+    case 'signup_high_res_downloads':
+      return {
+        classification: 'usage_limit',
+        mapsTo: 'free user high-res lifetime allowance',
+      };
+    case 'monthly_high_res_downloads':
+      return {
+        classification: 'usage_limit',
+        mapsTo: 'paid high-res monthly allowance',
+      };
+    case 'retention_days':
+      return {
+        classification: 'retention',
+        mapsTo: 'product asset and job retention',
+      };
+    case 'max_upload_mb':
+      return {
+        classification: 'upload_guard',
+        mapsTo: 'upload size guard',
+      };
+    case 'low_res_download':
+      return { classification: 'access', mapsTo: 'low-res download access' };
+    case 'advanced_mode':
+      return {
+        classification: 'product_flag',
+        mapsTo: 'AI Remover advanced mode flag',
+      };
+    case 'priority_queue':
+      return {
+        classification: 'product_flag',
+        mapsTo: 'AI Remover priority queue flag',
+      };
+    default:
+      return { classification: 'unknown', mapsTo: 'unmapped entitlement' };
+  }
+}
+
+function collectUsageEntitlementMappings(items, pricingPath) {
+  return collectEntitlementKeys(items).map((key) => ({
+    key,
+    ...usageEntitlementClassification(key),
+    sources: [source('pricing', pricingPath, `entitlements.${key}`)],
+  }));
+}
+
+function collectCreditScenes(accountCreditPath, billingCreditPath) {
+  const scenes = [
+    ['payment', 'PAYMENT'],
+    ['subscription', 'SUBSCRIPTION'],
+    ['renewal', 'RENEWAL'],
+    ['gift', 'GIFT'],
+    ['award', 'AWARD'],
+  ];
+
+  return scenes
+    .filter(
+      ([, token]) =>
+        sourceTextIncludes(accountCreditPath, token) ||
+        sourceTextIncludes(billingCreditPath, token)
+    )
+    .map(([name]) => name);
+}
+
+function auditUsageCredits({ paths, items, pricingPath }) {
+  const sourceIssues = collectMissingUsageCreditSourceIssues([
+    {
+      label: 'AI Remover plan resolver',
+      kind: 'usage_product_domain',
+      path: paths.removerPlan,
+    },
+    {
+      label: 'AI Remover quota domain',
+      kind: 'usage_product_domain',
+      path: paths.removerQuota,
+    },
+    {
+      label: 'AI Remover quota types',
+      kind: 'usage_product_domain',
+      path: paths.removerTypes,
+    },
+    {
+      label: 'AI Remover quota reservation infra',
+      kind: 'usage_product_infra',
+      path: paths.quotaReservation,
+    },
+    {
+      label: 'AI Remover job application',
+      kind: 'usage_product_application',
+      path: paths.jobs,
+    },
+    {
+      label: 'AI Remover processing application',
+      kind: 'usage_product_application',
+      path: paths.processing,
+    },
+    {
+      label: 'AI Remover download application',
+      kind: 'usage_product_application',
+      path: paths.download,
+    },
+    {
+      label: 'AI Remover jobs route',
+      kind: 'usage_product_route',
+      path: paths.jobsRoute,
+    },
+    {
+      label: 'AI Remover jobs action',
+      kind: 'usage_product_route',
+      path: paths.jobsAction,
+    },
+    {
+      label: 'AI Remover download action',
+      kind: 'usage_product_route',
+      path: paths.downloadAction,
+    },
+    {
+      label: 'AI Remover high-res route',
+      kind: 'usage_product_route',
+      path: paths.highResRoute,
+    },
+    {
+      label: 'AI Remover low-res route',
+      kind: 'usage_product_route',
+      path: paths.lowResRoute,
+    },
+    {
+      label: 'platform account credit ledger',
+      kind: 'usage_platform_credit',
+      path: paths.accountCredit,
+    },
+    {
+      label: 'billing credit grant builder',
+      kind: 'usage_billing_credit',
+      path: paths.billingCredit,
+    },
+    {
+      label: 'billing flows',
+      kind: 'usage_billing_credit',
+      path: paths.billingFlows,
+    },
+    {
+      label: 'admin credits list schema',
+      kind: 'usage_platform_credit',
+      path: paths.adminCreditsSchema,
+    },
+    {
+      label: 'admin credits page',
+      kind: 'usage_platform_credit',
+      path: paths.adminCreditsPage,
+    },
+    {
+      label: 'admin credits query',
+      kind: 'usage_platform_credit',
+      path: paths.adminCreditsQuery,
+    },
+    {
+      label: 'account credit use cases',
+      kind: 'usage_platform_credit',
+      path: paths.accountUseCases,
+    },
+    {
+      label: 'database schema',
+      kind: 'usage_db',
+      path: paths.dbSchema,
+    },
+    {
+      label: 'AI Remover database migration',
+      kind: 'usage_db',
+      path: paths.removerMigration,
+    },
+  ]);
+
+  const processingReserveReady =
+    sourceTextIncludes(paths.jobs, 'createQueuedRemoverJob') &&
+    sourceTextIncludes(paths.jobs, "'processing'") &&
+    sourceTextIncludes(
+      paths.quotaReservation,
+      'createRemoverQuotaReservationWithQuotaCheck'
+    );
+  const processingWindowReady =
+    sourceTextIncludes(paths.removerPlan, 'processingWindow') &&
+    sourceTextIncludes(paths.removerQuota, 'getQuotaWindowStart');
+  const processingIdempotencyReady =
+    sourceTextIncludes(
+      paths.jobs,
+      'buildProcessingReservationIdempotencyKey'
+    ) && sourceTextIncludes(paths.quotaReservation, 'idempotencyKey');
+  const processingCommitReady =
+    sourceTextIncludes(paths.processing, 'storeOutputImage') &&
+    sourceTextIncludes(paths.processing, 'commitReservation');
+  const processingRefundReady =
+    sourceTextIncludes(paths.processing, 'refundReservation') &&
+    sourceTextIncludes(paths.processing, 'output storage failed');
+  const subjectTransferReady =
+    sourceTextIncludes(paths.jobs, 'claimReservationById') &&
+    sourceTextIncludes(
+      paths.quotaReservation,
+      'claimRemoverQuotaReservationById'
+    );
+  const quotaExpiryReady =
+    sourceTextIncludes(paths.quotaReservation, 'expiresAt') &&
+    sourceTextIncludes(paths.quotaReservation, 'reserved') &&
+    sourceTextIncludes(paths.quotaReservation, 'refunded');
+  const retentionReady =
+    sourceTextIncludes(paths.removerPlan, 'retention_days') &&
+    sourceTextIncludes(paths.jobs, 'expiresAt');
+
+  const processingSources = [
+    source('usage_product_application', paths.jobs, 'createQueuedRemoverJob'),
+    source(
+      'usage_product_infra',
+      paths.quotaReservation,
+      'createRemoverQuotaReservationWithQuotaCheck'
+    ),
+    source('usage_product_domain', paths.removerQuota, 'getQuotaWindowStart'),
+    source('usage_product_application', paths.processing, 'commitReservation'),
+    source('usage_product_application', paths.processing, 'refundReservation'),
+    source('usage_product_route', paths.jobsRoute),
+    source('usage_product_route', paths.jobsAction),
+  ];
+  const processingIssues = [
+    processingReserveReady
+      ? undefined
+      : usageWarning(
+          'processing_quota_reservation_evidence_missing',
+          'AI Remover processing quota reservation could not be fully source-mapped',
+          processingSources
+        ),
+    processingCommitReady
+      ? undefined
+      : usageWarning(
+          'processing_quota_commit_evidence_missing',
+          'AI Remover processing quota commit condition could not be fully source-mapped',
+          processingSources
+        ),
+    processingRefundReady
+      ? undefined
+      : usageWarning(
+          'processing_quota_refund_evidence_missing',
+          'AI Remover processing quota refund condition could not be fully source-mapped',
+          processingSources
+        ),
+  ].filter(Boolean);
+
+  const highResReserveReady =
+    sourceTextIncludes(paths.download, 'reserveHighResDownloadQuota') &&
+    sourceTextIncludes(paths.download, "'high_res_download'") &&
+    sourceTextIncludes(
+      paths.quotaReservation,
+      'createRemoverQuotaReservationWithQuotaCheck'
+    );
+  const highResWindowReady =
+    sourceTextIncludes(paths.download, "'lifetime'") &&
+    sourceTextIncludes(paths.download, 'getQuotaWindowStart');
+  const highResIdempotencyReady =
+    sourceTextIncludes(paths.download, 'high-res-download') &&
+    sourceTextIncludes(paths.quotaReservation, 'idempotencyKey');
+  const highResCommitReady =
+    sourceTextIncludes(paths.downloadAction, 'requiresHighResQuota') &&
+    sourceTextIncludes(paths.downloadAction, 'commitReservation');
+  const lowResNoHighResQuota =
+    sourceTextIncludes(paths.download, "variant === 'low_res'") &&
+    sourceTextIncludes(paths.download, 'requiresHighResQuota: false');
+
+  const highResSources = [
+    source(
+      'usage_product_application',
+      paths.download,
+      'reserveHighResDownloadQuota'
+    ),
+    source(
+      'usage_product_infra',
+      paths.quotaReservation,
+      'createRemoverQuotaReservationWithQuotaCheck'
+    ),
+    source('usage_product_route', paths.downloadAction, 'requiresHighResQuota'),
+    source('usage_product_route', paths.highResRoute),
+    source('usage_product_route', paths.lowResRoute, 'low_res'),
+  ];
+  const highResIssues = [
+    highResReserveReady
+      ? undefined
+      : usageWarning(
+          'high_res_quota_reservation_evidence_missing',
+          'AI Remover high-res download quota reservation could not be fully source-mapped',
+          highResSources
+        ),
+    highResCommitReady
+      ? undefined
+      : usageWarning(
+          'high_res_quota_commit_evidence_missing',
+          'AI Remover high-res download quota commit condition could not be fully source-mapped',
+          highResSources
+        ),
+    usageWarning(
+      'high_res_download_refund_policy_missing',
+      'AI Remover high-res download quota has an explicit reservation and commit path, but no source-mapped refund condition after reservation',
+      highResSources
+    ),
+    lowResNoHighResQuota
+      ? undefined
+      : usageWarning(
+          'low_res_download_quota_evidence_missing',
+          'Low-res download no-quota behavior could not be source-mapped',
+          highResSources
+        ),
+  ].filter(Boolean);
+
+  const productOwnedQuota = [
+    quotaMappingEntry({
+      meterId: 'processing',
+      quotaType: 'processing',
+      owner: 'product_owned',
+      subject: ['anonymous', 'user'],
+      unit: 'job',
+      window: processingWindowReady ? ['day', 'month'] : ['unknown'],
+      reserveMode: processingReserveReady ? 'explicit_reservation' : 'unknown',
+      commitCondition: processingCommitReady
+        ? 'output_storage_success'
+        : 'unknown',
+      refundCondition: processingRefundReady
+        ? ['provider_failure', 'output_storage_failure']
+        : ['unknown'],
+      idempotency: processingIdempotencyReady ? 'present' : 'missing',
+      storage: 'remover_quota_reservation',
+      sources: processingSources,
+      issues: processingIssues,
+    }),
+    quotaMappingEntry({
+      meterId: 'high_res_download',
+      quotaType: 'high_res_download',
+      owner: 'product_owned',
+      subject: ['user'],
+      unit: 'download',
+      window: highResWindowReady ? ['lifetime', 'month'] : ['unknown'],
+      reserveMode: highResReserveReady ? 'explicit_reservation' : 'unknown',
+      commitCondition: highResCommitReady ? 'download_success' : 'unknown',
+      refundCondition: ['missing'],
+      idempotency: highResIdempotencyReady ? 'present' : 'missing',
+      storage: 'remover_quota_reservation',
+      sources: highResSources,
+      issues: highResIssues,
+    }),
+  ];
+
+  const supportsGrant =
+    sourceTextIncludes(paths.accountCredit, 'createCredit') &&
+    sourceTextIncludes(paths.accountCredit, 'GRANT');
+  const supportsConsume =
+    sourceTextIncludes(paths.accountCredit, 'consumeCredits') &&
+    sourceTextIncludes(paths.accountCredit, 'CONSUME');
+  const supportsRefundConsumed = sourceTextIncludes(
+    paths.accountCredit,
+    'refundConsumedCreditById'
+  );
+  const supportsExpiration =
+    sourceTextIncludes(paths.accountCredit, 'createExpirationCondition') &&
+    sourceTextIncludes(paths.accountCredit, 'expiresAt');
+  const supportsMetadata =
+    sourceTextIncludes(paths.accountCredit, 'metadata') &&
+    sourceTextIncludes(paths.accountCredit, 'consumedDetail');
+  const supportsOperatorVisibility =
+    sourceTextIncludes(paths.adminCreditsPage, 'listAdminCreditsQuery') &&
+    sourceTextIncludes(paths.adminCreditsQuery, 'listAdminCreditsQuery') &&
+    sourceTextIncludes(paths.adminCreditsSchema, 'AdminCreditsListQuerySchema');
+  const billingGrantReady =
+    sourceTextIncludes(paths.billingCredit, 'buildGrantCreditForOrder') &&
+    sourceTextIncludes(paths.billingFlows, 'buildGrantCreditForOrder');
+  const scenes = collectCreditScenes(paths.accountCredit, paths.billingCredit);
+
+  const creditSources = [
+    source('usage_platform_credit', paths.accountCredit, 'credit ledger'),
+    source(
+      'usage_billing_credit',
+      paths.billingCredit,
+      'buildGrantCreditForOrder'
+    ),
+    source('usage_billing_credit', paths.billingFlows, 'newCredit'),
+    source('usage_platform_credit', paths.adminCreditsSchema),
+    source('usage_platform_credit', paths.adminCreditsPage),
+    source('usage_platform_credit', paths.adminCreditsQuery),
+    source('usage_db', paths.dbSchema, 'credit'),
+  ];
+  const creditIssues = [
+    billingGrantReady
+      ? undefined
+      : usageWarning(
+          'billing_credit_grant_evidence_missing',
+          'Billing credit grant evidence could not be fully source-mapped',
+          creditSources
+        ),
+    usageWarning(
+      'manual_credit_compensation_contract_partial',
+      'Platform credit ledger has grant/consume/refund primitives and admin visibility, but no source-mapped complete manual compensation write contract',
+      creditSources
+    ),
+  ].filter(Boolean);
+
+  const platformCreditLedger = [
+    {
+      ledgerName: 'platform credit ledger',
+      owner: 'platform_owned',
+      supportsGrant: creditStatus(supportsGrant),
+      supportsConsume: creditStatus(supportsConsume),
+      supportsRefundConsumed: creditStatus(supportsRefundConsumed),
+      supportsExpiration: creditStatus(supportsExpiration),
+      supportsMetadata: creditStatus(supportsMetadata),
+      supportsOperatorVisibility: creditStatus(supportsOperatorVisibility),
+      supportsManualCompensation: 'partial',
+      scenes,
+      sources: creditSources,
+      issues: creditIssues,
+    },
+  ];
+
+  const genericUsageWarning = usageWarning(
+    'generic_usage_table_deferred',
+    'Generic usage table is missing/deferred; AI Remover uses product-owned quota reservation and platform credits remain a separate ledger',
+    [
+      source('usage_db', paths.dbSchema, 'removerQuotaReservation'),
+      source('usage_db', paths.dbSchema, 'credit'),
+    ]
+  );
+  const separationWarning = usageWarning(
+    'usage_credit_ledgers_separate',
+    'AI Remover processing and high-res limits use removerQuotaReservation, not the platform credit ledger',
+    [
+      source('usage_db', paths.dbSchema, 'removerQuotaReservation'),
+      source('usage_platform_credit', paths.accountCredit, 'credit'),
+    ]
+  );
+
+  const warnings = [
+    ...sourceIssues,
+    ...productOwnedQuota.flatMap((entry) => entry.issues),
+    ...platformCreditLedger.flatMap((entry) => entry.issues),
+    genericUsageWarning,
+    separationWarning,
+  ];
+
+  return section(
+    'partial',
+    {
+      productOwnedQuota,
+      platformCreditLedger,
+      entitlementMappings: collectUsageEntitlementMappings(items, pricingPath),
+      lifecycleMappings: {
+        reserve:
+          processingReserveReady && highResReserveReady ? 'present' : 'partial',
+        commit:
+          processingCommitReady && highResCommitReady ? 'present' : 'partial',
+        refund: processingRefundReady ? 'partial' : 'missing',
+        expire: quotaExpiryReady && retentionReady ? 'present' : 'partial',
+        idempotency:
+          processingIdempotencyReady && highResIdempotencyReady
+            ? 'present'
+            : 'partial',
+        subjectTransfer: subjectTransferReady ? 'present' : 'missing',
+        genericUsageTable: 'deferred',
+      },
+      gaps: [
+        'Generic usage table is not implemented.',
+        'AI Remover quota reservation and platform credit ledger are separate.',
+        'High-res download refund after reservation is not source-mapped.',
+        'Manual credit compensation write contract is partial/missing.',
+      ],
+      warnings,
+    },
+    [
+      source('usage_product_application', paths.jobs),
+      source('usage_product_infra', paths.quotaReservation),
+      source('usage_product_application', paths.processing),
+      source('usage_product_application', paths.download),
+      source('usage_platform_credit', paths.accountCredit),
+      source('usage_billing_credit', paths.billingCredit),
+      source('usage_db', paths.dbSchema),
+      source('pricing', pricingPath),
+    ],
+    warnings
+  );
+}
+
 function collectLaunch(report) {
   const issues = [
     report.site,
@@ -1932,6 +2483,7 @@ function collectLaunch(report) {
     report.runtimeOwnership,
     report.billingReversal,
     report.providerReadiness,
+    report.usageCredits,
   ].flatMap((item) => item.issues);
 
   return {
@@ -2033,6 +2585,71 @@ function buildAuditReport(siteKey) {
       'src/app/api/ai/generate/create-handler.ts'
     ),
   };
+  const usageCreditPaths = {
+    removerPlan: path.resolve(ROOT_DIR, 'src/domains/remover/domain/plan.ts'),
+    removerQuota: path.resolve(ROOT_DIR, 'src/domains/remover/domain/quota.ts'),
+    removerTypes: path.resolve(ROOT_DIR, 'src/domains/remover/domain/types.ts'),
+    quotaReservation: path.resolve(
+      ROOT_DIR,
+      'src/domains/remover/infra/quota-reservation.ts'
+    ),
+    jobs: path.resolve(ROOT_DIR, 'src/domains/remover/application/jobs.ts'),
+    processing: path.resolve(
+      ROOT_DIR,
+      'src/domains/remover/application/processing.ts'
+    ),
+    download: path.resolve(
+      ROOT_DIR,
+      'src/domains/remover/application/download.ts'
+    ),
+    jobsRoute: path.resolve(ROOT_DIR, 'src/app/api/remover/jobs/route.ts'),
+    jobsAction: path.resolve(ROOT_DIR, 'src/app/api/remover/jobs/action.ts'),
+    downloadAction: path.resolve(
+      ROOT_DIR,
+      'src/app/api/remover/download/action.ts'
+    ),
+    highResRoute: path.resolve(
+      ROOT_DIR,
+      'src/app/api/remover/download/high-res/route.ts'
+    ),
+    lowResRoute: path.resolve(
+      ROOT_DIR,
+      'src/app/api/remover/download/low-res/route.ts'
+    ),
+    accountCredit: path.resolve(
+      ROOT_DIR,
+      'src/domains/account/infra/credit.ts'
+    ),
+    billingCredit: path.resolve(
+      ROOT_DIR,
+      'src/domains/billing/domain/credit.ts'
+    ),
+    billingFlows: path.resolve(
+      ROOT_DIR,
+      'src/domains/billing/application/flows.ts'
+    ),
+    adminCreditsSchema: path.resolve(
+      ROOT_DIR,
+      'src/surfaces/admin/schemas/list/credits.ts'
+    ),
+    adminCreditsPage: path.resolve(
+      ROOT_DIR,
+      'src/app/[locale]/(admin)/admin/credits/page.tsx'
+    ),
+    adminCreditsQuery: path.resolve(
+      ROOT_DIR,
+      'src/domains/account/application/admin-credits.query.ts'
+    ),
+    accountUseCases: path.resolve(
+      ROOT_DIR,
+      'src/domains/account/application/use-cases.ts'
+    ),
+    dbSchema: path.resolve(ROOT_DIR, 'src/config/db/schema.ts'),
+    removerMigration: path.resolve(
+      ROOT_DIR,
+      'src/config/db/migrations/0006_ai_remover_jobs.sql'
+    ),
+  };
 
   const { site, issues: siteIssues } = readSiteForReport({
     rootDir: ROOT_DIR,
@@ -2078,6 +2695,11 @@ function buildAuditReport(siteKey) {
       deploySettings,
       deploySettingsPath,
       envContractPath,
+    }),
+    usageCredits: auditUsageCredits({
+      paths: usageCreditPaths,
+      items: pricingItems,
+      pricingPath,
     }),
   };
 
@@ -2128,12 +2750,17 @@ function appendRequirement(lines, prefix, requirement) {
   }
 }
 
+function formatJoined(values, separator = '+') {
+  return values.filter(Boolean).join(separator);
+}
+
 function formatAuditReport(report) {
   const siteValue = report.site.value;
   const commercialValue = report.commercial.value;
   const entitlementKeys = report.entitlementKeys.value.keys;
   const runtimeFields = report.runtimeOwnership.value.fields;
   const providerReadiness = report.providerReadiness.value;
+  const usageCredits = report.usageCredits.value;
   const lines = [
     'SaaS Contract Audit',
     '',
@@ -2217,6 +2844,64 @@ function formatAuditReport(report) {
     }
   }
 
+  lines.push('', 'Usage / credits:');
+  lines.push('  product quota:');
+  for (const quota of usageCredits.productOwnedQuota) {
+    lines.push(`    ${quota.meterId}: ${quota.owner}`);
+    lines.push(`      subject=${formatJoined(quota.subject)}`);
+    lines.push(`      unit=${quota.unit}`);
+    lines.push(`      window=${formatJoined(quota.window, '/')}`);
+    lines.push(`      reserve=${quota.reserveMode}`);
+    lines.push(`      commit=${quota.commitCondition}`);
+    lines.push(`      refund=${formatJoined(quota.refundCondition)}`);
+    lines.push(`      idempotency=${quota.idempotency}`);
+    lines.push(`      storage=${quota.storage}`);
+    for (const quotaSource of quota.sources) {
+      lines.push(`      source  ${formatSourceRef(quotaSource)}`);
+    }
+  }
+
+  lines.push('  entitlement mappings:');
+  for (const mapping of usageCredits.entitlementMappings) {
+    lines.push(
+      `    ${mapping.key} -> ${mapping.mapsTo} (${mapping.classification})`
+    );
+    for (const mappingSource of mapping.sources) {
+      lines.push(`      source  ${formatSourceRef(mappingSource)}`);
+    }
+  }
+
+  lines.push('  platform credit ledger:');
+  for (const ledger of usageCredits.platformCreditLedger) {
+    lines.push(`    ${ledger.ledgerName}: ${ledger.owner}`);
+    lines.push(`      grant=${ledger.supportsGrant}`);
+    lines.push(`      consume=${ledger.supportsConsume}`);
+    lines.push(`      refund consumed=${ledger.supportsRefundConsumed}`);
+    lines.push(`      expiration=${ledger.supportsExpiration}`);
+    lines.push(`      metadata=${ledger.supportsMetadata}`);
+    lines.push(`      admin visibility=${ledger.supportsOperatorVisibility}`);
+    lines.push(
+      `      manual compensation=${ledger.supportsManualCompensation}`
+    );
+    lines.push(`      scenes=${ledger.scenes.join('/') || 'unknown'}`);
+    for (const ledgerSource of ledger.sources) {
+      lines.push(`      source  ${formatSourceRef(ledgerSource)}`);
+    }
+  }
+
+  lines.push('  lifecycle:');
+  lines.push(`    reserve=${usageCredits.lifecycleMappings.reserve}`);
+  lines.push(`    commit=${usageCredits.lifecycleMappings.commit}`);
+  lines.push(`    refund=${usageCredits.lifecycleMappings.refund}`);
+  lines.push(`    expire=${usageCredits.lifecycleMappings.expire}`);
+  lines.push(`    idempotency=${usageCredits.lifecycleMappings.idempotency}`);
+  lines.push(
+    `    subject transfer=${usageCredits.lifecycleMappings.subjectTransfer}`
+  );
+  lines.push(
+    `    generic usage table=${usageCredits.lifecycleMappings.genericUsageTable}`
+  );
+
   lines.push('', 'Sources:');
   lines.push(formatSectionSources('site', report.site.sources));
   lines.push(formatSectionSources('commercial', report.commercial.sources));
@@ -2231,6 +2916,9 @@ function formatAuditReport(report) {
   );
   lines.push(
     formatSectionSources('provider readiness', report.providerReadiness.sources)
+  );
+  lines.push(
+    formatSectionSources('usage / credits', report.usageCredits.sources)
   );
 
   lines.push(

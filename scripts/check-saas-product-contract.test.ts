@@ -332,6 +332,224 @@ async function writeProviderSourceFiles(rootDir: string) {
   );
 }
 
+async function writeUsageCreditSourceFiles(rootDir: string) {
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/domain/plan.ts'),
+    [
+      "numberEntitlement(entitlements, 'guest_daily_removals', 2);",
+      "numberEntitlement(entitlements, 'daily_removals', 5);",
+      "numberEntitlement(entitlements, 'monthly_removals', 500);",
+      "numberEntitlement(entitlements, 'signup_high_res_downloads', 3);",
+      "numberEntitlement(entitlements, 'monthly_high_res_downloads', 300);",
+      "numberEntitlement(entitlements, 'retention_days', 7);",
+      "numberEntitlement(entitlements, 'max_upload_mb', 20);",
+      "booleanEntitlement(entitlements, 'low_res_download', true);",
+      "booleanEntitlement(entitlements, 'advanced_mode', false);",
+      "booleanEntitlement(entitlements, 'priority_queue', false);",
+      "const processingWindow = isPaid ? 'month' : 'day';",
+      "const highResDownloadWindow = isPaid ? 'month' : 'lifetime';",
+      'export function addRetentionDays() {}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/domain/quota.ts'),
+    [
+      'export function getQuotaWindowStart() {}',
+      'export function commitQuotaReservation() {}',
+      'export function refundQuotaReservation() {}',
+      'export function isQuotaReservationReusable() {}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/domain/types.ts'),
+    [
+      "export type RemoverQuotaType = 'processing' | 'high_res_download' | 'upload';",
+      "export type RemoverQuotaReservationStatus = 'reserved' | 'committed' | 'refunded';",
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/infra/quota-reservation.ts'),
+    [
+      'export const removerQuotaReservation = true;',
+      'export function lockRemoverQuotaReservationCreation() { return "remover_idempotency remover_quota"; }',
+      'export function createRemoverQuotaReservationWithQuotaCheck() { return { idempotencyKey: true, expiresAt: new Date(), status: "reserved" }; }',
+      'export function findRemoverQuotaReservationByIdempotencyKey() {}',
+      'export function activeQuotaReservationCondition() { return "reserved refunded expiresAt"; }',
+      'export function commitRemoverQuotaReservation() {}',
+      'export function refundRemoverQuotaReservation() {}',
+      'export function claimRemoverQuotaReservationById() {}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/application/jobs.ts'),
+    [
+      'function buildProcessingReservationIdempotencyKey() { return `processing:${ownerKey}:${idempotencyKey}`; }',
+      'export async function createQueuedRemoverJob({ deps }) {',
+      "  const quotaType = 'processing';",
+      '  const windowStart = getQuotaWindowStart(now, plan.processingWindow);',
+      '  await deps.createReservation({ quotaType, units: 1, idempotencyKey: buildProcessingReservationIdempotencyKey({}) });',
+      '  return deps.createJobWithReservation({ expiresAt: addRetentionDays(now, plan.retentionDays) });',
+      '}',
+      'export async function claimRemoverJobForActor({ deps }) {',
+      '  return deps.claimReservationById({ reservationId, userId });',
+      '}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/application/processing.ts'),
+    [
+      'export async function submitRemoverJobToProvider({ deps }) {',
+      '  try {',
+      '    const output = await deps.storeOutputImage({ job, outputImageUrl });',
+      '    await deps.commitReservation({ reservationId: job.quotaReservationId });',
+      '    return output;',
+      '  } catch (error) {',
+      "    await deps.refundReservation({ reason: 'output storage failed' });",
+      '  }',
+      '  await deps.refundReservation({ reason: "provider failure" });',
+      '}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/application/download.ts'),
+    [
+      "type DownloadVariant = 'low_res' | 'high_res';",
+      'export async function reserveHighResDownloadQuota({ actor, job }) {',
+      '  const idempotencyKey = `high-res-download:${actor.userId}:${job.id}`;',
+      "  const quotaType = 'high_res_download';",
+      "  const windowStart = plan.highResDownloadWindow === 'lifetime' ? new Date(0) : getQuotaWindowStart(now, plan.highResDownloadWindow);",
+      '  return deps.createReservation({ quotaType, units: 1, idempotencyKey, windowStart });',
+      '}',
+      'export async function resolveRemoverDownload({ variant }) {',
+      "  if (variant === 'low_res') return { requiresHighResQuota: false };",
+      '  return { requiresHighResQuota: true };',
+      '}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/app/api/remover/jobs/route.ts'),
+    [
+      'export const deps = { createQueuedRemoverJob, submitRemoverJobToProvider, createRemoverQuotaReservationWithQuotaCheck, commitReservation: commitRemoverQuotaReservation, refundReservation: refundRemoverQuotaReservation };',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/app/api/remover/jobs/action.ts'),
+    [
+      'export async function createRemoverJobsPostAction(deps) {',
+      '  return deps.createQueuedRemoverJob();',
+      '}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/app/api/remover/download/action.ts'),
+    [
+      'export function createRemoverDownloadPostAction(deps) {',
+      '  if (download.requiresHighResQuota) reservationId = reserveHighResDownloadQuota();',
+      '  return deps.downloadDeps.commitReservation({ reservationId });',
+      '}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/app/api/remover/download/high-res/route.ts'),
+    [
+      'export const deps = { reserveHighResQuota: reserveHighResDownloadQuota, commitReservation: commitRemoverQuotaReservation };',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/app/api/remover/download/low-res/route.ts'),
+    [
+      "const postAction = createRemoverDownloadPostAction(deps, 'low_res');",
+      'export const deps = { reserveHighResQuota: reserveHighResDownloadQuota, commitReservation: commitRemoverQuotaReservation };',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/account/infra/credit.ts'),
+    [
+      'export enum CreditTransactionType { GRANT = "grant", CONSUME = "consume" }',
+      'export enum CreditTransactionScene { PAYMENT = "payment", SUBSCRIPTION = "subscription", RENEWAL = "renewal", GIFT = "gift", AWARD = "award" }',
+      'export function createExpirationCondition() { return "expiresAt"; }',
+      'export async function createCredit() {}',
+      'export async function getCredits() {}',
+      'export async function getCreditsCount() {}',
+      'export async function consumeCredits({ metadata }) { return { consumedDetail: metadata }; }',
+      'export async function refundConsumedCreditById() {}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/billing/domain/credit.ts'),
+    [
+      'export enum BillingCreditTransactionType { GRANT = "grant" }',
+      'export enum BillingCreditTransactionScene { PAYMENT = "payment", SUBSCRIPTION = "subscription", RENEWAL = "renewal" }',
+      'export function buildGrantCreditForOrder() {}',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/billing/application/flows.ts'),
+    [
+      'import { buildGrantCreditForOrder } from "../domain/credit";',
+      'export function handleCheckoutSuccess() { const newCredit = buildGrantCreditForOrder(); return newCredit; }',
+      'export function handleSubscriptionUpdated() {}',
+      'export function handleSubscriptionCanceled() {',
+      '  const status = SubscriptionStatus.CANCELED;',
+      '  const canceledEndAt = new Date();',
+      '  return { status, canceledEndAt };',
+      '}',
+      'export function handleSubscriptionRenewal() { const newCredit = buildGrantCreditForOrder(); return newCredit; }',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/surfaces/admin/schemas/list/credits.ts'),
+    ['export const AdminCreditsListQuerySchema = { credits: true };', ''].join(
+      '\n'
+    )
+  );
+  await writeText(
+    path.join(rootDir, 'src/app/[locale]/(admin)/admin/credits/page.tsx'),
+    [
+      'export async function CreditsPage() { return listAdminCreditsQuery(); }',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(
+      rootDir,
+      'src/domains/account/application/admin-credits.query.ts'
+    ),
+    ['export async function listAdminCreditsQuery() {}', ''].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/account/application/use-cases.ts'),
+    ['export async function listOwnCreditsUseCase() {}', ''].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/config/db/schema.ts'),
+    [
+      'export const credit = pgTable("credit", { consumedDetail: true, metadata: true, expiresAt: true });',
+      'export const removerQuotaReservation = pgTable("remover_quota_reservation", { idempotencyKey: true, expiresAt: true });',
+      '',
+    ].join('\n')
+  );
+  await writeText(
+    path.join(rootDir, 'src/config/db/migrations/0006_ai_remover_jobs.sql'),
+    'CREATE TABLE "remover_quota_reservation";\n'
+  );
+}
+
 async function createFixtureRoot(pricing: unknown) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'saas-contract-audit-'));
   const siteKey = 'ai-remover';
@@ -422,6 +640,7 @@ async function createFixtureRoot(pricing: unknown) {
   );
   await writeBillingSourceFiles(rootDir);
   await writeProviderSourceFiles(rootDir);
+  await writeUsageCreditSourceFiles(rootDir);
   return rootDir;
 }
 
@@ -1045,6 +1264,262 @@ test('contract audit degrades missing provider source files into source-mapped w
   assert.match(
     result.stdout,
     /source  provider_route:src\/app\/api\/remover\/provider-adapter\.server\.ts/
+  );
+  assert.doesNotMatch(result.stderr, /SaaS contract audit failed/);
+});
+
+test('contract audit prints usage and credits mapping report', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            guest_daily_removals: 2,
+            daily_removals: 5,
+            signup_high_res_downloads: 3,
+            retention_days: 7,
+            low_res_download: true,
+          },
+        },
+        {
+          title: 'Pro',
+          product_id: 'pro-monthly',
+          interval: 'month',
+          amount: 999,
+          currency: 'USD',
+          checkout_enabled: true,
+          entitlements: {
+            monthly_removals: 500,
+            monthly_high_res_downloads: 300,
+            advanced_mode: true,
+            max_upload_mb: 20,
+            retention_days: 30,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Usage \/ credits:/);
+  assert.match(result.stdout, /product quota:/);
+  assert.match(result.stdout, /processing: product_owned/);
+  assert.match(result.stdout, /subject=anonymous\+user/);
+  assert.match(result.stdout, /reserve=explicit_reservation/);
+  assert.match(result.stdout, /storage=remover_quota_reservation/);
+  assert.match(result.stdout, /high_res_download: product_owned/);
+  assert.match(result.stdout, /window=lifetime\/month/);
+  assert.match(result.stdout, /platform credit ledger: platform_owned/);
+  assert.match(result.stdout, /generic usage table=deferred/);
+});
+
+test('contract audit source-maps AI Remover processing quota', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /source  usage_product_application:src\/domains\/remover\/application\/jobs\.ts:createQueuedRemoverJob/
+  );
+  assert.match(
+    result.stdout,
+    /source  usage_product_infra:src\/domains\/remover\/infra\/quota-reservation\.ts:createRemoverQuotaReservationWithQuotaCheck/
+  );
+  assert.match(
+    result.stdout,
+    /source  usage_product_domain:src\/domains\/remover\/domain\/quota\.ts:getQuotaWindowStart/
+  );
+  assert.match(
+    result.stdout,
+    /source  usage_product_application:src\/domains\/remover\/application\/processing\.ts:commitReservation/
+  );
+});
+
+test('contract audit source-maps high-res download quota separately from low-res', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /high_res_download: product_owned/);
+  assert.match(result.stdout, /subject=user/);
+  assert.match(result.stdout, /unit=download/);
+  assert.match(result.stdout, /refund=missing/);
+  assert.match(
+    result.stdout,
+    /source  usage_product_application:src\/domains\/remover\/application\/download\.ts:reserveHighResDownloadQuota/
+  );
+  assert.match(
+    result.stdout,
+    /source  usage_product_route:src\/app\/api\/remover\/download\/low-res\/route\.ts:low_res/
+  );
+});
+
+test('contract audit maps pricing entitlements to usage access and product semantics', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Studio',
+          product_id: 'studio-monthly',
+          interval: 'month',
+          amount: 1999,
+          currency: 'USD',
+          checkout_enabled: true,
+          entitlements: {
+            guest_daily_removals: 2,
+            daily_removals: 5,
+            monthly_removals: 2000,
+            signup_high_res_downloads: 3,
+            monthly_high_res_downloads: 1500,
+            retention_days: 30,
+            max_upload_mb: 20,
+            low_res_download: true,
+            advanced_mode: true,
+            priority_queue: true,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /guest_daily_removals -> anonymous processing daily limit \(usage_limit\)/
+  );
+  assert.match(
+    result.stdout,
+    /monthly_high_res_downloads -> paid high-res monthly allowance \(usage_limit\)/
+  );
+  assert.match(
+    result.stdout,
+    /low_res_download -> low-res download access \(access\)/
+  );
+  assert.match(
+    result.stdout,
+    /advanced_mode -> AI Remover advanced mode flag \(product_flag\)/
+  );
+  assert.match(
+    result.stdout,
+    /priority_queue -> AI Remover priority queue flag \(product_flag\)/
+  );
+});
+
+test('contract audit keeps platform credit ledger separate from product quota', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /grant=present/);
+  assert.match(result.stdout, /consume=present/);
+  assert.match(result.stdout, /refund consumed=present/);
+  assert.match(result.stdout, /expiration=present/);
+  assert.match(result.stdout, /admin visibility=present/);
+  assert.match(result.stdout, /manual compensation=partial/);
+  assert.match(
+    result.stdout,
+    /warning  AI Remover processing and high-res limits use removerQuotaReservation, not the platform credit ledger/
+  );
+  assert.match(
+    result.stdout,
+    /source  usage_platform_credit:src\/domains\/account\/infra\/credit\.ts:credit/
+  );
+});
+
+test('contract audit degrades missing usage credit source files into source-mapped warnings', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  await rm(
+    path.join(rootDir, 'src/domains/remover/infra/quota-reservation.ts')
+  );
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /warning  Usage \/ credits audit source is missing: AI Remover quota reservation infra/
+  );
+  assert.match(
+    result.stdout,
+    /source  usage_product_infra:src\/domains\/remover\/infra\/quota-reservation\.ts/
   );
   assert.doesNotMatch(result.stderr, /SaaS contract audit failed/);
 });
