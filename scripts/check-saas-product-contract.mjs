@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import * as ts from 'typescript';
 
 import {
   readCurrentSiteConfig,
@@ -66,12 +67,55 @@ function readTextIfExists(filePath) {
   return readFileSync(filePath, 'utf8');
 }
 
-function sourceTextIncludes(sourcePath, text) {
-  return readTextIfExists(sourcePath).includes(text);
-}
-
 function collectPricingItems(sitePricing) {
   return sitePricing?.pricing?.items ?? [];
+}
+
+function isPropertyName(node, name) {
+  return (
+    (ts.isIdentifier(node) || ts.isStringLiteral(node)) && node.text === name
+  );
+}
+
+function isStringLike(node) {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+}
+
+function hasSettingDefinition(sourcePath, settingName) {
+  const sourceText = readTextIfExists(sourcePath);
+  if (!sourceText) {
+    return false;
+  }
+
+  const sourceFile = ts.createSourceFile(
+    sourcePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  let found = false;
+
+  function visit(node) {
+    if (found) {
+      return;
+    }
+
+    if (
+      ts.isPropertyAssignment(node) &&
+      isPropertyName(node.name, 'name') &&
+      isStringLike(node.initializer) &&
+      node.initializer.text === settingName
+    ) {
+      found = true;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return found;
 }
 
 function collectEntitlementKeys(items) {
@@ -162,6 +206,30 @@ function readPricingForReport({ rootDir, site, siteKey, pricingPath }) {
   }
 }
 
+function readDeploySettingsForReport({ rootDir, siteKey, deploySettingsPath }) {
+  try {
+    return {
+      deploySettings: readSiteDeploySettings({
+        rootDir,
+        siteKey,
+      }),
+      issues: [],
+    };
+  } catch (error) {
+    return {
+      deploySettings: null,
+      issues: [
+        issue(
+          ISSUE_LEVEL.BLOCKER,
+          'invalid_deploy_settings',
+          `Deploy settings could not be read or validated: ${getErrorMessage(error)}`,
+          [source('deploy_settings', deploySettingsPath)]
+        ),
+      ],
+    };
+  }
+}
+
 function resolveMappingOwnership({
   item,
   paymentCapability,
@@ -188,7 +256,7 @@ function resolveMappingOwnership({
 
   if (
     paymentCapability === 'creem' &&
-    sourceTextIncludes(settingsSourcePath, "name: 'creem_product_ids'")
+    hasSettingDefinition(settingsSourcePath, 'creem_product_ids')
   ) {
     return {
       status: 'runtime_owned',
@@ -334,12 +402,16 @@ function auditEntitlementKeys({ siteKey, items, pricingPath }) {
 }
 
 function settingStatus(sourcePath, settingName) {
-  return sourceTextIncludes(sourcePath, `name: '${settingName}'`)
+  return hasSettingDefinition(sourcePath, settingName)
     ? 'runtime_owned'
     : 'missing';
 }
 
 function deployRequirementStatus(deploySettings, group, key) {
+  if (!deploySettings) {
+    return 'missing';
+  }
+
   return deploySettings?.bindingRequirements?.[group]?.[key]
     ? 'runtime_owned'
     : 'not_applicable';
@@ -349,6 +421,7 @@ function auditRuntimeOwnership({
   site,
   deploySettings,
   deploySettingsPath,
+  deployIssues,
   paymentSettingsPath,
   envContractPath,
 }) {
@@ -457,16 +530,19 @@ function auditRuntimeOwnership({
       ],
     },
   ];
-  const issues = entries
-    .filter((entry) => entry.status === 'missing')
-    .map((entry) =>
-      issue(
-        ISSUE_LEVEL.WARNING,
-        'missing_runtime_owner',
-        `Runtime-owned field ${entry.name} has no configured owner`,
-        entry.sources
-      )
-    );
+  const issues = [
+    ...deployIssues,
+    ...entries
+      .filter((entry) => entry.status === 'missing')
+      .map((entry) =>
+        issue(
+          ISSUE_LEVEL.WARNING,
+          'missing_runtime_owner',
+          `Runtime-owned field ${entry.name} has no configured owner`,
+          entry.sources
+        )
+      ),
+  ];
 
   return section(
     issues.length === 0 ? 'runtime_owned' : 'partial',
@@ -518,9 +594,10 @@ function buildAuditReport(siteKey) {
     siteKey,
     pricingPath,
   });
-  const deploySettings = readSiteDeploySettings({
+  const { deploySettings, issues: deployIssues } = readDeploySettingsForReport({
     rootDir: ROOT_DIR,
     siteKey,
+    deploySettingsPath,
   });
   const pricingItems = collectPricingItems(sitePricing);
   const report = {
@@ -542,6 +619,7 @@ function buildAuditReport(siteKey) {
       site,
       deploySettings,
       deploySettingsPath,
+      deployIssues,
       paymentSettingsPath,
       envContractPath,
     }),

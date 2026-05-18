@@ -176,3 +176,84 @@ test('contract audit converts pricing validation errors into source-mapped block
   );
   assert.doesNotMatch(result.stderr, /SaaS contract audit failed/);
 });
+
+test('contract audit converts deploy settings validation errors into source-mapped blockers', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  await writeJson(
+    path.join(rootDir, 'sites', 'ai-remover', 'deploy.settings.json'),
+    { configVersion: 1 }
+  );
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /SaaS Contract Audit/);
+  assert.match(
+    result.stdout,
+    /blocker  Deploy settings could not be read or validated:/
+  );
+  assert.match(
+    result.stdout,
+    /source  deploy_settings:sites\/ai-remover\/deploy\.settings\.json/
+  );
+  assert.doesNotMatch(result.stderr, /SaaS contract audit failed/);
+});
+
+test('contract audit detects creem product mapping setting structurally', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Pro',
+          product_id: 'pro-monthly',
+          interval: 'month',
+          amount: 999,
+          currency: 'USD',
+          checkout_enabled: true,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  await writeText(
+    path.join(rootDir, 'src/domains/settings/definitions/payment.ts'),
+    [
+      'export const paymentSettings = [',
+      '  {',
+      '    name : "creem_product_ids",',
+      '  },',
+      '];',
+      '',
+    ].join('\n')
+  );
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /payment provider product mapping: runtime_owned/
+  );
+  assert.doesNotMatch(
+    result.stdout,
+    /Paid checkout plan pro-monthly has no payment product mapping path/
+  );
+});
