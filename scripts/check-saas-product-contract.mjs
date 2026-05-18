@@ -8,8 +8,8 @@ import {
   resolveSiteConfigPath,
 } from './lib/site-config.mjs';
 import {
-  readSiteDeploySettings,
   resolveSiteDeploySettingsPath,
+  validateSiteDeploySettings,
 } from './lib/site-deploy-settings.mjs';
 import {
   readCurrentSitePricing,
@@ -67,6 +67,10 @@ function readTextIfExists(filePath) {
   return readFileSync(filePath, 'utf8');
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function collectPricingItems(sitePricing) {
   return sitePricing?.pricing?.items ?? [];
 }
@@ -118,6 +122,43 @@ function hasSettingDefinition(sourcePath, settingName) {
   return found;
 }
 
+function collectStringLiterals(sourcePath) {
+  const sourceText = readTextIfExists(sourcePath);
+  if (!sourceText) {
+    return new Set();
+  }
+
+  const sourceFile = ts.createSourceFile(
+    sourcePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const values = new Set();
+
+  function visit(node) {
+    if (isStringLike(node)) {
+      values.add(node.text);
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return values;
+}
+
+function envContractStatus(sourcePath, keys, match = 'all') {
+  const values = collectStringLiterals(sourcePath);
+  const hasKey =
+    match === 'any'
+      ? keys.some((key) => values.has(key))
+      : keys.every((key) => values.has(key));
+
+  return hasKey ? 'runtime_owned' : 'missing';
+}
+
 function collectEntitlementKeys(items) {
   const keys = new Set();
   for (const item of items) {
@@ -140,7 +181,7 @@ function classifyEntitlementKey(key, siteKey) {
   return 'raw_unknown';
 }
 
-function auditSite(site, sitePath) {
+function auditSite(site, sitePath, siteIssues = []) {
   const checks = [
     ['key', site.key],
     ['brand.appName', site.brand?.appName],
@@ -151,18 +192,24 @@ function auditSite(site, sitePath) {
     ['brand.previewImage', site.brand?.previewImage],
     ['capabilities', site.capabilities],
   ];
-  const issues = checks
-    .filter(([, value]) => {
-      if (typeof value === 'object' && value !== null) {
-        return Object.keys(value).length === 0;
-      }
-      return !hasText(value);
-    })
-    .map(([key]) =>
-      issue(ISSUE_LEVEL.BLOCKER, 'missing_site_field', `Missing site ${key}`, [
-        source('site_config', sitePath, key),
-      ])
-    );
+  const issues = [
+    ...siteIssues,
+    ...checks
+      .filter(([, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          return Object.keys(value).length === 0;
+        }
+        return !hasText(value);
+      })
+      .map(([key]) =>
+        issue(
+          ISSUE_LEVEL.BLOCKER,
+          'missing_site_field',
+          `Missing site ${key}`,
+          [source('site_config', sitePath, key)]
+        )
+      ),
+  ];
 
   return section(
     issues.length === 0 ? 'resolved' : 'partial',
@@ -179,6 +226,51 @@ function auditSite(site, sitePath) {
     [source('site_config', sitePath)],
     issues
   );
+}
+
+function readLooseSiteConfig(sitePath, siteKey) {
+  const fallback = { key: siteKey, brand: {}, capabilities: {} };
+  const sourceText = readTextIfExists(sitePath);
+  if (!sourceText) {
+    return fallback;
+  }
+
+  try {
+    const site = JSON.parse(sourceText);
+    if (!isPlainObject(site)) {
+      return fallback;
+    }
+
+    return {
+      ...site,
+      key: hasText(site.key) ? site.key : siteKey,
+      brand: isPlainObject(site.brand) ? site.brand : {},
+      capabilities: isPlainObject(site.capabilities) ? site.capabilities : {},
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function readSiteForReport({ rootDir, siteKey, sitePath }) {
+  try {
+    return {
+      site: readCurrentSiteConfig({ rootDir, siteKey }),
+      issues: [],
+    };
+  } catch (error) {
+    return {
+      site: readLooseSiteConfig(sitePath, siteKey),
+      issues: [
+        issue(
+          ISSUE_LEVEL.BLOCKER,
+          'invalid_site_config',
+          `Site config could not be read or validated: ${getErrorMessage(error)}`,
+          [source('site_config', sitePath)]
+        ),
+      ],
+    };
+  }
 }
 
 function readPricingForReport({ rootDir, site, siteKey, pricingPath }) {
@@ -206,13 +298,13 @@ function readPricingForReport({ rootDir, site, siteKey, pricingPath }) {
   }
 }
 
-function readDeploySettingsForReport({ rootDir, siteKey, deploySettingsPath }) {
+function readDeploySettingsForReport({ deploySettingsPath }) {
   try {
+    const deploySettings = JSON.parse(readFileSync(deploySettingsPath, 'utf8'));
+    validateSiteDeploySettings(deploySettings);
+
     return {
-      deploySettings: readSiteDeploySettings({
-        rootDir,
-        siteKey,
-      }),
+      deploySettings,
       issues: [],
     };
   } catch (error) {
@@ -417,6 +509,22 @@ function deployRequirementStatus(deploySettings, group, key) {
     : 'not_applicable';
 }
 
+function envBackedDeployRequirementStatus({
+  deploySettings,
+  group,
+  key,
+  envContractPath,
+  envKeys,
+  match,
+}) {
+  const deployStatus = deployRequirementStatus(deploySettings, group, key);
+  if (deployStatus !== 'runtime_owned') {
+    return deployStatus;
+  }
+
+  return envContractStatus(envContractPath, envKeys, match);
+}
+
 function auditRuntimeOwnership({
   site,
   deploySettings,
@@ -450,7 +558,12 @@ function auditRuntimeOwnership({
           : `${String(paymentCapability).toUpperCase()} provider secrets`,
       owner: 'cloudflare_secret',
       status:
-        paymentCapability === 'creem' ? 'runtime_owned' : 'not_applicable',
+        paymentCapability === 'creem'
+          ? envContractStatus(envContractPath, [
+              'CREEM_API_KEY',
+              'CREEM_SIGNING_SECRET',
+            ])
+          : 'not_applicable',
       sources: [
         source('runtime_env', envContractPath, 'CREEM_API_KEY'),
         source('runtime_env', envContractPath, 'CREEM_SIGNING_SECRET'),
@@ -460,11 +573,14 @@ function auditRuntimeOwnership({
       name: 'auth shared secret',
       expectedKey: 'BETTER_AUTH_SECRET or AUTH_SECRET',
       owner: 'cloudflare_secret',
-      status: deployRequirementStatus(
+      status: envBackedDeployRequirementStatus({
         deploySettings,
-        'secrets',
-        'authSharedSecret'
-      ),
+        group: 'secrets',
+        key: 'authSharedSecret',
+        envContractPath,
+        envKeys: ['BETTER_AUTH_SECRET', 'AUTH_SECRET'],
+        match: 'any',
+      }),
       sources: [
         source(
           'deploy_settings',
@@ -479,7 +595,13 @@ function auditRuntimeOwnership({
       name: 'Google OAuth secrets',
       expectedKey: 'GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET',
       owner: 'cloudflare_secret',
-      status: deployRequirementStatus(deploySettings, 'secrets', 'googleOauth'),
+      status: envBackedDeployRequirementStatus({
+        deploySettings,
+        group: 'secrets',
+        key: 'googleOauth',
+        envContractPath,
+        envKeys: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+      }),
       sources: [
         source('deploy_settings', deploySettingsPath, 'secrets.googleOauth'),
         source('runtime_env', envContractPath, 'GOOGLE_CLIENT_ID'),
@@ -490,7 +612,13 @@ function auditRuntimeOwnership({
       name: 'GitHub OAuth secrets',
       expectedKey: 'GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET',
       owner: 'cloudflare_secret',
-      status: deployRequirementStatus(deploySettings, 'secrets', 'githubOauth'),
+      status: envBackedDeployRequirementStatus({
+        deploySettings,
+        group: 'secrets',
+        key: 'githubOauth',
+        envContractPath,
+        envKeys: ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'],
+      }),
       sources: [
         source('deploy_settings', deploySettingsPath, 'secrets.githubOauth'),
         source('runtime_env', envContractPath, 'GITHUB_CLIENT_ID'),
@@ -501,11 +629,13 @@ function auditRuntimeOwnership({
       name: 'storage public URL',
       expectedKey: 'STORAGE_PUBLIC_BASE_URL',
       owner: 'cloudflare_var',
-      status: deployRequirementStatus(
+      status: envBackedDeployRequirementStatus({
         deploySettings,
-        'vars',
-        'storagePublicBaseUrl'
-      ),
+        group: 'vars',
+        key: 'storagePublicBaseUrl',
+        envContractPath,
+        envKeys: ['STORAGE_PUBLIC_BASE_URL'],
+      }),
       sources: [
         source(
           'deploy_settings',
@@ -519,11 +649,13 @@ function auditRuntimeOwnership({
       name: 'AI Remover cleanup secret',
       expectedKey: 'REMOVER_CLEANUP_SECRET',
       owner: 'cloudflare_secret',
-      status: deployRequirementStatus(
+      status: envBackedDeployRequirementStatus({
         deploySettings,
-        'secrets',
-        'removerCleanup'
-      ),
+        group: 'secrets',
+        key: 'removerCleanup',
+        envContractPath,
+        envKeys: ['REMOVER_CLEANUP_SECRET'],
+      }),
       sources: [
         source('deploy_settings', deploySettingsPath, 'secrets.removerCleanup'),
         source('runtime_env', envContractPath, 'REMOVER_CLEANUP_SECRET'),
@@ -587,7 +719,11 @@ function buildAuditReport(siteKey) {
   );
   const envContractPath = path.resolve(ROOT_DIR, 'src/config/env-contract.ts');
 
-  const site = readCurrentSiteConfig({ rootDir: ROOT_DIR, siteKey });
+  const { site, issues: siteIssues } = readSiteForReport({
+    rootDir: ROOT_DIR,
+    siteKey,
+    sitePath,
+  });
   const { sitePricing, issues: pricingIssues } = readPricingForReport({
     rootDir: ROOT_DIR,
     site,
@@ -595,13 +731,11 @@ function buildAuditReport(siteKey) {
     pricingPath,
   });
   const { deploySettings, issues: deployIssues } = readDeploySettingsForReport({
-    rootDir: ROOT_DIR,
-    siteKey,
     deploySettingsPath,
   });
   const pricingItems = collectPricingItems(sitePricing);
   const report = {
-    site: auditSite(site, sitePath),
+    site: auditSite(site, sitePath, siteIssues),
     commercial: auditCommercial({
       site,
       sitePricing,

@@ -257,3 +257,116 @@ test('contract audit detects creem product mapping setting structurally', async 
     /Paid checkout plan pro-monthly has no payment product mapping path/
   );
 });
+
+test('contract audit validates payment secret ownership from env contract sources', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  await writeText(
+    path.join(rootDir, 'src/config/env-contract.ts'),
+    [
+      'export const SERVER_RUNTIME_ENV_KEYS = [',
+      "  'BETTER_AUTH_SECRET',",
+      "  'AUTH_SECRET',",
+      "  'GOOGLE_CLIENT_ID',",
+      "  'GOOGLE_CLIENT_SECRET',",
+      "  'STORAGE_PUBLIC_BASE_URL',",
+      "  'REMOVER_CLEANUP_SECRET',",
+      '];',
+      '',
+    ].join('\n')
+  );
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /payment provider secrets: missing/);
+  assert.match(
+    result.stdout,
+    /warning  Runtime-owned field payment provider secrets has no configured owner/
+  );
+  assert.match(
+    result.stdout,
+    /source  runtime_env:src\/config\/env-contract\.ts:CREEM_API_KEY/
+  );
+  assert.match(
+    result.stdout,
+    /source  runtime_env:src\/config\/env-contract\.ts:CREEM_SIGNING_SECRET/
+  );
+});
+
+test('contract audit converts site config validation errors into source-mapped blockers', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  await writeJson(
+    path.join(rootDir, 'sites', 'ai-remover', 'site.config.json'),
+    {
+      key: 'ai-remover',
+      domain: 'airemover.example.com',
+      brand: {
+        appName: 'AI Remover',
+        appUrl: 'https://airemover.example.com',
+        supportEmail: 'support@airemover.example.com',
+        favicon: '/favicon.ico',
+        previewImage: '/logo.png',
+      },
+      capabilities: {
+        auth: true,
+        payment: 'creem',
+        ai: true,
+        docs: false,
+        blog: false,
+      },
+      configVersion: 1,
+    }
+  );
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /SaaS Contract Audit/);
+  assert.match(result.stdout, /Site section: partial/);
+  assert.match(
+    result.stdout,
+    /blocker  Site config could not be read or validated:/
+  );
+  assert.match(
+    result.stdout,
+    /source  site_config:sites\/ai-remover\/site\.config\.json/
+  );
+  assert.match(result.stdout, /blocker  Missing site brand.logo/);
+  assert.match(
+    result.stdout,
+    /source  site_config:sites\/ai-remover\/site\.config\.json:brand\.logo/
+  );
+  assert.doesNotMatch(result.stderr, /SaaS contract audit failed/);
+});
