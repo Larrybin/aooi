@@ -34,12 +34,24 @@ const AI_REMOVER_CONTRACT_EXACT_PATHS = new Set([
   'docs/architecture/saas-platform-core-contract-implementation-plan.md',
   'scripts/check-saas-product-contract.mjs',
   'scripts/check-saas-product-contract.test.ts',
+  'src/config/db/schema.ts',
+  'src/config/env-contract.ts',
+  'tests/contract/payment-notify.test.ts',
 ]);
 
 const AI_REMOVER_CONTRACT_PREFIXES = [
   'docs/product/ai-remover/',
   'sites/ai-remover/',
+  'src/app/api/remover/',
   'src/config/saas-product-contract/',
+  'src/config/db/migrations/',
+  'src/domains/account/',
+  'src/domains/ai/',
+  'src/domains/billing/',
+  'src/domains/remover/',
+  'src/extensions/ai/',
+  'src/infra/runtime/',
+  'src/surfaces/admin/schemas/list/',
 ];
 
 function parseArgs(argv) {
