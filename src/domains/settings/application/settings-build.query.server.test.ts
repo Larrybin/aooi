@@ -92,7 +92,7 @@ test('pricing layout no longer imports runtime settings readers', () => {
   assert.equal(content.includes('readSettingsCached'), false);
 });
 
-test('public prerender landing shells no longer import runtime settings readers', () => {
+test('public landing shells keep runtime public UI config for AI navigation filtering', () => {
   const files = [
     'src/app/[locale]/(landing)/page.tsx',
     'src/app/[locale]/(landing)/blog/layout.tsx',
@@ -102,8 +102,11 @@ test('public prerender landing shells no longer import runtime settings readers'
   for (const file of files) {
     const content = readRepoFile(...file.split('/'));
 
-    assert.equal(content.includes('settings-runtime.query'), false, file);
-    assert.equal(content.includes('readPublicUiConfigCached'), false, file);
+    assert.equal(content.includes('settings-runtime.query'), true, file);
+    assert.equal(content.includes('readPublicUiConfigCached'), true, file);
+    assert.equal(content.includes('readBuildPublicUiConfig'), false, file);
+    assert.equal(content.includes('readBuildAuthUiSettings'), true, file);
+    assert.equal(content.includes('readBuildBillingUiSettings'), true, file);
     assert.equal(
       content.includes('readAuthUiRuntimeSettingsCached'),
       false,

@@ -1,13 +1,13 @@
-// data: build-safe site config + landing translations + theme layout
+// data: runtime public UI config + landing translations + theme layout
 // cache: default RSC
-// reason: public blog uses site capability as the authoritative gate
+// reason: public blog uses site capability for blog gate and runtime settings for AI navigation filtering
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import {
   readBuildAuthUiSettings,
   readBuildBillingUiSettings,
-  readBuildPublicUiConfig,
 } from '@/domains/settings/application/settings-build.query';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
@@ -33,7 +33,7 @@ export default async function BlogLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const publicUiConfig = readBuildPublicUiConfig();
+  const publicUiConfig = await readPublicUiConfigCached();
   const authSettings = readBuildAuthUiSettings();
   const billingSettings = readBuildBillingUiSettings();
   if (!getSite().capabilities.blog) {
