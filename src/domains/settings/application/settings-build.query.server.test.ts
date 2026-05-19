@@ -82,16 +82,56 @@ test('settings runtime contracts stay DB-free for build-safe imports', () => {
 
 test('pricing layout no longer imports runtime settings readers', () => {
   const content = readRepoFile(
-    'src',
-    'app',
-    '[locale]',
-    '(landing)',
-    'pricing',
-    'layout.tsx'
+    ...'src/app/[locale]/(landing)/pricing/layout.tsx'.split('/')
   );
 
   assert.equal(content.includes('settings-runtime.query'), false);
   assert.equal(content.includes('readPublicUiConfigCached'), false);
+  assert.equal(content.includes('readAuthUiRuntimeSettingsCached'), false);
+  assert.equal(content.includes('readBillingRuntimeSettingsCached'), false);
+  assert.equal(content.includes('readSettingsCached'), false);
+});
+
+test('public landing shells keep runtime public UI config for AI navigation filtering', () => {
+  const files = [
+    'src/app/[locale]/(landing)/page.tsx',
+    'src/app/[locale]/(landing)/blog/layout.tsx',
+    'src/app/[locale]/(landing)/[slug]/layout.tsx',
+  ];
+
+  for (const file of files) {
+    const content = readRepoFile(...file.split('/'));
+
+    assert.equal(content.includes('settings-runtime.query'), true, file);
+    assert.equal(content.includes('readPublicUiConfigCached'), true, file);
+    assert.equal(content.includes('readBuildPublicUiConfig'), false, file);
+    assert.equal(content.includes('readBuildAuthUiSettings'), true, file);
+    assert.equal(content.includes('readBuildBillingUiSettings'), true, file);
+    assert.equal(
+      content.includes('readAuthUiRuntimeSettingsCached'),
+      false,
+      file
+    );
+    assert.equal(
+      content.includes('readBillingRuntimeSettingsCached'),
+      false,
+      file
+    );
+    assert.equal(content.includes('readSettingsCached'), false, file);
+  }
+});
+
+test('AI landing shell keeps runtime AI availability gate', () => {
+  const content = readRepoFile(
+    ...'src/app/[locale]/(landing)/(ai)/layout.tsx'.split('/')
+  );
+
+  assert.equal(content.includes('settings-runtime.query'), true);
+  assert.equal(content.includes('readPublicUiConfigCached'), true);
+  assert.equal(content.includes('isAiEnabled(publicUiConfig)'), true);
+  assert.equal(content.includes('readBuildAuthUiSettings'), true);
+  assert.equal(content.includes('readBuildBillingUiSettings'), true);
+  assert.equal(content.includes('readBuildPublicUiConfig'), false);
   assert.equal(content.includes('readAuthUiRuntimeSettingsCached'), false);
   assert.equal(content.includes('readBillingRuntimeSettingsCached'), false);
   assert.equal(content.includes('readSettingsCached'), false);

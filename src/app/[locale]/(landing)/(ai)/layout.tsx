@@ -1,14 +1,14 @@
-// data: landing translations (header/footer) + theme layout + public configs (unstable_cache tag=public-configs, revalidate=3600s)
-// cache: cached configs + default RSC
-// reason: share the landing shell for AI demo pages; gate access via config
+// data: landing translations (header/footer) + theme layout + runtime AI availability
+// cache: default RSC
+// reason: share the landing shell for AI demo pages; gate access via runtime module settings
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { isAiEnabled } from '@/domains/ai/domain/enablement';
 import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+  readBuildAuthUiSettings,
+  readBuildBillingUiSettings,
+} from '@/domains/settings/application/settings-build.query';
+import { readPublicUiConfigCached } from '@/domains/settings/application/settings-runtime.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
@@ -33,11 +33,9 @@ export default async function AiLandingLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
-    readPublicUiConfigCached(),
-    readAuthUiRuntimeSettingsCached(),
-    readBillingRuntimeSettingsCached(),
-  ]);
+  const publicUiConfig = await readPublicUiConfigCached();
+  const authSettings = readBuildAuthUiSettings();
+  const billingSettings = readBuildBillingUiSettings();
   if (!isAiEnabled(publicUiConfig)) {
     notFound();
   }

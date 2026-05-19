@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  filterLandingButtons,
   filterLandingNavItems,
   isLandingBlogEnabled,
   isLandingDocsEnabled,
@@ -38,5 +39,38 @@ test('filterLandingNavItems 不因 runtime public config 缺少 docs/blog 开关
   assert.deepEqual(
     items.map((item) => item.url),
     ['/docs', '/blog', '/pricing']
+  );
+});
+
+test('filterLandingNavItems hides AI routes when runtime public config disables AI', () => {
+  const items = filterLandingNavItems(
+    [
+      { title: 'Image AI', url: '/ai-image-generator' },
+      { title: 'Chat', url: '/chat' },
+      { title: 'Activity', url: '/activity' },
+      { title: 'Pricing', url: '/pricing' },
+    ],
+    runtimePublicConfig
+  );
+
+  assert.deepEqual(
+    items.map((item) => item.url),
+    ['/pricing']
+  );
+});
+
+test('filterLandingButtons hides AI routes when runtime public config disables AI', () => {
+  const buttons = filterLandingButtons(
+    [
+      { title: 'Generate', url: '/ai-image-generator' },
+      { title: 'Chat', url: '/chat' },
+      { title: 'Pricing', url: '/pricing' },
+    ],
+    runtimePublicConfig
+  );
+
+  assert.deepEqual(
+    buttons.map((button) => button.url),
+    ['/pricing']
   );
 });
