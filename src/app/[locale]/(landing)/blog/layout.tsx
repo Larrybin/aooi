@@ -1,13 +1,13 @@
-// data: public configs (unstable_cache tag=public-configs, revalidate=3600s) + landing translations + theme layout
-// cache: cached configs + default RSC
+// data: build-safe site config + landing translations + theme layout
+// cache: default RSC
 // reason: public blog uses site capability as the authoritative gate
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+  readBuildAuthUiSettings,
+  readBuildBillingUiSettings,
+  readBuildPublicUiConfig,
+} from '@/domains/settings/application/settings-build.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
@@ -33,11 +33,9 @@ export default async function BlogLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
-    readPublicUiConfigCached(),
-    readAuthUiRuntimeSettingsCached(),
-    readBillingRuntimeSettingsCached(),
-  ]);
+  const publicUiConfig = readBuildPublicUiConfig();
+  const authSettings = readBuildAuthUiSettings();
+  const billingSettings = readBuildBillingUiSettings();
   if (!getSite().capabilities.blog) {
     notFound();
   }

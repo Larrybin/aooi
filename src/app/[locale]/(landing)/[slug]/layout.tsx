@@ -1,13 +1,13 @@
-// data: landing translations (header/footer) + theme layout
+// data: landing translations (header/footer) + theme layout + build-safe site config
 // cache: default (no explicit fetch)
 // reason: shared landing shell; keep data loading in leaf pages
 import type { ReactNode } from 'react';
 import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+  readBuildAuthUiSettings,
+  readBuildBillingUiSettings,
+  readBuildPublicUiConfig,
+} from '@/domains/settings/application/settings-build.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
@@ -34,11 +34,9 @@ export default async function PageDetailLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
-    readPublicUiConfigCached(),
-    readAuthUiRuntimeSettingsCached(),
-    readBillingRuntimeSettingsCached(),
-  ]);
+  const publicUiConfig = readBuildPublicUiConfig();
+  const authSettings = readBuildAuthUiSettings();
+  const billingSettings = readBuildBillingUiSettings();
   const brand = buildBrandPlaceholderValues();
   const siteKey: string = site.key;
 

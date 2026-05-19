@@ -1,14 +1,14 @@
-// data: landing translations + public configs (unstable_cache tag=public-configs, revalidate=3600s) + theme components
-// cache: cached configs + default RSC
-// reason: public marketing page; allow toggles without per-request db reads
+// data: landing translations + build-safe site config + theme components
+// cache: default RSC
+// reason: public marketing page; avoid runtime settings in prerender shell
 import type { Metadata } from 'next';
 import { RemoverHome } from '@/domains/remover/ui/remover-home';
 import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
-  readAuthUiRuntimeSettingsCached,
-  readBillingRuntimeSettingsCached,
-  readPublicUiConfigCached,
-} from '@/domains/settings/application/settings-runtime.query';
+  readBuildAuthUiSettings,
+  readBuildBillingUiSettings,
+  readBuildPublicUiConfig,
+} from '@/domains/settings/application/settings-build.query';
 import { applyBrandToLandingHeaderFooter } from '@/infra/platform/brand/identity';
 import {
   buildBrandPlaceholderValues,
@@ -97,11 +97,9 @@ export default async function LandingPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [publicUiConfig, authSettings, billingSettings] = await Promise.all([
-    readPublicUiConfigCached(),
-    readAuthUiRuntimeSettingsCached(),
-    readBillingRuntimeSettingsCached(),
-  ]);
+  const publicUiConfig = readBuildPublicUiConfig();
+  const authSettings = readBuildAuthUiSettings();
+  const billingSettings = readBuildBillingUiSettings();
   const brand = buildBrandPlaceholderValues();
   const siteKey: string = site.key;
 

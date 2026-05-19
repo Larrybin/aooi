@@ -82,12 +82,7 @@ test('settings runtime contracts stay DB-free for build-safe imports', () => {
 
 test('pricing layout no longer imports runtime settings readers', () => {
   const content = readRepoFile(
-    'src',
-    'app',
-    '[locale]',
-    '(landing)',
-    'pricing',
-    'layout.tsx'
+    ...'src/app/[locale]/(landing)/pricing/layout.tsx'.split('/')
   );
 
   assert.equal(content.includes('settings-runtime.query'), false);
@@ -95,6 +90,33 @@ test('pricing layout no longer imports runtime settings readers', () => {
   assert.equal(content.includes('readAuthUiRuntimeSettingsCached'), false);
   assert.equal(content.includes('readBillingRuntimeSettingsCached'), false);
   assert.equal(content.includes('readSettingsCached'), false);
+});
+
+test('public prerender landing shells no longer import runtime settings readers', () => {
+  const files = [
+    'src/app/[locale]/(landing)/page.tsx',
+    'src/app/[locale]/(landing)/blog/layout.tsx',
+    'src/app/[locale]/(landing)/(ai)/layout.tsx',
+    'src/app/[locale]/(landing)/[slug]/layout.tsx',
+  ];
+
+  for (const file of files) {
+    const content = readRepoFile(...file.split('/'));
+
+    assert.equal(content.includes('settings-runtime.query'), false, file);
+    assert.equal(content.includes('readPublicUiConfigCached'), false, file);
+    assert.equal(
+      content.includes('readAuthUiRuntimeSettingsCached'),
+      false,
+      file
+    );
+    assert.equal(
+      content.includes('readBillingRuntimeSettingsCached'),
+      false,
+      file
+    );
+    assert.equal(content.includes('readSettingsCached'), false, file);
+  }
 });
 
 test('build auth settings are conservative and do not synthesize Google client ids', () => {
