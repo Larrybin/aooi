@@ -316,7 +316,7 @@ The governed deployment posture is now Cloudflare-only: production deploys must 
 State Worker migrations must stay state-safe. Router request dispatch changes belong in `pnpm cf:deploy:app`, while Durable Object owner/migration changes belong in `pnpm cf:deploy:state`.
 `pnpm cf:deploy:app` is a pure app release step. It does not bootstrap missing router/server deployments, so brand-new or partially initialized production environments must run `pnpm cf:deploy:state` first and `pnpm cf:deploy` second.
 
-`Cloudflare Deploy Acceptance` uses a Postgres service container plus a temporary Wrangler config so local runtime smoke uses the CI database instead of any tracked DSN.
+`Cloudflare Deploy Acceptance` no longer runs `pnpm db:migrate` as part of the Cloudflare acceptance job. DB schema governance is handled by the schema migration guard, while production migrations remain owned by the local release command before deploy.
 
 ## Best Practices
 

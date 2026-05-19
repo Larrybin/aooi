@@ -49,7 +49,10 @@
 - `SITE=<site-key> pnpm test:cf-local-smoke` validates the canonical local Cloudflare runtime path through a generated temporary topology: the router and all server Workers start under one `wrangler dev` multi-config session, required `.open-next` artifacts are checked before boot, and the read-only smoke runs against the router origin.
 - `SITE=<site-key> pnpm test:cf-admin-settings-smoke` validates the smaller Cloudflare-only local acceptance chain for storage semantics: direct DB seeding, real `/api/storage/upload-image`, public config projection, and the explicit `STORAGE_PUBLIC_BASE_URL` missing-error path inside the same local Cloudflare runtime session.
 - `SITE=<site-key> pnpm test:cf-app-smoke` validates post-deploy production read-only smoke on the real app origin.
-- Before production deploy, `Cloudflare Deploy Acceptance` must pass `pnpm lint`, `pnpm arch:check`, `pnpm test`, `pnpm cf:check`, and `pnpm cf:build` for the accepted `main` revision.
+- Before production deploy, `Cloudflare Deploy Acceptance` must pass its stable `cloudflare acceptance` summary check for the accepted `main` revision. The workflow splits static CI, tests, schema migration guarding, path-aware Cloudflare acceptance, and site-scoped contract checks into separate jobs.
+- Cloudflare acceptance is path-aware but the required `cloudflare acceptance` summary check must always produce a result. It may pass with the heavy Cloudflare matrix skipped when no Cloudflare-relevant paths changed.
+- The Cloudflare matrix is explicit: `mamamiya` and `ai-remover`. Each selected site runs `pnpm cf:check` and `pnpm cf:build` with CI-only placeholder runtime bindings where the site declares runtime-owned provider secrets.
+- AI Remover contract checks are site-scoped and run as `SITE=ai-remover pnpm contract:check` only for AI Remover contract paths or manual workflow dispatch.
 - `SITE=mamamiya pnpm release:cf` must verify `HEAD == origin/main` and a successful `Cloudflare Deploy Acceptance` run for that exact commit before any production mutation.
 - If schema changes are present, the local release input guard must require committed files under `src/config/db/migrations/**` before deploy.
 - The local release command must run `pnpm db:migrate` before `pnpm cf:deploy:state` or app deploy work.

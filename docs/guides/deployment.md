@@ -96,8 +96,13 @@ SITE=<site-key> pnpm cf:typegen:check
 ```
 
 GitHub Actions is the Cloudflare acceptance gate only. Production releases run
-from a local operator session after the exact `main` commit has passed
-`Cloudflare Deploy Acceptance`.
+from a local operator session after the exact `main` commit has passed the
+stable `cloudflare acceptance` summary in `Cloudflare Deploy Acceptance`.
+
+That workflow keeps generic CI, schema migration guarding, Cloudflare
+acceptance, and site-scoped contract checks separate. The heavy Cloudflare
+matrix runs only for Cloudflare-relevant changes or manual dispatch, while the
+required summary check always reports pass, skip, or failure.
 
 Create a local `.env.production` file for production-only release inputs:
 

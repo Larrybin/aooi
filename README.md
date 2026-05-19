@@ -273,15 +273,17 @@ Module guides:
 
 ## CI Guardrails
 
-The main acceptance path runs:
+The `Cloudflare Deploy Acceptance` workflow splits generic CI from deployment
+acceptance:
 
-```bash
-pnpm lint
-pnpm arch:check
-pnpm test
-pnpm cf:check
-pnpm cf:build
-```
+- `pnpm lint` and `pnpm arch:check` run as the static CI gate.
+- `pnpm test` runs as the default test gate.
+- `scripts/check-release-inputs.mjs` enforces DB schema changes shipping with
+  migrations.
+- `pnpm cf:check` and `pnpm cf:build` run only for Cloudflare-relevant changes,
+  across the explicit deployable site matrix.
+- `SITE=ai-remover pnpm contract:check` runs only for AI Remover contract
+  changes.
 
 GitHub Actions are pinned to full commit SHAs with `# pinned from vX` comments.
 Keep `dependency-review` and `cloudflare acceptance` configured as required

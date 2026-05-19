@@ -8,30 +8,47 @@ on:
   workflow_dispatch:
 
 jobs:
-  acceptance:
-    name: cloudflare acceptance
+  detect-cloudflare-changes:
+    name: detect cloudflare changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: aooi
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d aooi"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
+    outputs:
+      cloudflare_changed: ${{ steps.detect.outputs.cloudflare_changed }}
+      contract_ai_remover_changed: ${{ steps.detect.outputs.contract_ai_remover_changed }}
+      changed_path_count: ${{ steps.detect.outputs.changed_path_count }}
+      reason: ${{ steps.detect.outputs.reason }}
+
+    steps:
+      - name: Checkout repository
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Detect Cloudflare acceptance changes
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+          fi
+
+          node scripts/detect-cloudflare-acceptance-changes.mjs \
+            --base-sha="$base_sha" \
+            --head-sha="${{ github.sha }}" \
+            --event-name="${{ github.event_name }}"
+
+  ci-static:
+    name: ci static
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       SITE: mamamiya
       DEPLOY_TARGET: cloudflare
       DATABASE_PROVIDER: postgresql
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi
       BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
       AUTH_SECRET: ci-auth-secret-not-for-production
       RESEND_API_KEY: ci-resend-api-key-not-for-production
@@ -41,8 +58,6 @@ jobs:
       - name: Checkout repository
         # pinned from v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         # pinned from v6
@@ -60,10 +75,64 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run database migrations
-        run: pnpm db:migrate
+      - name: Run lint
+        run: pnpm lint
 
-      - name: Run release input guard
+      - name: Run architecture gate
+        run: pnpm arch:check
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SITE: mamamiya
+      DEPLOY_TARGET: cloudflare
+      DATABASE_PROVIDER: postgresql
+      BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
+      AUTH_SECRET: ci-auth-secret-not-for-production
+      RESEND_API_KEY: ci-resend-api-key-not-for-production
+      STORAGE_PUBLIC_BASE_URL: http://127.0.0.1:8787/assets/
+
+    steps:
+      - name: Checkout repository
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup pnpm
+        # pinned from v6
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        # pinned from v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test
+
+  schema-migration-guard:
+    name: schema migration guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Run schema migration guard
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
@@ -75,17 +144,154 @@ jobs:
             --base-sha="$base_sha" \
             --head-sha="${{ github.sha }}"
 
-      - name: Run lint
-        run: pnpm lint
+  cloudflare-acceptance:
+    name: cloudflare acceptance (${{ matrix.site }})
+    runs-on: ubuntu-latest
+    needs: detect-cloudflare-changes
+    if: ${{ needs.detect-cloudflare-changes.outputs.cloudflare_changed == 'true' }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [mamamiya, ai-remover]
+    env:
+      SITE: ${{ matrix.site }}
+      DEPLOY_TARGET: cloudflare
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/aooi_ci_placeholder
+      BETTER_AUTH_SECRET: ci-auth-secret-not-for-production
+      AUTH_SECRET: ci-auth-secret-not-for-production
+      RESEND_API_KEY: ci-resend-api-key-not-for-production
+      STORAGE_PUBLIC_BASE_URL: http://127.0.0.1:8787/assets/
+      CREEM_API_KEY: ci-creem-api-key-not-for-production
+      CREEM_SIGNING_SECRET: ci-creem-signing-secret-not-for-production
+      GOOGLE_CLIENT_ID: ci-google-client-id-not-for-production
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret-not-for-production
+      OPENROUTER_API_KEY: ci-openrouter-api-key-not-for-production
+      REMOVER_CLEANUP_SECRET: ci-remover-cleanup-secret-not-for-production
 
-      - name: Run architecture gate
-        run: pnpm arch:check
+    steps:
+      - name: Checkout repository
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Run unit and contract tests
-        run: pnpm test
+      - name: Setup pnpm
+        # pinned from v6
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        # pinned from v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Run Cloudflare config gate
         run: pnpm cf:check
 
       - name: Run Cloudflare build gate
         run: pnpm cf:build
+
+  contract-ai-remover:
+    name: contract ai-remover
+    runs-on: ubuntu-latest
+    needs: detect-cloudflare-changes
+    if: ${{ needs.detect-cloudflare-changes.outputs.contract_ai_remover_changed == 'true' }}
+    permissions:
+      contents: read
+    env:
+      SITE: ai-remover
+
+    steps:
+      - name: Checkout repository
+        # pinned from v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup pnpm
+        # pinned from v6
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        # pinned from v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run AI Remover contract check
+        run: SITE=ai-remover pnpm contract:check
+
+  cloudflare-acceptance-required:
+    name: cloudflare acceptance
+    runs-on: ubuntu-latest
+    needs:
+      - detect-cloudflare-changes
+      - ci-static
+      - test
+      - schema-migration-guard
+      - cloudflare-acceptance
+      - contract-ai-remover
+    if: ${{ always() }}
+
+    steps:
+      - name: Summarize acceptance results
+        run: |
+          node <<'NODE'
+          const results = {
+            detect: '${{ needs.detect-cloudflare-changes.result }}',
+            ciStatic: '${{ needs.ci-static.result }}',
+            test: '${{ needs.test.result }}',
+            schemaMigrationGuard: '${{ needs.schema-migration-guard.result }}',
+            cloudflareAcceptance: '${{ needs.cloudflare-acceptance.result }}',
+            contractAiRemover: '${{ needs.contract-ai-remover.result }}',
+          };
+          const expected = {
+            cloudflareAcceptance:
+              '${{ needs.detect-cloudflare-changes.outputs.cloudflare_changed }}' === 'true',
+            contractAiRemover:
+              '${{ needs.detect-cloudflare-changes.outputs.contract_ai_remover_changed }}' === 'true',
+          };
+          const required = [
+            'detect',
+            'ciStatic',
+            'test',
+            'schemaMigrationGuard',
+          ];
+          const optional = ['cloudflareAcceptance', 'contractAiRemover'];
+          const failedRequired = required.filter(
+            (key) => results[key] !== 'success'
+          );
+          const failedOptional = optional.filter((key) => {
+            if (expected[key]) {
+              return results[key] !== 'success';
+            }
+
+            return ['failure', 'cancelled'].includes(results[key]);
+          });
+
+          for (const [key, result] of Object.entries(results)) {
+            const suffix =
+              key in expected ? ` expected=${expected[key]}` : '';
+            console.log(`${key}: ${result}${suffix}`);
+          }
+
+          if (failedRequired.length > 0 || failedOptional.length > 0) {
+            console.error(
+              `Acceptance failed: required=${failedRequired.join(',') || 'none'} optional=${failedOptional.join(',') || 'none'}`
+            );
+            process.exit(1);
+          }
+
+          console.log('Acceptance passed');
+          NODE

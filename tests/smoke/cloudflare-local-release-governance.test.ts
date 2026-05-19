@@ -46,7 +46,14 @@ test('GitHub Actions 不再拥有生产发布 workflow', () => {
   assert.equal(fs.existsSync(productionMigrateWorkflowPath), false);
 });
 
-test('Cloudflare acceptance 只做验收且不上传 release metadata', () => {
+test('Cloudflare acceptance 拆分职责并保留稳定 required check', () => {
+  assert.match(
+    acceptanceWorkflowContent,
+    /^name:\s*Cloudflare Deploy Acceptance/m
+  );
+  assert.match(acceptanceWorkflowContent, /name:\s*cloudflare acceptance/);
+  assert.match(acceptanceWorkflowContent, /ci-static:/);
+  assert.match(acceptanceWorkflowContent, /name:\s*ci static/);
   assert.match(acceptanceWorkflowContent, /Run lint[\s\S]*?run:\s*pnpm lint/);
   assert.match(
     acceptanceWorkflowContent,
@@ -54,7 +61,15 @@ test('Cloudflare acceptance 只做验收且不上传 release metadata', () => {
   );
   assert.match(
     acceptanceWorkflowContent,
-    /Run unit and contract tests[\s\S]*?run:\s*pnpm test/
+    /Run unit tests[\s\S]*?run:\s*pnpm test/
+  );
+  assert.match(
+    acceptanceWorkflowContent,
+    /Run schema migration guard[\s\S]*?check-release-inputs\.mjs/
+  );
+  assert.match(
+    acceptanceWorkflowContent,
+    /Detect Cloudflare acceptance changes[\s\S]*?detect-cloudflare-acceptance-changes\.mjs/
   );
   assert.match(
     acceptanceWorkflowContent,
@@ -70,7 +85,34 @@ test('Cloudflare acceptance 只做验收且不上传 release metadata', () => {
   );
   assert.match(
     acceptanceWorkflowContent,
-    /Run release input guard[\s\S]*?check-release-inputs\.mjs/
+    /strategy:[\s\S]*?matrix:[\s\S]*?site:\s*\[mamamiya, ai-remover\]/
+  );
+  assert.match(
+    acceptanceWorkflowContent,
+    /SITE=ai-remover pnpm contract:check/
+  );
+  assert.match(acceptanceWorkflowContent, /const expected = \{/);
+  assert.match(
+    acceptanceWorkflowContent,
+    /cloudflare_changed[\s\S]*?results\[key\] !== 'success'/
+  );
+  assert.match(
+    acceptanceWorkflowContent,
+    /contract_ai_remover_changed[\s\S]*?results\[key\] !== 'success'/
+  );
+  assert.match(acceptanceWorkflowContent, /CREEM_API_KEY:/);
+  assert.match(acceptanceWorkflowContent, /CREEM_SIGNING_SECRET:/);
+  assert.match(acceptanceWorkflowContent, /GOOGLE_CLIENT_ID:/);
+  assert.match(acceptanceWorkflowContent, /GOOGLE_CLIENT_SECRET:/);
+  assert.match(acceptanceWorkflowContent, /OPENROUTER_API_KEY:/);
+  assert.match(acceptanceWorkflowContent, /REMOVER_CLEANUP_SECRET:/);
+  assert.doesNotMatch(
+    acceptanceWorkflowContent,
+    /services:\s*[\s\S]*postgres:/
+  );
+  assert.doesNotMatch(
+    acceptanceWorkflowContent,
+    /Run database migrations[\s\S]*?pnpm db:migrate/
   );
   assert.doesNotMatch(acceptanceWorkflowContent, /release-metadata/);
   assert.doesNotMatch(acceptanceWorkflowContent, /actions\/upload-artifact/);
