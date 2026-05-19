@@ -54,6 +54,7 @@
     "postinstall": "node scripts/postinstall.mjs",
     "cf:check": "node scripts/run-with-site.mjs node --import tsx scripts/check-cloudflare-config.mjs",
     "cf:build": "node scripts/run-with-site.mjs node --import tsx scripts/run-cf-build.mjs",
+    "cf:build:no-db": "node scripts/run-cf-build-no-db.mjs",
     "cf:deploy": "pnpm cf:deploy:app",
     "cf:deploy:state": "node scripts/run-with-site.mjs node --import tsx scripts/check-cloudflare-config.mjs --workers=state && node scripts/run-with-site.mjs node --import tsx scripts/run-cf-state-deploy.mjs",
     "cf:deploy:app": "pnpm cf:check -- --workers=app && pnpm cf:build && node scripts/run-with-site.mjs node --import tsx scripts/run-cf-app-deploy.mjs",

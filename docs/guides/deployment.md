@@ -91,6 +91,7 @@ Run cheap checks first:
 ```bash
 SITE=<site-key> pnpm cf:check
 SITE=<site-key> pnpm cf:build
+pnpm cf:build:no-db
 SITE=<site-key> pnpm cf:typegen
 SITE=<site-key> pnpm cf:typegen:check
 ```
@@ -106,6 +107,14 @@ required summary check always reports pass, skip, or failure. The Cloudflare
 matrix job owns a migrated CI Postgres service before `pnpm cf:build` because
 the current OpenNext build still prerenders pages that read runtime settings
 from the `config` table.
+
+`pnpm cf:build:no-db` is a local probe for removing that accidental build-time
+database dependency. It runs `mamamiya` and `ai-remover` sequentially, clears
+`DATABASE_URL` and `AUTH_SPIKE_DATABASE_URL`, keeps
+`DATABASE_PROVIDER=postgresql`, and supplies CI-only placeholder runtime
+bindings for auth, storage, Creem, Google, OpenRouter, and AI Remover cleanup.
+It is not a production release command and it does not replace the current
+Cloudflare acceptance matrix yet.
 
 Create a local `.env.production` file for production-only release inputs:
 
