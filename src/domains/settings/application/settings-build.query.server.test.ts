@@ -96,7 +96,6 @@ test('public prerender landing shells no longer import runtime settings readers'
   const files = [
     'src/app/[locale]/(landing)/page.tsx',
     'src/app/[locale]/(landing)/blog/layout.tsx',
-    'src/app/[locale]/(landing)/(ai)/layout.tsx',
     'src/app/[locale]/(landing)/[slug]/layout.tsx',
   ];
 
@@ -117,6 +116,22 @@ test('public prerender landing shells no longer import runtime settings readers'
     );
     assert.equal(content.includes('readSettingsCached'), false, file);
   }
+});
+
+test('AI landing shell keeps runtime AI availability gate', () => {
+  const content = readRepoFile(
+    ...'src/app/[locale]/(landing)/(ai)/layout.tsx'.split('/')
+  );
+
+  assert.equal(content.includes('settings-runtime.query'), true);
+  assert.equal(content.includes('readPublicUiConfigCached'), true);
+  assert.equal(content.includes('isAiEnabled(publicUiConfig)'), true);
+  assert.equal(content.includes('readBuildAuthUiSettings'), true);
+  assert.equal(content.includes('readBuildBillingUiSettings'), true);
+  assert.equal(content.includes('readBuildPublicUiConfig'), false);
+  assert.equal(content.includes('readAuthUiRuntimeSettingsCached'), false);
+  assert.equal(content.includes('readBillingRuntimeSettingsCached'), false);
+  assert.equal(content.includes('readSettingsCached'), false);
 });
 
 test('build auth settings are conservative and do not synthesize Google client ids', () => {
