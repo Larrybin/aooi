@@ -22,6 +22,53 @@ const dbFreeForbiddenImportFragments = [
   'infra/runtime/env.server',
   'config/env-contract',
 ];
+const publicStaticRuntimeReaderAllowlist = [
+  {
+    file: 'src/app/[locale]/(landing)/pricing/layout.tsx',
+    allowedRuntimeReaders: {},
+  },
+  {
+    file: 'src/app/[locale]/(landing)/page.tsx',
+    allowedRuntimeReaders: {
+      readPublicUiConfigCached:
+        'AI navigation visibility remains runtime-owned until static and runtime capability semantics are split.',
+    },
+  },
+  {
+    file: 'src/app/[locale]/(landing)/blog/layout.tsx',
+    allowedRuntimeReaders: {
+      readPublicUiConfigCached:
+        'AI navigation visibility remains runtime-owned until static and runtime capability semantics are split.',
+    },
+  },
+  {
+    file: 'src/app/[locale]/(landing)/(ai)/layout.tsx',
+    allowedRuntimeReaders: {
+      readPublicUiConfigCached:
+        'AI page availability remains runtime-owned for the public AI shell.',
+    },
+  },
+  {
+    file: 'src/app/[locale]/(landing)/[slug]/layout.tsx',
+    allowedRuntimeReaders: {
+      readPublicUiConfigCached:
+        'AI navigation visibility remains runtime-owned until static and runtime capability semantics are split.',
+    },
+  },
+] as const;
+const publicStaticRuntimeReaderNames = [
+  'readPublicUiConfigCached',
+  'readAuthUiRuntimeSettingsCached',
+  'readBillingRuntimeSettingsCached',
+  'readSettingsCached',
+  'readSettingsFresh',
+] as const;
+const publicStaticBannedRuntimeReaders = [
+  'readAuthUiRuntimeSettingsCached',
+  'readBillingRuntimeSettingsCached',
+  'readSettingsCached',
+  'readSettingsFresh',
+] as const;
 
 function readRepoFile(...segments: string[]): string {
   return fs.readFileSync(path.resolve(rootDir, ...segments), 'utf8');
@@ -135,6 +182,42 @@ test('AI landing shell keeps runtime AI availability gate', () => {
   assert.equal(content.includes('readAuthUiRuntimeSettingsCached'), false);
   assert.equal(content.includes('readBillingRuntimeSettingsCached'), false);
   assert.equal(content.includes('readSettingsCached'), false);
+});
+
+test('public static build surfaces keep runtime reader imports explicitly allowlisted', () => {
+  for (const surface of publicStaticRuntimeReaderAllowlist) {
+    const content = readRepoFile(...surface.file.split('/'));
+    const allowedRuntimeReaders = surface.allowedRuntimeReaders as Record<
+      string,
+      string
+    >;
+
+    for (const reason of Object.values(allowedRuntimeReaders)) {
+      assert.notEqual(reason.trim(), '', surface.file);
+    }
+
+    for (const reader of publicStaticRuntimeReaderNames) {
+      assert.equal(
+        content.includes(reader),
+        Object.hasOwn(allowedRuntimeReaders, reader),
+        `${surface.file} must update the explicit public/static runtime-reader allowlist for ${reader}`
+      );
+    }
+
+    assert.equal(
+      content.includes('settings-runtime.query'),
+      Object.keys(allowedRuntimeReaders).length > 0,
+      `${surface.file} must not import settings-runtime.query without an explicit runtime-reader exception`
+    );
+
+    for (const reader of publicStaticBannedRuntimeReaders) {
+      assert.equal(
+        content.includes(reader),
+        false,
+        `${surface.file} must not import ${reader}`
+      );
+    }
+  }
 });
 
 test('build auth settings are conservative and do not synthesize Google client ids', () => {

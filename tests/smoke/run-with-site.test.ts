@@ -134,6 +134,36 @@ REMOVER_AI_PROVIDER=cloudflare-workers-ai
   assert.equal(result.REMOVER_AI_PROVIDER, 'cloudflare-workers-ai');
 });
 
+test('run-with-site keeps explicit empty database URLs across site env overlay', () => {
+  const env = {
+    SITE: 'ai-remover',
+    DATABASE_URL: '',
+    AUTH_SPIKE_DATABASE_URL: '',
+  };
+  const originalEnv = {
+    SITE: 'ai-remover',
+    DATABASE_URL: '',
+    AUTH_SPIKE_DATABASE_URL: '',
+  };
+
+  const result = buildSiteEnv(['pnpm', 'cf:build'], env, {
+    originalEnv,
+    rootDir: '/repo',
+    readFileSyncImpl() {
+      return `
+DATABASE_URL=postgresql://site-db
+AUTH_SPIKE_DATABASE_URL=postgresql://site-auth-db
+REMOVER_AI_PROVIDER=cloudflare-workers-ai
+`;
+    },
+  });
+
+  assert.equal(result.SITE, 'ai-remover');
+  assert.equal(result.DATABASE_URL, '');
+  assert.equal(result.AUTH_SPIKE_DATABASE_URL, '');
+  assert.equal(result.REMOVER_AI_PROVIDER, 'cloudflare-workers-ai');
+});
+
 test('run-with-site 对未知 SITE 输出可修复的配置错误', async () => {
   const result = await runWithSite(['node', '-p', 'process.env.SITE || ""'], {
     SITE: '__missing_site__',
