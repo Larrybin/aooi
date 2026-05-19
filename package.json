@@ -159,7 +159,7 @@
     "@types/react-dom": "19.2.3",
     "autoprefixer": "^10.5.0",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.10.29",
+    "baseline-browser-mapping": "^2.10.30",
     "dependency-cruiser": "^17.4.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.37.0",
@@ -172,7 +172,7 @@
     "tsx": "^4.22.0",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5",
-    "wrangler": "4.91.0"
+    "wrangler": "4.92.0"
   },
   "pnpm": {
     "overrides": {
