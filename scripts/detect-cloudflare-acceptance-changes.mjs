@@ -31,7 +31,6 @@ const CLOUDFLARE_PREFIXES = [
 ];
 
 const AI_REMOVER_CONTRACT_EXACT_PATHS = new Set([
-  'docs/architecture/saas-platform-core-contract-implementation-plan.md',
   'scripts/check-saas-product-contract.mjs',
   'scripts/check-saas-product-contract.test.ts',
   'src/app/[locale]/(admin)/admin/credits/page.tsx',

@@ -96,14 +96,14 @@ function discover(rootDir) {
 
   const paymentProviders = walkFiles(
     rootDir,
-    'src/core/payment/providers'
+    'src/infra/adapters/payment'
   ).filter((p) => p.endsWith('.ts'));
 
   const singleSources = [
     'docs/CONVENTIONS.md',
     'docs/architecture/shared-layering.md',
     'docs/CODE_REVIEW.md',
-    'docs/ARCHITECTURE_REVIEW.md',
+    'docs/archive/architecture/ARCHITECTURE_REVIEW.md',
     'sites/<site-key>/content/docs/logging-conventions.zh.mdx',
     'sites/<site-key>/content/docs/code-review-checklist.zh.mdx',
     'eslint.config.mjs',
@@ -173,7 +173,7 @@ function renderDraft(discovery) {
   }
 
   lines.push('');
-  lines.push('### 支付集成（core/payment/providers）');
+  lines.push('### 支付集成（infra/adapters/payment）');
   const paymentSamples = discovery.paymentProviders.slice(0, 10);
   if (paymentSamples.length) {
     for (const p of paymentSamples) lines.push(`- \`${p}\``);

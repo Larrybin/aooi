@@ -25,7 +25,7 @@ export async function acquireCfOAuthSpikeLock(options?: {
     const staleLockRecovered = await recoverStaleLock(lockFilePath);
     if (!staleLockRecovered) {
       throw new Error(
-        `pnpm test:cf-oauth-spike 已在运行，请等待当前进程结束后重试（lock: ${lockFilePath}）`
+        `Cloudflare OAuth spike runner 已在运行，请等待当前进程结束后重试（lock: ${lockFilePath}）`
       );
     }
 
