@@ -10,7 +10,6 @@ import {
   renderCloudflareLocalTopologyLogs,
   startCloudflareLocalDevTopology,
 } from './lib/cloudflare-local-topology.mjs';
-import { getCurrentSiteAppUrl } from './lib/current-site.mjs';
 import { runPhaseSequence } from './lib/harness/scenario.mjs';
 import {
   injectCloudflareLocalSmokeDevVars,
@@ -574,11 +573,8 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
 
 export function buildRemoverWorkersAILocalTopologyExtraVars({
   model = defaultModel,
-  authBaseUrl = getCurrentSiteAppUrl(),
 } = {}) {
   return {
-    AUTH_URL: authBaseUrl,
-    BETTER_AUTH_URL: authBaseUrl,
     REMOVER_AI_PROVIDER: 'cloudflare-workers-ai',
     REMOVER_AI_MODEL: model,
   };

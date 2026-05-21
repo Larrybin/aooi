@@ -35,15 +35,12 @@ test('createRemoverWorkersAISpikeImages returns PNG original and mask fixtures',
   assert.ok(images.mask.length > 1000);
 });
 
-test('buildRemoverWorkersAILocalTopologyExtraVars keeps auth origin site-scoped for local topology', () => {
+test('buildRemoverWorkersAILocalTopologyExtraVars leaves auth origin to local topology', () => {
   assert.deepEqual(
     buildRemoverWorkersAILocalTopologyExtraVars({
       model,
-      authBaseUrl: 'https://airemover.example.com',
     }),
     {
-      AUTH_URL: 'https://airemover.example.com',
-      BETTER_AUTH_URL: 'https://airemover.example.com',
       REMOVER_AI_PROVIDER: 'cloudflare-workers-ai',
       REMOVER_AI_MODEL: model,
     }
