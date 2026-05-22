@@ -12,7 +12,7 @@
   "capabilities": {
     "auth": true,
     "payment": "creem",
-    "ai": true,
+    "ai": false,
     "docs": false,
     "blog": false
   },
