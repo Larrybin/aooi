@@ -36,6 +36,8 @@ test('createCloudflareWorkersAIRemoverAdapter calls Workers AI with image and ma
   );
   assert.deepEqual(calls[0]?.inputs.image, [1, 2, 3]);
   assert.deepEqual(calls[0]?.inputs.mask, [9, 8, 7]);
+  assert.equal(calls[0]?.inputs.strength, 0.72);
+  assert.match(String(calls[0]?.inputs.negative_prompt), /black image/);
   assert.equal(result.providerTaskId, 'cloudflare-workers-ai:test-task');
   assert.equal(result.status, 'succeeded');
   assert.equal(

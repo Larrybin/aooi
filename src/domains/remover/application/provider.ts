@@ -17,7 +17,9 @@ export const DEFAULT_CLOUDFLARE_INPAINTING_MODEL =
 const MAX_PROVIDER_INPUT_BYTES = 25 * 1024 * 1024;
 const MAX_WORKERS_AI_OUTPUT_BYTES = 25 * 1024 * 1024;
 const REMOVER_PROMPT =
-  'Remove the masked unwanted object and naturally reconstruct the background.';
+  'Remove the masked unwanted object. Fill only the masked area with matching background texture and preserve the rest of the photo.';
+const REMOVER_NEGATIVE_PROMPT =
+  'black image, blank image, empty image, duplicate object, new object, text, watermark, distorted photo';
 
 export type RemoverProviderConfig = {
   provider: string;
@@ -307,10 +309,11 @@ export function createCloudflareWorkersAIRemoverAdapter({
       ]);
       const output = await ai.run(model, {
         prompt: REMOVER_PROMPT,
+        negative_prompt: REMOVER_NEGATIVE_PROMPT,
         image,
         mask,
         num_steps: 20,
-        strength: 1,
+        strength: 0.72,
         guidance: 7.5,
       });
 
