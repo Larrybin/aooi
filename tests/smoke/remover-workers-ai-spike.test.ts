@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import test from 'node:test';
 
 import {
+  authenticateSmokeUser,
   buildRemoverWorkersAILocalTopologyExtraVars,
   createRemoverUploadMultipartBody,
   createRemoverWorkersAISpikeImages,
@@ -249,7 +250,201 @@ test('runRemoverWorkersAISpikeAgainstBaseUrl uploads assets and creates a Worker
     lowResBytes: 4,
     highResDownloadRequiresSignIn: true,
     anonymousSessionId: 'anon_test',
+    authenticated: false,
   });
+});
+
+test('runRemoverWorkersAISpikeAgainstBaseUrl sends auth cookie and downloads high-res in authenticated mode', async () => {
+  const calls: Array<[string, string]> = [];
+  let uploadCount = 0;
+
+  async function fetchImpl(input: string | URL | Request, init?: RequestInit) {
+    const url = String(input);
+    calls.push([init?.method || 'GET', url]);
+
+    if (url.endsWith('/api/remover/upload')) {
+      uploadCount += 1;
+      assert.equal(
+        (init?.headers as Record<string, string>).Cookie,
+        'better-auth.session_token=session_1'
+      );
+      const bodyText = Buffer.from(
+        await (init?.body as Blob).arrayBuffer()
+      ).toString('latin1');
+      const kind = bodyText.includes('\r\n\r\nmask\r\n') ? 'mask' : 'original';
+      return ok({
+        asset: {
+          id: `${kind}-asset`,
+          kind,
+        },
+      });
+    }
+
+    if (url.endsWith('/api/remover/jobs')) {
+      assert.equal(
+        (init?.headers as Record<string, string>).Cookie,
+        'better-auth.session_token=session_1'
+      );
+      return ok(
+        {
+          reused: false,
+          job: {
+            id: 'job_user_test',
+            status: 'succeeded',
+            lowResDownloadAvailable: true,
+            highResDownloadRequiresSignIn: false,
+          },
+        },
+        201
+      );
+    }
+
+    if (url.endsWith('/api/remover/download/low-res')) {
+      assert.equal(
+        (init?.headers as Record<string, string>).Cookie,
+        'better-auth.session_token=session_1'
+      );
+      return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+        },
+      });
+    }
+
+    if (url.endsWith('/api/remover/download/high-res')) {
+      assert.equal(
+        (init?.headers as Record<string, string>).Cookie,
+        'better-auth.session_token=session_1'
+      );
+      return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x01]), {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+        },
+      });
+    }
+
+    throw new Error(`unexpected request ${url}`);
+  }
+
+  const result = await runRemoverWorkersAISpikeAgainstBaseUrl({
+    baseUrl: 'http://127.0.0.1:8787/',
+    fetchImpl,
+    initialCookieHeader: 'better-auth.session_token=session_1',
+    authenticated: true,
+  });
+
+  assert.equal(uploadCount, 2);
+  assert.deepEqual(calls, [
+    ['POST', 'http://127.0.0.1:8787/api/remover/upload'],
+    ['POST', 'http://127.0.0.1:8787/api/remover/upload'],
+    ['POST', 'http://127.0.0.1:8787/api/remover/jobs'],
+    ['POST', 'http://127.0.0.1:8787/api/remover/download/low-res'],
+    ['POST', 'http://127.0.0.1:8787/api/remover/download/high-res'],
+  ]);
+  assert.deepEqual(result, {
+    jobId: 'job_user_test',
+    status: 'succeeded',
+    lowResContentType: 'image/png',
+    lowResBytes: 4,
+    highResContentType: 'image/png',
+    highResBytes: 5,
+    highResDownloadRequiresSignIn: false,
+    anonymousSessionId: '',
+    authenticated: true,
+  });
+});
+
+test('authenticateSmokeUser signs in without creating users by default', async () => {
+  const calls: string[] = [];
+
+  const cookie = await authenticateSmokeUser({
+    baseUrl: 'http://127.0.0.1:8787/',
+    email: 'smoke@example.com',
+    password: 'password',
+    fetchImpl: async (input: string | URL | Request) => {
+      const url = String(input);
+      calls.push(url);
+
+      if (url.endsWith('/api/auth/sign-in/email')) {
+        return Response.json(
+          { user: { id: 'user_1' } },
+          {
+            status: 200,
+            headers: {
+              'Set-Cookie':
+                'better-auth.session_token=session_1; Path=/; HttpOnly',
+            },
+          }
+        );
+      }
+
+      throw new Error(`unexpected request ${url}`);
+    },
+  });
+
+  assert.deepEqual(calls, ['http://127.0.0.1:8787/api/auth/sign-in/email']);
+  assert.equal(cookie, 'better-auth.session_token=session_1');
+});
+
+test('authenticateSmokeUser only signs up when explicitly allowed', async () => {
+  const calls: string[] = [];
+
+  const cookie = await authenticateSmokeUser({
+    baseUrl: 'http://127.0.0.1:8787/',
+    email: 'smoke@example.com',
+    password: 'password',
+    allowSignup: true,
+    fetchImpl: async (input: string | URL | Request) => {
+      const url = String(input);
+      calls.push(url);
+
+      if (url.endsWith('/api/auth/sign-in/email')) {
+        return Response.json(
+          { message: 'invalid credentials' },
+          { status: 401 }
+        );
+      }
+
+      if (url.endsWith('/api/auth/sign-up/email')) {
+        return Response.json(
+          { user: { id: 'user_1' } },
+          {
+            status: 200,
+            headers: {
+              'Set-Cookie':
+                'better-auth.session_token=session_1; Path=/; HttpOnly',
+            },
+          }
+        );
+      }
+
+      throw new Error(`unexpected request ${url}`);
+    },
+  });
+
+  assert.deepEqual(calls, [
+    'http://127.0.0.1:8787/api/auth/sign-in/email',
+    'http://127.0.0.1:8787/api/auth/sign-up/email',
+  ]);
+  assert.equal(cookie, 'better-auth.session_token=session_1');
+});
+
+test('authenticateSmokeUser rejects automatic sign-up in production', async () => {
+  await assert.rejects(
+    authenticateSmokeUser({
+      baseUrl: 'http://127.0.0.1:8787/',
+      email: 'smoke@example.com',
+      password: 'password',
+      allowSignup: true,
+      appEnvironment: 'production',
+      fetchImpl: async () => {
+        throw new Error('should not call auth');
+      },
+    }),
+    /not allowed in production/u
+  );
 });
 
 test('runRemoverWorkersAISpikeAgainstBaseUrl rejects leaked internal job fields', async () => {

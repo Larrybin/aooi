@@ -221,6 +221,97 @@ function assertNoInternalJobFields(job, label) {
   }
 }
 
+async function requestBetterAuthSession({
+  baseUrl,
+  fetchImpl,
+  headers,
+  endpoint,
+  body,
+  label,
+}) {
+  const response = await fetchImpl(`${baseUrl}/api/auth/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`${label} failed ${response.status}: ${text}`);
+  }
+
+  const cookieHeader = mergeCookieHeader(
+    '',
+    readSetCookieHeaders(response.headers)
+  );
+  if (!cookieHeader) {
+    throw new Error(`${label} did not return a session cookie`);
+  }
+
+  return cookieHeader;
+}
+
+export async function authenticateSmokeUser({
+  baseUrl,
+  fetchImpl = fetch,
+  email,
+  password,
+  name = 'AI Remover Smoke',
+  allowSignup = false,
+  appEnvironment = process.env.APP_ENVIRONMENT?.trim() ||
+    (process.env.NODE_ENV === 'production' ? 'production' : 'local'),
+  userAgent = 'aooi-remover-workers-ai-spike/1.0',
+  clientIp = '127.0.0.1',
+} = {}) {
+  if (!baseUrl) {
+    throw new Error('baseUrl is required');
+  }
+  if (!email || !password) {
+    throw new Error('email and password are required for authenticated smoke');
+  }
+  if (allowSignup && appEnvironment === 'production') {
+    throw new Error('SMOKE_AUTH_ALLOW_SIGNUP is not allowed in production');
+  }
+
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '');
+  const headers = createHeaders({
+    baseUrl: normalizedBaseUrl,
+    userAgent,
+    clientIp,
+  });
+
+  try {
+    return await requestBetterAuthSession({
+      baseUrl: normalizedBaseUrl,
+      fetchImpl,
+      headers,
+      endpoint: 'sign-in/email',
+      body: { email, password },
+      label: 'smoke sign-in',
+    });
+  } catch (signInError) {
+    if (!allowSignup) {
+      const signInMessage =
+        signInError instanceof Error
+          ? signInError.message
+          : String(signInError);
+      throw new Error(`authenticated smoke sign-in failed: ${signInMessage}`);
+    }
+
+    return await requestBetterAuthSession({
+      baseUrl: normalizedBaseUrl,
+      fetchImpl,
+      headers,
+      endpoint: 'sign-up/email',
+      body: { email, password, name },
+      label: 'smoke sign-up',
+    });
+  }
+}
+
 export function createRemoverUploadMultipartBody({
   kind,
   fileName,
@@ -385,6 +476,44 @@ async function downloadLowResRemoverResult({
   };
 }
 
+async function downloadHighResRemoverResult({
+  baseUrl,
+  fetchImpl,
+  jobId,
+  headers,
+}) {
+  const response = await fetchImpl(`${baseUrl}/api/remover/download/high-res`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ jobId }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`download high-res failed ${response.status}: ${text}`);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.startsWith('image/')) {
+    throw new Error(
+      `download high-res returned ${contentType || 'no content-type'}`
+    );
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length === 0) {
+    throw new Error('download high-res returned an empty image');
+  }
+
+  return {
+    contentType,
+    bytes,
+  };
+}
+
 async function sleep(ms) {
   await new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -477,12 +606,49 @@ async function waitForRemoverJob({
   return job;
 }
 
+async function resolveSmokeAuthSession({ baseUrl }) {
+  const email = process.env.SMOKE_AUTH_EMAIL?.trim() || '';
+  const password = process.env.SMOKE_AUTH_PASSWORD?.trim() || '';
+  if (!email && !password) {
+    return {
+      initialCookieHeader: '',
+      authenticated: false,
+    };
+  }
+  if (!email || !password) {
+    throw new Error(
+      'SMOKE_AUTH_EMAIL and SMOKE_AUTH_PASSWORD must be provided together'
+    );
+  }
+
+  const appEnvironment =
+    process.env.APP_ENVIRONMENT?.trim() ||
+    (process.env.NODE_ENV === 'production' ? 'production' : 'local');
+  const allowSignup =
+    process.env.SMOKE_AUTH_ALLOW_SIGNUP === 'true' &&
+    appEnvironment !== 'production';
+
+  return {
+    initialCookieHeader: await authenticateSmokeUser({
+      baseUrl,
+      email,
+      password,
+      name: process.env.SMOKE_AUTH_NAME?.trim() || 'AI Remover Smoke',
+      allowSignup,
+      appEnvironment,
+    }),
+    authenticated: true,
+  };
+}
+
 export async function runRemoverWorkersAISpikeAgainstBaseUrl({
   baseUrl,
   fetchImpl = fetch,
   timeoutMs = 90000,
   userAgent = 'aooi-remover-workers-ai-spike/1.0',
   clientIp = '127.0.0.1',
+  initialCookieHeader = '',
+  authenticated = false,
 } = {}) {
   if (!baseUrl) {
     throw new Error('baseUrl is required');
@@ -490,7 +656,7 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
 
   const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '');
   const images = createRemoverWorkersAISpikeImages();
-  let cookieHeader = '';
+  let cookieHeader = initialCookieHeader;
   const buildHeaders = () =>
     createHeaders({
       baseUrl: normalizedBaseUrl,
@@ -547,7 +713,13 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
     throw new Error('succeeded remover job did not advertise low-res download');
   }
 
-  if (!job.highResDownloadRequiresSignIn) {
+  if (authenticated && job.highResDownloadRequiresSignIn) {
+    throw new Error(
+      'authenticated remover job still required sign-in for high-res download'
+    );
+  }
+
+  if (!authenticated && !job.highResDownloadRequiresSignIn) {
     throw new Error(
       'anonymous remover job did not require sign-in for high-res download'
     );
@@ -559,15 +731,30 @@ export async function runRemoverWorkersAISpikeAgainstBaseUrl({
     jobId: job.id,
     headers,
   });
+  const highResDownload = authenticated
+    ? await downloadHighResRemoverResult({
+        baseUrl: normalizedBaseUrl,
+        fetchImpl,
+        jobId: job.id,
+        headers,
+      })
+    : null;
 
   return {
     jobId: job.id,
     status: job.status,
     lowResContentType: lowResDownload.contentType,
     lowResBytes: lowResDownload.bytes.length,
+    ...(highResDownload
+      ? {
+          highResContentType: highResDownload.contentType,
+          highResBytes: highResDownload.bytes.length,
+        }
+      : {}),
     highResDownloadRequiresSignIn: Boolean(job.highResDownloadRequiresSignIn),
     anonymousSessionId:
       inputUpload.anonymousSessionId || maskUpload.anonymousSessionId || '',
+    authenticated,
   };
 }
 
@@ -678,8 +865,12 @@ export async function runLocalRemoverWorkersAISpike({
           {
             label: 'remover-workers-ai',
             action: async () => {
+              const authSession = await resolveSmokeAuthSession({
+                baseUrl: resolvedBaseUrl,
+              });
               result = await runRemoverWorkersAISpikeAgainstBaseUrl({
                 baseUrl: resolvedBaseUrl,
+                ...authSession,
               });
             },
           },
@@ -708,6 +899,7 @@ async function main() {
   const result = externalBaseUrl
     ? await runRemoverWorkersAISpikeAgainstBaseUrl({
         baseUrl: externalBaseUrl,
+        ...(await resolveSmokeAuthSession({ baseUrl: externalBaseUrl })),
       })
     : await runLocalRemoverWorkersAISpike({
         baseUrl: process.env.CF_LOCAL_SMOKE_URL?.trim() || defaultBaseUrl,
