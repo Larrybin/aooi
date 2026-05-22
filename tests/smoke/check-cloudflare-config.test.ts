@@ -271,6 +271,93 @@ test('cf:check preview profile 使用 workers.dev router 且允许 placeholder s
   }
 });
 
+test('cf:check preview auth worker 不要求 RESEND_API_KEY', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await copySiteFixture(fixtureDir, 'ai-remover');
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=auth'],
+      env: {
+        SITE: 'ai-remover',
+        CF_DEPLOY_PROFILE: 'preview',
+        CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        GOOGLE_CLIENT_ID: 'google-id',
+        GOOGLE_CLIENT_SECRET: 'google-secret',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+    assert.doesNotMatch(result.stderr, /RESEND_API_KEY/);
+    assert.match(result.stdout, /workers: auth/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check preview app 缺 CREEM secrets 时只警告不失败', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await copySiteFixture(fixtureDir, 'ai-remover');
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=app'],
+      env: {
+        SITE: 'ai-remover',
+        CF_DEPLOY_PROFILE: 'preview',
+        CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        GOOGLE_CLIENT_ID: 'google-id',
+        GOOGLE_CLIENT_SECRET: 'google-secret',
+        REMOVER_CLEANUP_SECRET: 'cleanup-secret',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+    assert.match(result.stderr, /warning:.*CREEM_API_KEY/);
+    assert.match(result.stderr, /warning:.*CREEM_SIGNING_SECRET/);
+    assert.match(result.stdout, /workers: router, public-web, auth/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('cf:check preview app 对 AI Remover 不要求 OPENROUTER_API_KEY', async () => {
+  const fixture = await withFixture(async (fixtureDir) => {
+    await copySiteFixture(fixtureDir, 'ai-remover');
+  });
+
+  try {
+    const result = await runCheckCloudflareConfig({
+      cwd: fixture.fixtureDir,
+      args: ['--workers=app'],
+      env: {
+        SITE: 'ai-remover',
+        CF_DEPLOY_PROFILE: 'preview',
+        CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+        [storagePublicBaseUrlName]: 'https://assets.example.com/',
+        BETTER_AUTH_SECRET: 'better-secret',
+        GOOGLE_CLIENT_ID: 'google-id',
+        GOOGLE_CLIENT_SECRET: 'google-secret',
+        REMOVER_CLEANUP_SECRET: 'cleanup-secret',
+      },
+    });
+
+    assert.equal(result.ok, true, result.stderr);
+    assert.doesNotMatch(result.stderr, /OPENROUTER_API_KEY/);
+    assert.match(result.stdout, /workers: router, public-web, auth/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
 test('cf:check 在仅设置 AUTH_SECRET 时通过 auth shared secret requirement', async () => {
   const fixture = await withFixture();
 

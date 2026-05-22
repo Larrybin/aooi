@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import * as envContractNamespace from '../src/config/env-contract.ts';
+import { shouldWarnOnlyForMissingPreviewSecret } from './lib/cloudflare-preview-optional-secrets.mjs';
 import {
   collectRequiredRuntimeBindings,
   normalizeCloudflareWorkerKeys,
@@ -82,6 +83,10 @@ function allowsPreviewPlaceholderSecrets(processEnv) {
 
 function buildPreviewPlaceholderSecret(name) {
   return `preview-placeholder-${name.toLowerCase().replaceAll('_', '-')}-not-for-production`;
+}
+
+function warn(message) {
+  console.warn(`[cf:secrets] warning: ${message}`);
 }
 
 /**
@@ -164,28 +169,36 @@ export function buildCloudflareSecretsEnv(
     options
   );
   const allowPreviewPlaceholders = allowsPreviewPlaceholderSecrets(processEnv);
-  const resolvedSecrets = Object.fromEntries(
-    requiredSecretNames.map((name) => {
-      try {
-        return [
+  const resolvedSecretEntries = requiredSecretNames.flatMap((name) => {
+    try {
+      return [
+        [
           name,
           resolveRequiredSecretValue(
             processEnv,
             name,
             secretFallbacks.get(name)
           ),
-        ];
-      } catch (error) {
-        if (allowPreviewPlaceholders) {
-          return [name, buildPreviewPlaceholderSecret(name)];
-        }
-        const context = buildCloudflareContext(processEnv, workerKeys);
-        throw new Error(
-          `[cf:secrets] missing required secret ${name} for SITE=${context.site} NODE_ENV=${context.nodeEnv} DEPLOY_TARGET=${context.deployTarget} workers=${context.workerScope}: ${error instanceof Error ? error.message : String(error)}`
-        );
+        ],
+      ];
+    } catch (error) {
+      if (allowPreviewPlaceholders) {
+        return [[name, buildPreviewPlaceholderSecret(name)]];
       }
-    })
-  );
+      if (shouldWarnOnlyForMissingPreviewSecret(name, processEnv)) {
+        const context = buildCloudflareContext(processEnv, workerKeys);
+        warn(
+          `missing optional preview secret ${name} for SITE=${context.site} workers=${context.workerScope}; existing remote secret is left unchanged if present`
+        );
+        return [];
+      }
+      const context = buildCloudflareContext(processEnv, workerKeys);
+      throw new Error(
+        `[cf:secrets] missing required secret ${name} for SITE=${context.site} NODE_ENV=${context.nodeEnv} DEPLOY_TARGET=${context.deployTarget} workers=${context.workerScope}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  });
+  const resolvedSecrets = Object.fromEntries(resolvedSecretEntries);
 
   assertAllowedEnvKeys(
     resolvedSecrets,
@@ -193,7 +206,7 @@ export function buildCloudflareSecretsEnv(
     'Cloudflare secrets env'
   );
 
-  return `${requiredSecretNames.map((name) => `${name}=${resolvedSecrets[name]}`).join('\n')}\n`;
+  return `${resolvedSecretEntries.map(([name, value]) => `${name}=${value}`).join('\n')}\n`;
 }
 
 export async function writeCloudflareSecretsFile({

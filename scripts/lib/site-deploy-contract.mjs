@@ -96,7 +96,7 @@ function buildCanonicalBindingShape(contract) {
   };
 }
 
-function buildDerivedBindingRequirements(site) {
+function buildDerivedBindingRequirements(site, { deployProfile }) {
   const paymentCapability = site.capabilities.payment;
   const paymentHealth = resolvePaymentHealth({
     capability: paymentCapability,
@@ -108,7 +108,8 @@ function buildDerivedBindingRequirements(site) {
 
   return {
     secrets: {
-      emailProvider: site.capabilities.auth,
+      emailProvider:
+        deployProfile === 'production' ? site.capabilities.auth : false,
       openrouter: site.capabilities.ai,
     },
     payment: {
@@ -268,7 +269,9 @@ export function resolveSiteDeployContractFromSources({
           previewSettings,
         })
       : deploySettings;
-  const derivedBindingRequirements = buildDerivedBindingRequirements(site);
+  const derivedBindingRequirements = buildDerivedBindingRequirements(site, {
+    deployProfile,
+  });
   const serverWorkers = buildServerWorkers(effectiveDeploySettings);
   const stateMigrationTag = `${effectiveDeploySettings.workers.state}-v${effectiveDeploySettings.state.schemaVersion}`;
   const appUrl =
