@@ -36,6 +36,8 @@ export type CloudflareBindings = {
   MEMBER_WORKER?: Fetcher;
   CHAT_WORKER?: Fetcher;
   ADMIN_WORKER?: Fetcher;
+  APP_ENVIRONMENT?: string;
+  INTERNAL_ENTITLEMENT_GRANTS_ENABLED?: string;
   BETTER_AUTH_SECRET?: string;
   AUTH_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
@@ -67,6 +69,8 @@ export type ServerRuntimeEnv = {
   databaseProvider: string;
   databaseUrl: string;
   dbSingletonEnabled: boolean;
+  appEnvironment: string;
+  internalEntitlementGrantsEnabled: boolean;
   authSecret: string;
   authBaseUrl: string;
 };
@@ -129,6 +133,7 @@ export function getServerRuntimeEnv(
   };
   const databaseProvider =
     getRuntimeEnvString('DATABASE_PROVIDER', options) ?? '';
+  const nodeEnv = getRuntimeEnvString('NODE_ENV', options);
 
   assertPostgresOnlyDatabaseProvider(databaseProvider);
 
@@ -136,6 +141,13 @@ export function getServerRuntimeEnv(
     databaseProvider,
     databaseUrl: getRuntimeEnvString('DATABASE_URL', options) ?? '',
     dbSingletonEnabled: isRuntimeEnvEnabled('DB_SINGLETON_ENABLED', options),
+    appEnvironment:
+      getRuntimeEnvString('APP_ENVIRONMENT', options)?.trim() ||
+      (nodeEnv === 'production' ? 'production' : 'local'),
+    internalEntitlementGrantsEnabled: isRuntimeEnvEnabled(
+      'INTERNAL_ENTITLEMENT_GRANTS_ENABLED',
+      options
+    ),
     authSecret:
       getRuntimeEnvString('BETTER_AUTH_SECRET', options) ??
       getRuntimeEnvString('AUTH_SECRET', options) ??

@@ -1,14 +1,22 @@
 import 'server-only';
 
+import { cookies } from 'next/headers';
+import { resolvePricingEntitlements } from '@/domains/billing/domain/pricing';
 import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
+import { resolveEffectiveEntitlements } from '@/domains/entitlements/application/resolve';
+import { resolveAppEnvironment } from '@/domains/entitlements/domain/types';
+import { listActiveEntitlementGrantsForScope } from '@/domains/entitlements/infra/grant';
 import {
   REMOVER_ANONYMOUS_SESSION_COOKIE,
   resolveAnonymousSessionForRequest,
 } from '@/domains/remover/application/actor-session';
 import type { RemoverActor } from '@/domains/remover/domain/types';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
-import { getRuntimeEnvString } from '@/infra/runtime/env.server';
-import { cookies } from 'next/headers';
+import {
+  getRuntimeEnvString,
+  isRuntimeEnvEnabled,
+} from '@/infra/runtime/env.server';
+import { site } from '@/site';
 
 import { assertCsrf } from '@/shared/lib/api/csrf.server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
@@ -28,6 +36,13 @@ function isSecureRequest(req: Request): boolean {
     new URL(req.url).protocol === 'https:' ||
     req.headers.get('x-forwarded-proto') === 'https'
   );
+}
+
+function resolveEntitlementEnvironment() {
+  return resolveAppEnvironment({
+    configured: getRuntimeEnvString('APP_ENVIRONMENT'),
+    nodeEnv: getRuntimeEnvString('NODE_ENV'),
+  });
 }
 
 export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
@@ -65,10 +80,27 @@ export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
   }
 
   const subscription = await getCurrentSubscription(user.id);
+  const productId = subscription?.productId || 'free';
+  const effectiveEntitlements = await resolveEffectiveEntitlements({
+    userId: user.id,
+    siteKey: site.key,
+    productKey: site.key,
+    baseEntitlements: resolvePricingEntitlements(productId),
+    environment: resolveEntitlementEnvironment(),
+    internalEntitlementGrantsEnabled: isRuntimeEnvEnabled(
+      'INTERNAL_ENTITLEMENT_GRANTS_ENABLED'
+    ),
+    deps: {
+      listGrants: listActiveEntitlementGrantsForScope,
+    },
+  });
+
   return {
     kind: 'user',
     userId: user.id,
     anonymousSessionId: anonymousSession.anonymousSessionId,
-    productId: subscription?.productId || 'free',
+    productId,
+    entitlements: effectiveEntitlements.entitlements,
+    entitlementGrantIds: effectiveEntitlements.grantIds,
   };
 }

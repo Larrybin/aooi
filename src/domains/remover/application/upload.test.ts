@@ -110,9 +110,13 @@ test('uploadRemoverImage rejects detected but unsupported formats without reserv
           kind: 'anonymous',
           anonymousSessionId: 'anon_1',
         },
-        file: new File([new Uint8Array([0x47, 0x49, 0x46, 0x38])], 'photo.gif', {
-          type: 'image/gif',
-        }),
+        file: new File(
+          [new Uint8Array([0x47, 0x49, 0x46, 0x38])],
+          'photo.gif',
+          {
+            type: 'image/gif',
+          }
+        ),
         kind: 'original',
         deps: {
           detectImageMime: () => 'image/gif',
@@ -180,6 +184,7 @@ test('uploadRemoverImage checks signed-in upload quota by user only', async () =
   let quotaOwner:
     | { userId: string | null; anonymousSessionId: string | null }
     | undefined;
+  let entitlementGrantIdsJson: string | null | undefined;
 
   await uploadRemoverImage({
     actor: {
@@ -187,6 +192,7 @@ test('uploadRemoverImage checks signed-in upload quota by user only', async () =
       userId: 'user_1',
       productId: 'free',
       anonymousSessionId: 'anon_2',
+      entitlementGrantIds: ['grant_1'],
     },
     file: new File([pngBytes], 'photo.png', { type: 'image/png' }),
     kind: 'original',
@@ -199,6 +205,7 @@ test('uploadRemoverImage checks signed-in upload quota by user only', async () =
           userId: quota.userId,
           anonymousSessionId: quota.anonymousSessionId,
         };
+        entitlementGrantIdsJson = reservation.entitlementGrantIdsJson;
         return {
           reservation: {
             ...reservation,
@@ -235,6 +242,7 @@ test('uploadRemoverImage checks signed-in upload quota by user only', async () =
     userId: 'user_1',
     anonymousSessionId: null,
   });
+  assert.equal(entitlementGrantIdsJson, '["grant_1"]');
 });
 
 test('uploadRemoverImage commits upload quota only after storage and asset creation', async () => {

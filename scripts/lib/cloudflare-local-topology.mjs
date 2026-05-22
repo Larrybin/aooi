@@ -31,6 +31,7 @@ function buildLocalTopologyRuntimeVars(routerBaseUrl) {
     NEXT_PUBLIC_APP_URL: routerBaseUrl,
     AUTH_URL: routerBaseUrl,
     BETTER_AUTH_URL: routerBaseUrl,
+    APP_ENVIRONMENT: 'local',
     STORAGE_PUBLIC_BASE_URL: `${routerBaseUrl}/assets/`,
     CF_LOCAL_SMOKE_WORKERS_DEV: 'true',
   };

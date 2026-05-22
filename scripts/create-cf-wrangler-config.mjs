@@ -511,6 +511,15 @@ export function buildCloudflareWranglerConfig({
 
   const effectiveVars = {
     NEXT_PUBLIC_APP_URL: appUrl ?? contract.appUrl,
+    APP_ENVIRONMENT:
+      process.env.APP_ENVIRONMENT?.trim() ||
+      (contract.deployProfile === 'preview' ? 'preview' : 'production'),
+    ...(process.env.INTERNAL_ENTITLEMENT_GRANTS_ENABLED?.trim()
+      ? {
+          INTERNAL_ENTITLEMENT_GRANTS_ENABLED:
+            process.env.INTERNAL_ENTITLEMENT_GRANTS_ENABLED.trim(),
+        }
+      : {}),
     STORAGE_PUBLIC_BASE_URL: storagePublicBaseUrl ?? '',
     DEPLOY_TARGET: deployTarget ?? 'cloudflare',
     ...(workerSlot === 'router' ? contract.router.versionVars : {}),

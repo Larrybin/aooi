@@ -7,6 +7,7 @@ import {
 import { getUuid } from '@/shared/lib/hash';
 
 import { assertActorOwnsResource, getRemoverOwner } from '../domain/actor';
+import { formatRemoverEntitlementGrantIdsJson } from '../domain/entitlement-grants';
 import { addRetentionDays, resolveRemoverPlanLimits } from '../domain/plan';
 import { getQuotaWindowStart } from '../domain/quota';
 import type {
@@ -199,6 +200,7 @@ export async function createQueuedRemoverJob({
     units: 1,
     status: 'reserved',
     idempotencyKey: scopedIdempotencyKey,
+    entitlementGrantIdsJson: formatRemoverEntitlementGrantIdsJson(actor),
     expiresAt: addRetentionDays(now, 1),
   };
 

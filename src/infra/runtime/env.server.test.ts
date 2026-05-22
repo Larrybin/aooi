@@ -111,6 +111,8 @@ test('getServerRuntimeEnv 会从 runtime env 解析数据库和 auth 配置', ()
     databaseProvider: 'postgresql',
     databaseUrl: 'postgres://binding-db',
     dbSingletonEnabled: true,
+    appEnvironment: 'local',
+    internalEntitlementGrantsEnabled: false,
     authSecret: 'binding-secret',
     authBaseUrl: site.brand.appUrl,
   });
@@ -133,6 +135,23 @@ test('getServerRuntimeEnv 使用 runtime NEXT_PUBLIC_APP_URL 作为 auth base UR
     runtimeEnv.authBaseUrl,
     'https://aooi-ai-remover-preview-router.example.workers.dev'
   );
+});
+
+test('getServerRuntimeEnv resolves entitlement grant runtime controls', () => {
+  const runtimeEnv = getServerRuntimeEnv({
+    env: createEnv({
+      DATABASE_PROVIDER: 'postgresql',
+      NODE_ENV: 'production',
+    }),
+    bindings: {
+      DATABASE_PROVIDER: 'postgresql',
+      APP_ENVIRONMENT: 'preview',
+      INTERNAL_ENTITLEMENT_GRANTS_ENABLED: 'true',
+    } as CloudflareBindings,
+  });
+
+  assert.equal(runtimeEnv.appEnvironment, 'preview');
+  assert.equal(runtimeEnv.internalEntitlementGrantsEnabled, true);
 });
 
 test('Node 运行时不会因为存在 Cloudflare bindings 误判为 Workers', () => {

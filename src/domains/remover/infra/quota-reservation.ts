@@ -5,6 +5,7 @@ import { and, eq, gt, gte, isNull, or, sql, sum } from 'drizzle-orm';
 
 import { removerQuotaReservation } from '@/config/db/schema';
 import { TooManyRequestsError } from '@/shared/lib/api/errors';
+
 import {
   commitQuotaReservation,
   isQuotaReservationReusable,
@@ -174,7 +175,9 @@ export async function createRemoverQuotaReservationWithQuotaCheck({
     const [existingReservation] = await tx
       .select()
       .from(removerQuotaReservation)
-      .where(eq(removerQuotaReservation.idempotencyKey, reservation.idempotencyKey))
+      .where(
+        eq(removerQuotaReservation.idempotencyKey, reservation.idempotencyKey)
+      )
       .limit(1);
     if (existingReservation) {
       if (
@@ -200,6 +203,7 @@ export async function createRemoverQuotaReservationWithQuotaCheck({
           status: reservation.status,
           jobId: reservation.jobId ?? null,
           reason: reservation.reason ?? null,
+          entitlementGrantIdsJson: reservation.entitlementGrantIdsJson ?? null,
           createdAt: renewedAt,
           committedAt: null,
           refundedAt: null,

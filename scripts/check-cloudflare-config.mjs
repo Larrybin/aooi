@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import topology from '../src/shared/config/cloudflare-worker-topology.ts';
 import { buildCloudflareWranglerConfig } from './create-cf-wrangler-config.mjs';
+import { shouldWarnOnlyForMissingPreviewSecret } from './lib/cloudflare-preview-optional-secrets.mjs';
 import {
   getRequiredRuntimeBindingsByWorker,
   resolveCloudflareWorkerKeys,
@@ -30,6 +31,10 @@ const configuredStoragePublicBaseUrl =
 function fail(message) {
   console.error(`[cf:check] ${message}`);
   process.exit(1);
+}
+
+function warn(message) {
+  console.warn(`[cf:check] warning: ${message}`);
 }
 
 function readFile(filePath) {
@@ -157,6 +162,17 @@ function assertRequiredRuntimeBindings(
       resolveCloudflareDeployProfile(process.env) === 'preview' &&
       process.env.CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS?.trim() === 'true';
     if (!value && allowPreviewPlaceholderSecret) {
+      continue;
+    }
+    const missingPreviewOptionalNames = names.filter((name) =>
+      shouldWarnOnlyForMissingPreviewSecret(name, process.env)
+    );
+    if (!value && missingPreviewOptionalNames.length === names.length) {
+      warn(
+        `${label} is missing optional preview runtime binding ${names.join(
+          ' or '
+        )} for worker ${requirement.worker}; deploy will continue without updating that secret locally`
+      );
       continue;
     }
     if (!value) {

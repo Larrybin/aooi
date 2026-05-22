@@ -40,6 +40,31 @@ test('cloudflare runtime bindings: emailProvider 只分配到 auth/admin worker'
   assert.deepEqual(paymentSecrets, []);
 });
 
+test('cloudflare runtime bindings: preview profile 不要求 RESEND_API_KEY', () => {
+  const contract = resolveSiteDeployContract({
+    rootDir: process.cwd(),
+    siteKey: 'ai-remover',
+    deployProfile: 'preview',
+    processEnv: {
+      ...process.env,
+      CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+    },
+  });
+  const requirements = getRequiredRuntimeBindingsByWorker(
+    contract.bindingRequirements
+  ) as Map<string, Array<{ name: string; worker: string }>>;
+
+  assert.equal(contract.bindingRequirements.secrets.emailProvider, false);
+  assert.deepEqual(
+    requirements.get('auth')?.filter((item) => item.name === 'RESEND_API_KEY'),
+    []
+  );
+  assert.deepEqual(
+    requirements.get('admin')?.filter((item) => item.name === 'RESEND_API_KEY'),
+    []
+  );
+});
+
 test('cloudflare runtime bindings: remover cleanup secret 只分配到 public-web worker', () => {
   assert.deepEqual(CLOUDFLARE_SECRET_WORKER_ALLOWLIST.REMOVER_CLEANUP_SECRET, [
     'public-web',
@@ -63,4 +88,27 @@ test('cloudflare runtime bindings: remover cleanup secret 只分配到 public-we
 
   assert.deepEqual(publicWebSecrets, ['public-web']);
   assert.deepEqual(authSecrets, []);
+});
+
+test('cloudflare runtime bindings: AI Remover 不要求 OpenRouter chat secret', () => {
+  const contract = resolveSiteDeployContract({
+    rootDir: process.cwd(),
+    siteKey: 'ai-remover',
+    deployProfile: 'preview',
+    processEnv: {
+      ...process.env,
+      CF_WORKERS_DEV_SUBDOMAIN: 'aooi-preview',
+    },
+  });
+  const requirements = getRequiredRuntimeBindingsByWorker(
+    contract.bindingRequirements
+  ) as Map<string, Array<{ name: string; worker: string }>>;
+
+  assert.equal(contract.bindingRequirements.secrets.openrouter, false);
+  assert.deepEqual(
+    requirements
+      .get('chat')
+      ?.filter((item) => item.name === 'OPENROUTER_API_KEY'),
+    []
+  );
 });

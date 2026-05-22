@@ -1,0 +1,1 @@
+ALTER TABLE "remover_quota_reservation" ADD COLUMN "entitlement_grant_ids_json" text;

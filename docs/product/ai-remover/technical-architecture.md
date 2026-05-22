@@ -34,11 +34,15 @@ Expected capabilities:
 {
   "auth": true,
   "payment": "creem",
-  "ai": true,
+  "ai": false,
   "docs": false,
   "blog": false
 }
 ```
+
+`capabilities.ai` controls the shared OpenRouter/chat/generator module. AI
+Remover image processing uses the Cloudflare Workers AI binding declared in
+`deploy.settings.json`, so this site keeps `capabilities.ai=false`.
 
 Provider keys, OAuth secrets, Creem secrets, and storage settings must stay in
 runtime settings, secrets, or Cloudflare bindings. They must not be committed to
@@ -74,6 +78,31 @@ hold remover-specific asset and anonymous usage state.
 Use explicit product tables owned by the remover workflow. Current schema lives
 in `src/config/db/schema.ts`, with repository functions under
 `src/domains/remover/infra/**`.
+
+### `entitlement_grant`
+
+Generic platform grant table for internal or operational product access. It is
+not an AI Remover table, not a pricing plan, and never participates in checkout.
+
+Required fields:
+
+- `userId`
+- `siteKey`
+- `productKey`
+- `environment`: `local`, `preview`, `staging`, `production`
+- `source`
+- `status`
+- `entitlementsJson`
+- `reason`
+- `grantedByUserId`
+- `startsAt`
+- `expiresAt`
+- `revokedAt`
+- `createdAt`
+- `updatedAt`
+
+Production grants are ignored unless runtime explicitly sets
+`INTERNAL_ENTITLEMENT_GRANTS_ENABLED=true`.
 
 ### `remover_image_asset`
 
@@ -143,6 +172,7 @@ Required fields:
 - `idempotencyKey`
 - `jobId`
 - `reason`
+- `entitlementGrantIdsJson`
 - `createdAt`
 - `updatedAt`
 - `committedAt`
@@ -160,9 +190,21 @@ the current implementation.
 - Guest and free processing limits use day windows.
 - Paid processing and high-res limits use month windows.
 - Free high-res sign-up credits use a lifetime window.
-- Product entitlements come from `sites/ai-remover/pricing.json`, exposed
-  through generated `@/site` pricing data and resolved in
+- Base product entitlements come from `sites/ai-remover/pricing.json`, exposed
+  through generated `@/site` pricing data.
+- Active `entitlement_grant` rows are resolved by
+  `src/domains/entitlements/**` and merged on top of pricing entitlements.
+- Grant entitlement keys are validated by a product schema. AI Remover grants
+  currently allow only `monthly_removals`, `monthly_high_res_downloads`, and
+  `max_upload_mb`.
+- Numeric grant entitlements are merged with `max(base, grant)` so internal
+  grants cannot accidentally downgrade a paid plan.
+- AI Remover uses the resolved actor entitlements in
   `src/domains/remover/domain/plan.ts`.
+- RBAC roles do not grant remover usage or high-res downloads.
+- If a quota reservation consumes grant-derived access,
+  `entitlementGrantIdsJson` records the grant IDs for auditability. `reason`
+  stays available for semantic reservation/refund reasons.
 
 ## API Routes
 
@@ -399,6 +441,10 @@ SITE=ai-remover pnpm build
 SITE=ai-remover pnpm cf:check
 SITE=ai-remover pnpm test:remover-workers-ai-spike
 ```
+
+This command sets `SMOKE_AUTH_REQUIRED=true`; release and preview remover smoke
+must use a seeded authenticated user with active entitlement grants instead of
+anonymous guest quota.
 
 The Workers AI spike can run against a local Cloudflare topology when
 `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL` is available, or against an
