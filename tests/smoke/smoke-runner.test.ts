@@ -70,4 +70,8 @@ test('package scripts: public smoke command names stay stable', async () => {
     packageJson.scripts['test:cf-admin-settings-smoke'],
     /node scripts\/run-with-site\.mjs node --import tsx scripts\/smoke\.mjs cf-admin-settings$/
   );
+  assert.match(
+    packageJson.scripts['test:remover-workers-ai-spike'],
+    /SMOKE_AUTH_REQUIRED=true/
+  );
 });

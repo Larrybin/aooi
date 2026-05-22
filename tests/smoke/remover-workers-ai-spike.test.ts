@@ -7,6 +7,7 @@ import {
   buildRemoverWorkersAILocalTopologyExtraVars,
   createRemoverUploadMultipartBody,
   createRemoverWorkersAISpikeImages,
+  resolveSmokeAuthSession,
   runRemoverWorkersAISpikeAgainstBaseUrl,
   runWithRemoverTopologyExitGuard,
   waitForRemoverApiReady,
@@ -445,6 +446,65 @@ test('authenticateSmokeUser rejects automatic sign-up in production', async () =
     }),
     /not allowed in production/u
   );
+});
+
+test('resolveSmokeAuthSession requires credentials for release smoke', async () => {
+  const previousEmail = process.env.SMOKE_AUTH_EMAIL;
+  const previousPassword = process.env.SMOKE_AUTH_PASSWORD;
+  try {
+    delete process.env.SMOKE_AUTH_EMAIL;
+    delete process.env.SMOKE_AUTH_PASSWORD;
+
+    await assert.rejects(
+      resolveSmokeAuthSession({
+        baseUrl: 'http://127.0.0.1:8787/',
+        authRequired: true,
+      }),
+      /requires SMOKE_AUTH_EMAIL and SMOKE_AUTH_PASSWORD/u
+    );
+  } finally {
+    if (previousEmail === undefined) {
+      delete process.env.SMOKE_AUTH_EMAIL;
+    } else {
+      process.env.SMOKE_AUTH_EMAIL = previousEmail;
+    }
+    if (previousPassword === undefined) {
+      delete process.env.SMOKE_AUTH_PASSWORD;
+    } else {
+      process.env.SMOKE_AUTH_PASSWORD = previousPassword;
+    }
+  }
+});
+
+test('resolveSmokeAuthSession still supports explicit anonymous mode', async () => {
+  const previousEmail = process.env.SMOKE_AUTH_EMAIL;
+  const previousPassword = process.env.SMOKE_AUTH_PASSWORD;
+  try {
+    delete process.env.SMOKE_AUTH_EMAIL;
+    delete process.env.SMOKE_AUTH_PASSWORD;
+
+    assert.deepEqual(
+      await resolveSmokeAuthSession({
+        baseUrl: 'http://127.0.0.1:8787/',
+        authRequired: false,
+      }),
+      {
+        initialCookieHeader: '',
+        authenticated: false,
+      }
+    );
+  } finally {
+    if (previousEmail === undefined) {
+      delete process.env.SMOKE_AUTH_EMAIL;
+    } else {
+      process.env.SMOKE_AUTH_EMAIL = previousEmail;
+    }
+    if (previousPassword === undefined) {
+      delete process.env.SMOKE_AUTH_PASSWORD;
+    } else {
+      process.env.SMOKE_AUTH_PASSWORD = previousPassword;
+    }
+  }
 });
 
 test('runRemoverWorkersAISpikeAgainstBaseUrl rejects leaked internal job fields', async () => {

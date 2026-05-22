@@ -119,9 +119,11 @@ Current implementation note:
   the selected AI Remover Cloudflare output, then uploads a generated
   original/mask pair through `/api/remover/upload`, creates a real
   `/api/remover/jobs` job, verifies the public job status DTO, and downloads the
-  low-res result through the controlled download route. To run against an
-  already-running environment, set `REMOVER_WORKERS_AI_SPIKE_BASE_URL`. Local
-  topology mode requires `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL`.
+  low-res and high-res results through the controlled download routes. It
+  requires `SMOKE_AUTH_EMAIL` and `SMOKE_AUTH_PASSWORD` for a seeded user with
+  an active entitlement grant. To run against an already-running environment,
+  set `REMOVER_WORKERS_AI_SPIKE_BASE_URL`. Local topology mode requires
+  `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL`.
   For AI Remover-only local values, copy `sites/ai-remover/.env.example` to
   `sites/ai-remover/.env.local`; this site env overlays root `.env.development`
   only when running with `SITE=ai-remover`. Do not put the database URL in

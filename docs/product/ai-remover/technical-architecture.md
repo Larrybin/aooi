@@ -442,6 +442,10 @@ SITE=ai-remover pnpm cf:check
 SITE=ai-remover pnpm test:remover-workers-ai-spike
 ```
 
+This command sets `SMOKE_AUTH_REQUIRED=true`; release and preview remover smoke
+must use a seeded authenticated user with active entitlement grants instead of
+anonymous guest quota.
+
 The Workers AI spike can run against a local Cloudflare topology when
 `DATABASE_URL` or `AUTH_SPIKE_DATABASE_URL` is available, or against an
 already-running environment via `REMOVER_WORKERS_AI_SPIKE_BASE_URL`.

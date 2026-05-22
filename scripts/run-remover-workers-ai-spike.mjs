@@ -606,10 +606,18 @@ async function waitForRemoverJob({
   return job;
 }
 
-async function resolveSmokeAuthSession({ baseUrl }) {
+export async function resolveSmokeAuthSession({
+  baseUrl,
+  authRequired = process.env.SMOKE_AUTH_REQUIRED === 'true',
+} = {}) {
   const email = process.env.SMOKE_AUTH_EMAIL?.trim() || '';
   const password = process.env.SMOKE_AUTH_PASSWORD?.trim() || '';
   if (!email && !password) {
+    if (authRequired) {
+      throw new Error(
+        'authenticated remover smoke requires SMOKE_AUTH_EMAIL and SMOKE_AUTH_PASSWORD'
+      );
+    }
     return {
       initialCookieHeader: '',
       authenticated: false,

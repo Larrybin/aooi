@@ -331,5 +331,10 @@ After Cloudflare runtime is configured, run the real Workers AI remover spike:
 SITE=ai-remover pnpm test:remover-workers-ai-spike
 ```
 
+The spike is an authenticated release/preview smoke. It requires
+`SMOKE_AUTH_EMAIL` and `SMOKE_AUTH_PASSWORD` for a seeded user with an active
+`preview` or production entitlement grant. `SMOKE_AUTH_ALLOW_SIGNUP` should stay
+`false` for release validation.
+
 Use `REMOVER_WORKERS_AI_SPIKE_BASE_URL` when testing against an already-running
 preview or production URL.
