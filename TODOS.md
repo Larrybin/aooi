@@ -15,9 +15,9 @@
 - **Why:** AI Remover does not use the shared OpenRouter chat runtime. The fixed topology still includes a chat worker shell even though it no longer requires `OPENROUTER_API_KEY`.
 - **Context:** Keep Workers AI image removal on the `public-web` worker via the existing `AI` binding.
 
-- **What:** Replace the temporarily relaxed anonymous remover limiter with authenticated smoke coverage plus entitlement grants.
-- **Why:** Anonymous upload/job limits were opened to unblock Workers AI validation. Long term, release smoke should use a seeded authenticated user with explicit test entitlements, while anonymous smoke only verifies guest limiter behavior.
-- **Context:** Use the entitlement grant path for internal preview smoke instead of raising guest limits.
+- **What:** Replace anonymous remover release smoke reliance with authenticated smoke coverage plus entitlement grants.
+- **Why:** Strict anonymous upload/job limits should stay enabled to protect storage and Workers AI capacity. Release smoke should use a seeded authenticated user with explicit test entitlements, while anonymous smoke only verifies guest limiter behavior.
+- **Context:** Use the entitlement grant path for internal preview smoke instead of relaxing guest limits.
 
 - **What:** Keep local preview deploy checks warning-only for missing `CREEM_*` / `RESEND_*` secrets.
 - **Why:** Missing local payment/email secrets should not block AI Remover preview deploys when those flows are not under test.

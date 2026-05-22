@@ -11,6 +11,18 @@ export function isAppEnvironment(value: string): value is AppEnvironment {
   return (APP_ENVIRONMENTS as readonly string[]).includes(value);
 }
 
+export function resolveAppEnvironment({
+  configured,
+  nodeEnv,
+}: {
+  configured?: string | null;
+  nodeEnv?: string | null;
+}): AppEnvironment {
+  const fallback = nodeEnv === 'production' ? 'production' : 'local';
+  const value = configured?.trim();
+  return value && isAppEnvironment(value) ? value : fallback;
+}
+
 export type EntitlementValue = string | number | boolean;
 export type EntitlementMap = Record<string, EntitlementValue>;
 

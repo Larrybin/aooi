@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { resolvePricingEntitlements } from '@/domains/billing/domain/pricing';
 import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
 import { resolveEffectiveEntitlements } from '@/domains/entitlements/application/resolve';
-import { isAppEnvironment } from '@/domains/entitlements/domain/types';
+import { resolveAppEnvironment } from '@/domains/entitlements/domain/types';
 import { listActiveEntitlementGrantsForScope } from '@/domains/entitlements/infra/grant';
 import {
   REMOVER_ANONYMOUS_SESSION_COOKIE,
@@ -39,10 +39,10 @@ function isSecureRequest(req: Request): boolean {
 }
 
 function resolveEntitlementEnvironment() {
-  const configured =
-    getRuntimeEnvString('APP_ENVIRONMENT')?.trim() ||
-    (getRuntimeEnvString('NODE_ENV') === 'production' ? 'production' : 'local');
-  return isAppEnvironment(configured) ? configured : 'local';
+  return resolveAppEnvironment({
+    configured: getRuntimeEnvString('APP_ENVIRONMENT'),
+    nodeEnv: getRuntimeEnvString('NODE_ENV'),
+  });
 }
 
 export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
