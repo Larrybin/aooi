@@ -1,12 +1,10 @@
 import type { StorageService } from '@/infra/adapters/storage/service-builder';
 
-import {
-  BadRequestError,
-  UpstreamError,
-} from '@/shared/lib/api/errors';
+import { BadRequestError, UpstreamError } from '@/shared/lib/api/errors';
 import { getUuid } from '@/shared/lib/hash';
 
 import { getRemoverOwner } from '../domain/actor';
+import { formatRemoverEntitlementGrantIdsJson } from '../domain/entitlement-grants';
 import { addRetentionDays, resolveRemoverPlanLimits } from '../domain/plan';
 import { getQuotaWindowStart } from '../domain/quota';
 import type { RemoverActor, RemoverImageAssetKind } from '../domain/types';
@@ -57,9 +55,9 @@ export type RemoverUploadDeps = {
   now?: () => Date;
 };
 
-function assertRemoverAssetKind(kind: string): asserts kind is
-  | 'original'
-  | 'mask' {
+function assertRemoverAssetKind(
+  kind: string
+): asserts kind is 'original' | 'mask' {
   if (kind !== 'original' && kind !== 'mask') {
     throw new BadRequestError('invalid remover image kind');
   }
@@ -133,6 +131,7 @@ export async function uploadRemoverImage({
         units: 1,
         status: 'reserved',
         idempotencyKey: `upload:${owner.userId ?? owner.anonymousSessionId}:${id}`,
+        entitlementGrantIdsJson: formatRemoverEntitlementGrantIdsJson(actor),
         expiresAt: addRetentionDays(now, 1),
       },
       quota: {
@@ -176,7 +175,9 @@ export async function uploadRemoverImage({
     });
   } catch (error) {
     if (uploadedKey) {
-      await deps.storageService.deleteFiles([uploadedKey]).catch(() => undefined);
+      await deps.storageService
+        .deleteFiles([uploadedKey])
+        .catch(() => undefined);
     }
     if (quotaReservation) {
       await deps

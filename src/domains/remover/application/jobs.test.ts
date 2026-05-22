@@ -318,6 +318,7 @@ test('createQueuedRemoverJob checks signed-in processing quota by user only', as
   let quotaOwner:
     | { userId: string | null; anonymousSessionId: string | null }
     | undefined;
+  let entitlementGrantIdsJson: string | null | undefined;
   const { deps } = createDeps();
 
   await createQueuedRemoverJob({
@@ -326,6 +327,7 @@ test('createQueuedRemoverJob checks signed-in processing quota by user only', as
       userId: 'user_1',
       anonymousSessionId: 'anon_2',
       productId: 'free',
+      entitlementGrantIds: ['grant_1'],
     },
     inputImageAssetId: 'input_1',
     maskImageAssetId: 'mask_1',
@@ -343,6 +345,7 @@ test('createQueuedRemoverJob checks signed-in processing quota by user only', as
           userId: quota.userId,
           anonymousSessionId: quota.anonymousSessionId,
         };
+        entitlementGrantIdsJson = reservation.entitlementGrantIdsJson;
         return {
           reservation: {
             ...reservation,
@@ -374,6 +377,7 @@ test('createQueuedRemoverJob checks signed-in processing quota by user only', as
     userId: 'user_1',
     anonymousSessionId: null,
   });
+  assert.equal(entitlementGrantIdsJson, '["grant_1"]');
 });
 
 test('createQueuedRemoverJob scopes signed-in idempotency by user only', async () => {

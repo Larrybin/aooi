@@ -4,6 +4,8 @@ export type RemoverActor =
       userId: string;
       anonymousSessionId?: string | null;
       productId?: string | null;
+      entitlements?: Record<string, string | number | boolean>;
+      entitlementGrantIds?: string[];
     }
   | {
       kind: 'anonymous';
@@ -17,7 +19,11 @@ export type RemoverOwner = {
   anonymousSessionId: string | null;
 };
 
-export type RemoverImageAssetKind = 'original' | 'mask' | 'output' | 'thumbnail';
+export type RemoverImageAssetKind =
+  | 'original'
+  | 'mask'
+  | 'output'
+  | 'thumbnail';
 export type RemoverImageAssetStatus = 'active' | 'deleted';
 export type RemoverJobStatus = 'queued' | 'processing' | 'succeeded' | 'failed';
 export type RemoverQuotaType = 'processing' | 'high_res_download' | 'upload';

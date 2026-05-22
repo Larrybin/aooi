@@ -523,6 +523,48 @@ export const userRole = pgTable(
   ]
 );
 
+export const entitlementGrant = pgTable(
+  'entitlement_grant',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    siteKey: text('site_key').notNull(),
+    productKey: text('product_key').notNull(),
+    environment: text('environment').notNull(),
+    source: text('source').notNull(),
+    status: text('status').notNull(),
+    entitlementsJson: text('entitlements_json').notNull(),
+    reason: text('reason').notNull(),
+    grantedByUserId: text('granted_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    startsAt: timestamp('starts_at').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    revokedAt: timestamp('revoked_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('idx_entitlement_grant_user_scope').on(
+      table.userId,
+      table.siteKey,
+      table.productKey,
+      table.environment,
+      table.status
+    ),
+    index('idx_entitlement_grant_status_window').on(
+      table.status,
+      table.startsAt,
+      table.expiresAt
+    ),
+    index('idx_entitlement_grant_granted_by').on(table.grantedByUserId),
+  ]
+);
+
 export const aiTask = pgTable(
   'ai_task',
   {
@@ -602,6 +644,7 @@ export const removerQuotaReservation = pgTable(
     idempotencyKey: text('idempotency_key').notNull(),
     jobId: text('job_id'),
     reason: text('reason'),
+    entitlementGrantIdsJson: text('entitlement_grant_ids_json'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .$onUpdate(() => /* @__PURE__ */ new Date())

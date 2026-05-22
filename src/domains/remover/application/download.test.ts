@@ -152,6 +152,7 @@ test('reserveHighResDownloadQuota checks signed-in high-res quota by user only',
   let quotaOwner:
     | { userId: string | null; anonymousSessionId: string | null }
     | undefined;
+  let entitlementGrantIdsJson: string | null | undefined;
   const state = deps(
     job({
       userId: 'user_1',
@@ -165,6 +166,7 @@ test('reserveHighResDownloadQuota checks signed-in high-res quota by user only',
       userId: 'user_1',
       productId: 'free',
       anonymousSessionId: 'anon_2',
+      entitlementGrantIds: ['grant_1'],
     },
     job: job({
       userId: 'user_1',
@@ -177,6 +179,7 @@ test('reserveHighResDownloadQuota checks signed-in high-res quota by user only',
           userId: quota.userId,
           anonymousSessionId: quota.anonymousSessionId,
         };
+        entitlementGrantIdsJson = reservation.entitlementGrantIdsJson;
         return {
           reservation: {
             ...reservation,
@@ -197,6 +200,7 @@ test('reserveHighResDownloadQuota checks signed-in high-res quota by user only',
     userId: 'user_1',
     anonymousSessionId: null,
   });
+  assert.equal(entitlementGrantIdsJson, '["grant_1"]');
 });
 
 test('reserveHighResDownloadQuota delegates quota check and reservation atomically', async () => {
@@ -343,7 +347,10 @@ test('reserveHighResDownloadQuota renews expired reserved high-res reservations 
       findReservationByIdempotencyKey: async () => existingReservation,
       reserveQuota: async ({ reservation, quota }) => {
         quotaChecked = true;
-        assert.equal(reservation.idempotencyKey, existingReservation.idempotencyKey);
+        assert.equal(
+          reservation.idempotencyKey,
+          existingReservation.idempotencyKey
+        );
         assert.equal(quota.quotaType, 'high_res_download');
         return {
           reservation: {

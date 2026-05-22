@@ -5,19 +5,14 @@ import {
 } from '@/shared/lib/api/errors';
 import { getUuid } from '@/shared/lib/hash';
 
-import {
-  assertActorOwnsResource,
-  getRemoverOwner,
-} from '../domain/actor';
+import { assertActorOwnsResource, getRemoverOwner } from '../domain/actor';
+import { formatRemoverEntitlementGrantIdsJson } from '../domain/entitlement-grants';
 import { addRetentionDays, resolveRemoverPlanLimits } from '../domain/plan';
 import {
   getQuotaWindowStart,
   isQuotaReservationReusable,
 } from '../domain/quota';
-import type {
-  RemoverActor,
-  RemoverQuotaType,
-} from '../domain/types';
+import type { RemoverActor, RemoverQuotaType } from '../domain/types';
 import type { RemoverJob } from '../infra/job';
 import type {
   NewRemoverQuotaReservation,
@@ -126,9 +121,9 @@ export async function reserveHighResDownloadQuota({
   const quotaType: RemoverQuotaType = 'high_res_download';
   const owner = getRemoverOwner(actor);
   const windowStart =
-      plan.highResDownloadWindow === 'lifetime'
-        ? new Date(0)
-        : getQuotaWindowStart(now, plan.highResDownloadWindow);
+    plan.highResDownloadWindow === 'lifetime'
+      ? new Date(0)
+      : getQuotaWindowStart(now, plan.highResDownloadWindow);
 
   const { reservation } = await deps.reserveQuota({
     reservation: {
@@ -140,6 +135,7 @@ export async function reserveHighResDownloadQuota({
       status: 'reserved',
       idempotencyKey,
       jobId: job.id,
+      entitlementGrantIdsJson: formatRemoverEntitlementGrantIdsJson(actor),
       expiresAt: addRetentionDays(now, 1),
     },
     quota: {

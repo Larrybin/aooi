@@ -9,9 +9,7 @@ function numberEntitlement(
   fallback: number
 ): number {
   const value = entitlements?.[key];
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : fallback;
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 function booleanEntitlement(
@@ -31,35 +29,49 @@ export function resolveRemoverPlanLimits(
   const plan =
     (pricing && requestedProductId
       ? findPricingItemByProductId(pricing, requestedProductId)
-      : undefined) ?? (pricing ? findPricingItemByProductId(pricing, 'free') : undefined);
-  const entitlements = plan?.entitlements;
+      : undefined) ??
+    (pricing ? findPricingItemByProductId(pricing, 'free') : undefined);
+  const entitlements =
+    actor.kind === 'user' ? actor.entitlements : plan?.entitlements;
 
   if (actor.kind === 'anonymous') {
     return {
       productId: 'guest',
-      processingLimit: numberEntitlement(entitlements, 'guest_daily_removals', 2),
+      processingLimit: numberEntitlement(
+        entitlements,
+        'guest_daily_removals',
+        2
+      ),
       processingWindow: 'day',
       highResDownloads: 0,
       highResDownloadWindow: 'lifetime',
       maxUploadMb: 5,
       retentionDays: 1,
-      lowResDownload: booleanEntitlement(entitlements, 'low_res_download', true),
+      lowResDownload: booleanEntitlement(
+        entitlements,
+        'low_res_download',
+        true
+      ),
       advancedMode: false,
       priorityQueue: false,
     };
   }
 
+  const hasMonthlyEntitlement =
+    typeof entitlements?.monthly_removals === 'number' ||
+    typeof entitlements?.monthly_high_res_downloads === 'number';
   const isPaid = Boolean(requestedProductId && requestedProductId !== 'free');
+  const usesMonthlyWindow = isPaid || hasMonthlyEntitlement;
   return {
     productId: plan?.product_id ?? 'free',
-    processingLimit: isPaid
+    processingLimit: usesMonthlyWindow
       ? numberEntitlement(entitlements, 'monthly_removals', 5)
       : numberEntitlement(entitlements, 'daily_removals', 5),
-    processingWindow: isPaid ? 'month' : 'day',
-    highResDownloads: isPaid
+    processingWindow: usesMonthlyWindow ? 'month' : 'day',
+    highResDownloads: usesMonthlyWindow
       ? numberEntitlement(entitlements, 'monthly_high_res_downloads', 0)
       : numberEntitlement(entitlements, 'signup_high_res_downloads', 3),
-    highResDownloadWindow: isPaid ? 'month' : 'lifetime',
+    highResDownloadWindow: usesMonthlyWindow ? 'month' : 'lifetime',
     maxUploadMb: numberEntitlement(entitlements, 'max_upload_mb', 10),
     retentionDays: numberEntitlement(entitlements, 'retention_days', 7),
     lowResDownload: true,

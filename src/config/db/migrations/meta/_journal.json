@@ -50,6 +50,20 @@
       "when": 1778052000000,
       "tag": "0006_ai_remover_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779321600000,
+      "tag": "0007_entitlement_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779367885207,
+      "tag": "0008_noisy_sandman",
+      "breakpoints": true
     }
   ]
 }

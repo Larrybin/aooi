@@ -1104,3 +1104,30 @@ test('architecture: shared/lib 只保留 allowlist 纯工具', async () => {
     }
   }
 });
+
+test('architecture: entitlement and remover entitlement paths do not import RBAC or admin bypasses', async () => {
+  const files = (await readSourceFiles()).filter(
+    ({ repoPath }) =>
+      !isTestFile(repoPath) &&
+      (/^src\/domains\/entitlements\//.test(repoPath) ||
+        /^src\/domains\/remover\/(?:domain|application)\//.test(repoPath))
+  );
+
+  for (const file of files) {
+    for (const specifier of readImportSpecifiers(file.content)) {
+      assert.equal(
+        /^@\/(?:domains\/access-control|infra\/adapters\/access-control|surfaces\/admin|app\/[^'"]*admin)/.test(
+          specifier
+        ),
+        false,
+        `${file.repoPath} entitlement path must not import RBAC/admin module: ${specifier}`
+      );
+    }
+
+    assert.equal(
+      /\bsuper_admin\b|\bbypassQuota\b|\bskipQuota\b/u.test(file.content),
+      false,
+      `${file.repoPath} entitlement path must not contain admin/quota bypass tokens`
+    );
+  }
+});
