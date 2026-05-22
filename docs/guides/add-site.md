@@ -25,7 +25,8 @@
 | Email delivery             | yes                | email settings, `RESEND_API_KEY`, sender config                               | no                                     |
 | Payment                    | yes                | `capabilities.payment`, payment settings, provider secrets                    | no                                     |
 | Storage/uploads            | yes                | R2 buckets, `STORAGE_PUBLIC_BASE_URL`, Cloudflare bindings                    | no                                     |
-| AI provider execution      | yes                | `capabilities.ai`, AI settings, provider keys                                 | no                                     |
+| Shared AI generator/chat   | yes                | `capabilities.ai`, AI settings, OpenRouter key                                | no                                     |
+| Workers AI binding         | yes                | `bindingRequirements.bindings.workersAi`                                      | no                                     |
 | Docs                       | yes                | `capabilities.docs`, `sites/<site-key>/content/docs/**`                       | no                                     |
 | Blog                       | yes                | `capabilities.blog`, `sites/<site-key>/content/posts/**`                      | no                                     |
 | Analytics                  | yes                | analytics settings                                                            | no                                     |
@@ -245,8 +246,10 @@ sites/my-site/content/pages/
 
 - `bindingRequirements.bindings.workersAi` 表示 app server workers 是否需要 Cloudflare Workers AI `[ai] binding = "AI"`。
 - `bindingRequirements.secrets.authSharedSecret`、`googleOauth`、`githubOauth` 是 operator-declared deploy requirements。
-- Email provider secret requirement 由 `site.config.json.capabilities.auth` 派生，不允许在 `deploy.settings.json` 里手写 `emailProvider`。
-- AI provider secret requirement 由 `site.config.json.capabilities.ai` 派生，不允许在 `deploy.settings.json` 里手写 `openrouter`。
+- Production email provider secret requirement 由
+  `site.config.json.capabilities.auth` 派生；`CF_DEPLOY_PROFILE=preview` 不
+  要求 Resend。不允许在 `deploy.settings.json` 里手写 `emailProvider`。
+- OpenRouter/chat secret requirement 由 `site.config.json.capabilities.ai` 派生，不允许在 `deploy.settings.json` 里手写 `openrouter`。只使用 Workers AI binding 的产品不要打开 `capabilities.ai`。
 - Payment provider secret requirement 由 `site.config.json.capabilities.payment` 派生，不允许在 `deploy.settings.json.bindingRequirements.secrets` 里手写 `stripe`、`creem` 或 `paypal`。
 - `workers.*` 必须是 Cloudflare-safe worker name。
 - `resources.incrementalCacheBucket` 和 `resources.appStorageBucket` 必须是合法 R2 bucket name。
@@ -300,15 +303,17 @@ SITE=my-site pnpm exec tsx scripts/upsert-configs.ts \
 | Site / Deploy Setting                                | Required Runtime Binding                                               |
 | ---------------------------------------------------- | ---------------------------------------------------------------------- |
 | `bindingRequirements.secrets.authSharedSecret=true`  | `BETTER_AUTH_SECRET` 或 `AUTH_SECRET`                                  |
-| `capabilities.auth=true`                             | `RESEND_API_KEY`                                                       |
+| production `capabilities.auth=true`                  | `RESEND_API_KEY`                                                       |
 | `bindingRequirements.vars.storagePublicBaseUrl=true` | `STORAGE_PUBLIC_BASE_URL`                                              |
 | `bindingRequirements.bindings.workersAi=true`        | Cloudflare Workers AI `[ai] binding = "AI"`                            |
-| `capabilities.ai=true`                               | `OPENROUTER_API_KEY`                                                   |
+| `capabilities.ai=true`                               | `OPENROUTER_API_KEY` for shared OpenRouter/chat/generator              |
 | `capabilities.payment=stripe`                        | `STRIPE_PUBLISHABLE_KEY`、`STRIPE_SECRET_KEY`、`STRIPE_SIGNING_SECRET` |
-| `capabilities.payment=creem`                         | `CREEM_API_KEY`、`CREEM_SIGNING_SECRET`                                |
+| `capabilities.payment=creem`                         | `CREEM_API_KEY`、`CREEM_SIGNING_SECRET`；preview/local 缺失时只警告    |
 | `capabilities.payment=paypal`                        | `PAYPAL_CLIENT_ID`、`PAYPAL_CLIENT_SECRET`、`PAYPAL_WEBHOOK_ID`        |
 
-本地只验证配置结构时，可以先用非生产占位值跑到 `cf:check` 通过。生产部署前必须在 Cloudflare 对应 worker scope 里配置真实 secret / var。
+本地只验证配置结构时，可以先用非生产占位值跑到 `cf:check` 通过。Preview/local
+缺少 `RESEND_API_KEY`、`CREEM_API_KEY`、`CREEM_SIGNING_SECRET` 时只警告并跳过本地
+secret 上传；生产部署前必须在 Cloudflare 对应 worker scope 里配置真实 secret / var。
 
 ## 6. Run Local Verification
 
@@ -343,19 +348,19 @@ SITE=my-site pnpm test:cf-admin-settings-smoke
 
 ## Troubleshooting
 
-| Symptom / Error Text                                              | Meaning                                        | Fix                                                                                    |
-| ----------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `site "<key>" is not configured`                                  | `SITE` 指向的目录缺少 `site.config.json`       | 创建 `sites/<key>/site.config.json`，或把 `SITE` 改成已存在的 site key。               |
-| `site config key mismatch`                                        | 目录名和 `site.config.json.key` 不一致         | 让 `sites/<key>`、`site.config.json.key` 和命令里的 `SITE=<key>` 完全一致。            |
-| `site content directory is required`                              | 缺少必需 content collection 目录               | 至少补齐 `content/pages`；开启 docs/blog 时再补对应目录。                              |
-| `enables docs, but ... docs/index.mdx is missing`                 | docs 开关开启但没有 docs 首页                  | 新增 `sites/<key>/content/docs/index.mdx`，或关闭 `capabilities.docs`。                |
-| `enables blog, but ... posts must contain at least one .mdx file` | blog 开关开启但没有文章                        | 新增至少一个 `sites/<key>/content/posts/*.mdx`，或关闭 `capabilities.blog`。           |
-| `must be a Cloudflare-safe worker name`                           | worker 名称不符合 Cloudflare 限制              | 使用小写字母、数字和短横线，长度不超过 63，且不要以短横线开头或结尾。                  |
-| `must be a valid R2 bucket name`                                  | R2 bucket 名称不合法                           | 使用 3-63 位小写 bucket 名，不要用下划线、连续点或 IP 地址格式。                       |
-| `must be a valid Hyperdrive id`                                   | Hyperdrive id 不是 32 位小写十六进制           | 填入真实 Cloudflare Hyperdrive id，不要保留示例占位值。                                |
-| `duplicate site route pattern detected`                           | 两个 site 使用了同一个 `domain`                | 为新 site 改成唯一 domain，并重新跑 `SITE=<key> pnpm cf:check`。                       |
-| `router.routes.pattern must equal site.domain`                    | router route 与 `site.config.json.domain` 脱节 | 不要手改生成后的 Wrangler route；从 `site.config.json.domain` 重新生成并检查。         |
-| `requires runtime binding RESEND_API_KEY` 或类似缺 binding 报错   | `cf:check` 找不到 active runtime secret / var  | 按 Local Verification Prerequisites 准备本地 env，生产前配置 Cloudflare secret / var。 |
+| Symptom / Error Text                                              | Meaning                                                  | Fix                                                                                                                             |
+| ----------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `site "<key>" is not configured`                                  | `SITE` 指向的目录缺少 `site.config.json`                 | 创建 `sites/<key>/site.config.json`，或把 `SITE` 改成已存在的 site key。                                                        |
+| `site config key mismatch`                                        | 目录名和 `site.config.json.key` 不一致                   | 让 `sites/<key>`、`site.config.json.key` 和命令里的 `SITE=<key>` 完全一致。                                                     |
+| `site content directory is required`                              | 缺少必需 content collection 目录                         | 至少补齐 `content/pages`；开启 docs/blog 时再补对应目录。                                                                       |
+| `enables docs, but ... docs/index.mdx is missing`                 | docs 开关开启但没有 docs 首页                            | 新增 `sites/<key>/content/docs/index.mdx`，或关闭 `capabilities.docs`。                                                         |
+| `enables blog, but ... posts must contain at least one .mdx file` | blog 开关开启但没有文章                                  | 新增至少一个 `sites/<key>/content/posts/*.mdx`，或关闭 `capabilities.blog`。                                                    |
+| `must be a Cloudflare-safe worker name`                           | worker 名称不符合 Cloudflare 限制                        | 使用小写字母、数字和短横线，长度不超过 63，且不要以短横线开头或结尾。                                                           |
+| `must be a valid R2 bucket name`                                  | R2 bucket 名称不合法                                     | 使用 3-63 位小写 bucket 名，不要用下划线、连续点或 IP 地址格式。                                                                |
+| `must be a valid Hyperdrive id`                                   | Hyperdrive id 不是 32 位小写十六进制                     | 填入真实 Cloudflare Hyperdrive id，不要保留示例占位值。                                                                         |
+| `duplicate site route pattern detected`                           | 两个 site 使用了同一个 `domain`                          | 为新 site 改成唯一 domain，并重新跑 `SITE=<key> pnpm cf:check`。                                                                |
+| `router.routes.pattern must equal site.domain`                    | router route 与 `site.config.json.domain` 脱节           | 不要手改生成后的 Wrangler route；从 `site.config.json.domain` 重新生成并检查。                                                  |
+| `requires runtime binding RESEND_API_KEY` 或类似缺 binding 报错   | production `cf:check` 找不到 active runtime secret / var | 按 Local Verification Prerequisites 准备本地 env，生产前配置 Cloudflare secret / var。Preview/local 对 Resend 和 Creem 只警告。 |
 
 ## 7. Deploy The New Site
 

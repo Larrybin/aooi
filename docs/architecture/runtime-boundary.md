@@ -13,6 +13,8 @@ Allowed modules:
   - `isCloudflareWorkersRuntime()`
   - `getCloudflareBindings()`
   - `getCloudflareAIBinding()`
+  - `getRuntimeEnvString()`
+  - `isRuntimeEnvEnabled()`
 - `src/shared/lib/runtime/request-body`
   - `readRequestTextWithLimit()`
   - `readRequestBodyByteCountUpTo()`
@@ -40,6 +42,17 @@ Only these capability classes may differ by runtime:
 - `upload`
 
 Anything else stays runtime-agnostic until a new boundary is explicitly introduced.
+
+## Runtime Environment Flags
+
+- `APP_ENVIRONMENT` identifies the deployed topology as `local`, `preview`,
+  `staging`, or `production`. Local Cloudflare topology injects `local`;
+  preview deploy config injects `preview`; production deploy config injects
+  `production`.
+- `INTERNAL_ENTITLEMENT_GRANTS_ENABLED` is only a production kill switch for
+  active `entitlement_grant` rows. Non-production environments may resolve
+  active grants by default; production ignores grants unless this flag is
+  exactly `true`.
 
 ## Current callers
 

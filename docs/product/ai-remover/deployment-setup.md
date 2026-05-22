@@ -58,7 +58,7 @@ Add these when testing the matching feature locally:
 | Feature                   | Local env keys                             |
 | ------------------------- | ------------------------------------------ |
 | Google sign-in            | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| Email delivery            | `RESEND_API_KEY`                           |
+| Email delivery            | `RESEND_API_KEY` when testing email flows  |
 | Creem checkout/webhook    | `CREEM_API_KEY`, `CREEM_SIGNING_SECRET`    |
 | Storage URL generation    | `STORAGE_PUBLIC_BASE_URL`                  |
 | Cleanup API               | `REMOVER_CLEANUP_SECRET`                   |
@@ -164,19 +164,18 @@ Configure these in Cloudflare secrets / vars for the generated workers. They can
 also be present in `.env.production` so local release commands can validate and
 upload them.
 
-| Name                                  | Kind        | Required for AI Remover?        | Notes                                                                                                                            |
-| ------------------------------------- | ----------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `BETTER_AUTH_SECRET` or `AUTH_SECRET` | Secret      | Yes                             | Shared server auth/session secret. Set both to the same value unless there is a reason not to.                                   |
-| `GOOGLE_CLIENT_ID`                    | Secret/var  | Yes                             | Required because `googleOauth` is enabled in deploy settings.                                                                    |
-| `GOOGLE_CLIENT_SECRET`                | Secret      | Yes                             | Google OAuth server secret.                                                                                                      |
-| `RESEND_API_KEY`                      | Secret      | Yes                             | Required by the shared auth/email deploy contract when auth is enabled.                                                          |
-| `CREEM_API_KEY`                       | Secret      | Yes                             | Required because `capabilities.payment` is `creem`.                                                                              |
-| `CREEM_SIGNING_SECRET`                | Secret      | Yes                             | Required for Creem webhook verification.                                                                                         |
-| `REMOVER_CLEANUP_SECRET`              | Secret      | Yes                             | Used by `/api/remover/cleanup` and the public-web cron.                                                                          |
-| `STORAGE_PUBLIC_BASE_URL`             | Runtime var | Yes                             | Public URL prefix for uploaded assets.                                                                                           |
-| `OPENROUTER_API_KEY`                  | Secret      | Yes for current deploy contract | Required by the shared AI/chat contract when `capabilities.ai=true`; AI Remover image removal itself uses Workers AI by default. |
-| `REMOVER_AI_PROVIDER`                 | Runtime var | Optional                        | Defaults to `cloudflare-workers-ai`.                                                                                             |
-| `REMOVER_AI_MODEL`                    | Runtime var | Optional                        | Defaults to `@cf/runwayml/stable-diffusion-v1-5-inpainting` for Workers AI.                                                      |
+| Name                                  | Kind        | Required for AI Remover?    | Notes                                                                                                               |
+| ------------------------------------- | ----------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` or `AUTH_SECRET` | Secret      | Yes                         | Shared server auth/session secret. Set both to the same value unless there is a reason not to.                      |
+| `GOOGLE_CLIENT_ID`                    | Secret/var  | Yes                         | Required because `googleOauth` is enabled in deploy settings.                                                       |
+| `GOOGLE_CLIENT_SECRET`                | Secret      | Yes                         | Google OAuth server secret.                                                                                         |
+| `RESEND_API_KEY`                      | Secret      | Production only             | Required by the production auth/email deploy contract when auth is enabled. Preview deploy does not require Resend. |
+| `CREEM_API_KEY`                       | Secret      | Production checkout/webhook | Preview/local deploy checks warn when this is missing and leave the remote secret unchanged if present.             |
+| `CREEM_SIGNING_SECRET`                | Secret      | Production checkout/webhook | Preview/local deploy checks warn when this is missing and leave the remote secret unchanged if present.             |
+| `REMOVER_CLEANUP_SECRET`              | Secret      | Yes                         | Used by `/api/remover/cleanup` and the public-web cron.                                                             |
+| `STORAGE_PUBLIC_BASE_URL`             | Runtime var | Yes                         | Public URL prefix for uploaded assets.                                                                              |
+| `REMOVER_AI_PROVIDER`                 | Runtime var | Optional                    | Defaults to `cloudflare-workers-ai`.                                                                                |
+| `REMOVER_AI_MODEL`                    | Runtime var | Optional                    | Defaults to `@cf/runwayml/stable-diffusion-v1-5-inpainting` for Workers AI.                                         |
 
 Cloudflare multi-worker auth boundary:
 
@@ -223,7 +222,6 @@ GOOGLE_CLIENT_SECRET="..."
 RESEND_API_KEY="..."
 CREEM_API_KEY="..."
 CREEM_SIGNING_SECRET="..."
-OPENROUTER_API_KEY="..."
 REMOVER_CLEANUP_SECRET="..."
 ```
 
@@ -264,7 +262,14 @@ Recommended local checks:
 pnpm lint
 pnpm test
 SITE=ai-remover pnpm build
-SITE=ai-remover STORAGE_PUBLIC_BASE_URL=https://assets.example.com BETTER_AUTH_SECRET=better-secret RESEND_API_KEY=resend-key GOOGLE_CLIENT_ID=google-id GOOGLE_CLIENT_SECRET=google-secret CREEM_API_KEY=creem-api-key CREEM_SIGNING_SECRET=creem-signing-secret OPENROUTER_API_KEY=openrouter-key REMOVER_CLEANUP_SECRET=cleanup-secret pnpm cf:check
+SITE=ai-remover STORAGE_PUBLIC_BASE_URL=https://assets.example.com BETTER_AUTH_SECRET=better-secret RESEND_API_KEY=resend-key GOOGLE_CLIENT_ID=google-id GOOGLE_CLIENT_SECRET=google-secret CREEM_API_KEY=creem-api-key CREEM_SIGNING_SECRET=creem-signing-secret REMOVER_CLEANUP_SECRET=cleanup-secret pnpm cf:check
+```
+
+Preview checks use the preview deploy profile. Missing local `RESEND_API_KEY`,
+`CREEM_API_KEY`, and `CREEM_SIGNING_SECRET` are warnings, not blockers:
+
+```bash
+SITE=ai-remover CF_DEPLOY_PROFILE=preview CF_WORKERS_DEV_SUBDOMAIN=<subdomain> STORAGE_PUBLIC_BASE_URL=https://assets.example.com BETTER_AUTH_SECRET=better-secret GOOGLE_CLIENT_ID=google-id GOOGLE_CLIENT_SECRET=google-secret REMOVER_CLEANUP_SECRET=cleanup-secret pnpm cf:check
 ```
 
 For production bootstrap:
@@ -309,8 +314,10 @@ SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> pnpm cf:preview:deploy
 ```
 
 `CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true` is only a deployment convenience for
-missing staging secrets. OAuth, auth, payment, email, cleanup, and AI flows are
-not accepted until their real staging values are configured.
+missing staging secrets. OAuth, auth, payment, cleanup, and AI flows are not
+accepted until their real staging values are configured. Email delivery itself
+is not a preview deploy requirement; test password reset or email verification
+only after configuring a real staging Resend key.
 
 For later production releases, prefer:
 
