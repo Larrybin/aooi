@@ -124,6 +124,39 @@ test('OpenNext queue override 继续通过 NEXT_CACHE_DO_QUEUE.revalidate 投递
   });
 });
 
+test('OpenNext split config 只生成 active split worker functions', async () => {
+  const configModule = await import('../../open-next.config.ts');
+  const config = configModule.buildOpenNextConfig({
+    activeSplitWorkerTargets: ['auth', 'payment', 'member', 'admin'],
+  });
+
+  assert.deepEqual(Object.keys(config.functions ?? {}), [
+    'auth',
+    'payment',
+    'member',
+    'admin',
+  ]);
+  assert.equal('chat' in (config.functions ?? {}), false);
+});
+
+test('OpenNext split config treats empty active split env as zero split workers', async () => {
+  const previousValue = process.env.CLOUDFLARE_ACTIVE_SPLIT_WORKERS;
+  process.env.CLOUDFLARE_ACTIVE_SPLIT_WORKERS = '';
+
+  try {
+    const configModule = await import('../../open-next.config.ts');
+    const config = configModule.buildOpenNextConfig();
+
+    assert.deepEqual(Object.keys(config.functions ?? {}), []);
+  } finally {
+    if (previousValue === undefined) {
+      delete process.env.CLOUDFLARE_ACTIVE_SPLIT_WORKERS;
+    } else {
+      process.env.CLOUDFLARE_ACTIVE_SPLIT_WORKERS = previousValue;
+    }
+  }
+});
+
 test('OpenNext tag cache override 继续通过 NEXT_TAG_CACHE_DO_SHARDED 的 getTagData/writeTags 协议访问 state', async () => {
   const openNextConfig = await loadOpenNextConfig();
   const createTagCache = requireCallableOverride<

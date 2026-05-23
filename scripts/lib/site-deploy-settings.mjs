@@ -8,16 +8,38 @@ import {
 
 export const DEPLOY_SETTINGS_CONFIG_VERSION = 1;
 
-export const CLOUDFLARE_WORKER_SLOT_KEYS = Object.freeze([
+export const CLOUDFLARE_REQUIRED_WORKER_SLOT_KEYS = Object.freeze([
   'router',
   'state',
   'public-web',
+]);
+
+export const CLOUDFLARE_OPTIONAL_WORKER_SLOT_KEYS = Object.freeze([
   'auth',
   'payment',
   'member',
   'chat',
   'admin',
 ]);
+
+export const CLOUDFLARE_WORKER_SLOT_KEYS = Object.freeze([
+  ...CLOUDFLARE_REQUIRED_WORKER_SLOT_KEYS,
+  ...CLOUDFLARE_OPTIONAL_WORKER_SLOT_KEYS,
+]);
+
+export const CLOUDFLARE_SERVER_WORKER_SLOT_KEYS = Object.freeze([
+  'public-web',
+  ...CLOUDFLARE_OPTIONAL_WORKER_SLOT_KEYS,
+]);
+
+export const CLOUDFLARE_SPLIT_WORKER_SLOT_KEYS = Object.freeze([
+  ...CLOUDFLARE_OPTIONAL_WORKER_SLOT_KEYS,
+]);
+
+const CLOUDFLARE_WORKER_SLOT_SET = new Set(CLOUDFLARE_WORKER_SLOT_KEYS);
+const CLOUDFLARE_SERVER_WORKER_SLOT_SET = new Set(
+  CLOUDFLARE_SERVER_WORKER_SLOT_KEYS
+);
 
 export const CLOUDFLARE_RESOURCE_SLOT_KEYS = Object.freeze([
   'incrementalCacheBucket',
@@ -171,14 +193,75 @@ function assertBindingRequirements(bindingRequirements) {
 }
 
 function assertWorkers(workers) {
-  assertClosedObject(
-    workers,
-    'site deploy settings.workers',
-    CLOUDFLARE_WORKER_SLOT_KEYS
-  );
+  assertPlainObject(workers, 'site deploy settings.workers');
 
-  for (const key of CLOUDFLARE_WORKER_SLOT_KEYS) {
+  const workerKeys = Object.keys(workers);
+  const unknownKeys = workerKeys.filter(
+    (key) => !CLOUDFLARE_WORKER_SLOT_SET.has(key)
+  );
+  if (unknownKeys.length > 0) {
+    throw new Error(
+      `site deploy settings.workers contains unknown worker slot(s): ${unknownKeys.join(', ')}`
+    );
+  }
+
+  const missingRequiredKeys = CLOUDFLARE_REQUIRED_WORKER_SLOT_KEYS.filter(
+    (key) => !(key in workers)
+  );
+  if (missingRequiredKeys.length > 0) {
+    throw new Error(
+      `site deploy settings.workers is missing required worker slot(s): ${missingRequiredKeys.join(', ')}`
+    );
+  }
+
+  if ('admin' in workers && !('auth' in workers)) {
+    throw new Error(
+      'site deploy settings.workers.admin requires auth worker slot'
+    );
+  }
+
+  for (const key of workerKeys) {
     assertWorkerName(workers[key], `site deploy settings.workers.${key}`);
+  }
+}
+
+export function getActiveWorkerSlots(settings) {
+  const workers = settings?.workers;
+  if (!workers || typeof workers !== 'object' || Array.isArray(workers)) {
+    return [];
+  }
+
+  return CLOUDFLARE_WORKER_SLOT_KEYS.filter((slot) => slot in workers);
+}
+
+export function hasActiveWorkerSlot(settings, slot) {
+  return getActiveWorkerSlots(settings).includes(slot);
+}
+
+export function getActiveServerWorkerSlots(settings) {
+  return getActiveWorkerSlots(settings).filter((slot) =>
+    CLOUDFLARE_SERVER_WORKER_SLOT_SET.has(slot)
+  );
+}
+
+export function getActiveSplitWorkerSlots(settings) {
+  return getActiveWorkerSlots(settings).filter(
+    (slot) => slot !== 'router' && slot !== 'state' && slot !== 'public-web'
+  );
+}
+
+export function getActiveAppWorkerSlots(settings) {
+  return getActiveWorkerSlots(settings).filter((slot) => slot !== 'state');
+}
+
+export function assertWorkerSlotEnabled(settings, slot) {
+  if (!CLOUDFLARE_WORKER_SLOT_SET.has(slot)) {
+    throw new Error(`Unknown Cloudflare worker "${slot}"`);
+  }
+
+  if (!hasActiveWorkerSlot(settings, slot)) {
+    const siteKey = settings?.siteKey ? ` for SITE=${settings.siteKey}` : '';
+    throw new Error(`Cloudflare worker "${slot}" is disabled${siteKey}`);
   }
 }
 
@@ -215,7 +298,7 @@ function assertState(state) {
   );
 }
 
-function assertCrossContractConsistency(siteConfig) {
+function assertCrossContractConsistency(siteConfig, workers) {
   if (
     siteConfig.key !== undefined &&
     siteConfig.key !== siteConfig.key?.trim()
@@ -231,6 +314,23 @@ function assertCrossContractConsistency(siteConfig) {
   ) {
     throw new Error(
       `site.config.json has unsupported payment capability: ${String(paymentCapability)}`
+    );
+  }
+
+  const missingCapabilityWorkers = [];
+  if (siteConfig.capabilities.auth && !('auth' in workers)) {
+    missingCapabilityWorkers.push('auth (site.capabilities.auth)');
+  }
+  if (paymentCapability !== 'none' && !('payment' in workers)) {
+    missingCapabilityWorkers.push('payment (site.capabilities.payment)');
+  }
+  if (siteConfig.capabilities.ai && !('chat' in workers)) {
+    missingCapabilityWorkers.push('chat (site.capabilities.ai)');
+  }
+
+  if (missingCapabilityWorkers.length > 0) {
+    throw new Error(
+      `site deploy settings.workers is missing worker slot(s) required by site capabilities: ${missingCapabilityWorkers.join(', ')}`
     );
   }
 }
@@ -257,7 +357,7 @@ export function validateSiteDeploySettings(config, { siteConfig = null } = {}) {
   assertState(config.state);
 
   if (siteConfig) {
-    assertCrossContractConsistency(siteConfig);
+    assertCrossContractConsistency(siteConfig, config.workers);
   }
 }
 

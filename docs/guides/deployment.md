@@ -92,9 +92,13 @@ Run cheap checks first:
 SITE=<site-key> pnpm cf:check
 SITE=<site-key> pnpm cf:build
 pnpm cf:build:no-db
-SITE=<site-key> pnpm cf:typegen
-SITE=<site-key> pnpm cf:typegen:check
+pnpm cf:typegen
+pnpm cf:typegen:check
 ```
+
+`cf:typegen` writes the shared canonical Cloudflare type surface. It covers all
+supported worker slots; site-specific sparse topology still controls actual
+build, deploy, bindings, and routing.
 
 GitHub Actions is the Cloudflare acceptance gate only. Production releases run
 from a local operator session after the exact `main` commit has passed the

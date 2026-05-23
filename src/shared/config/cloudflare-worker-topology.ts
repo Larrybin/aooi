@@ -130,20 +130,30 @@ export function getServerWorkerMetadata(target: CloudflareServerWorkerTarget) {
   return SERVER_WORKER_METADATA[target];
 }
 
+export function getDeclaredServerWorkerTargets(env: Record<string, unknown>) {
+  return CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.filter((target) => {
+    const workerName = env[SERVER_WORKER_METADATA[target].workerNameVar];
+    return typeof workerName === 'string' && workerName.trim() !== '';
+  });
+}
+
 export function buildVersionOverridesHeader(
-  env: Record<string, string | undefined>
+  env: Record<string, string | undefined>,
+  targets: readonly CloudflareServerWorkerTarget[] = CLOUDFLARE_ALL_SERVER_WORKER_TARGETS
 ) {
-  const entries = CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.map((target) => {
-    const metadata = SERVER_WORKER_METADATA[target];
-    const versionId = env[metadata.versionIdVar]?.trim();
-    const workerName = env[metadata.workerNameVar]?.trim();
+  const entries = targets
+    .map((target) => {
+      const metadata = SERVER_WORKER_METADATA[target];
+      const versionId = env[metadata.versionIdVar]?.trim();
+      const workerName = env[metadata.workerNameVar]?.trim();
 
-    if (!versionId || !workerName) {
-      return null;
-    }
+      if (!versionId || !workerName) {
+        return null;
+      }
 
-    return `${workerName}="${versionId}"`;
-  }).filter((value): value is string => value !== null);
+      return `${workerName}="${versionId}"`;
+    })
+    .filter((value): value is string => value !== null);
 
   return entries.length === 0 ? null : entries.join(', ');
 }
@@ -160,6 +170,7 @@ const cloudflareWorkerTopology = {
   AUTH_UI_WORKER_TARGETS,
   AUTH_HANDLER_WORKER_TARGETS,
   getServerWorkerMetadata,
+  getDeclaredServerWorkerTargets,
   buildVersionOverridesHeader,
 };
 

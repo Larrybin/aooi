@@ -5,7 +5,9 @@ import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contrac
 import {
   buildVersionOverridesHeader,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
+  getDeclaredServerWorkerTargets,
   getSplitWorker,
+  resolveWorkerRoutingDecision,
   resolveWorkerTarget,
   stripLocalePrefix,
 } from '../../src/shared/config/cloudflare-worker-splits';
@@ -46,6 +48,31 @@ test('resolveWorkerTarget 命中 canonical public-web/auth/payment/member/chat/a
   assert.equal(resolveWorkerTarget('/api/config/get-configs'), 'public-web');
 });
 
+test('resolveWorkerRoutingDecision 对 disabled API split 返回 404 决策，页面回落 public-web', () => {
+  const activeTargets = [
+    'public-web',
+    'auth',
+    'payment',
+    'member',
+    'admin',
+  ] as const;
+
+  assert.deepEqual(resolveWorkerRoutingDecision('/api/chat', activeTargets), {
+    kind: 'disabled-api',
+    target: 'public-web',
+    disabledTarget: 'chat',
+  });
+  assert.deepEqual(resolveWorkerRoutingDecision('/zh/chat', activeTargets), {
+    kind: 'disabled-page',
+    target: 'public-web',
+    disabledTarget: 'chat',
+  });
+  assert.equal(
+    resolveWorkerTarget('/api/chat/messages', activeTargets),
+    'public-web'
+  );
+});
+
 test('buildVersionOverridesHeader 只为已配置版本生成 header', () => {
   const header = buildVersionOverridesHeader({
     PUBLIC_WEB_WORKER_VERSION_ID: 'public-web-version',
@@ -68,6 +95,47 @@ test('buildVersionOverridesHeader 只为已配置版本生成 header', () => {
   );
 
   assert.equal(buildVersionOverridesHeader({}), null);
+});
+
+test('getDeclaredServerWorkerTargets 按 worker name env 判断声明启用状态', () => {
+  const activeTargets = getDeclaredServerWorkerTargets({
+    PUBLIC_WEB_WORKER_NAME: contract.serverWorkers['public-web'].workerName,
+    PAYMENT_WORKER_NAME: contract.serverWorkers.payment.workerName,
+    PUBLIC_WEB_WORKER: {
+      fetch: async () => new Response('ok'),
+    },
+  });
+
+  assert.deepEqual(activeTargets, ['public-web', 'payment']);
+  assert.deepEqual(
+    resolveWorkerRoutingDecision('/api/payment/checkout', activeTargets),
+    {
+      kind: 'active',
+      target: 'payment',
+    }
+  );
+  assert.deepEqual(resolveWorkerRoutingDecision('/api/chat', activeTargets), {
+    kind: 'disabled-api',
+    target: 'public-web',
+    disabledTarget: 'chat',
+  });
+});
+
+test('buildVersionOverridesHeader 只包含 active worker targets', () => {
+  const header = buildVersionOverridesHeader(
+    {
+      PUBLIC_WEB_WORKER_VERSION_ID: 'public-web-version',
+      CHAT_WORKER_VERSION_ID: 'chat-version',
+      PUBLIC_WEB_WORKER_NAME: contract.serverWorkers['public-web'].workerName,
+      CHAT_WORKER_NAME: contract.serverWorkers.chat.workerName,
+    },
+    ['public-web']
+  );
+
+  assert.equal(
+    header,
+    `${contract.serverWorkers['public-web'].workerName}="public-web-version"`
+  );
 });
 
 test('split worker 定义都有 routes 与 patterns', () => {
