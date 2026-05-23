@@ -10,6 +10,8 @@ AI Remover should be implemented as an aooi site/product workflow:
 - Business semantics live in `src/domains/remover/**`.
 - Product actor, guest session, and ownership primitives live in
   `src/domains/product-access/**`; AI Remover is the first consumer.
+- Product access entitlement resolution lives in
+  `src/domains/product-entitlements/**`; AI Remover is the first consumer.
 - Provider and platform adapters live in `src/infra/**` unless an existing
   domain-owned infra pattern is more direct.
 - Shared utilities stay in `src/shared/**`.
@@ -75,6 +77,10 @@ The domain owns:
 `src/domains/product-access/**` is the generic product access identity layer. It
 only handles actor/session/ownership and must not own AI Remover entitlement,
 quota, billing, runtime, job, media asset, provider, or editor behavior.
+`src/domains/product-entitlements/**` resolves product access context from
+pricing/subscription/grants through product-provided schemas. It does not own
+quota, billing flows, runtime, job, media asset, provider, or editor behavior,
+and it does not know AI Remover-specific entitlement keys.
 
 The existing AI module can provide configured provider bindings and shared AI
 enablement checks, but the generic `ai_task` table should not be stretched to

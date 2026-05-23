@@ -1,6 +1,3 @@
-import { findPricingItemByProductId } from '@/domains/billing/domain/pricing';
-import { sitePricing } from '@/site';
-
 import type { RemoverActor, RemoverPlanLimits } from './types';
 
 function numberEntitlement(
@@ -24,15 +21,9 @@ function booleanEntitlement(
 export function resolveRemoverPlanLimits(
   actor: RemoverActor
 ): RemoverPlanLimits {
-  const pricing = sitePricing?.pricing;
-  const requestedProductId = actor.kind === 'user' ? actor.productId : null;
-  const plan =
-    (pricing && requestedProductId
-      ? findPricingItemByProductId(pricing, requestedProductId)
-      : undefined) ??
-    (pricing ? findPricingItemByProductId(pricing, 'free') : undefined);
   const entitlements =
-    actor.kind === 'user' ? actor.entitlements : plan?.entitlements;
+    actor.productAccess?.entitlements ??
+    (actor.kind === 'user' ? actor.entitlements : undefined);
 
   if (actor.kind === 'anonymous') {
     return {
@@ -60,7 +51,8 @@ export function resolveRemoverPlanLimits(
   const hasMonthlyEntitlement =
     typeof entitlements?.monthly_removals === 'number' ||
     typeof entitlements?.monthly_high_res_downloads === 'number';
-  const isPaid = Boolean(requestedProductId && requestedProductId !== 'free');
+  const productId = actor.productAccess?.productId ?? actor.productId ?? 'free';
+  const isPaid = productId !== 'free';
   const usesMonthlyWindow = isPaid || hasMonthlyEntitlement;
   const processingLimit = usesMonthlyWindow
     ? numberEntitlement(entitlements, 'monthly_removals', 5)
@@ -70,7 +62,7 @@ export function resolveRemoverPlanLimits(
     : numberEntitlement(entitlements, 'signup_high_res_downloads', 3);
 
   return {
-    productId: plan?.product_id ?? 'free',
+    productId,
     processingLimit,
     processingWindow: usesMonthlyWindow ? 'month' : 'day',
     highResDownloads,
