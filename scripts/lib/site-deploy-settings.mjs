@@ -298,7 +298,7 @@ function assertState(state) {
   );
 }
 
-function assertCrossContractConsistency(siteConfig) {
+function assertCrossContractConsistency(siteConfig, workers) {
   if (
     siteConfig.key !== undefined &&
     siteConfig.key !== siteConfig.key?.trim()
@@ -314,6 +314,23 @@ function assertCrossContractConsistency(siteConfig) {
   ) {
     throw new Error(
       `site.config.json has unsupported payment capability: ${String(paymentCapability)}`
+    );
+  }
+
+  const missingCapabilityWorkers = [];
+  if (siteConfig.capabilities.auth && !('auth' in workers)) {
+    missingCapabilityWorkers.push('auth (site.capabilities.auth)');
+  }
+  if (paymentCapability !== 'none' && !('payment' in workers)) {
+    missingCapabilityWorkers.push('payment (site.capabilities.payment)');
+  }
+  if (siteConfig.capabilities.ai && !('chat' in workers)) {
+    missingCapabilityWorkers.push('chat (site.capabilities.ai)');
+  }
+
+  if (missingCapabilityWorkers.length > 0) {
+    throw new Error(
+      `site deploy settings.workers is missing worker slot(s) required by site capabilities: ${missingCapabilityWorkers.join(', ')}`
     );
   }
 }
@@ -340,7 +357,7 @@ export function validateSiteDeploySettings(config, { siteConfig = null } = {}) {
   assertState(config.state);
 
   if (siteConfig) {
-    assertCrossContractConsistency(siteConfig);
+    assertCrossContractConsistency(siteConfig, config.workers);
   }
 }
 

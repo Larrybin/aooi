@@ -310,10 +310,10 @@ function readPricingForReport({ rootDir, site, siteKey, pricingPath }) {
   }
 }
 
-function readDeploySettingsForReport({ deploySettingsPath }) {
+function readDeploySettingsForReport({ deploySettingsPath, site }) {
   try {
     const deploySettings = JSON.parse(readFileSync(deploySettingsPath, 'utf8'));
-    validateSiteDeploySettings(deploySettings);
+    validateSiteDeploySettings(deploySettings, { siteConfig: site });
 
     return {
       deploySettings,
@@ -2664,6 +2664,7 @@ function buildAuditReport(siteKey) {
   });
   const { deploySettings, issues: deployIssues } = readDeploySettingsForReport({
     deploySettingsPath,
+    site,
   });
   const pricingItems = collectPricingItems(sitePricing);
   const report = {

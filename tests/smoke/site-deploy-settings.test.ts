@@ -182,6 +182,74 @@ test('site deploy settings 启用 admin 时必须启用 auth', () => {
   );
 });
 
+test('site deploy settings 启用能力时必须启用对应 worker', () => {
+  const baseSiteConfig = readCurrentSiteConfig({
+    rootDir: process.cwd(),
+    siteKey: 'mamamiya',
+  });
+  const settings = {
+    configVersion: 1,
+    bindingRequirements: {
+      bindings: {
+        workersAi: false,
+      },
+      secrets: {
+        authSharedSecret: true,
+        googleOauth: false,
+        githubOauth: false,
+        removerCleanup: false,
+      },
+      vars: {
+        storagePublicBaseUrl: true,
+      },
+    },
+    workers: {
+      router: 'worker-router',
+      state: 'worker-state',
+      'public-web': 'worker-public-web',
+    },
+    resources: {
+      incrementalCacheBucket: 'bucket-a',
+      appStorageBucket: 'bucket-b',
+      hyperdriveId: 'd208cd72765b46a7b0849fc687e2fb61',
+    },
+    state: {
+      schemaVersion: 1,
+    },
+  };
+
+  const cases = [
+    {
+      capabilities: { auth: true, payment: 'none', ai: false },
+      expected: /auth \(site\.capabilities\.auth\)/i,
+    },
+    {
+      capabilities: { auth: false, payment: 'creem', ai: false },
+      expected: /payment \(site\.capabilities\.payment\)/i,
+    },
+    {
+      capabilities: { auth: false, payment: 'none', ai: true },
+      expected: /chat \(site\.capabilities\.ai\)/i,
+    },
+  ];
+
+  for (const item of cases) {
+    assert.throws(
+      () =>
+        validateSiteDeploySettings(settings, {
+          siteConfig: {
+            ...baseSiteConfig,
+            capabilities: {
+              ...baseSiteConfig.capabilities,
+              ...item.capabilities,
+            },
+          },
+        }),
+      item.expected
+    );
+  }
+});
+
 test('site deploy preview settings 只接受 Hyperdrive overlay', () => {
   const settings = readSitePreviewDeploySettings({
     rootDir: process.cwd(),
