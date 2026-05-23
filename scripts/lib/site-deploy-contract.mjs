@@ -16,6 +16,7 @@ import {
 import {
   CLOUDFLARE_RESOURCE_SLOT_KEYS,
   CLOUDFLARE_STATE_SLOT_KEYS,
+  CLOUDFLARE_WORKER_SLOT_KEYS,
   getActiveServerWorkerSlots,
   getActiveWorkerSlots,
   readSiteDeploySettings,
@@ -447,7 +448,7 @@ export function createCanonicalTypegenContract(contract) {
       bindingRequirements: contract.bindingRequirements,
       configVersion: 1,
       workers: Object.fromEntries(
-        getActiveWorkerSlots(contract).map((slot) => [
+        CLOUDFLARE_WORKER_SLOT_KEYS.map((slot) => [
           slot,
           `cloudflare-typegen-${slot}`,
         ])

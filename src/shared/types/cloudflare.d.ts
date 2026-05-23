@@ -21,11 +21,13 @@ declare namespace Cloudflare {
 		AUTH_WORKER_VERSION_ID: "";
 		PAYMENT_WORKER_VERSION_ID: "";
 		MEMBER_WORKER_VERSION_ID: "";
+		CHAT_WORKER_VERSION_ID: "";
 		ADMIN_WORKER_VERSION_ID: "";
 		PUBLIC_WEB_WORKER_NAME: "cloudflare-typegen-public-web";
 		AUTH_WORKER_NAME: "cloudflare-typegen-auth";
 		PAYMENT_WORKER_NAME: "cloudflare-typegen-payment";
 		MEMBER_WORKER_NAME: "cloudflare-typegen-member";
+		CHAT_WORKER_NAME: "cloudflare-typegen-chat";
 		ADMIN_WORKER_NAME: "cloudflare-typegen-admin";
 		APP_ENVIRONMENT: "production";
 		NEXT_CACHE_DO_QUEUE: DurableObjectNamespace /* DOQueueHandler from cloudflare-typegen-state */;
@@ -36,6 +38,7 @@ declare namespace Cloudflare {
 		AUTH_WORKER: Fetcher /* cloudflare-typegen-auth */;
 		PAYMENT_WORKER: Fetcher /* cloudflare-typegen-payment */;
 		MEMBER_WORKER: Fetcher /* cloudflare-typegen-member */;
+		CHAT_WORKER: Fetcher /* cloudflare-typegen-chat */;
 		ADMIN_WORKER: Fetcher /* cloudflare-typegen-admin */;
 	}
 }

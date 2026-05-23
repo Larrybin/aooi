@@ -258,7 +258,7 @@ raw `Configs` 现在只保留在底层持久化总线与 admin 写路径：
 目标：
 
 - 新增一个 site 时，不需要手改现有单站命名常量
-- `cf:check` / `cf:build` / `cf:deploy:*` / `cf:typegen*` / topology drift check 全部由当前 `SITE` 派生
+- `cf:check` / `cf:build` / `cf:deploy:*` / topology drift check 全部由当前 `SITE` 派生；`cf:typegen*` 生成共享 canonical Cloudflare 类型面
 - `deploy.settings.json` 已收口为闭合 infra-only contract，unknown field / unknown slot 一律硬失败
 - multi-site topology signature 已建立并纳入测试
 - release gating 已切到当前 `SITE` 的有效 deploy inputs；`state_migrations_changed` 由解析后的 state deploy contract 决定，而不是 tracked template diff

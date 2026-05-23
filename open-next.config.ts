@@ -22,11 +22,11 @@ const baseConfig = defineCloudflareConfig({
 });
 
 function resolveActiveSplitWorkerTargets() {
-  const rawValue = process.env[ACTIVE_SPLIT_WORKERS_ENV]?.trim();
-  if (!rawValue) {
+  if (!(ACTIVE_SPLIT_WORKERS_ENV in process.env)) {
     return [...CLOUDFLARE_SPLIT_WORKER_TARGETS];
   }
 
+  const rawValue = process.env[ACTIVE_SPLIT_WORKERS_ENV]?.trim() ?? '';
   const targets = rawValue
     .split(',')
     .map((target) => target.trim())
