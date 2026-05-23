@@ -5,10 +5,9 @@ import {
 import { runWithCloudflareRequestContext } from '../../.open-next/cloudflare/init.js';
 import { handler as middlewareHandler } from '../../.open-next/middleware/handler.mjs';
 import {
-  CLOUDFLARE_ALL_SERVER_WORKER_TARGETS,
   CLOUDFLARE_SERVICE_BINDINGS,
+  getDeclaredServerWorkerTargets,
   resolveWorkerRoutingDecision,
-  type CloudflareServerWorkerTarget,
 } from '../../src/shared/config/cloudflare-worker-splits';
 import { buildForwardedWorkerRequest } from './router-forwarding';
 
@@ -27,16 +26,6 @@ type RouterEnv = Record<string, string | WorkerServiceBinding> & {
   MEMBER_WORKER?: WorkerServiceBinding;
   CHAT_WORKER?: WorkerServiceBinding;
 };
-
-function getActiveWorkerTargets(
-  env: RouterEnv
-): CloudflareServerWorkerTarget[] {
-  return CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.filter((target) => {
-    const bindingName = CLOUDFLARE_SERVICE_BINDINGS[target];
-    const value = env[bindingName];
-    return Boolean(value && typeof value === 'object' && 'fetch' in value);
-  });
-}
 
 const routerWorker = {
   async fetch(request: Request, env: RouterEnv, ctx: ExecutionContext) {
@@ -61,9 +50,10 @@ const routerWorker = {
         return reqOrResp;
       }
 
+      const declaredWorkerTargets = getDeclaredServerWorkerTargets(env);
       const routingDecision = resolveWorkerRoutingDecision(
         new URL(reqOrResp.url).pathname,
-        getActiveWorkerTargets(env)
+        declaredWorkerTargets
       );
       if (routingDecision.kind === 'disabled-api') {
         return new Response('Not found', { status: 404 });
@@ -83,7 +73,7 @@ const routerWorker = {
         reqOrResp,
         env,
         workerTarget,
-        getActiveWorkerTargets(env)
+        declaredWorkerTargets
       );
       return serviceBinding.fetch(forwardedRequest, {
         redirect: 'manual',

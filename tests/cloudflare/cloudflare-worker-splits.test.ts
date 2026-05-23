@@ -5,6 +5,7 @@ import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contrac
 import {
   buildVersionOverridesHeader,
   CLOUDFLARE_SPLIT_WORKER_TARGETS,
+  getDeclaredServerWorkerTargets,
   getSplitWorker,
   resolveWorkerRoutingDecision,
   resolveWorkerTarget,
@@ -94,6 +95,30 @@ test('buildVersionOverridesHeader 只为已配置版本生成 header', () => {
   );
 
   assert.equal(buildVersionOverridesHeader({}), null);
+});
+
+test('getDeclaredServerWorkerTargets 按 worker name env 判断声明启用状态', () => {
+  const activeTargets = getDeclaredServerWorkerTargets({
+    PUBLIC_WEB_WORKER_NAME: contract.serverWorkers['public-web'].workerName,
+    PAYMENT_WORKER_NAME: contract.serverWorkers.payment.workerName,
+    PUBLIC_WEB_WORKER: {
+      fetch: async () => new Response('ok'),
+    },
+  });
+
+  assert.deepEqual(activeTargets, ['public-web', 'payment']);
+  assert.deepEqual(
+    resolveWorkerRoutingDecision('/api/payment/checkout', activeTargets),
+    {
+      kind: 'active',
+      target: 'payment',
+    }
+  );
+  assert.deepEqual(resolveWorkerRoutingDecision('/api/chat', activeTargets), {
+    kind: 'disabled-api',
+    target: 'public-web',
+    disabledTarget: 'chat',
+  });
 });
 
 test('buildVersionOverridesHeader 只包含 active worker targets', () => {

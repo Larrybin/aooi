@@ -20,6 +20,7 @@ export {
   CLOUDFLARE_STATE_WORKER,
   CLOUDFLARE_VERSION_ID_VARS,
   buildVersionOverridesHeader,
+  getDeclaredServerWorkerTargets,
   getServerWorkerMetadata,
   type CloudflareServerWorkerTarget,
   type CloudflareSplitWorkerTarget,

@@ -130,6 +130,13 @@ export function getServerWorkerMetadata(target: CloudflareServerWorkerTarget) {
   return SERVER_WORKER_METADATA[target];
 }
 
+export function getDeclaredServerWorkerTargets(env: Record<string, unknown>) {
+  return CLOUDFLARE_ALL_SERVER_WORKER_TARGETS.filter((target) => {
+    const workerName = env[SERVER_WORKER_METADATA[target].workerNameVar];
+    return typeof workerName === 'string' && workerName.trim() !== '';
+  });
+}
+
 export function buildVersionOverridesHeader(
   env: Record<string, string | undefined>,
   targets: readonly CloudflareServerWorkerTarget[] = CLOUDFLARE_ALL_SERVER_WORKER_TARGETS
@@ -163,6 +170,7 @@ const cloudflareWorkerTopology = {
   AUTH_UI_WORKER_TARGETS,
   AUTH_HANDLER_WORKER_TARGETS,
   getServerWorkerMetadata,
+  getDeclaredServerWorkerTargets,
   buildVersionOverridesHeader,
 };
 

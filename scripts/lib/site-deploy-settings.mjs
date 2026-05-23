@@ -214,6 +214,12 @@ function assertWorkers(workers) {
     );
   }
 
+  if ('admin' in workers && !('auth' in workers)) {
+    throw new Error(
+      'site deploy settings.workers.admin requires auth worker slot'
+    );
+  }
+
   for (const key of workerKeys) {
     assertWorkerName(workers[key], `site deploy settings.workers.${key}`);
   }

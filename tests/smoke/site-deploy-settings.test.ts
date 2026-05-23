@@ -136,6 +136,52 @@ test('site deploy settings 拒绝未知 worker key', () => {
   );
 });
 
+test('site deploy settings 启用 admin 时必须启用 auth', () => {
+  const siteConfig = readCurrentSiteConfig({
+    rootDir: process.cwd(),
+    siteKey: 'mamamiya',
+  });
+
+  assert.throws(
+    () =>
+      validateSiteDeploySettings(
+        {
+          configVersion: 1,
+          bindingRequirements: {
+            bindings: {
+              workersAi: false,
+            },
+            secrets: {
+              authSharedSecret: true,
+              googleOauth: false,
+              githubOauth: false,
+              removerCleanup: false,
+            },
+            vars: {
+              storagePublicBaseUrl: true,
+            },
+          },
+          workers: {
+            router: 'worker-router',
+            state: 'worker-state',
+            'public-web': 'worker-public-web',
+            admin: 'worker-admin',
+          },
+          resources: {
+            incrementalCacheBucket: 'bucket-a',
+            appStorageBucket: 'bucket-b',
+            hyperdriveId: 'd208cd72765b46a7b0849fc687e2fb61',
+          },
+          state: {
+            schemaVersion: 1,
+          },
+        },
+        { siteConfig }
+      ),
+    /workers\.admin requires auth worker slot/i
+  );
+});
+
 test('site deploy preview settings 只接受 Hyperdrive overlay', () => {
   const settings = readSitePreviewDeploySettings({
     rootDir: process.cwd(),
