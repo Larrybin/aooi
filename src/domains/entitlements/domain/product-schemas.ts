@@ -12,9 +12,16 @@ export type ProductEntitlementSchema = Record<string, EntitlementFieldSchema>;
 
 const PRODUCT_ENTITLEMENT_SCHEMAS: Record<string, ProductEntitlementSchema> = {
   'ai-remover': {
+    guest_daily_removals: { type: 'number', merge: 'max' },
+    low_res_download: { type: 'boolean', merge: 'override' },
+    daily_removals: { type: 'number', merge: 'max' },
+    signup_high_res_downloads: { type: 'number', merge: 'max' },
     monthly_removals: { type: 'number', merge: 'max' },
     monthly_high_res_downloads: { type: 'number', merge: 'max' },
+    advanced_mode: { type: 'boolean', merge: 'override' },
+    priority_queue: { type: 'boolean', merge: 'override' },
     max_upload_mb: { type: 'number', merge: 'max' },
+    retention_days: { type: 'number', merge: 'max' },
   },
 };
 
