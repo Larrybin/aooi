@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { assertTopologySignatureConsistency } from '../../scripts/check-cf-topology-signature.mjs';
+import { assertMultiSiteTopologyContract } from '../../scripts/check-cf-topology-signature.mjs';
 import { readCurrentSiteConfig } from '../../scripts/lib/site-config.mjs';
 import {
   resolveAllSiteDeployContracts,
@@ -12,22 +12,47 @@ import {
 } from '../../scripts/lib/site-deploy-contract.mjs';
 import { readSiteDeploySettings } from '../../scripts/lib/site-deploy-settings.mjs';
 
-test('multi-site topology signature 在所有站点上一致', () => {
-  const signatures = assertTopologySignatureConsistency({
+test('multi-site topology contract 允许站点裁剪可选 worker', () => {
+  const signatures = assertMultiSiteTopologyContract({
     rootDir: process.cwd(),
   });
 
   assert.equal(signatures.length >= 2, true);
+  assert.deepEqual(
+    signatures.find((entry) => entry.siteKey === 'ai-remover')?.activeWorkers,
+    ['admin', 'auth', 'member', 'payment', 'public-web', 'router', 'state']
+  );
+  assert.deepEqual(
+    signatures.find((entry) => entry.siteKey === 'dev-local')?.activeWorkers,
+    [
+      'admin',
+      'auth',
+      'chat',
+      'member',
+      'payment',
+      'public-web',
+      'router',
+      'state',
+    ]
+  );
 });
 
-test('multi-site deploy contract 只允许实例值差异', () => {
+test('相同 active topology 的 multi-site deploy contract 只允许实例值差异', () => {
   const contracts = resolveAllSiteDeployContracts({
     rootDir: process.cwd(),
   });
 
-  const [first, second] = contracts;
-  assert.notEqual(first.workers.router, second.workers.router);
-  assert.equal(first.topologySignature, second.topologySignature);
+  const devLocal = contracts.find(
+    (contract) => contract.siteKey === 'dev-local'
+  );
+  const mamamiya = contracts.find(
+    (contract) => contract.siteKey === 'mamamiya'
+  );
+
+  assert.ok(devLocal);
+  assert.ok(mamamiya);
+  assert.notEqual(devLocal.workers.router, mamamiya.workers.router);
+  assert.equal(devLocal.topologySignature, mamamiya.topologySignature);
 });
 
 test('multi-site deploy contract 拒绝重复 domain route pattern', async () => {
