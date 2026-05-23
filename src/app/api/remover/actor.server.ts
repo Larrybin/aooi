@@ -7,8 +7,8 @@ import { resolveEffectiveEntitlements } from '@/domains/entitlements/application
 import { resolveAppEnvironment } from '@/domains/entitlements/domain/types';
 import { listActiveEntitlementGrantsForScope } from '@/domains/entitlements/infra/grant';
 import {
-  REMOVER_ANONYMOUS_SESSION_COOKIE,
   resolveAnonymousSessionForRequest,
+  writeAnonymousSessionCookie,
 } from '@/domains/remover/application/actor-session';
 import type { RemoverActor } from '@/domains/remover/domain/types';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
@@ -21,20 +21,11 @@ import { site } from '@/site';
 import { assertCsrf } from '@/shared/lib/api/csrf.server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
 
-const ANONYMOUS_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
-
 function getAnonymousSessionSecret(): string {
   return (
     getRuntimeEnvString('BETTER_AUTH_SECRET')?.trim() ||
     getRuntimeEnvString('AUTH_SECRET')?.trim() ||
     ''
-  );
-}
-
-function isSecureRequest(req: Request): boolean {
-  return (
-    new URL(req.url).protocol === 'https:' ||
-    req.headers.get('x-forwarded-proto') === 'https'
   );
 }
 
@@ -45,7 +36,9 @@ function resolveEntitlementEnvironment() {
   });
 }
 
-export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
+export async function resolveRemoverActorFromRequest(
+  req: Request
+): Promise<RemoverActor> {
   assertCsrf(req);
 
   const secret = getAnonymousSessionSecret();
@@ -61,14 +54,10 @@ export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
   ]);
   if (anonymousSession.shouldSetCookie) {
     const cookieStore = await cookies();
-    cookieStore.set({
-      name: REMOVER_ANONYMOUS_SESSION_COOKIE,
-      value: anonymousSession.cookieValue,
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: isSecureRequest(req),
-      path: '/',
-      maxAge: ANONYMOUS_SESSION_MAX_AGE_SECONDS,
+    writeAnonymousSessionCookie({
+      cookieStore,
+      req,
+      session: anonymousSession,
     });
   }
 
@@ -103,4 +92,8 @@ export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
     entitlements: effectiveEntitlements.entitlements,
     entitlementGrantIds: effectiveEntitlements.grantIds,
   };
+}
+
+export async function resolveRemoverActor(req: Request): Promise<RemoverActor> {
+  return resolveRemoverActorFromRequest(req);
 }

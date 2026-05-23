@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { assertActorOwnsResource, getRemoverOwner } from '../domain/actor';
+import type { RemoverActor } from '../domain/types';
 import {
   buildAnonymousSessionCookie,
   readAnonymousSessionIdFromRequest,
   REMOVER_ANONYMOUS_SESSION_COOKIE,
+  REMOVER_ANONYMOUS_SESSION_MAX_AGE_SECONDS,
   resolveAnonymousSessionForRequest,
   resolveAnonymousSessionIdForRequest,
+  writeAnonymousSessionCookie,
 } from './actor-session';
 
 function request(headers: HeadersInit) {
@@ -122,4 +126,95 @@ test('resolveAnonymousSessionForRequest does not derive ownership from shared IP
   );
 
   assert.notEqual(first, second);
+});
+
+test('getRemoverOwner keeps AI Remover owner keys stable', () => {
+  const guestActor = {
+    kind: 'anonymous',
+    anonymousSessionId: 'anon_guest_123',
+  } satisfies RemoverActor;
+  const userActor = {
+    kind: 'user',
+    userId: 'user_1',
+    anonymousSessionId: 'anon_guest_123',
+    productId: 'free',
+  } satisfies RemoverActor;
+
+  assert.deepEqual(getRemoverOwner(guestActor), {
+    userId: null,
+    anonymousSessionId: 'anon_guest_123',
+  });
+  assert.deepEqual(getRemoverOwner(userActor), {
+    userId: 'user_1',
+    anonymousSessionId: null,
+  });
+});
+
+test('assertActorOwnsResource keeps AI Remover ownership behavior unchanged', () => {
+  const actor = {
+    kind: 'user',
+    userId: 'user_1',
+    anonymousSessionId: 'anon_guest_123',
+    productId: 'free',
+  } satisfies RemoverActor;
+
+  assert.equal(
+    assertActorOwnsResource(actor, {
+      userId: 'user_1',
+      anonymousSessionId: null,
+    }),
+    true
+  );
+  assert.equal(
+    assertActorOwnsResource(actor, {
+      userId: null,
+      anonymousSessionId: 'anon_guest_123',
+    }),
+    true
+  );
+  assert.equal(
+    assertActorOwnsResource(actor, {
+      userId: 'user_2',
+      anonymousSessionId: null,
+    }),
+    false
+  );
+  assert.equal(
+    assertActorOwnsResource(actor, {
+      userId: null,
+      anonymousSessionId: 'anon_other_123',
+    }),
+    false
+  );
+});
+
+test('writeAnonymousSessionCookie preserves AI Remover cookie attributes', () => {
+  type WrittenCookie = Parameters<
+    Parameters<typeof writeAnonymousSessionCookie>[0]['cookieStore']['set']
+  >[0];
+  let written: WrittenCookie | undefined;
+
+  writeAnonymousSessionCookie({
+    cookieStore: {
+      set: (cookie) => {
+        written = cookie;
+      },
+    },
+    req: request({}),
+    session: {
+      anonymousSessionId: 'anon_cookie_123',
+      cookieValue: 'anon_cookie_123.signature',
+      shouldSetCookie: true,
+    },
+  });
+
+  assert.deepEqual(written, {
+    name: REMOVER_ANONYMOUS_SESSION_COOKIE,
+    value: 'anon_cookie_123.signature',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: true,
+    path: '/',
+    maxAge: REMOVER_ANONYMOUS_SESSION_MAX_AGE_SECONDS,
+  });
 });
