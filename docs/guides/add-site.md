@@ -26,7 +26,7 @@
 | Payment                    | yes                | `capabilities.payment`, payment settings, provider secrets                    | no                                     |
 | Storage/uploads            | yes                | R2 buckets, `STORAGE_PUBLIC_BASE_URL`, Cloudflare bindings                    | no                                     |
 | Shared AI generator/chat   | yes                | `capabilities.ai`, AI settings, OpenRouter key                                | no                                     |
-| Workers AI binding         | yes                | `bindingRequirements.bindings.workersAi`                                      | no                                     |
+| Product runtime AI binding | yes                | product-runtime contract plus `bindingRequirements.bindings.workersAi`        | no                                     |
 | Docs                       | yes                | `capabilities.docs`, `sites/<site-key>/content/docs/**`                       | no                                     |
 | Blog                       | yes                | `capabilities.blog`, `sites/<site-key>/content/posts/**`                      | no                                     |
 | Analytics                  | yes                | analytics settings                                                            | no                                     |
@@ -42,6 +42,7 @@
 - 新站的品牌、域名、模块开关、部署资源、第三方 provider key、文档、博客、营销文案，都应该通过 site config、deploy settings、runtime settings、secrets/vars 或 content 处理。
 - 只有“这个站真正卖给用户的核心产品能力”才应该写代码，例如新增一个工具页、一个生成器、一个计算器、一个上传处理流程，或重做首页的信息架构。
 - 如果你发现自己在为 auth、payment、email、storage、analytics 复制代码，先停下来。它们应该复用主干能力，通过配置接入。
+- 如果产品需要自己的 Cloudflare runtime binding、secret、var 或 worker，在 `product-runtime` 中声明产品运行时契约，并让 `deploy.settings.json` 满足它。不要把 `capabilities.ai` 当成产品 AI runtime binding；它只表示共享 chat/generator AI module。
 
 ## UI Change Rules
 
