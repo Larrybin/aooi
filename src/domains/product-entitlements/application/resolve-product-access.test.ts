@@ -59,6 +59,7 @@ function grant(
       stringifyProductEntitlements({
         productKey: 'ai-remover',
         entitlements: { monthly_removals: 750 },
+        source: 'grant',
       }),
     reason: overrides.reason ?? 'test',
     grantedByUserId: overrides.grantedByUserId ?? null,
@@ -136,7 +137,8 @@ test('resolveProductAccess merges active grants with existing entitlement priori
           id: 'lower',
           entitlementsJson: stringifyProductEntitlements({
             productKey: 'ai-remover',
-            entitlements: { daily_removals: 4 },
+            entitlements: { monthly_removals: 25 },
+            source: 'grant',
           }),
           createdAt: new Date('2026-05-20T01:00:00Z'),
         }),
@@ -145,6 +147,7 @@ test('resolveProductAccess merges active grants with existing entitlement priori
           entitlementsJson: stringifyProductEntitlements({
             productKey: 'ai-remover',
             entitlements: { monthly_removals: 50, max_upload_mb: 25 },
+            source: 'grant',
           }),
           createdAt: new Date('2026-05-20T02:00:00Z'),
         }),

@@ -70,6 +70,28 @@ test('parseProductEntitlementsJson rejects unknown entitlement keys for the prod
   );
 });
 
+test('parseProductEntitlementsJson rejects AI Remover pricing-only keys for grants', () => {
+  const pricingOnlyGrantKeys = {
+    guest_daily_removals: 2,
+    daily_removals: 5,
+    retention_days: 7,
+    advanced_mode: true,
+    priority_queue: true,
+  };
+
+  for (const [key, value] of Object.entries(pricingOnlyGrantKeys)) {
+    assert.throws(
+      () =>
+        parseProductEntitlementsJson({
+          productKey: 'ai-remover',
+          source: 'grant',
+          value: JSON.stringify({ [key]: value }),
+        }),
+      new RegExp(`entitlement ${key} is not allowed for grant`, 'u')
+    );
+  }
+});
+
 test('resolveEffectiveEntitlements ignores expired, revoked, and wrong-environment grants', async () => {
   const result = await resolveEffectiveEntitlements({
     userId: 'user_1',
