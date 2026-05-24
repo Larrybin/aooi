@@ -1,11 +1,10 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
-import { resolvePricingEntitlements } from '@/domains/billing/domain/pricing';
 import { getCurrentSubscription } from '@/domains/billing/infra/subscription';
-import { resolveEffectiveEntitlements } from '@/domains/entitlements/application/resolve';
 import { resolveAppEnvironment } from '@/domains/entitlements/domain/types';
 import { listActiveEntitlementGrantsForScope } from '@/domains/entitlements/infra/grant';
+import { resolveProductAccess } from '@/domains/product-entitlements/application/resolve-product-access';
 import {
   resolveAnonymousSessionForRequest,
   writeAnonymousSessionCookie,
@@ -16,7 +15,7 @@ import {
   getRuntimeEnvString,
   isRuntimeEnvEnabled,
 } from '@/infra/runtime/env.server';
-import { site } from '@/site';
+import { site, sitePricing } from '@/site';
 
 import { assertCsrf } from '@/shared/lib/api/csrf.server';
 import { ServiceUnavailableError } from '@/shared/lib/api/errors';
@@ -62,35 +61,53 @@ export async function resolveRemoverActorFromRequest(
   }
 
   if (!user) {
-    return {
+    const actor = {
       kind: 'anonymous',
       anonymousSessionId: anonymousSession.anonymousSessionId,
+    } satisfies RemoverActor;
+    const productAccess = await resolveProductAccess({
+      actor,
+      siteKey: site.key,
+      productKey: site.key,
+      productId: 'free',
+      environment: resolveEntitlementEnvironment(),
+      pricing: sitePricing?.pricing,
+    });
+
+    return {
+      ...actor,
+      productAccess,
     };
   }
 
-  const subscription = await getCurrentSubscription(user.id);
-  const productId = subscription?.productId || 'free';
-  const effectiveEntitlements = await resolveEffectiveEntitlements({
+  const actor = {
+    kind: 'user',
     userId: user.id,
+    anonymousSessionId: anonymousSession.anonymousSessionId,
+  } satisfies RemoverActor;
+  const productAccess = await resolveProductAccess({
+    actor,
     siteKey: site.key,
     productKey: site.key,
-    baseEntitlements: resolvePricingEntitlements(productId),
+    productId: 'free',
     environment: resolveEntitlementEnvironment(),
+    pricing: sitePricing?.pricing,
     internalEntitlementGrantsEnabled: isRuntimeEnvEnabled(
       'INTERNAL_ENTITLEMENT_GRANTS_ENABLED'
     ),
     deps: {
+      getSubscriptionProductId: async (userId) =>
+        (await getCurrentSubscription(userId))?.productId,
       listGrants: listActiveEntitlementGrantsForScope,
     },
   });
 
   return {
-    kind: 'user',
-    userId: user.id,
-    anonymousSessionId: anonymousSession.anonymousSessionId,
-    productId,
-    entitlements: effectiveEntitlements.entitlements,
-    entitlementGrantIds: effectiveEntitlements.grantIds,
+    ...actor,
+    productId: productAccess.productId,
+    entitlements: productAccess.entitlements,
+    entitlementGrantIds: productAccess.entitlementGrantIds,
+    productAccess,
   };
 }
 
