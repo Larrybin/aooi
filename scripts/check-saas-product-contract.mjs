@@ -2,6 +2,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as ts from 'typescript';
 
+import * as productRuntimeAssertNamespace from '../src/domains/product-runtime/application/assert-runtime-contract.ts';
+import * as productRuntimeContractNamespace from '../src/domains/product-runtime/domain/contract.ts';
+import { getProductRuntimeContractsForSite } from './lib/product-runtime-contracts.mjs';
 import {
   readCurrentSiteConfig,
   resolveRequiredSiteKey,
@@ -26,6 +29,13 @@ const ISSUE_LEVEL = {
   BLOCKER: 'blocker',
   WARNING: 'warning',
 };
+const productRuntimeAssertModule =
+  productRuntimeAssertNamespace.default ?? productRuntimeAssertNamespace;
+const { checkProductRuntimeContract, formatProductRuntimeContractIssue } =
+  productRuntimeAssertModule;
+const productRuntimeContractModule =
+  productRuntimeContractNamespace.default ?? productRuntimeContractNamespace;
+const { getProductRuntimeRequiredKeys } = productRuntimeContractModule;
 
 function relativePath(filePath) {
   return path.relative(ROOT_DIR, filePath).split(path.sep).join('/');
@@ -695,6 +705,138 @@ function auditRuntimeOwnership({
       source('deploy_settings', deploySettingsPath),
       source('settings_definition', paymentSettingsPath),
       source('runtime_env', envContractPath),
+    ],
+    issues
+  );
+}
+
+function runtimeRequirementEntry({ key, status, sources }) {
+  return { key, status, sources };
+}
+
+function runtimeRequirementEntries({ keys, actual, sourceKind, sourcePath }) {
+  return keys.map((key) =>
+    runtimeRequirementEntry({
+      key,
+      status:
+        Object.prototype.hasOwnProperty.call(actual ?? {}, key) &&
+        actual?.[key] !== false
+          ? 'declared'
+          : 'missing',
+      sources: [source(sourceKind, sourcePath, key)],
+    })
+  );
+}
+
+function productRuntimeIssueSources({
+  issue,
+  deploySettingsPath,
+  runtimeContractPath,
+}) {
+  const contractSource = source(
+    'product_runtime_contract',
+    runtimeContractPath,
+    issue.code === 'site_key_mismatch' ? 'siteKey' : issue.key
+  );
+
+  switch (issue.code) {
+    case 'missing_worker':
+      return [
+        contractSource,
+        source('deploy_settings', deploySettingsPath, `workers.${issue.key}`),
+      ];
+    case 'missing_binding':
+      return [
+        contractSource,
+        source('deploy_settings', deploySettingsPath, `bindings.${issue.key}`),
+      ];
+    case 'missing_var':
+      return [
+        contractSource,
+        source('deploy_settings', deploySettingsPath, `vars.${issue.key}`),
+      ];
+    case 'missing_secret':
+      return [
+        contractSource,
+        source('deploy_settings', deploySettingsPath, `secrets.${issue.key}`),
+      ];
+    case 'site_key_mismatch':
+      return [contractSource, source('deploy_settings', deploySettingsPath)];
+  }
+}
+
+function auditProductRuntimeContracts({
+  siteKey,
+  deploySettings,
+  deploySettingsPath,
+  deployIssues,
+  runtimeContractPath,
+}) {
+  const contracts = getProductRuntimeContractsForSite(siteKey);
+  const products = contracts.map((contract) => {
+    const required = getProductRuntimeRequiredKeys(contract);
+    const result = checkProductRuntimeContract({
+      contract,
+      target: {
+        siteKey,
+        workers: deploySettings?.workers ?? {},
+        bindingRequirements: deploySettings?.bindingRequirements ?? {},
+      },
+    });
+
+    return {
+      siteKey: contract.siteKey,
+      productKey: contract.productKey,
+      status: result.issues.length === 0 ? 'resolved' : 'missing',
+      workers: runtimeRequirementEntries({
+        keys: required.workers,
+        actual: deploySettings?.workers,
+        sourceKind: 'deploy_settings',
+        sourcePath: deploySettingsPath,
+      }),
+      bindings: runtimeRequirementEntries({
+        keys: required.bindings,
+        actual: deploySettings?.bindingRequirements?.bindings,
+        sourceKind: 'deploy_settings',
+        sourcePath: deploySettingsPath,
+      }),
+      vars: runtimeRequirementEntries({
+        keys: required.vars,
+        actual: deploySettings?.bindingRequirements?.vars,
+        sourceKind: 'deploy_settings',
+        sourcePath: deploySettingsPath,
+      }),
+      secrets: runtimeRequirementEntries({
+        keys: required.secrets,
+        actual: deploySettings?.bindingRequirements?.secrets,
+        sourceKind: 'deploy_settings',
+        sourcePath: deploySettingsPath,
+      }),
+      issues: result.issues,
+    };
+  });
+  const productRuntimeIssues = products.flatMap((product) =>
+    product.issues.map((productIssue) =>
+      issue(
+        ISSUE_LEVEL.BLOCKER,
+        `product_runtime_${productIssue.code}`,
+        `Product runtime contract ${product.productKey} ${formatProductRuntimeContractIssue(productIssue)}`,
+        productRuntimeIssueSources({
+          issue: productIssue,
+          deploySettingsPath,
+          runtimeContractPath,
+        })
+      )
+    )
+  );
+  const issues = [...deployIssues, ...productRuntimeIssues];
+
+  return section(
+    issues.length === 0 ? 'resolved' : 'partial',
+    { products },
+    [
+      source('product_runtime_contract', runtimeContractPath),
+      source('deploy_settings', deploySettingsPath),
     ],
     issues
   );
@@ -2481,6 +2623,7 @@ function collectLaunch(report) {
     report.commercial,
     report.entitlementKeys,
     report.runtimeOwnership,
+    report.productRuntime,
     report.billingReversal,
     report.providerReadiness,
     report.usageCredits,
@@ -2509,6 +2652,10 @@ function buildAuditReport(siteKey) {
     'src/domains/settings/definitions/payment.ts'
   );
   const envContractPath = path.resolve(ROOT_DIR, 'src/config/env-contract.ts');
+  const productRuntimeContractPath = path.resolve(
+    ROOT_DIR,
+    'src/domains/remover/domain/runtime-contract.ts'
+  );
   const billingPaths = {
     paymentDomain: path.resolve(
       ROOT_DIR,
@@ -2690,6 +2837,13 @@ function buildAuditReport(siteKey) {
       paymentSettingsPath,
       envContractPath,
     }),
+    productRuntime: auditProductRuntimeContracts({
+      siteKey,
+      deploySettings,
+      deploySettingsPath,
+      deployIssues,
+      runtimeContractPath: productRuntimeContractPath,
+    }),
     billingReversal: auditBillingReversal(billingPaths),
     providerReadiness: auditProviderReadiness({
       paths: providerPaths,
@@ -2760,6 +2914,7 @@ function formatAuditReport(report) {
   const commercialValue = report.commercial.value;
   const entitlementKeys = report.entitlementKeys.value.keys;
   const runtimeFields = report.runtimeOwnership.value.fields;
+  const productRuntimeProducts = report.productRuntime.value.products;
   const providerReadiness = report.providerReadiness.value;
   const usageCredits = report.usageCredits.value;
   const lines = [
@@ -2789,6 +2944,26 @@ function formatAuditReport(report) {
     lines.push(
       `  ${field.name}: ${field.status} (${field.owner}, ${field.expectedKey})`
     );
+  }
+
+  lines.push('', 'Product runtime contracts:');
+  if (productRuntimeProducts.length === 0) {
+    lines.push('  none');
+  }
+  for (const product of productRuntimeProducts) {
+    lines.push(`  ${product.productKey}: ${product.status}`);
+    for (const worker of product.workers) {
+      lines.push(`    worker=${worker.key} ${worker.status}`);
+    }
+    for (const binding of product.bindings) {
+      lines.push(`    binding=${binding.key} ${binding.status}`);
+    }
+    for (const runtimeVar of product.vars) {
+      lines.push(`    var=${runtimeVar.key} ${runtimeVar.status}`);
+    }
+    for (const secret of product.secrets) {
+      lines.push(`    secret=${secret.key} ${secret.status}`);
+    }
   }
 
   lines.push('', 'Billing reversal:');
@@ -2911,6 +3086,9 @@ function formatAuditReport(report) {
   );
   lines.push(
     formatSectionSources('runtime ownership', report.runtimeOwnership.sources)
+  );
+  lines.push(
+    formatSectionSources('product runtime', report.productRuntime.sources)
   );
   lines.push(
     formatSectionSources('billing reversal', report.billingReversal.sources)

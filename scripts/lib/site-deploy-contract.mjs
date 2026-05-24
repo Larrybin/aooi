@@ -1,7 +1,9 @@
 import { existsSync, readdirSync } from 'node:fs';
 
 import * as paymentCapabilityNamespace from '../../src/config/payment-capability.ts';
+import * as productRuntimeAssertNamespace from '../../src/domains/product-runtime/application/assert-runtime-contract.ts';
 import cloudflareWorkerTopology from '../../src/shared/config/cloudflare-worker-topology.ts';
+import { getProductRuntimeContractsForSite } from './product-runtime-contracts.mjs';
 import {
   readCurrentSiteConfig,
   resolveRequiredSiteKey,
@@ -42,6 +44,9 @@ const paymentCapabilityModule =
   paymentCapabilityNamespace.default ?? paymentCapabilityNamespace;
 const { assertPaymentCapabilityContract, resolvePaymentHealth } =
   paymentCapabilityModule;
+const productRuntimeAssertModule =
+  productRuntimeAssertNamespace.default ?? productRuntimeAssertNamespace;
+const { assertProductRuntimeContract } = productRuntimeAssertModule;
 
 function sortObject(value) {
   if (Array.isArray(value)) {
@@ -273,6 +278,7 @@ export function resolveSiteDeployContractFromSources({
   const derivedBindingRequirements = buildDerivedBindingRequirements(site, {
     deployProfile,
   });
+  const productRuntimeContracts = getProductRuntimeContractsForSite(siteKey);
   const serverWorkers = buildServerWorkers(effectiveDeploySettings);
   const activeServerWorkerTargets = Object.keys(serverWorkers);
   const stateMigrationTag = `${effectiveDeploySettings.workers.state}-v${effectiveDeploySettings.state.schemaVersion}`;
@@ -310,6 +316,7 @@ export function resolveSiteDeployContractFromSources({
     workers: effectiveDeploySettings.workers,
     resources: effectiveDeploySettings.resources,
     state: effectiveDeploySettings.state,
+    productRuntimeContracts,
     router: {
       slot: CLOUDFLARE_ROUTER_SLOT,
       workerName: effectiveDeploySettings.workers.router,
@@ -370,6 +377,17 @@ export function resolveSiteDeployContractFromSources({
     },
     serverWorkers,
   };
+
+  for (const productRuntimeContract of productRuntimeContracts) {
+    assertProductRuntimeContract({
+      contract: productRuntimeContract,
+      target: {
+        siteKey,
+        workers: contract.workers,
+        bindingRequirements: contract.bindingRequirements,
+      },
+    });
+  }
 
   return {
     ...contract,

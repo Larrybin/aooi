@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -14,6 +14,17 @@ const SCRIPT_PATH = path.resolve(
 async function writeJson(filePath: string, value: unknown) {
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+async function updateJson(
+  filePath: string,
+  update: (value: Record<string, unknown>) => Record<string, unknown>
+) {
+  const current = JSON.parse(await readFile(filePath, 'utf8')) as Record<
+    string,
+    unknown
+  >;
+  await writeJson(filePath, update(current));
 }
 
 async function writeText(filePath: string, value: string) {
@@ -567,7 +578,7 @@ async function createFixtureRoot(pricing: unknown) {
     capabilities: {
       auth: true,
       payment: 'creem',
-      ai: true,
+      ai: false,
       docs: false,
       blog: false,
     },
@@ -594,7 +605,6 @@ async function createFixtureRoot(pricing: unknown) {
         auth: 'aooi-ai-remover-auth',
         payment: 'aooi-ai-remover-payment',
         member: 'aooi-ai-remover-member',
-        chat: 'aooi-ai-remover-chat',
         admin: 'aooi-ai-remover-admin',
       },
       resources: {
@@ -608,6 +618,20 @@ async function createFixtureRoot(pricing: unknown) {
   await writeJson(
     path.join(rootDir, 'sites', siteKey, 'pricing.json'),
     pricing
+  );
+  await writeText(
+    path.join(rootDir, 'src/domains/remover/domain/runtime-contract.ts'),
+    [
+      'export const AI_REMOVER_RUNTIME_CONTRACT = {',
+      "  siteKey: 'ai-remover',",
+      "  productKey: 'ai-remover',",
+      "  requiredWorkers: { 'public-web': true },",
+      '  requiredBindings: { workersAi: true },',
+      '  requiredVars: { storagePublicBaseUrl: true },',
+      '  requiredSecrets: { removerCleanup: true },',
+      '};',
+      '',
+    ].join('\n')
   );
   await writeText(
     path.join(rootDir, 'src/domains/settings/definitions/payment.ts'),
@@ -1106,6 +1130,136 @@ test('contract audit degrades missing billing source files into source-mapped wa
     /source  billing_application:src\/domains\/billing\/application\/process-payment-notify\.ts/
   );
   assert.doesNotMatch(result.stderr, /SaaS contract audit failed/);
+});
+
+test('contract audit covers AI Remover product runtime requirements without enabling chat AI capability', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Product runtime contracts:/);
+  assert.match(result.stdout, /ai-remover: resolved/);
+  assert.match(result.stdout, /worker=public-web declared/);
+  assert.match(result.stdout, /binding=workersAi declared/);
+  assert.match(result.stdout, /var=storagePublicBaseUrl declared/);
+  assert.match(result.stdout, /secret=removerCleanup declared/);
+  assert.doesNotMatch(result.stdout, /chat \(site\.capabilities\.ai\)/);
+  assert.match(result.stdout, /binding=workersAi runtime_owned/);
+  assert.match(result.stdout, /openrouter: partial/);
+});
+
+test('contract audit fails when AI Remover product runtime binding is disabled', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  const deploySettingsPath = path.join(
+    rootDir,
+    'sites/ai-remover/deploy.settings.json'
+  );
+  await updateJson(deploySettingsPath, (current) => ({
+    ...current,
+    bindingRequirements: {
+      ...(current.bindingRequirements as Record<string, unknown>),
+      bindings: {
+        ...((current.bindingRequirements as { bindings: object }).bindings ??
+          {}),
+        workersAi: false,
+      },
+    },
+  }));
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stdout,
+    /blocker  Product runtime contract ai-remover missing binding workersAi/
+  );
+  assert.match(
+    result.stdout,
+    /source  product_runtime_contract:src\/domains\/remover\/domain\/runtime-contract\.ts:workersAi/
+  );
+  assert.match(
+    result.stdout,
+    /source  deploy_settings:sites\/ai-remover\/deploy\.settings\.json:bindings\.workersAi/
+  );
+});
+
+test('contract audit fails when AI Remover product runtime secret is disabled', async () => {
+  const rootDir = await createFixtureRoot({
+    pricing: {
+      items: [
+        {
+          title: 'Free',
+          product_id: 'free',
+          interval: 'month',
+          amount: 0,
+          currency: 'USD',
+          checkout_enabled: false,
+          entitlements: {
+            low_res_download: true,
+          },
+        },
+      ],
+    },
+  });
+  const deploySettingsPath = path.join(
+    rootDir,
+    'sites/ai-remover/deploy.settings.json'
+  );
+  await updateJson(deploySettingsPath, (current) => ({
+    ...current,
+    bindingRequirements: {
+      ...(current.bindingRequirements as Record<string, unknown>),
+      secrets: {
+        ...((current.bindingRequirements as { secrets: object }).secrets ?? {}),
+        removerCleanup: false,
+      },
+    },
+  }));
+
+  const result = runAudit(rootDir);
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stdout,
+    /blocker  Product runtime contract ai-remover missing secret removerCleanup/
+  );
+  assert.match(
+    result.stdout,
+    /source  deploy_settings:sites\/ai-remover\/deploy\.settings\.json:secrets\.removerCleanup/
+  );
 });
 
 test('contract audit prints provider readiness report', async () => {

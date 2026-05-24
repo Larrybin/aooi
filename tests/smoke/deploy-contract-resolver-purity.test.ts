@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveSiteDeployContract } from '../../scripts/lib/site-deploy-contract.mjs';
-import { readSitePreviewDeploySettings } from '../../scripts/lib/site-deploy-settings.mjs';
+import {
+  resolveSiteDeployContract,
+  resolveSiteDeployContractFromSources,
+} from '../../scripts/lib/site-deploy-contract.mjs';
+import {
+  readSiteDeploySettings,
+  readSitePreviewDeploySettings,
+} from '../../scripts/lib/site-deploy-settings.mjs';
 
 test('deploy contract resolver 在相同输入下输出完全一致', () => {
   const first = resolveSiteDeployContract({
@@ -48,6 +54,101 @@ test('deploy contract resolver 从 active worker map 排除 disabled chat', () =
   assert.equal('CHAT_WORKER' in contract.router.serviceBindings, false);
   assert.equal('CHAT_WORKER_VERSION_ID' in contract.router.versionVars, false);
   assert.equal('CHAT_WORKER_NAME' in contract.router.workerNameVars, false);
+});
+
+test('deploy contract resolver keeps AI Remover product runtime AI binding separate from capabilities.ai', () => {
+  const contract = resolveSiteDeployContract({
+    rootDir: process.cwd(),
+    siteKey: 'ai-remover',
+    processEnv: {},
+  });
+
+  assert.equal(contract.site.capabilities.ai, false);
+  assert.equal(contract.bindingRequirements.secrets.openrouter, false);
+  assert.equal(contract.bindingRequirements.bindings.workersAi, true);
+  assert.equal(contract.productRuntimeContracts.length, 1);
+  assert.deepEqual(contract.productRuntimeContracts[0], {
+    siteKey: 'ai-remover',
+    productKey: 'ai-remover',
+    requiredWorkers: {
+      'public-web': true,
+    },
+    requiredBindings: {
+      workersAi: true,
+    },
+    requiredVars: {
+      storagePublicBaseUrl: true,
+    },
+    requiredSecrets: {
+      removerCleanup: true,
+    },
+  });
+});
+
+test('deploy contract resolver rejects missing AI Remover product runtime requirements', () => {
+  const contract = resolveSiteDeployContract({
+    rootDir: process.cwd(),
+    siteKey: 'ai-remover',
+    processEnv: {},
+  });
+  const deploySettings = readSiteDeploySettings({
+    rootDir: process.cwd(),
+    siteKey: 'ai-remover',
+  });
+
+  assert.throws(
+    () =>
+      resolveSiteDeployContractFromSources({
+        site: contract.site,
+        siteKey: 'ai-remover',
+        deploySettings: {
+          ...deploySettings,
+          bindingRequirements: {
+            ...deploySettings.bindingRequirements,
+            bindings: {
+              ...deploySettings.bindingRequirements.bindings,
+              workersAi: false,
+            },
+          },
+        },
+      }),
+    /missing binding workersAi/
+  );
+
+  assert.throws(
+    () =>
+      resolveSiteDeployContractFromSources({
+        site: contract.site,
+        siteKey: 'ai-remover',
+        deploySettings: {
+          ...deploySettings,
+          bindingRequirements: {
+            ...deploySettings.bindingRequirements,
+            secrets: {
+              ...deploySettings.bindingRequirements.secrets,
+              removerCleanup: false,
+            },
+          },
+        },
+      }),
+    /missing secret removerCleanup/
+  );
+
+  assert.throws(
+    () =>
+      resolveSiteDeployContractFromSources({
+        site: contract.site,
+        siteKey: 'ai-remover',
+        deploySettings: {
+          ...deploySettings,
+          workers: {
+            router: deploySettings.workers.router,
+            state: deploySettings.workers.state,
+          },
+        },
+      }),
+    /missing worker public-web/
+  );
 });
 
 test('deploy contract resolver 为 preview 派生 workers.dev 资源', () => {
