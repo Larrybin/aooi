@@ -14,6 +14,8 @@ AI Remover should be implemented as an aooi site/product workflow:
   `src/domains/product-entitlements/**`; AI Remover is the first consumer.
 - Product quota reservation primitives live in `src/domains/product-quota/**`;
   AI Remover is the first consumer.
+- Product runtime binding contracts live in `src/domains/product-runtime/**`;
+  AI Remover is the first consumer.
 - Provider and platform adapters live in `src/infra/**` unless an existing
   domain-owned infra pattern is more direct.
 - Shared utilities stay in `src/shared/**`.
@@ -73,6 +75,8 @@ The domain owns:
 - AI Remover-specific use of shared product-access actor/session/ownership.
 - AI Remover-specific use of shared product-quota reserve/commit/refund
   semantics.
+- AI Remover-specific product-runtime contract declaration for Cloudflare
+  bindings, vars, secrets, and required workers.
 - Plan entitlement resolution for this product.
 - My Images query and deletion rules.
 - High-res download authorization.
@@ -92,6 +96,16 @@ perform global quota counting by itself. It does not own pricing, entitlement
 resolution, billing, runtime, job lifecycle, media asset, provider, or editor
 behavior. AI Remover is the first consumer, and this stage does not rename or
 replace the existing `remover_quota_reservation` table.
+`src/domains/product-runtime/**` is the generic product runtime binding
+contract layer. It only models which workers, bindings, vars, and secrets a
+product needs at deploy/runtime boundaries. AI Remover declares `public-web`,
+`workersAi`, `storagePublicBaseUrl`, and `removerCleanup` as its current
+runtime requirements. Product runtime AI binding is separate from the platform
+`capabilities.ai` flag: AI Remover keeps `capabilities.ai=false` because it does
+not enable the shared chat/generator module, while still requiring Cloudflare
+Workers AI for the remover product runtime. `product-runtime` does not own
+actor/session, entitlements, quota, billing, job lifecycle, media assets,
+provider adapters, or editor behavior.
 
 The existing AI module can provide configured provider bindings and shared AI
 enablement checks, but the generic `ai_task` table should not be stretched to

@@ -8,10 +8,21 @@ AI is an optional product module layered on top of the mainline shell:
 - provider-specific task execution
 - AI webhook notify endpoints
 
+`capabilities.ai` only controls this shared chat/generator module. Product
+runtime AI bindings are separate: a product such as AI Remover can keep
+`capabilities.ai=false` while declaring a `product-runtime` contract that
+requires Cloudflare Workers AI for its own runtime.
+
 ## Required Configuration
 
 - `general_ai_enabled`
 - provider API keys in the `ai` settings tab
+
+Products that need deploy/runtime AI bindings must explicitly declare their
+workers, bindings, vars, and secrets through `product-runtime`, then mirror
+those requirements in the site's deploy settings. `product-runtime` does not
+handle actor, entitlement, quota, billing, job, media, provider, or editor
+behavior.
 
 ## External Services
 
