@@ -86,10 +86,12 @@ quota, billing flows, runtime, job, media asset, provider, or editor behavior,
 and it does not know AI Remover-specific entitlement keys.
 `src/domains/product-quota/**` is the generic product quota reservation layer.
 It only handles reserve/commit/refund orchestration through product-provided
-storage adapters. It does not own pricing, entitlement resolution, billing,
-runtime, job lifecycle, media asset, provider, or editor behavior. AI Remover is
-the first consumer, and this stage does not rename or replace the existing
-`remover_quota_reservation` table.
+storage adapters. Windowed usage checks, locks, and reservation writes must stay
+inside the product storage adapter transaction; `product-quota` does not
+perform global quota counting by itself. It does not own pricing, entitlement
+resolution, billing, runtime, job lifecycle, media asset, provider, or editor
+behavior. AI Remover is the first consumer, and this stage does not rename or
+replace the existing `remover_quota_reservation` table.
 
 The existing AI module can provide configured provider bindings and shared AI
 enablement checks, but the generic `ai_task` table should not be stretched to
