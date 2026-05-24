@@ -188,6 +188,58 @@ test('resolveEffectiveEntitlements merges active grants without lowering base nu
   });
 });
 
+test('resolveEffectiveEntitlements skips legacy pricing-only grant keys without failing access', async () => {
+  const result = await resolveEffectiveEntitlements({
+    userId: 'user_1',
+    siteKey: 'ai-remover',
+    productKey: 'ai-remover',
+    baseEntitlements: {
+      daily_removals: 5,
+      advanced_mode: false,
+      retention_days: 7,
+      monthly_removals: 10,
+    },
+    environment: 'preview',
+    internalEntitlementGrantsEnabled: false,
+    now,
+    deps: {
+      listGrants: async () => [
+        grant({
+          id: 'legacy-pricing-only',
+          entitlementsJson: stringifyProductEntitlements({
+            productKey: 'ai-remover',
+            entitlements: {
+              daily_removals: 50,
+              advanced_mode: true,
+              retention_days: 30,
+            },
+          }),
+        }),
+        grant({
+          id: 'legacy-mixed',
+          entitlementsJson: stringifyProductEntitlements({
+            productKey: 'ai-remover',
+            entitlements: {
+              monthly_removals: 75,
+              priority_queue: true,
+            },
+          }),
+        }),
+      ],
+    },
+  });
+
+  assert.deepEqual(result, {
+    entitlements: {
+      daily_removals: 5,
+      advanced_mode: false,
+      retention_days: 7,
+      monthly_removals: 75,
+    },
+    grantIds: ['legacy-mixed'],
+  });
+});
+
 test('resolveEffectiveEntitlements rejects active grants with unknown keys', async () => {
   await assert.rejects(
     () =>

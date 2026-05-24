@@ -158,16 +158,23 @@ export function mergeEntitlementsFromGrants({
     const grantEntitlements = parseProductEntitlementsJson({
       productKey,
       value: grant.entitlementsJson,
-      source: 'grant',
     });
+    let mergedGrant = false;
     for (const [key, value] of Object.entries(grantEntitlements)) {
+      const field = getProductEntitlementSchema(productKey)?.[key];
+      if (!field?.sources.includes('grant')) {
+        continue;
+      }
       entitlements[key] = mergeEntitlementValue({
         baseValue: entitlements[key],
         grantValue: value,
-        field: getProductEntitlementSchema(productKey)?.[key],
+        field,
       });
+      mergedGrant = true;
     }
-    grantIds.push(grant.id);
+    if (mergedGrant) {
+      grantIds.push(grant.id);
+    }
   }
 
   return { entitlements, grantIds };
