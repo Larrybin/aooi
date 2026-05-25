@@ -19,7 +19,10 @@ import {
   BACKGROUND_REMOVER_QUOTA_OPERATION_KEYS,
   type BackgroundRemoverActor,
 } from '../domain/types';
-import type { createBackgroundRemoverImage } from '../infra/image';
+import type {
+  createBackgroundRemoverImage,
+  markBackgroundRemoverImagesDeletedByIds,
+} from '../infra/image';
 import type { reserveBackgroundRemoverQuota } from '../infra/quota';
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -45,6 +48,7 @@ export type RemoveImageBackgroundDeps = {
   images: Pick<ImagesBinding, 'input'> | null;
   detectImageMime: (buffer: Buffer) => string | null;
   createImage: typeof createBackgroundRemoverImage;
+  markImagesDeletedByIds: typeof markBackgroundRemoverImagesDeletedByIds;
   reserveQuota: typeof reserveBackgroundRemoverQuota;
   commitReservation: (input: {
     reservationId: string;
@@ -213,6 +217,7 @@ export async function removeImageBackground({
   });
 
   let reservationId = '';
+  let createdImageId = '';
   const uploadedKeys: string[] = [];
 
   try {
@@ -277,6 +282,7 @@ export async function removeImageBackground({
       quotaReservationId: reservation.id,
       expiresAt,
     });
+    createdImageId = id;
     await deps.commitReservation({ reservationId: reservation.id, now });
 
     return {
@@ -288,6 +294,14 @@ export async function removeImageBackground({
       expiresAt: expiresAt.toISOString(),
     };
   } catch (error: unknown) {
+    if (createdImageId) {
+      await deps
+        .markImagesDeletedByIds({
+          ids: [createdImageId],
+          now,
+        })
+        .catch(() => undefined);
+    }
     if (reservationId) {
       await deps
         .refundReservation({

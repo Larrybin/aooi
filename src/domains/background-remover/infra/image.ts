@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { ProductOwner } from '@/domains/product-access/domain/ownership';
 import { db } from '@/infra/adapters/db';
-import { and, eq, inArray, isNull, lte } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, or } from 'drizzle-orm';
 
 import { backgroundRemoverImage } from '@/config/db/schema';
 
@@ -10,18 +10,27 @@ export type BackgroundRemoverImage = typeof backgroundRemoverImage.$inferSelect;
 export type NewBackgroundRemoverImage =
   typeof backgroundRemoverImage.$inferInsert;
 
-function ownerCondition(owner: ProductOwner) {
-  return owner.userId
-    ? eq(backgroundRemoverImage.userId, owner.userId)
-    : and(
+export function backgroundRemoverImageOwnerCondition(owner: ProductOwner) {
+  if (owner.userId) {
+    if (!owner.anonymousSessionId) {
+      return eq(backgroundRemoverImage.userId, owner.userId);
+    }
+
+    return or(
+      eq(backgroundRemoverImage.userId, owner.userId),
+      and(
         isNull(backgroundRemoverImage.userId),
-        owner.anonymousSessionId
-          ? eq(
-              backgroundRemoverImage.anonymousSessionId,
-              owner.anonymousSessionId
-            )
-          : isNull(backgroundRemoverImage.anonymousSessionId)
-      );
+        eq(backgroundRemoverImage.anonymousSessionId, owner.anonymousSessionId)
+      )
+    );
+  }
+
+  return and(
+    isNull(backgroundRemoverImage.userId),
+    owner.anonymousSessionId
+      ? eq(backgroundRemoverImage.anonymousSessionId, owner.anonymousSessionId)
+      : isNull(backgroundRemoverImage.anonymousSessionId)
+  );
 }
 
 export async function createBackgroundRemoverImage(
@@ -49,7 +58,7 @@ export async function findBackgroundRemoverImageByIdForOwner({
         eq(backgroundRemoverImage.id, id),
         eq(backgroundRemoverImage.status, 'active'),
         isNull(backgroundRemoverImage.deletedAt),
-        ownerCondition(owner)
+        backgroundRemoverImageOwnerCondition(owner)
       )
     )
     .limit(1);

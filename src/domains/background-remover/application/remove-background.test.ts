@@ -85,6 +85,9 @@ test('removeImageBackground reserves quota, segments foreground, stores result, 
         updatedAt: new Date('2026-05-25T00:00:00Z'),
         deletedAt: null,
       }),
+      markImagesDeletedByIds: async () => {
+        throw new Error('should not mark image deleted on success');
+      },
       reserveQuota: async (input) => ({
         reservation: {
           id: 'reservation_1',
@@ -175,6 +178,9 @@ test('removeImageBackground refunds quota and deletes uploaded original when tra
         createImage: async () => {
           throw new Error('should not create image');
         },
+        markImagesDeletedByIds: async () => {
+          throw new Error('should not mark image deleted');
+        },
         reserveQuota: async (input) => ({
           reservation: {
             id: 'reservation_1',
@@ -217,6 +223,90 @@ test('removeImageBackground refunds quota and deletes uploaded original when tra
   ]);
 });
 
+test('removeImageBackground marks created image deleted when quota commit fails', async () => {
+  const deleted: string[][] = [];
+  const markedDeleted: string[][] = [];
+  const refunded: string[] = [];
+  const images = createImagesBinding();
+
+  await assert.rejects(
+    removeImageBackground({
+      actor: { kind: 'anonymous', anonymousSessionId: 'anon_1' },
+      file: pngFile(),
+      width: 1200,
+      height: 800,
+      deps: {
+        storageService: {
+          async uploadFile(options) {
+            return {
+              success: true,
+              provider: 'test',
+              key: options.key,
+              url: `https://assets.example/${options.key}`,
+            };
+          },
+          async deleteFiles(keys) {
+            deleted.push(keys);
+          },
+        },
+        images: images.binding,
+        detectImageMime: () => 'image/png',
+        createImage: async (input) => ({
+          ...input,
+          createdAt: new Date('2026-05-25T00:00:00Z'),
+          updatedAt: new Date('2026-05-25T00:00:00Z'),
+          deletedAt: null,
+        }),
+        markImagesDeletedByIds: async ({ ids }) => {
+          markedDeleted.push(ids);
+          return [];
+        },
+        reserveQuota: async (input) => ({
+          reservation: {
+            id: 'reservation_1',
+            userId: null,
+            anonymousSessionId: 'anon_1',
+            siteKey: 'background-remover',
+            productKey: 'background-remover',
+            productId: input.productId,
+            operationKey: input.operationKey,
+            units: 1,
+            status: 'reserved',
+            idempotencyKey: input.idempotencyKey,
+            jobId: null,
+            reason: null,
+            entitlementGrantIdsJson: null,
+            createdAt: new Date('2026-05-25T00:00:00Z'),
+            updatedAt: new Date('2026-05-25T00:00:00Z'),
+            committedAt: null,
+            refundedAt: null,
+            expiresAt: input.expiresAt,
+          },
+          reused: false,
+        }),
+        commitReservation: async () => {
+          throw new Error('commit failed');
+        },
+        refundReservation: async ({ reservationId }) => {
+          refunded.push(reservationId);
+        },
+        now: () => new Date('2026-05-25T00:00:00Z'),
+        createId: () => 'result_1',
+      },
+    }),
+    /commit failed/
+  );
+
+  assert.deepEqual(markedDeleted, [['result_1']]);
+  assert.deepEqual(refunded, ['reservation_1']);
+  assert.deepEqual(deleted, [
+    [
+      'background-remover/anonymous/anon_1/result_1/original.png',
+      'background-remover/anonymous/anon_1/result_1/result.png',
+    ],
+  ]);
+});
+
 test('removeImageBackground rejects unsupported image formats before quota reserve', async () => {
   let reserved = false;
 
@@ -239,6 +329,9 @@ test('removeImageBackground rejects unsupported image formats before quota reser
         detectImageMime: () => 'image/gif',
         createImage: async () => {
           throw new Error('should not create image');
+        },
+        markImagesDeletedByIds: async () => {
+          throw new Error('should not mark image deleted');
         },
         reserveQuota: async () => {
           reserved = true;

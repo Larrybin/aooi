@@ -1,5 +1,8 @@
 import { removeImageBackground } from '@/domains/background-remover/application/remove-background';
-import { createBackgroundRemoverImage } from '@/domains/background-remover/infra/image';
+import {
+  createBackgroundRemoverImage,
+  markBackgroundRemoverImagesDeletedByIds,
+} from '@/domains/background-remover/infra/image';
 import {
   commitBackgroundRemoverQuotaReservation,
   refundBackgroundRemoverQuotaReservation,
@@ -52,6 +55,7 @@ export const POST = withApi(async (req: Request) => {
       images: getCloudflareImagesBinding(),
       detectImageMime: detectAllowedImageMime,
       createImage: createBackgroundRemoverImage,
+      markImagesDeletedByIds: markBackgroundRemoverImagesDeletedByIds,
       reserveQuota: reserveBackgroundRemoverQuota,
       commitReservation: commitBackgroundRemoverQuotaReservation,
       refundReservation: refundBackgroundRemoverQuotaReservation,

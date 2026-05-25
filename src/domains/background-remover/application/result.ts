@@ -1,5 +1,5 @@
 import type { ProductActor } from '@/domains/product-access/domain/actor';
-import { getProductActorOwner } from '@/domains/product-access/domain/ownership';
+import type { ProductOwner } from '@/domains/product-access/domain/ownership';
 import type { StorageService } from '@/infra/adapters/storage/service-builder';
 
 import { NotFoundError } from '@/shared/lib/api/errors';
@@ -22,6 +22,20 @@ export type BackgroundRemoverResultFile = {
   contentLength: number | null;
 };
 
+function getBackgroundRemoverReadOwner(actor: ProductActor): ProductOwner {
+  if (actor.kind === 'user') {
+    return {
+      userId: actor.userId,
+      anonymousSessionId: actor.anonymousSessionId ?? null,
+    };
+  }
+
+  return {
+    userId: null,
+    anonymousSessionId: actor.anonymousSessionId,
+  };
+}
+
 export async function readBackgroundRemoverResultFile({
   actor,
   id,
@@ -33,7 +47,7 @@ export async function readBackgroundRemoverResultFile({
 }): Promise<BackgroundRemoverResultFile> {
   const image = await deps.findImageByIdForOwner({
     id,
-    owner: getProductActorOwner(actor),
+    owner: getBackgroundRemoverReadOwner(actor),
   });
   if (!image) {
     throw new NotFoundError('result not found');
