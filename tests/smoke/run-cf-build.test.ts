@@ -33,7 +33,11 @@ test('cf:build forwards worker scope args to the dry-run upload check', () => {
 });
 
 test('cf:build:no-db covers the explicit deployable site list', () => {
-  assert.deepEqual(NO_DB_CLOUDFLARE_BUILD_SITES, ['mamamiya', 'ai-remover']);
+  assert.deepEqual(NO_DB_CLOUDFLARE_BUILD_SITES, [
+    'mamamiya',
+    'ai-remover',
+    'background-remover',
+  ]);
 });
 
 test('cf:build:no-db forwards cf:build args to each site build', () => {

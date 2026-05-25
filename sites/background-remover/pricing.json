@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "title": "Background Remover Pricing - Free, Pro, and Studio Plans",
+    "description": "Choose a Background Remover plan for transparent PNG exports, higher monthly volume, and longer image retention."
+  },
+  "pricing": {
+    "id": "pricing",
+    "sr_only_title": "Background Remover Pricing",
+    "title": "Background Remover Pricing",
+    "description": "Remove image backgrounds and export transparent PNGs with simple monthly limits.",
+    "items": [
+      {
+        "title": "Free",
+        "description": "Try the background remover before upgrading.",
+        "features_title": "Includes",
+        "features": [
+          "Guest daily limit: 2 images",
+          "Logged-in free daily limit: 5 images",
+          "Transparent PNG download",
+          "10MB upload limit",
+          "7-day signed-in image history"
+        ],
+        "interval": "month",
+        "amount": 0,
+        "currency": "USD",
+        "price": "$0",
+        "unit": "",
+        "button": {
+          "title": "Remove a background",
+          "url": "/",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "free",
+        "product_name": "Background Remover Free",
+        "plan_name": "Free",
+        "checkout_enabled": false,
+        "entitlements": {
+          "guest_daily_removals": 2,
+          "daily_removals": 5,
+          "max_upload_mb": 10,
+          "retention_days": 7
+        }
+      },
+      {
+        "title": "Pro",
+        "description": "For creators and shops that prepare product images every week.",
+        "label": "Popular",
+        "features_title": "Everything in Free, plus",
+        "features": [
+          "500 background removals per month",
+          "Transparent PNG exports",
+          "20MB upload limit",
+          "30-day image history",
+          "Priority product workflow"
+        ],
+        "interval": "month",
+        "amount": 999,
+        "currency": "USD",
+        "price": "$9.99",
+        "unit": "/ month",
+        "is_featured": true,
+        "button": {
+          "title": "Upgrade to Pro",
+          "url": "/pricing",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "pro-monthly",
+        "product_name": "Background Remover Pro Monthly",
+        "plan_name": "Pro",
+        "checkout_enabled": true,
+        "entitlements": {
+          "monthly_removals": 500,
+          "max_upload_mb": 20,
+          "retention_days": 30
+        }
+      },
+      {
+        "title": "Studio",
+        "description": "For heavier product image, catalog, and design workflows.",
+        "features_title": "Everything in Pro, plus",
+        "features": [
+          "2,000 background removals per month",
+          "Transparent PNG exports",
+          "20MB upload limit",
+          "30-day image history",
+          "Higher monthly processing volume"
+        ],
+        "interval": "month",
+        "amount": 2999,
+        "currency": "USD",
+        "price": "$29.99",
+        "unit": "/ month",
+        "button": {
+          "title": "Upgrade to Studio",
+          "url": "/pricing",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "studio-monthly",
+        "product_name": "Background Remover Studio Monthly",
+        "plan_name": "Studio",
+        "checkout_enabled": true,
+        "entitlements": {
+          "monthly_removals": 2000,
+          "max_upload_mb": 20,
+          "retention_days": 30
+        }
+      }
+    ]
+  },
+  "faq": {
+    "id": "pricing-faq",
+    "title": "Pricing questions before you upgrade.",
+    "items": [
+      {
+        "question": "Can I use Background Remover for free?",
+        "answer": "Yes. Guests can remove a small number of backgrounds each day, and signed-in free users get a higher daily limit."
+      },
+      {
+        "question": "Do exports have transparent backgrounds?",
+        "answer": "Yes. Results are delivered as transparent PNG files."
+      },
+      {
+        "question": "What happens when I cancel?",
+        "answer": "Subscription benefits downgrade at the end of the active billing period. Your image retention and quota limits return to the free plan."
+      },
+      {
+        "question": "What formats can I upload?",
+        "answer": "The V1 product supports PNG, JPG, JPEG, and WebP uploads."
+      }
+    ]
+  }
+}

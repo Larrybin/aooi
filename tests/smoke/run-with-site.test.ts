@@ -192,7 +192,7 @@ test('run-with-site 对未知 SITE 输出可修复的配置错误', async () => 
   );
   assert.match(
     result.stderr,
-    /set SITE to one of: ai-remover, dev-local, mamamiya/
+    /set SITE to one of: ai-remover, background-remover, dev-local, mamamiya/
   );
   assert.doesNotMatch(result.stderr, /ENOENT/);
   assert.doesNotMatch(result.stderr, /Error: site "__missing_site__"/);

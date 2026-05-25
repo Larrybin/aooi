@@ -57,6 +57,25 @@ const PRODUCT_ENTITLEMENT_SCHEMAS: Record<string, ProductEntitlementSchema> = {
     },
     retention_days: { type: 'number', merge: 'max', sources: ['pricing'] },
   },
+  'background-remover': {
+    guest_daily_removals: {
+      type: 'number',
+      merge: 'max',
+      sources: ['pricing'],
+    },
+    daily_removals: { type: 'number', merge: 'max', sources: ['pricing'] },
+    monthly_removals: {
+      type: 'number',
+      merge: 'max',
+      sources: ['pricing', 'grant'],
+    },
+    max_upload_mb: {
+      type: 'number',
+      merge: 'max',
+      sources: ['pricing', 'grant'],
+    },
+    retention_days: { type: 'number', merge: 'max', sources: ['pricing'] },
+  },
 };
 
 export function getProductEntitlementSchema(productKey: string) {
