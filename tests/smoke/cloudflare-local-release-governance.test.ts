@@ -121,7 +121,7 @@ test('Cloudflare acceptance 拆分职责并保留稳定 required check', () => {
   );
   assert.match(
     acceptanceWorkflowContent,
-    /strategy:[\s\S]*?matrix:[\s\S]*?site:\s*\[mamamiya, ai-remover\]/
+    /strategy:[\s\S]*?matrix:[\s\S]*?site:\s*\[mamamiya, ai-remover, background-remover\]/
   );
   assert.match(
     acceptanceWorkflowContent,

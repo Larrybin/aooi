@@ -154,7 +154,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        site: [mamamiya, ai-remover]
+        site: [mamamiya, ai-remover, background-remover]
     env:
       SITE: ${{ matrix.site }}
       DEPLOY_TARGET: cloudflare
