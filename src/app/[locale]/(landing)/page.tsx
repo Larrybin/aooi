@@ -2,8 +2,6 @@
 // cache: default RSC
 // reason: public marketing page; keep AI navigation filtering aligned with source-controlled site capabilities
 import type { Metadata } from 'next';
-import { RemoverHome } from '@/domains/remover/ui/remover-home';
-import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
   readBuildAuthUiSettings,
   readBuildBillingUiSettings,
@@ -14,13 +12,12 @@ import {
   buildBrandPlaceholderValues,
   replaceBrandPlaceholdersDeep,
 } from '@/infra/platform/brand/placeholders.server';
-import {
-  buildCanonicalUrl,
-  buildLanguageAlternates,
-  buildMetadataBaseUrl,
-} from '@/infra/url/canonical';
 import { site } from '@/site';
 import { filterLandingButtons } from '@/surfaces/public/navigation/landing-visibility';
+import {
+  buildProductLandingMetadata,
+  getProductLanding,
+} from '@/surfaces/public/product-landing';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 import type {
@@ -39,54 +36,17 @@ export async function generateMetadata({
   const { locale } = await params;
   setRequestLocale(locale);
   const siteKey: string = site.key;
-
-  if (siteKey !== 'ai-remover') {
+  const productLanding = getProductLanding(siteKey);
+  if (!productLanding) {
     return {};
   }
 
   const brand = buildBrandPlaceholderValues();
-  const title = 'AI Remover - Remove Objects from Photos for Free';
-  const description =
-    'Remove unwanted objects, people, and distractions from photos in seconds with AI Remover.';
-  const canonicalUrl = buildCanonicalUrl('/', locale);
-  const imageUrl = brand.appOgImage.startsWith('http')
-    ? brand.appOgImage
-    : `${brand.appUrl}${brand.appOgImage}`;
-
-  return {
-    metadataBase: buildMetadataBaseUrl(),
-    title: {
-      absolute: title,
-    },
-    description,
-    keywords: [
-      'ai remover',
-      'ai object remover',
-      'remove objects from photos',
-      'remove unwanted objects from photos',
-      'remove people from photos',
-    ],
-    alternates: {
-      canonical: canonicalUrl,
-      languages: buildLanguageAlternates('/'),
-    },
-    openGraph: {
-      type: 'website',
-      locale,
-      url: canonicalUrl,
-      title,
-      description,
-      siteName: brand.appName,
-      images: [imageUrl],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: [imageUrl],
-      site: brand.appUrl,
-    },
-  };
+  return buildProductLandingMetadata({
+    landing: productLanding,
+    locale,
+    brand,
+  });
 }
 
 export default async function LandingPage({
@@ -102,9 +62,10 @@ export default async function LandingPage({
   const billingSettings = readBuildBillingUiSettings();
   const brand = buildBrandPlaceholderValues();
   const siteKey: string = site.key;
+  const productLanding = getProductLanding(siteKey);
 
-  if (siteKey === 'ai-remover') {
-    const { header, footer } = buildRemoverHeaderFooter(brand);
+  if (productLanding) {
+    const { header, footer } = productLanding.buildHeaderFooter(brand);
 
     return (
       <LandingMarketingLayout
@@ -115,7 +76,7 @@ export default async function LandingPage({
         authSettings={authSettings}
         billingSettings={billingSettings}
       >
-        <RemoverHome />
+        {productLanding.render()}
       </LandingMarketingLayout>
     );
   }
