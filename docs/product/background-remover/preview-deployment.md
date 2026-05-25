@@ -43,10 +43,10 @@ binds `IMAGES` and uses `segment=foreground`.
 
 ## Local Preview Env
 
-Use `sites/background-remover/.env.local` for local preview operator variables.
-The repo ignores `sites/*/.env.local`, and `run-with-site` loads the selected
-site file for `SITE=background-remover` commands. Shell variables still take
-precedence over values in this file.
+This site follows the all-site preview env governance in
+[Deployment Guide](../../guides/deployment.md#preview-operator-env). Keep local
+operator values in `sites/background-remover/.env.local`; do not commit this
+file, and keep `SITE=background-remover` explicit in each command.
 
 ```bash
 cat > sites/background-remover/.env.local <<'ENV'

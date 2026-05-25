@@ -269,11 +269,14 @@ SITE=ai-remover pnpm build
 SITE=ai-remover STORAGE_PUBLIC_BASE_URL=https://assets.example.com BETTER_AUTH_SECRET=better-secret RESEND_API_KEY=resend-key GOOGLE_CLIENT_ID=google-id GOOGLE_CLIENT_SECRET=google-secret CREEM_API_KEY=creem-api-key CREEM_SIGNING_SECRET=creem-signing-secret REMOVER_CLEANUP_SECRET=cleanup-secret pnpm cf:check
 ```
 
-Preview checks use the preview deploy profile. Missing local `RESEND_API_KEY`,
-`CREEM_API_KEY`, and `CREEM_SIGNING_SECRET` are warnings, not blockers:
+Preview checks use the preview deploy profile and the all-site preview env
+governance in [Deployment Guide](../../guides/deployment.md#preview-operator-env).
+Put local preview values in `sites/ai-remover/.env.local`. Missing local
+`RESEND_API_KEY`, `CREEM_API_KEY`, and `CREEM_SIGNING_SECRET` are warnings, not
+blockers:
 
 ```bash
-SITE=ai-remover CF_DEPLOY_PROFILE=preview CF_WORKERS_DEV_SUBDOMAIN=<subdomain> STORAGE_PUBLIC_BASE_URL=https://assets.example.com BETTER_AUTH_SECRET=better-secret GOOGLE_CLIENT_ID=google-id GOOGLE_CLIENT_SECRET=google-secret REMOVER_CLEANUP_SECRET=cleanup-secret pnpm cf:check
+SITE=ai-remover pnpm cf:preview:check
 ```
 
 For production bootstrap:
@@ -287,10 +290,11 @@ For a real staging runtime on workers.dev, use the preview deploy profile.
 Preview is not a separate `SITE`; it is `SITE=ai-remover` plus
 `CF_DEPLOY_PROFILE=preview`.
 
-Before the first preview deploy, replace
-`sites/ai-remover/deploy.preview.settings.json` with the preview Hyperdrive ID.
-The file intentionally contains only the preview Hyperdrive overlay; preview
-worker names, R2 bucket names, and app origin are derived automatically.
+Before the first preview deploy, prepare `sites/ai-remover/.env.local` with the
+local operator values, then replace `sites/ai-remover/deploy.preview.settings.json`
+with the preview Hyperdrive ID. The deploy overlay intentionally contains only
+the preview Hyperdrive overlay; preview worker names, R2 bucket names, and app
+origin are derived automatically.
 This ID must be the Cloudflare Hyperdrive config ID, not the Supabase/Postgres
 connection string. If you are using Supabase, create a Hyperdrive configuration
 that points at the Supabase direct connection string, then copy the returned
@@ -307,14 +311,14 @@ Keep the split explicit:
 First preview deploy:
 
 ```bash
-SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true pnpm cf:preview:deploy:state
-SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true pnpm cf:preview:bootstrap
+SITE=ai-remover pnpm cf:preview:deploy:state
+SITE=ai-remover pnpm cf:preview:bootstrap
 ```
 
 Later preview updates:
 
 ```bash
-SITE=ai-remover CF_WORKERS_DEV_SUBDOMAIN=<subdomain> pnpm cf:preview:deploy
+SITE=ai-remover pnpm cf:preview:deploy
 ```
 
 `CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true` is only a deployment convenience for
