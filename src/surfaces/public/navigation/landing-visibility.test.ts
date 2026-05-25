@@ -8,6 +8,7 @@ import {
   isLandingDocsEnabled,
 } from './landing-visibility';
 import type { PublicUiConfig } from '@/domains/settings/application/settings-runtime.contracts';
+import { site } from '@/site';
 
 const runtimePublicConfig: PublicUiConfig = {
   aiEnabled: false,
@@ -22,24 +23,44 @@ const runtimePublicConfig: PublicUiConfig = {
 };
 
 test('landing visibility 对 docs/blog 使用站点 capabilities，而不是 runtime public config', () => {
-  assert.equal(isLandingDocsEnabled(runtimePublicConfig), true);
-  assert.equal(isLandingBlogEnabled(runtimePublicConfig), true);
+  const originalDocs = site.capabilities.docs;
+  const originalBlog = site.capabilities.blog;
+  site.capabilities.docs = true;
+  site.capabilities.blog = true;
+
+  try {
+    assert.equal(isLandingDocsEnabled(runtimePublicConfig), true);
+    assert.equal(isLandingBlogEnabled(runtimePublicConfig), true);
+  } finally {
+    site.capabilities.docs = originalDocs;
+    site.capabilities.blog = originalBlog;
+  }
 });
 
 test('filterLandingNavItems 不因 runtime public config 缺少 docs/blog 开关而隐藏对应入口', () => {
-  const items = filterLandingNavItems(
-    [
-      { title: 'Docs', url: '/docs' },
-      { title: 'Blog', url: '/blog' },
-      { title: 'Pricing', url: '/pricing' },
-    ],
-    runtimePublicConfig
-  );
+  const originalDocs = site.capabilities.docs;
+  const originalBlog = site.capabilities.blog;
+  site.capabilities.docs = true;
+  site.capabilities.blog = true;
 
-  assert.deepEqual(
-    items.map((item) => item.url),
-    ['/docs', '/blog', '/pricing']
-  );
+  try {
+    const items = filterLandingNavItems(
+      [
+        { title: 'Docs', url: '/docs' },
+        { title: 'Blog', url: '/blog' },
+        { title: 'Pricing', url: '/pricing' },
+      ],
+      runtimePublicConfig
+    );
+
+    assert.deepEqual(
+      items.map((item) => item.url),
+      ['/docs', '/blog', '/pricing']
+    );
+  } finally {
+    site.capabilities.docs = originalDocs;
+    site.capabilities.blog = originalBlog;
+  }
 });
 
 test('filterLandingNavItems hides AI routes when runtime public config disables AI', () => {
