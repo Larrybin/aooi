@@ -14,13 +14,11 @@ CF_DEPLOY_PROFILE=preview
 Collect these before deploying:
 
 - `CF_WORKERS_DEV_SUBDOMAIN`: the Cloudflare account workers.dev subdomain.
-- `DATABASE_URL`: direct PostgreSQL connection string for the preview database.
-  This is used only by local Drizzle migration commands.
+- `PREVIEW_DATABASE_URL`: direct PostgreSQL connection string for the preview
+  database. This is used only by local Drizzle migration commands.
 - `PREVIEW_HYPERDRIVE_ID`: Cloudflare Hyperdrive config ID pointing at that
   preview database. This is a 32-character lowercase hex ID, not a database
   URL.
-- `STORAGE_PUBLIC_BASE_URL`: public base URL for objects in the preview storage
-  bucket.
 
 For a quick anonymous upload preview, payment and email secrets can use preview
 placeholders. For OAuth, billing, or email testing, provide real preview secrets
@@ -44,18 +42,28 @@ binds `IMAGES` and uses `segment=foreground`.
 ## Local Preview Env
 
 This site follows the all-site preview env governance in
-[Deployment Guide](../../guides/deployment.md#preview-operator-env). Keep local
+[Deployment Guide](../../guides/deployment.md#site-operator-env). Keep local
 operator values in `sites/background-remover/.env.local`; do not commit this
 file, and keep `SITE=background-remover` explicit in each command.
 
 ```bash
 cat > sites/background-remover/.env.local <<'ENV'
+# Common operator
 CF_WORKERS_DEV_SUBDOMAIN=replace_with_workers_dev_subdomain
-DATABASE_URL=postgresql://preview-user:preview-password@preview-host:5432/preview-db
-STORAGE_PUBLIC_BASE_URL=https://aooi-background-remover-preview-router.replace_with_workers_dev_subdomain.workers.dev/assets/
+
+# Local dev
+DATABASE_PROVIDER=postgresql
+DATABASE_URL=
+
+# Preview
+PREVIEW_DATABASE_URL=postgresql://preview-user:preview-password@preview-host:5432/preview-db
 CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true
 ENV
 ```
+
+Preview commands map `PREVIEW_DATABASE_URL` to `DATABASE_URL` and derive
+`STORAGE_PUBLIC_BASE_URL` from the preview router URL, so do not put preview
+`STORAGE_PUBLIC_BASE_URL` in this file.
 
 For anonymous upload testing, placeholder preview secrets are enough. For real
 OAuth, email, or billing testing, add the real preview secrets to the same local
@@ -95,11 +103,10 @@ file.
 
 ## Database Migration
 
-Run migrations against the preview database. If `DATABASE_URL` is in
-`sites/background-remover/.env.local`, this short command is enough:
+Run migrations against the preview database:
 
 ```bash
-SITE=background-remover pnpm db:migrate
+CF_DEPLOY_PROFILE=preview SITE=background-remover pnpm db:migrate
 ```
 
 Cloudflare Workers will use Hyperdrive at runtime; Drizzle CLI uses

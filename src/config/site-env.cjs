@@ -3,6 +3,8 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
 const SITE_LOCAL_ENV_FILE = '.env.local';
+const PREVIEW_DEPLOY_PROFILE = 'preview';
+const WORKERS_DEV_SUBDOMAIN_PATTERN = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/u;
 
 function normalizeEnvValue(rawValue) {
   const trimmed = rawValue.trim();
@@ -77,6 +79,79 @@ function hasOwnEnvValue(env, name) {
   return Object.prototype.hasOwnProperty.call(env, name);
 }
 
+function getTrimmedEnvValue(env, name) {
+  const value = env[name];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function hasShellEnvValue(originalEnv, name) {
+  return (
+    hasOwnEnvValue(originalEnv, name) &&
+    Boolean(getTrimmedEnvValue(originalEnv, name))
+  );
+}
+
+function buildPreviewStoragePublicBaseUrl(siteKey, env) {
+  const subdomain = getTrimmedEnvValue(env, 'CF_WORKERS_DEV_SUBDOMAIN');
+  if (!siteKey?.trim() || !WORKERS_DEV_SUBDOMAIN_PATTERN.test(subdomain)) {
+    return '';
+  }
+
+  return `https://aooi-${siteKey.trim()}-preview-router.${subdomain}.workers.dev/assets/`;
+}
+
+function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
+  if (getTrimmedEnvValue(env, 'CF_DEPLOY_PROFILE') === PREVIEW_DEPLOY_PROFILE) {
+    if (!hasShellEnvValue(originalEnv, 'DATABASE_URL')) {
+      const previewDatabaseUrl = getTrimmedEnvValue(
+        env,
+        'PREVIEW_DATABASE_URL'
+      );
+      if (previewDatabaseUrl) {
+        env.DATABASE_URL = previewDatabaseUrl;
+      }
+    }
+
+    if (!hasShellEnvValue(originalEnv, 'STORAGE_PUBLIC_BASE_URL')) {
+      const previewStoragePublicBaseUrl = buildPreviewStoragePublicBaseUrl(
+        siteKey,
+        env
+      );
+      if (previewStoragePublicBaseUrl) {
+        env.STORAGE_PUBLIC_BASE_URL = previewStoragePublicBaseUrl;
+      }
+    }
+  }
+
+  if (
+    getTrimmedEnvValue(env, 'NODE_ENV') === 'production' &&
+    !hasShellEnvValue(originalEnv, 'DATABASE_URL')
+  ) {
+    const productionDatabaseUrl = getTrimmedEnvValue(
+      env,
+      'PRODUCTION_DATABASE_URL'
+    );
+    if (productionDatabaseUrl) {
+      env.DATABASE_URL = productionDatabaseUrl;
+    }
+  }
+
+  if (
+    getTrimmedEnvValue(env, 'NODE_ENV') === 'production' &&
+    !hasShellEnvValue(originalEnv, 'STORAGE_PUBLIC_BASE_URL')
+  ) {
+    const productionStoragePublicBaseUrl = getTrimmedEnvValue(
+      env,
+      'PRODUCTION_STORAGE_PUBLIC_BASE_URL'
+    );
+    if (productionStoragePublicBaseUrl) {
+      env.STORAGE_PUBLIC_BASE_URL = productionStoragePublicBaseUrl;
+    }
+  }
+
+  return env;
+}
+
 function applySiteLocalEnvOverlay({
   env = process.env,
   originalEnv = env,
@@ -102,7 +177,7 @@ function applySiteLocalEnvOverlay({
     env[name] = value;
   }
 
-  return env;
+  return applySiteProfileEnvMappings({ env, originalEnv, siteKey });
 }
 
 module.exports = {

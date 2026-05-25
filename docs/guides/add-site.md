@@ -382,9 +382,10 @@ SITE=my-site pnpm test:cf-app-smoke
 
 如果需要 workers.dev staging runtime，不要创建 `my-site-preview` 站点。添加
 `sites/my-site/deploy.preview.settings.json`，只放 preview Hyperdrive ID，然
-后按 [Deployment Guide](./deployment.md#preview-operator-env) 的治理规则把
-本地 preview operator 变量放进 `sites/my-site/.env.local`。这个文件不会
-提交；`SITE=my-site` 仍然必须在每条命令里显式传入。
+后按 [Deployment Guide](./deployment.md#site-operator-env) 的治理规则把
+本地、preview、production release operator 变量统一放进
+`sites/my-site/.env.local`。这个文件不会提交；`SITE=my-site` 仍然必须在每
+条命令里显式传入。
 
 首次 preview 部署：
 
