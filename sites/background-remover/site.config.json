@@ -1,0 +1,20 @@
+{
+  "key": "background-remover",
+  "domain": "backgroundremover.example.com",
+  "brand": {
+    "appName": "Background Remover",
+    "appUrl": "https://backgroundremover.example.com",
+    "supportEmail": "support@backgroundremover.example.com",
+    "logo": "/logo.png",
+    "favicon": "/favicon.ico",
+    "previewImage": "/logo.png"
+  },
+  "capabilities": {
+    "auth": true,
+    "payment": "creem",
+    "ai": false,
+    "docs": false,
+    "blog": false
+  },
+  "configVersion": 1
+}

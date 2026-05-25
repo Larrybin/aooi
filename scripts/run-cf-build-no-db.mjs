@@ -7,6 +7,7 @@ const rootDir = process.cwd();
 export const NO_DB_CLOUDFLARE_BUILD_SITES = Object.freeze([
   'mamamiya',
   'ai-remover',
+  'background-remover',
 ]);
 
 export const NO_DB_CLOUDFLARE_PLACEHOLDER_ENV = Object.freeze({
