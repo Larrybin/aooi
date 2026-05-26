@@ -42,6 +42,13 @@ test('site schema accepts registered site-level i18n config', () => {
   );
 });
 
+test('site schema requires site-level i18n config', () => {
+  assert.throws(
+    () => validateSiteConfig(buildSiteConfig()),
+    /site\.i18n is required/
+  );
+});
+
 test('site schema rejects locales outside the registry', () => {
   assert.throws(
     () =>
