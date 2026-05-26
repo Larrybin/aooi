@@ -46,9 +46,16 @@ export const localeRegistrySchema = z
 
 export type LocaleDirection = z.infer<typeof localeDirectionSchema>;
 export type LocaleRegistryEntry = z.infer<typeof localeRegistryEntrySchema>;
+export type LocaleRegistry = ReadonlyArray<Readonly<LocaleRegistryEntry>>;
 
-export function parseLocaleRegistry(input: unknown): LocaleRegistryEntry[] {
-  return localeRegistrySchema.parse(input);
+function freezeLocaleRegistry(entries: LocaleRegistryEntry[]): LocaleRegistry {
+  return Object.freeze(
+    entries.map((entry) => Object.freeze({ ...entry }))
+  ) as LocaleRegistry;
+}
+
+export function parseLocaleRegistry(input: unknown): LocaleRegistry {
+  return freezeLocaleRegistry(localeRegistrySchema.parse(input));
 }
 
 export const localeRegistry = parseLocaleRegistry(registryJson);

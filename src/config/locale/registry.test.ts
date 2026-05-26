@@ -41,3 +41,14 @@ test('locale registry: rejects invalid text direction', () => {
     ])
   );
 });
+
+test('locale registry: exposes immutable parsed entries', () => {
+  assert.equal(Object.isFrozen(localeRegistry), true);
+  assert.equal(Object.isFrozen(localeRegistry[0]), true);
+  assert.throws(() => {
+    (localeRegistry as unknown[]).push(localeRegistry[0]);
+  });
+  const originalName = localeRegistry[0]?.name;
+  (localeRegistry[0] as { name: string }).name = 'Changed';
+  assert.equal(localeRegistry[0]?.name, originalName);
+});
