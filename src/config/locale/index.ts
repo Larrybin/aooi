@@ -1,10 +1,12 @@
-import { getTrimmedEnvValue, isProductionEnv } from '@/config/env-contract';
+import { site } from '@/site';
 
 import { localeRegistry, type LocaleCode } from './registry';
 
-export const locales = Object.freeze(localeRegistry.map((entry) => entry.code));
-
 export type Locale = LocaleCode;
+
+export const locales = Object.freeze([
+  ...site.i18n.supportedLocales,
+]) as readonly Locale[];
 
 export const localeNames = Object.fromEntries(
   localeRegistry.map((entry) => [entry.code, entry.name])
@@ -24,25 +26,7 @@ const rtlLocaleSet: ReadonlySet<string> = new Set(rtlLocales);
 
 export const isRtlLocale = (locale: string) => rtlLocaleSet.has(locale);
 
-const fallbackLocale = locales[0];
-const envDefaultLocale =
-  getTrimmedEnvValue(undefined, 'NEXT_PUBLIC_DEFAULT_LOCALE') || 'en';
-
-const resolvedDefaultLocale = locales.includes(envDefaultLocale as Locale)
-  ? (envDefaultLocale as Locale)
-  : fallbackLocale;
-
-if (
-  !isProductionEnv() &&
-  envDefaultLocale &&
-  envDefaultLocale !== resolvedDefaultLocale
-) {
-  console.warn(
-    `[i18n] NEXT_PUBLIC_DEFAULT_LOCALE="${envDefaultLocale}" 不在 locales 白名单内，已回退为 "${resolvedDefaultLocale}".`
-  );
-}
-
-export const defaultLocale = resolvedDefaultLocale;
+export const defaultLocale = site.i18n.defaultLocale as Locale;
 
 export const localePrefix = 'as-needed';
 
