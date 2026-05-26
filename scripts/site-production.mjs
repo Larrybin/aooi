@@ -172,20 +172,26 @@ export function buildProductionDeploySettingsJson({
   return `${JSON.stringify(nextSettings, null, 2)}\n`;
 }
 
+export function buildProductionCommandOriginalEnv(processEnv, siteKey) {
+  return {
+    ...processEnv,
+    CF_DEPLOY_PROFILE: 'production',
+    NODE_ENV: 'production',
+    SITE: siteKey,
+  };
+}
+
 function createProductionCommandEnv({
   rootDir,
   siteKey,
   processEnv = process.env,
 }) {
-  const env = {
-    ...processEnv,
-    NODE_ENV: 'production',
-    SITE: siteKey,
-  };
+  const originalEnv = buildProductionCommandOriginalEnv(processEnv, siteKey);
+  const env = { ...originalEnv };
 
   applySiteLocalEnvOverlay({
     env,
-    originalEnv: processEnv,
+    originalEnv,
     rootDir,
     siteKey,
   });

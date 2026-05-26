@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import siteEnvModule from '../../src/config/site-env.cjs';
 import {
+  buildProductionCommandOriginalEnv,
   buildProductionDeploySettingsJson,
   buildProductionHyperdriveName,
   buildProductionResourceNames,
@@ -12,6 +14,8 @@ import {
   updateProductionDeploySettingsHyperdriveId,
   updateProductionDeploySettingsNames,
 } from '../../scripts/site-production.mjs';
+
+const { applySiteLocalEnvOverlay } = siteEnvModule;
 
 const baseSiteConfig = {
   capabilities: {
@@ -126,6 +130,42 @@ test('site production init rewrites names but preserves active slots and Hyperdr
     'aooi-background-remover-storage'
   );
   assert.equal(updated.resources.hyperdriveId, settings.resources.hyperdriveId);
+});
+
+test('site production command env pins production profile over shell and site env values', () => {
+  const originalEnv = buildProductionCommandOriginalEnv(
+    {
+      CF_DEPLOY_PROFILE: 'preview',
+      SITE: 'background-remover',
+    },
+    'background-remover'
+  );
+  const env = { ...originalEnv };
+
+  applySiteLocalEnvOverlay({
+    env,
+    originalEnv,
+    rootDir: '/repo',
+    siteKey: 'background-remover',
+    readFileSyncImpl() {
+      return `
+CF_DEPLOY_PROFILE=preview
+NODE_ENV=development
+PREVIEW_DATABASE_URL=postgresql://preview-db
+CF_WORKERS_DEV_SUBDOMAIN=aooi-preview
+PRODUCTION_DATABASE_URL=postgresql://production-db
+PRODUCTION_STORAGE_PUBLIC_BASE_URL=https://backgroundremover.example.com/assets/
+`;
+    },
+  });
+
+  assert.equal(env.CF_DEPLOY_PROFILE, 'production');
+  assert.equal(env.NODE_ENV, 'production');
+  assert.equal(env.DATABASE_URL, 'postgresql://production-db');
+  assert.equal(
+    env.STORAGE_PUBLIC_BASE_URL,
+    'https://backgroundremover.example.com/assets/'
+  );
 });
 
 test('site production provision updates only the Hyperdrive id', () => {

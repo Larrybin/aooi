@@ -79,6 +79,24 @@ export function buildPreviewDeploySettingsJson(hyperdriveId) {
   )}\n`;
 }
 
+export function buildPreviewCommandOriginalEnv(processEnv, siteKey) {
+  return {
+    ...processEnv,
+    CF_DEPLOY_PROFILE: 'preview',
+    SITE: siteKey,
+  };
+}
+
+export function assertPreviewSettingsCanProvision(context) {
+  if (context.previewSettings.state !== 'invalid') {
+    return;
+  }
+
+  throw new Error(
+    `invalid ${relativePath(context.rootDir, context.previewSettings.filePath)}: ${context.previewSettings.error}`
+  );
+}
+
 function readPreviewDeploySettingsStatus({ rootDir, siteKey }) {
   const filePath = resolveSitePreviewDeploySettingsPath({ rootDir, siteKey });
   if (!existsSync(filePath)) {
@@ -112,15 +130,12 @@ function createPreviewCommandEnv({
   siteKey,
   processEnv = process.env,
 }) {
-  const env = {
-    ...processEnv,
-    CF_DEPLOY_PROFILE: 'preview',
-    SITE: siteKey,
-  };
+  const originalEnv = buildPreviewCommandOriginalEnv(processEnv, siteKey);
+  const env = { ...originalEnv };
 
   applySiteLocalEnvOverlay({
     env,
-    originalEnv: processEnv,
+    originalEnv,
     rootDir,
     siteKey,
   });
@@ -336,6 +351,8 @@ async function runDoctor() {
 async function runProvision() {
   const context = createPreviewContext();
   requirePreviewOperatorValues(context);
+  assertPreviewSettingsCanProvision(context);
+
   const env = createPreviewCommandEnv(context);
 
   await ensureR2Bucket(context.resourceNames.cacheBucket, env);
