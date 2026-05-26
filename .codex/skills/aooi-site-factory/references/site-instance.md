@@ -98,6 +98,18 @@ SITE=<site-key> CF_DEPLOY_PROFILE=preview pnpm cf:check
 
 Preview worker names, bucket names, and router origin are derived by the deploy resolver. Do not copy production worker names into the preview file, and do not create a `<site-key>-preview` directory.
 
+For operator setup, prefer:
+
+```bash
+SITE=<site-key> pnpm site:preview:doctor
+SITE=<site-key> pnpm site:preview:provision
+SITE=<site-key> pnpm site:preview:deploy
+```
+
+`site:preview:provision` creates preview R2 buckets and the Hyperdrive config,
+then writes `deploy.preview.settings.json`. It does not create the external
+PostgreSQL database.
+
 ## Site Operator Env
 
 Use one ignored file for site-local operator values:

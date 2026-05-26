@@ -235,6 +235,22 @@ upload or basic topology smoke checks.
 | `CF_DEPLOY_PROFILE=preview`                             | `deploy.preview.settings.json.resources.hyperdriveId` |
 | production Cloudflare deploy                            | `deploy.settings.json.resources.hyperdriveId`         |
 
+Use the site preview wrapper for operator-friendly setup:
+
+```bash
+SITE=<site-key> pnpm site:preview:doctor
+SITE=<site-key> pnpm site:preview:provision
+SITE=<site-key> pnpm site:preview:deploy
+```
+
+`site:preview:doctor` is read-only. It checks local operator env, preview
+deploy settings, R2 buckets, Hyperdrive accessibility, and the preview router
+worker. `site:preview:provision` creates missing preview R2 buckets and a
+Cloudflare Hyperdrive config from `PREVIEW_DATABASE_URL`, then writes
+`sites/<site-key>/deploy.preview.settings.json`. It does not create or select an
+external PostgreSQL database. `site:preview:deploy` runs preview migrations,
+checks, build, state deploy, and app bootstrap in sequence.
+
 First preview deploy:
 
 ```bash

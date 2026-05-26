@@ -24,6 +24,7 @@ SITE=<site-key> pnpm cf:build
 pnpm cf:build:no-db --site=<site-key>
 SITE=<site-key> pnpm cf:typegen
 SITE=<site-key> pnpm cf:typegen:check
+SITE=<site-key> pnpm site:preview:doctor
 SITE=<site-key> pnpm cf:preview:check
 SITE=<site-key> pnpm cf:preview:build
 SITE=<site-key> pnpm test:cf-local-smoke
@@ -42,6 +43,19 @@ SITE=<site-key> pnpm cf:check -- --workers=all
 ## Release Path
 
 For workers.dev preview, use the preview wrappers:
+
+```bash
+SITE=<site-key> pnpm site:preview:doctor
+SITE=<site-key> pnpm site:preview:provision
+SITE=<site-key> pnpm site:preview:deploy
+```
+
+`site:preview:doctor` is read-only. `site:preview:provision` creates preview
+R2 buckets and a Hyperdrive config from `PREVIEW_DATABASE_URL`, then writes the
+preview overlay. `site:preview:deploy` runs migration, checks, build, state
+deploy, and app bootstrap in sequence.
+
+Use the low-level preview commands for focused debugging:
 
 ```bash
 SITE=<site-key> pnpm cf:preview:deploy:state

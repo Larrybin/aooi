@@ -88,6 +88,7 @@ pnpm arch:check
 SITE=<site-key> pnpm build
 SITE=<site-key> pnpm cf:check
 pnpm cf:build:no-db --site=<site-key>
+SITE=<site-key> pnpm site:preview:doctor
 SITE=<site-key> pnpm cf:preview:check
 SITE=<site-key> pnpm test:cf-local-smoke
 SITE=<site-key> pnpm test:cf-admin-settings-smoke

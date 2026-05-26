@@ -274,7 +274,7 @@ Put local preview values in `sites/ai-remover/.env.local`. Missing local
 blockers:
 
 ```bash
-SITE=ai-remover pnpm cf:preview:check
+SITE=ai-remover pnpm site:preview:doctor
 ```
 
 For production bootstrap:
@@ -289,14 +289,14 @@ Preview is not a separate `SITE`; it is `SITE=ai-remover` plus
 `CF_DEPLOY_PROFILE=preview`.
 
 Before the first preview deploy, prepare `sites/ai-remover/.env.local` with the
-local operator values, then replace `sites/ai-remover/deploy.preview.settings.json`
-with the preview Hyperdrive ID. The deploy overlay intentionally contains only
-the preview Hyperdrive overlay; preview worker names, R2 bucket names, and app
-origin are derived automatically.
-This ID must be the Cloudflare Hyperdrive config ID, not the Supabase/Postgres
-connection string. If you are using Supabase, create a Hyperdrive configuration
-that points at the Supabase direct connection string, then copy the returned
-32-character Hyperdrive ID into `deploy.preview.settings.json`.
+local operator values, then run `SITE=ai-remover pnpm site:preview:provision`.
+Provision creates missing preview R2 buckets, creates the Cloudflare Hyperdrive
+configuration from `PREVIEW_DATABASE_URL`, and writes
+`sites/ai-remover/deploy.preview.settings.json`. The deploy overlay
+intentionally contains only the preview Hyperdrive overlay; preview worker
+names, R2 bucket names, and app origin are derived automatically.
+The Hyperdrive ID is the Cloudflare config ID, not the Supabase/Postgres
+connection string.
 
 Keep the split explicit:
 
@@ -310,11 +310,11 @@ Keep the split explicit:
 First preview deploy:
 
 ```bash
-SITE=ai-remover pnpm cf:preview:deploy:state
-SITE=ai-remover pnpm cf:preview:bootstrap
+SITE=ai-remover pnpm site:preview:provision
+SITE=ai-remover pnpm site:preview:deploy
 ```
 
-Later preview updates:
+Later preview app-only updates can still use the low-level wrapper:
 
 ```bash
 SITE=ai-remover pnpm cf:preview:deploy
