@@ -4,15 +4,29 @@ import { getSessionCookie } from 'better-auth/cookies';
 import createIntlMiddleware from 'next-intl/middleware';
 
 import { defaultLocale, locales, type Locale } from '@/config/locale';
+import { localeCodes } from '@/config/locale/registry';
 import { ADMIN_PATH } from '@/shared/constants/admin-entry';
 import { upsertMiddlewareRequestHeader } from '@/shared/lib/middleware-request-headers';
 
 const intlMiddleware = createIntlMiddleware(routing);
+const registeredLocaleSet: ReadonlySet<string> = new Set(localeCodes);
 
 function removeRedirectHeaderFromRewrite(response: NextResponse): void {
   if (response.headers.has('x-middleware-rewrite')) {
     response.headers.delete('location');
   }
+}
+
+function applyRequestPathHeaders(
+  response: NextResponse,
+  request: NextRequest,
+  pathname: string
+): NextResponse {
+  response.headers.set('x-pathname', request.nextUrl.pathname);
+  response.headers.set('x-url', request.url);
+  upsertMiddlewareRequestHeader(response.headers, 'x-pathname', pathname);
+  upsertMiddlewareRequestHeader(response.headers, 'x-url', request.url);
+  return response;
 }
 
 export async function proxy(request: NextRequest) {
@@ -21,6 +35,15 @@ export async function proxy(request: NextRequest) {
   // Extract locale from pathname
   const localeSegment = pathname.split('/')[1];
   const isValidLocale = locales.includes(localeSegment as Locale);
+  const isRegisteredLocale = registeredLocaleSet.has(localeSegment);
+
+  if (isRegisteredLocale && !isValidLocale) {
+    const notFoundUrl = request.nextUrl.clone();
+    notFoundUrl.pathname = '/_not-found';
+    const response = NextResponse.rewrite(notFoundUrl, { status: 404 });
+    return applyRequestPathHeaders(response, request, pathname);
+  }
+
   const pathWithoutLocale = isValidLocale
     ? pathname.slice(localeSegment.length + 1)
     : pathname;
@@ -80,11 +103,7 @@ export async function proxy(request: NextRequest) {
   }
 
   removeRedirectHeaderFromRewrite(response);
-  response.headers.set('x-pathname', request.nextUrl.pathname);
-  response.headers.set('x-url', request.url);
-  upsertMiddlewareRequestHeader(response.headers, 'x-pathname', pathname);
-  upsertMiddlewareRequestHeader(response.headers, 'x-url', request.url);
 
   // For all other routes (including /, /sign-in, /sign-up, /sign-out), just return the intl response
-  return response;
+  return applyRequestPathHeaders(response, request, pathname);
 }
