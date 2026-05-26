@@ -76,6 +76,23 @@ test('site schema requires defaultLocale in supportedLocales', () => {
   );
 });
 
+test('site schema rejects duplicate supported locales', () => {
+  assert.throws(
+    () =>
+      validateSiteConfig(
+        buildSiteConfig({
+          i18n: {
+            defaultLocale: 'en',
+            supportedLocales: ['en', 'zh', 'zh'],
+            localePrefix: 'as-needed',
+            localeDetection: false,
+          },
+        })
+      ),
+    /duplicate locale: zh/
+  );
+});
+
 test('site schema requires fixed routing policy for v1', () => {
   assert.throws(
     () =>
