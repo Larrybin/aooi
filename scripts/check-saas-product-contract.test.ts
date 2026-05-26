@@ -32,6 +32,13 @@ async function writeText(filePath: string, value: string) {
   await writeFile(filePath, value, 'utf8');
 }
 
+const testSiteI18n = {
+  defaultLocale: 'en',
+  supportedLocales: ['en'],
+  localePrefix: 'as-needed',
+  localeDetection: false,
+};
+
 async function writeBillingSourceFiles(rootDir: string) {
   await writeText(
     path.join(rootDir, 'src/domains/billing/domain/payment.ts'),
@@ -582,6 +589,7 @@ async function createFixtureRoot(pricing: unknown) {
       docs: false,
       blog: false,
     },
+    i18n: testSiteI18n,
     configVersion: 1,
   });
   await writeJson(
@@ -689,6 +697,7 @@ async function createBackgroundRemoverFixtureRoot() {
       docs: false,
       blog: false,
     },
+    i18n: testSiteI18n,
     configVersion: 1,
   });
   await writeJson(
@@ -1020,6 +1029,7 @@ test('contract audit converts site config validation errors into source-mapped b
         docs: false,
         blog: false,
       },
+      i18n: testSiteI18n,
       configVersion: 1,
     }
   );
