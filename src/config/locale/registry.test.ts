@@ -49,6 +49,9 @@ test('locale registry: exposes immutable parsed entries', () => {
     (localeRegistry as unknown[]).push(localeRegistry[0]);
   });
   const originalName = localeRegistry[0]?.name;
-  (localeRegistry[0] as { name: string }).name = 'Changed';
+  assert.equal(
+    Reflect.set(localeRegistry[0] as object, 'name', 'Changed'),
+    false
+  );
   assert.equal(localeRegistry[0]?.name, originalName);
 });
