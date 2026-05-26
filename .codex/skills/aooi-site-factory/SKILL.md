@@ -69,6 +69,7 @@ Shared platform edits must be intentional and recorded in the final summary. Do 
 - Brand, canonical URL, logo, preview image, support email, and capability flags belong in `site.config.json`.
 - Worker names, Cloudflare resources, and binding requirements belong in `deploy.settings.json`.
 - Production worker and bucket names are explicit values in `deploy.settings.json`; only preview worker and bucket names are derived from `SITE=<site-key>`.
+- Use `SITE=<site-key> pnpm site:production:init-settings` to write the recommended production worker and R2 bucket names into `deploy.settings.json` during site setup.
 - Workers.dev preview belongs to `CF_DEPLOY_PROFILE=preview` on the real product `SITE`, with only the preview Hyperdrive id in `deploy.preview.settings.json`. Do not create a separate `<site-key>-preview` site.
 - Operator-local env for every site belongs in one ignored `sites/<site-key>/.env.local` file. Use sections and prefixes for common, local dev, preview, and production release values.
 - Do not put `SITE`, Hyperdrive IDs, worker names, R2 bucket names, or preview `STORAGE_PUBLIC_BASE_URL` in env files. `SITE=<site-key>` stays explicit in commands, Hyperdrive IDs stay in deploy settings, and preview storage base URLs are derived.

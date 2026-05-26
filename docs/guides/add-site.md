@@ -375,12 +375,16 @@ SITE=my-site pnpm test:cf-admin-settings-smoke
 首次初始化或部分初始化的 Cloudflare 环境，先部署 state，再部署 app：
 
 ```bash
+SITE=my-site pnpm site:production:init-settings
 SITE=my-site pnpm site:production:doctor
 SITE=my-site pnpm site:production:provision
 SITE=my-site pnpm cf:deploy:state
 SITE=my-site pnpm cf:deploy
 SITE=my-site pnpm test:cf-app-smoke
 ```
+
+`site:production:init-settings` 会把推荐的生产 worker 名和 R2 bucket 名写入
+`deploy.settings.json`，不访问 Cloudflare，并保留当前 Hyperdrive ID。
 
 `site:production:doctor` 是只读检查：验证 production operator env、R2 bucket、
 Hyperdrive 和已配置 worker 是否可访问。

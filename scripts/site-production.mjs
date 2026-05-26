@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,7 +30,7 @@ import {
 const { applySiteLocalEnvOverlay, readSiteLocalEnv, resolveSiteLocalEnvPath } =
   siteEnvModule;
 
-const PRODUCTION_MODE_CHOICES = ['doctor', 'provision'];
+const PRODUCTION_MODE_CHOICES = ['doctor', 'init-settings', 'provision'];
 const PRODUCTION_RELEASE_ENV_KEYS = Object.freeze([
   'DATABASE_PROVIDER',
   'RELEASE_TEST_DATABASE_URL',
@@ -67,6 +67,17 @@ export function isProductionHyperdrivePlaceholder(hyperdriveId) {
 
 export function buildProductionHyperdriveName(siteKey) {
   return `aooi-${siteKey}-db`;
+}
+
+export function buildProductionWorkerName(siteKey, slot) {
+  return `aooi-${siteKey}-${slot}`;
+}
+
+export function buildProductionResourceNames(siteKey) {
+  return {
+    appStorageBucket: `aooi-${siteKey}-storage`,
+    incrementalCacheBucket: `aooi-${siteKey}-opennext-cache`,
+  };
 }
 
 export function getMissingProductionReleaseEnvNames(env) {
@@ -112,6 +123,40 @@ export function updateProductionDeploySettingsHyperdriveId(
       hyperdriveId,
     },
   };
+}
+
+export function updateProductionDeploySettingsNames({
+  deploySettings,
+  siteKey,
+}) {
+  const resourceNames = buildProductionResourceNames(siteKey);
+
+  return {
+    ...deploySettings,
+    resources: {
+      ...deploySettings.resources,
+      ...resourceNames,
+    },
+    workers: Object.fromEntries(
+      Object.keys(deploySettings.workers).map((slot) => [
+        slot,
+        buildProductionWorkerName(siteKey, slot),
+      ])
+    ),
+  };
+}
+
+export function buildProductionDeploySettingsInitJson({
+  deploySettings,
+  siteConfig,
+  siteKey,
+}) {
+  const nextSettings = updateProductionDeploySettingsNames({
+    deploySettings,
+    siteKey,
+  });
+  validateSiteDeploySettings(nextSettings, { siteConfig });
+  return `${JSON.stringify(nextSettings, null, 2)}\n`;
 }
 
 export function buildProductionDeploySettingsJson({
@@ -378,6 +423,33 @@ async function runDoctor() {
   return 0;
 }
 
+async function runInitSettings() {
+  const context = createProductionContext();
+  const nextJson = buildProductionDeploySettingsInitJson({
+    deploySettings: context.deploySettings,
+    siteConfig: context.siteConfig,
+    siteKey: context.siteKey,
+  });
+  const currentJson = readFileSync(context.deploySettingsPath, 'utf8');
+
+  if (currentJson === nextJson) {
+    printStatus(
+      'ok',
+      'production deploy settings',
+      `${relativePath(context.rootDir, context.deploySettingsPath)} already initialized`
+    );
+    return 0;
+  }
+
+  writeFileSync(context.deploySettingsPath, nextJson, 'utf8');
+  printStatus(
+    'ok',
+    'production deploy settings',
+    relativePath(context.rootDir, context.deploySettingsPath)
+  );
+  return 0;
+}
+
 async function runProvision() {
   const context = createProductionContext();
   requireProductionOperatorValues(context);
@@ -395,12 +467,17 @@ async function main() {
   const mode = process.argv[2];
   if (!PRODUCTION_MODE_CHOICES.includes(mode)) {
     console.error(
-      'Usage: SITE=<site-key> pnpm site:production:<doctor|provision>'
+      'Usage: SITE=<site-key> pnpm site:production:<doctor|init-settings|provision>'
     );
     process.exit(1);
   }
 
-  const exitCode = mode === 'doctor' ? await runDoctor() : await runProvision();
+  const exitCode =
+    mode === 'doctor'
+      ? await runDoctor()
+      : mode === 'init-settings'
+        ? await runInitSettings()
+        : await runProvision();
   process.exit(exitCode);
 }
 

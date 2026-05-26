@@ -80,6 +80,8 @@ resources.appStorageBucket: aooi-<site-key>-storage
 These names are not derived at production provision time. Production
 provisioning reads `deploy.settings.json`; preview deployment derives
 `aooi-<site-key>-preview-*` names from the real site key.
+Use `SITE=<site-key> pnpm site:production:init-settings` to write these
+recommended production names into `deploy.settings.json` during setup.
 
 It must not own:
 
@@ -176,9 +178,10 @@ from `CF_WORKERS_DEV_SUBDOMAIN`. Production commands map
 5. Add `content/docs/index.mdx` only if docs are enabled.
 6. Add at least one `content/posts/*.mdx` only if blog is enabled.
 7. Add `sites/<new-site>/.env.local` locally when local, preview, or release operator values are needed.
-8. Run `SITE=<new-site> pnpm site:production:doctor` before production setup or release checks.
-9. Run `SITE=<new-site> pnpm site:production:provision` when production R2 buckets or a production Hyperdrive config need to be created.
-10. Add `deploy.preview.settings.json` only if a workers.dev preview runtime is needed.
-11. Run the site/config checks listed in the skill before production-like work.
+8. Run `SITE=<new-site> pnpm site:production:init-settings` if the production deploy manifest should use the standard derived names.
+9. Run `SITE=<new-site> pnpm site:production:doctor` before production setup or release checks.
+10. Run `SITE=<new-site> pnpm site:production:provision` when production R2 buckets or a production Hyperdrive config need to be created.
+11. Add `deploy.preview.settings.json` only if a workers.dev preview runtime is needed.
+12. Run the site/config checks listed in the skill before production-like work.
 
 Avoid fallback mappings, aliases, and compatibility wrappers. Direct convergence is preferred.

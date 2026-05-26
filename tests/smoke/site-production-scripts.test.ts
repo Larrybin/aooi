@@ -4,10 +4,13 @@ import test from 'node:test';
 import {
   buildProductionDeploySettingsJson,
   buildProductionHyperdriveName,
+  buildProductionResourceNames,
+  buildProductionWorkerName,
   getMissingProductionReleaseEnvNames,
   hasUnsafeProductionReleaseTestDatabase,
   isProductionHyperdrivePlaceholder,
   updateProductionDeploySettingsHyperdriveId,
+  updateProductionDeploySettingsNames,
 } from '../../scripts/site-production.mjs';
 
 const baseSiteConfig = {
@@ -77,6 +80,52 @@ test('site production provision derives the production Hyperdrive name', () => {
     buildProductionHyperdriveName('background-remover'),
     'aooi-background-remover-db'
   );
+});
+
+test('site production init derives explicit worker and bucket names', () => {
+  assert.equal(
+    buildProductionWorkerName('background-remover', 'public-web'),
+    'aooi-background-remover-public-web'
+  );
+  assert.deepEqual(buildProductionResourceNames('background-remover'), {
+    appStorageBucket: 'aooi-background-remover-storage',
+    incrementalCacheBucket: 'aooi-background-remover-opennext-cache',
+  });
+});
+
+test('site production init rewrites names but preserves active slots and Hyperdrive', () => {
+  const settings = {
+    ...baseDeploySettings,
+    resources: {
+      ...baseDeploySettings.resources,
+      appStorageBucket: 'legacy-storage',
+      incrementalCacheBucket: 'legacy-cache',
+    },
+    workers: {
+      router: 'legacy-router',
+      state: 'legacy-state',
+      'public-web': 'legacy-public-web',
+    },
+  };
+  const updated = updateProductionDeploySettingsNames({
+    deploySettings: settings,
+    siteKey: 'background-remover',
+  });
+
+  assert.deepEqual(updated.workers, {
+    router: 'aooi-background-remover-router',
+    state: 'aooi-background-remover-state',
+    'public-web': 'aooi-background-remover-public-web',
+  });
+  assert.equal(
+    updated.resources.incrementalCacheBucket,
+    'aooi-background-remover-opennext-cache'
+  );
+  assert.equal(
+    updated.resources.appStorageBucket,
+    'aooi-background-remover-storage'
+  );
+  assert.equal(updated.resources.hyperdriveId, settings.resources.hyperdriveId);
 });
 
 test('site production provision updates only the Hyperdrive id', () => {
