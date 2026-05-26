@@ -116,7 +116,8 @@ Before deploying, replace the placeholder identity in
 The Google OAuth origin, `AUTH_URL` / `BETTER_AUTH_URL` when used, and
 `site.brand.appUrl` must share the same origin.
 
-Update `sites/ai-remover/deploy.settings.json` for real production resources:
+Update `sites/ai-remover/deploy.settings.json` for real production resource
+names:
 
 | Field                              | Production value                             |
 | ---------------------------------- | -------------------------------------------- |
@@ -127,6 +128,10 @@ Update `sites/ai-remover/deploy.settings.json` for real production resources:
 
 Do not put secrets, database URLs, or provider API keys in either site JSON
 file.
+
+After `PRODUCTION_DATABASE_URL` is present in `sites/ai-remover/.env.local`,
+`SITE=ai-remover pnpm site:production:provision` can create the production R2
+buckets and replace a placeholder Hyperdrive ID with the real Cloudflare ID.
 
 `workers.chat` is intentionally absent for AI Remover. The product does not use
 the shared OpenRouter chat runtime; image removal runs on `public-web` through

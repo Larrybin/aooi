@@ -1,9 +1,23 @@
-import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import siteEnvModule from '../src/config/site-env.cjs';
+import {
+  assertWranglerSuccess,
+  checkHyperdrive,
+  checkR2Bucket,
+  checkWorker,
+  ensureR2Bucket,
+  isValidHyperdriveId,
+  parseHyperdriveIdFromOutput,
+  printStatus,
+  redactValues,
+  runPnpmInherit,
+  runWrangler,
+  stripAnsi,
+  withCommandPathFallback,
+} from './lib/cloudflare-provisioning.mjs';
 import {
   readCurrentSiteConfig,
   resolveRequiredSiteKey,
@@ -23,8 +37,6 @@ import {
 const { applySiteLocalEnvOverlay, readSiteLocalEnv, resolveSiteLocalEnvPath } =
   siteEnvModule;
 
-const HYPERDRIVE_ID_PATTERN = /^[a-f0-9]{32}$/u;
-const ANSI_PATTERN = /\u001b\[[0-9;]*m/gu;
 const PREVIEW_MODE_CHOICES = ['doctor', 'provision', 'deploy'];
 
 function trimEnvValue(value) {
@@ -37,28 +49,6 @@ function hasOwnEnvValue(env, name) {
 
 function relativePath(rootDir, targetPath) {
   return path.relative(rootDir, targetPath) || '.';
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-}
-
-function stripAnsi(value) {
-  return value.replace(ANSI_PATTERN, '');
-}
-
-function redactValues(value, secrets) {
-  let result = value;
-  for (const secret of secrets) {
-    if (secret) {
-      result = result.split(secret).join('<redacted>');
-    }
-  }
-  return result;
-}
-
-export function isValidHyperdriveId(value) {
-  return HYPERDRIVE_ID_PATTERN.test(value);
 }
 
 export function buildPreviewResourceNames(siteKey, processEnv = process.env) {
@@ -87,27 +77,6 @@ export function buildPreviewDeploySettingsJson(hyperdriveId) {
     null,
     2
   )}\n`;
-}
-
-export function r2BucketListHasName(output, bucketName) {
-  const cleanOutput = stripAnsi(output);
-  const pattern = new RegExp(
-    `(^|[^a-z0-9.-])${escapeRegExp(bucketName)}([^a-z0-9.-]|$)`,
-    'u'
-  );
-  return pattern.test(cleanOutput);
-}
-
-export function parseHyperdriveIdFromOutput(output) {
-  const cleanOutput = stripAnsi(output);
-  const preferredMatch = cleanOutput.match(
-    /\b(?:id|ID)\s*[:=]\s*([a-f0-9]{32})\b/u
-  );
-  if (preferredMatch) {
-    return preferredMatch[1];
-  }
-
-  return cleanOutput.match(/\b[a-f0-9]{32}\b/u)?.[0] ?? '';
 }
 
 function readPreviewDeploySettingsStatus({ rootDir, siteKey }) {
@@ -156,21 +125,7 @@ function createPreviewCommandEnv({
     siteKey,
   });
 
-  env.PATH = [
-    processEnv.PATH,
-    env.PATH,
-    path.dirname(process.execPath),
-    '/opt/homebrew/bin',
-    '/usr/local/bin',
-    '/usr/bin',
-    '/bin',
-    '/usr/sbin',
-    '/sbin',
-  ]
-    .filter(Boolean)
-    .join(':');
-
-  return env;
+  return withCommandPathFallback(env, processEnv);
 }
 
 function resolveOperatorValue({ envFileValues, name, processEnv }) {
@@ -224,144 +179,6 @@ function createPreviewContext({
     siteKey,
     workersDevSubdomain,
   };
-}
-
-function formatStatusLine(status, label, detail = '') {
-  return `[${status}] ${label}${detail ? `: ${detail}` : ''}`;
-}
-
-function printStatus(status, label, detail = '') {
-  console.log(formatStatusLine(status, label, detail));
-}
-
-function runCommandCapture(command, args, env) {
-  return new Promise((resolve) => {
-    const child = spawn(command, args, {
-      cwd: process.cwd(),
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('error', (error) => {
-      resolve({
-        code: 1,
-        output: error.message,
-        stderr: error.message,
-        stdout,
-      });
-    });
-    child.on('close', (code) => {
-      resolve({
-        code: typeof code === 'number' ? code : 1,
-        output: `${stdout}${stderr}`,
-        stderr,
-        stdout,
-      });
-    });
-  });
-}
-
-function runCommandInherit(command, args, env) {
-  return new Promise((resolve) => {
-    const child = spawn(command, args, {
-      cwd: process.cwd(),
-      env,
-      stdio: 'inherit',
-    });
-
-    child.on('error', () => {
-      resolve(1);
-    });
-    child.on('close', (code) => {
-      resolve(typeof code === 'number' ? code : 1);
-    });
-  });
-}
-
-function resolvePnpmInvocation(args) {
-  const npmExecPath = process.env.npm_execpath;
-  if (npmExecPath) {
-    return {
-      args: [npmExecPath, ...args],
-      command: process.execPath,
-    };
-  }
-
-  return {
-    args,
-    command: 'pnpm',
-  };
-}
-
-function runPnpmCapture(args, env) {
-  const invocation = resolvePnpmInvocation(args);
-  return runCommandCapture(invocation.command, invocation.args, env);
-}
-
-function runPnpmInherit(args, env) {
-  const invocation = resolvePnpmInvocation(args);
-  return runCommandInherit(invocation.command, invocation.args, env);
-}
-
-async function runWrangler(args, env) {
-  return runPnpmCapture(['exec', 'wrangler', ...args], env);
-}
-
-function assertWranglerSuccess(label, result, secrets = []) {
-  if (result.code === 0) {
-    return;
-  }
-
-  const output = redactValues(stripAnsi(result.output).trim(), secrets);
-  throw new Error(`${label} failed${output ? `:\n${output}` : ''}`);
-}
-
-async function checkR2Bucket(bucketName, env) {
-  const result = await runWrangler(['r2', 'bucket', 'list'], env);
-  assertWranglerSuccess('list R2 buckets', result);
-  return r2BucketListHasName(result.output, bucketName);
-}
-
-async function ensureR2Bucket(bucketName, env) {
-  if (await checkR2Bucket(bucketName, env)) {
-    printStatus('ok', 'R2 bucket', bucketName);
-    return;
-  }
-
-  printStatus('create', 'R2 bucket', bucketName);
-  const result = await runWrangler(['r2', 'bucket', 'create', bucketName], env);
-  if (
-    result.code !== 0 &&
-    !/already exists|already owned|bucket exists/iu.test(result.output)
-  ) {
-    assertWranglerSuccess(`create R2 bucket ${bucketName}`, result);
-  }
-  printStatus('ok', 'R2 bucket', bucketName);
-}
-
-async function checkHyperdrive(hyperdriveId, env) {
-  if (!isValidHyperdriveId(hyperdriveId)) {
-    return false;
-  }
-
-  const result = await runWrangler(['hyperdrive', 'get', hyperdriveId], env);
-  return result.code === 0;
-}
-
-async function checkWorker(workerName, env) {
-  const result = await runWrangler(
-    ['deployments', 'list', '--name', workerName, '--json'],
-    env
-  );
-  return result.code === 0;
 }
 
 function requirePreviewOperatorValues(context) {

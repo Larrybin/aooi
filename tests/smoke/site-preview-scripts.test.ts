@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  buildPreviewDeploySettingsJson,
-  buildPreviewResourceNames,
   isValidHyperdriveId,
   parseHyperdriveIdFromOutput,
   r2BucketListHasName,
+} from '../../scripts/lib/cloudflare-provisioning.mjs';
+import {
+  buildPreviewDeploySettingsJson,
+  buildPreviewResourceNames,
 } from '../../scripts/site-preview.mjs';
 
 test('site preview resource names are derived from site key and workers.dev subdomain', () => {

@@ -171,6 +171,22 @@ Profile mappings are automatic:
   `STORAGE_PUBLIC_BASE_URL`.
 - Shell env values still win over `sites/<site-key>/.env.local`.
 
+For a new production topology, provision Cloudflare resources before the first
+release:
+
+```bash
+SITE=<site-key> pnpm site:production:provision
+```
+
+`site:production:provision` creates the production R2 buckets declared in
+`deploy.settings.json`. If `resources.hyperdriveId` is still a known
+placeholder, it creates a Cloudflare Hyperdrive config from
+`PRODUCTION_DATABASE_URL` and writes the returned ID back to
+`sites/<site-key>/deploy.settings.json`. It does not create or select an
+external PostgreSQL database, custom domain, DNS record, or Cloudflare secrets.
+Commit the updated `deploy.settings.json` before running the strict production
+release.
+
 For an already initialized production topology, run the production release
 explicitly:
 
@@ -304,6 +320,7 @@ Use this order for the first production deploy:
 
 ```bash
 pnpm install
+SITE=mamamiya pnpm site:production:provision
 NODE_ENV=production SITE=mamamiya pnpm cf:check
 NODE_ENV=production SITE=mamamiya pnpm cf:build
 NODE_ENV=production SITE=mamamiya pnpm db:migrate

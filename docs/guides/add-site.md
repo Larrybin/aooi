@@ -375,10 +375,17 @@ SITE=my-site pnpm test:cf-admin-settings-smoke
 首次初始化或部分初始化的 Cloudflare 环境，先部署 state，再部署 app：
 
 ```bash
+SITE=my-site pnpm site:production:provision
 SITE=my-site pnpm cf:deploy:state
 SITE=my-site pnpm cf:deploy
 SITE=my-site pnpm test:cf-app-smoke
 ```
+
+`site:production:provision` 会按 `deploy.settings.json` 创建生产 R2 bucket。
+如果 `resources.hyperdriveId` 仍是占位值，它会用
+`PRODUCTION_DATABASE_URL` 创建 Cloudflare Hyperdrive，并把真实 ID 写回
+`deploy.settings.json`。它不会创建外部 PostgreSQL、custom domain、DNS 或
+Cloudflare secrets；脚本改写后的 `deploy.settings.json` 需要提交。
 
 如果需要 workers.dev staging runtime，不要创建 `my-site-preview` 站点。添加
 `sites/my-site/deploy.preview.settings.json`，只放 preview Hyperdrive ID。也
@@ -408,7 +415,7 @@ SITE=my-site pnpm cf:preview:deploy
 部署前需要确保：
 
 - operator 机器上的 Wrangler OAuth 已登录，并且 `pnpm exec wrangler whoami` 通过。
-- Cloudflare R2 bucket、Hyperdrive、custom domain、secrets、vars 已按 `deploy.settings.json` 准备。
+- Cloudflare R2 bucket、Hyperdrive、custom domain、secrets、vars 已按 `deploy.settings.json` 准备；R2 和 Hyperdrive 可用 `site:production:provision` 辅助创建。
 - 如果 `src/config/db/schema.ts` 有变化，已生成并提交对应 `src/config/db/migrations/**` 文件，并在生产部署前完成数据库迁移。
 
 生产部署权威入口是本地 operator session，不是 GitHub branch-tip 自动发布。

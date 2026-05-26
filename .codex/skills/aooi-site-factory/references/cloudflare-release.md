@@ -24,6 +24,7 @@ SITE=<site-key> pnpm cf:build
 pnpm cf:build:no-db --site=<site-key>
 SITE=<site-key> pnpm cf:typegen
 SITE=<site-key> pnpm cf:typegen:check
+SITE=<site-key> pnpm site:production:provision
 SITE=<site-key> pnpm site:preview:doctor
 SITE=<site-key> pnpm cf:preview:check
 SITE=<site-key> pnpm cf:preview:build
@@ -66,6 +67,19 @@ SITE=<site-key> pnpm cf:preview:deploy
 Preview values come from `sites/<site-key>/.env.local`: `PREVIEW_DATABASE_URL` maps to `DATABASE_URL`, `CF_WORKERS_DEV_SUBDOMAIN` derives the preview `STORAGE_PUBLIC_BASE_URL`, and `CF_PREVIEW_ALLOW_PLACEHOLDER_SECRETS=true` enables placeholder preview secrets.
 
 Preview/local checks warn on missing `RESEND_API_KEY`, `CREEM_API_KEY`, and `CREEM_SIGNING_SECRET`; do not treat them as production blockers during preview/spike work.
+
+For first production resource setup, use:
+
+```bash
+SITE=<site-key> pnpm site:production:provision
+```
+
+It creates the production R2 buckets declared in `deploy.settings.json`. If the
+production Hyperdrive ID is still a known placeholder, it creates the
+Hyperdrive config from `PRODUCTION_DATABASE_URL` and writes the real ID back to
+`deploy.settings.json`. It does not create the external PostgreSQL database,
+custom domain, DNS record, or Cloudflare secrets. Commit the updated
+`deploy.settings.json` before the strict release path.
 
 For production release, use the repository release wrapper:
 
