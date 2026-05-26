@@ -148,6 +148,40 @@ STORAGE_PUBLIC_BASE_URL=https://stale-preview.example.com/assets/
   );
 });
 
+test('applySiteLocalEnvOverlay keeps preview mappings ahead of production mappings', () => {
+  const env = {
+    SITE: 'background-remover',
+    CF_DEPLOY_PROFILE: 'preview',
+    NODE_ENV: 'production',
+  };
+  const originalEnv = {
+    SITE: 'background-remover',
+    CF_DEPLOY_PROFILE: 'preview',
+    NODE_ENV: 'production',
+  };
+
+  applySiteLocalEnvOverlay({
+    env,
+    originalEnv,
+    rootDir: '/repo',
+    siteKey: 'background-remover',
+    readFileSyncImpl() {
+      return `
+PREVIEW_DATABASE_URL=postgresql://preview-db
+CF_WORKERS_DEV_SUBDOMAIN=aooi-preview
+PRODUCTION_DATABASE_URL=postgresql://production-db
+PRODUCTION_STORAGE_PUBLIC_BASE_URL=https://backgroundremover.example.com/assets/
+`;
+    },
+  });
+
+  assert.equal(env.DATABASE_URL, 'postgresql://preview-db');
+  assert.equal(
+    env.STORAGE_PUBLIC_BASE_URL,
+    'https://aooi-background-remover-preview-router.aooi-preview.workers.dev/assets/'
+  );
+});
+
 test('applySiteLocalEnvOverlay preserves shell database and storage overrides for preview', () => {
   const env = {
     SITE: 'background-remover',

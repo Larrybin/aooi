@@ -98,7 +98,10 @@ function buildPreviewStoragePublicBaseUrl(siteKey, env) {
 }
 
 function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
-  if (getTrimmedEnvValue(env, 'CF_DEPLOY_PROFILE') === PREVIEW_DEPLOY_PROFILE) {
+  const isPreviewProfile =
+    getTrimmedEnvValue(env, 'CF_DEPLOY_PROFILE') === PREVIEW_DEPLOY_PROFILE;
+
+  if (isPreviewProfile) {
     if (!hasShellEnvKey(originalEnv, 'DATABASE_URL')) {
       const previewDatabaseUrl = getTrimmedEnvValue(
         env,
@@ -118,6 +121,8 @@ function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
         env.STORAGE_PUBLIC_BASE_URL = previewStoragePublicBaseUrl;
       }
     }
+
+    return env;
   }
 
   if (
