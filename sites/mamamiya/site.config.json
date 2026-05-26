@@ -16,5 +16,11 @@
     "docs": true,
     "blog": true
   },
+  "i18n": {
+    "defaultLocale": "en",
+    "supportedLocales": ["en", "zh", "ja"],
+    "localePrefix": "as-needed",
+    "localeDetection": false
+  },
   "configVersion": 1
 }
