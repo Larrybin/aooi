@@ -66,6 +66,21 @@ It owns:
 - Hyperdrive id.
 - operator-declared binding requirements.
 
+Recommended production names are explicit, site-scoped values:
+
+```text
+workers.router: aooi-<site-key>-router
+workers.state: aooi-<site-key>-state
+workers.public-web: aooi-<site-key>-public-web
+workers.<slot>: aooi-<site-key>-<slot>
+resources.incrementalCacheBucket: aooi-<site-key>-opennext-cache
+resources.appStorageBucket: aooi-<site-key>-storage
+```
+
+These names are not derived at production provision time. Production
+provisioning reads `deploy.settings.json`; preview deployment derives
+`aooi-<site-key>-preview-*` names from the real site key.
+
 It must not own:
 
 - brand identity.

@@ -25,7 +25,6 @@ pnpm cf:build:no-db --site=<site-key>
 SITE=<site-key> pnpm cf:typegen
 SITE=<site-key> pnpm cf:typegen:check
 SITE=<site-key> pnpm site:production:doctor
-SITE=<site-key> pnpm site:production:provision
 SITE=<site-key> pnpm site:preview:doctor
 SITE=<site-key> pnpm cf:preview:check
 SITE=<site-key> pnpm cf:preview:build
@@ -86,6 +85,11 @@ Hyperdrive config from `PRODUCTION_DATABASE_URL` and writes the real ID back to
 `deploy.settings.json`. It does not create the external PostgreSQL database,
 custom domain, DNS record, or Cloudflare secrets. Commit the updated
 `deploy.settings.json` before the strict release path.
+
+Production worker and bucket names are not derived at provisioning time. R2
+buckets and Hyperdrive come from `deploy.settings.json.resources`; workers come
+from `deploy.settings.json.workers` and are created or updated by
+`cf:deploy:state` / `cf:deploy`.
 
 For production release, use the repository release wrapper:
 
