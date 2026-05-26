@@ -9,10 +9,7 @@ function assertSecurityHeaders(response: Response) {
     'strict-origin-when-cross-origin'
   );
   assert.equal(response.headers.get('X-Frame-Options'), 'SAMEORIGIN');
-  assert.match(
-    response.headers.get('Permissions-Policy') ?? '',
-    /camera=\(\)/
-  );
+  assert.match(response.headers.get('Permissions-Policy') ?? '', /camera=\(\)/);
   const csp = response.headers.get('Content-Security-Policy') ?? '';
   assert.match(csp, /default-src 'self'/);
   assert.match(csp, /frame-ancestors 'self'/);
@@ -104,6 +101,22 @@ test('默认语言路径不会被 middleware canonical redirect 回根路径', a
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('location'), null);
   assert.equal(response.headers.get('x-middleware-next'), '1');
+  assertSecurityHeaders(response);
+});
+
+test('未支持的已注册 locale 前缀会直接返回 404', async () => {
+  const middlewareModule = await import('./middleware');
+  const middleware = middlewareModule.middleware;
+
+  const response = await middleware(
+    new NextRequest('https://example.com/fr/pricing')
+  );
+
+  assert.equal(response.status, 404);
+  assert.match(
+    response.headers.get('x-middleware-rewrite') ?? '',
+    /\/_not-found$/
+  );
   assertSecurityHeaders(response);
 });
 
