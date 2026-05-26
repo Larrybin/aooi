@@ -175,8 +175,13 @@ For a new production topology, provision Cloudflare resources before the first
 release:
 
 ```bash
+SITE=<site-key> pnpm site:production:doctor
 SITE=<site-key> pnpm site:production:provision
 ```
+
+`site:production:doctor` is read-only. It checks production operator env,
+production R2 buckets, Hyperdrive accessibility, and configured production
+workers.
 
 `site:production:provision` creates the production R2 buckets declared in
 `deploy.settings.json`. If `resources.hyperdriveId` is still a known
@@ -320,6 +325,7 @@ Use this order for the first production deploy:
 
 ```bash
 pnpm install
+SITE=mamamiya pnpm site:production:doctor
 SITE=mamamiya pnpm site:production:provision
 NODE_ENV=production SITE=mamamiya pnpm cf:check
 NODE_ENV=production SITE=mamamiya pnpm cf:build

@@ -161,8 +161,9 @@ from `CF_WORKERS_DEV_SUBDOMAIN`. Production commands map
 5. Add `content/docs/index.mdx` only if docs are enabled.
 6. Add at least one `content/posts/*.mdx` only if blog is enabled.
 7. Add `sites/<new-site>/.env.local` locally when local, preview, or release operator values are needed.
-8. Run `SITE=<new-site> pnpm site:production:provision` when production R2 buckets or a production Hyperdrive config need to be created.
-9. Add `deploy.preview.settings.json` only if a workers.dev preview runtime is needed.
-10. Run the site/config checks listed in the skill before production-like work.
+8. Run `SITE=<new-site> pnpm site:production:doctor` before production setup or release checks.
+9. Run `SITE=<new-site> pnpm site:production:provision` when production R2 buckets or a production Hyperdrive config need to be created.
+10. Add `deploy.preview.settings.json` only if a workers.dev preview runtime is needed.
+11. Run the site/config checks listed in the skill before production-like work.
 
 Avoid fallback mappings, aliases, and compatibility wrappers. Direct convergence is preferred.

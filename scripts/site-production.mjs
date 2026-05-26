@@ -6,6 +6,8 @@ import siteEnvModule from '../src/config/site-env.cjs';
 import {
   assertWranglerSuccess,
   checkHyperdrive,
+  checkR2Bucket,
+  checkWorker,
   ensureR2Bucket,
   isValidHyperdriveId,
   parseHyperdriveIdFromOutput,
@@ -28,7 +30,16 @@ import {
 const { applySiteLocalEnvOverlay, readSiteLocalEnv, resolveSiteLocalEnvPath } =
   siteEnvModule;
 
-const PRODUCTION_MODE_CHOICES = ['provision'];
+const PRODUCTION_MODE_CHOICES = ['doctor', 'provision'];
+const PRODUCTION_RELEASE_ENV_KEYS = Object.freeze([
+  'DATABASE_PROVIDER',
+  'RELEASE_TEST_DATABASE_URL',
+  'PRODUCTION_DATABASE_URL',
+  'STORAGE_PUBLIC_BASE_URL',
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_API_TOKEN',
+  'RESEND_API_KEY',
+]);
 
 function trimEnvValue(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -56,6 +67,32 @@ export function isProductionHyperdrivePlaceholder(hyperdriveId) {
 
 export function buildProductionHyperdriveName(siteKey) {
   return `aooi-${siteKey}-db`;
+}
+
+export function getMissingProductionReleaseEnvNames(env) {
+  const missing = PRODUCTION_RELEASE_ENV_KEYS.filter((name) => {
+    if (name === 'DATABASE_PROVIDER') {
+      return trimEnvValue(env[name]) !== 'postgresql';
+    }
+
+    return !trimEnvValue(env[name]);
+  });
+
+  if (!trimEnvValue(env.BETTER_AUTH_SECRET) && !trimEnvValue(env.AUTH_SECRET)) {
+    missing.push('BETTER_AUTH_SECRET or AUTH_SECRET');
+  }
+
+  return missing;
+}
+
+export function hasUnsafeProductionReleaseTestDatabase(env) {
+  const releaseTestDatabaseUrl = trimEnvValue(env.RELEASE_TEST_DATABASE_URL);
+  const productionDatabaseUrl = trimEnvValue(env.PRODUCTION_DATABASE_URL);
+  return (
+    Boolean(releaseTestDatabaseUrl) &&
+    Boolean(productionDatabaseUrl) &&
+    releaseTestDatabaseUrl === productionDatabaseUrl
+  );
 }
 
 export function updateProductionDeploySettingsHyperdriveId(
@@ -152,6 +189,39 @@ function requireProductionOperatorValues(context) {
   }
 }
 
+function printProductionEnvStatus(env) {
+  const missing = getMissingProductionReleaseEnvNames(env);
+  const missingSet = new Set(missing);
+  for (const name of PRODUCTION_RELEASE_ENV_KEYS) {
+    if (missingSet.has(name)) {
+      printStatus(
+        'missing',
+        name,
+        name === 'DATABASE_PROVIDER' ? 'expected postgresql' : ''
+      );
+    } else {
+      printStatus('ok', name);
+    }
+  }
+
+  if (missingSet.has('BETTER_AUTH_SECRET or AUTH_SECRET')) {
+    printStatus('missing', 'BETTER_AUTH_SECRET or AUTH_SECRET');
+  } else {
+    printStatus('ok', 'BETTER_AUTH_SECRET or AUTH_SECRET');
+  }
+
+  if (hasUnsafeProductionReleaseTestDatabase(env)) {
+    printStatus(
+      'error',
+      'RELEASE_TEST_DATABASE_URL',
+      'must not equal PRODUCTION_DATABASE_URL'
+    );
+    return missing.length + 1;
+  }
+
+  return missing.length;
+}
+
 function writeProductionDeploySettingsHyperdriveId(context, hyperdriveId) {
   writeFileSync(
     context.deploySettingsPath,
@@ -214,6 +284,100 @@ async function ensureProductionHyperdrive(context, env) {
   printStatus('ok', 'Hyperdrive config', hyperdriveId);
 }
 
+async function runDoctor() {
+  const context = createProductionContext();
+  const env = createProductionCommandEnv(context);
+  const resources = context.deploySettings.resources;
+  let failures = 0;
+
+  printStatus('ok', 'site', context.siteKey);
+  printStatus(
+    'ok',
+    'deploy settings',
+    relativePath(context.rootDir, context.deploySettingsPath)
+  );
+
+  if (existsSync(context.envFilePath)) {
+    printStatus(
+      'ok',
+      'operator env',
+      relativePath(context.rootDir, context.envFilePath)
+    );
+  } else {
+    failures += 1;
+    printStatus(
+      'missing',
+      'operator env',
+      `create sites/${context.siteKey}/.env.local`
+    );
+  }
+
+  failures += printProductionEnvStatus(env);
+
+  for (const bucketName of [
+    resources.incrementalCacheBucket,
+    resources.appStorageBucket,
+  ]) {
+    try {
+      if (await checkR2Bucket(bucketName, env)) {
+        printStatus('ok', 'R2 bucket', bucketName);
+      } else {
+        failures += 1;
+        printStatus('missing', 'R2 bucket', bucketName);
+      }
+    } catch (error) {
+      failures += 1;
+      printStatus(
+        'error',
+        'R2 bucket check',
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+
+  const hyperdriveId = resources.hyperdriveId;
+  if (await checkHyperdrive(hyperdriveId, env)) {
+    printStatus('ok', 'Hyperdrive config', hyperdriveId);
+  } else {
+    failures += 1;
+    printStatus(
+      isProductionHyperdrivePlaceholder(hyperdriveId)
+        ? 'placeholder'
+        : 'missing',
+      'Hyperdrive config',
+      hyperdriveId
+    );
+  }
+
+  for (const [slot, workerName] of Object.entries(
+    context.deploySettings.workers
+  )) {
+    try {
+      if (await checkWorker(workerName, env)) {
+        printStatus('ok', `worker.${slot}`, workerName);
+      } else {
+        failures += 1;
+        printStatus('missing', `worker.${slot}`, workerName);
+      }
+    } catch (error) {
+      failures += 1;
+      printStatus(
+        'error',
+        `worker.${slot} check`,
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+
+  if (failures > 0) {
+    printStatus('fail', 'production readiness', `${failures} issue(s)`);
+    return 1;
+  }
+
+  printStatus('ok', 'production readiness');
+  return 0;
+}
+
 async function runProvision() {
   const context = createProductionContext();
   requireProductionOperatorValues(context);
@@ -230,11 +394,13 @@ async function runProvision() {
 async function main() {
   const mode = process.argv[2];
   if (!PRODUCTION_MODE_CHOICES.includes(mode)) {
-    console.error('Usage: SITE=<site-key> pnpm site:production:<provision>');
+    console.error(
+      'Usage: SITE=<site-key> pnpm site:production:<doctor|provision>'
+    );
     process.exit(1);
   }
 
-  const exitCode = await runProvision();
+  const exitCode = mode === 'doctor' ? await runDoctor() : await runProvision();
   process.exit(exitCode);
 }
 

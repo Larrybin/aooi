@@ -88,6 +88,7 @@ pnpm arch:check
 SITE=<site-key> pnpm build
 SITE=<site-key> pnpm cf:check
 pnpm cf:build:no-db --site=<site-key>
+SITE=<site-key> pnpm site:production:doctor
 SITE=<site-key> pnpm site:production:provision
 SITE=<site-key> pnpm site:preview:doctor
 SITE=<site-key> pnpm cf:preview:check

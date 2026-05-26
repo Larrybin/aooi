@@ -24,6 +24,7 @@ SITE=<site-key> pnpm cf:build
 pnpm cf:build:no-db --site=<site-key>
 SITE=<site-key> pnpm cf:typegen
 SITE=<site-key> pnpm cf:typegen:check
+SITE=<site-key> pnpm site:production:doctor
 SITE=<site-key> pnpm site:production:provision
 SITE=<site-key> pnpm site:preview:doctor
 SITE=<site-key> pnpm cf:preview:check
@@ -71,11 +72,16 @@ Preview/local checks warn on missing `RESEND_API_KEY`, `CREEM_API_KEY`, and `CRE
 For first production resource setup, use:
 
 ```bash
+SITE=<site-key> pnpm site:production:doctor
 SITE=<site-key> pnpm site:production:provision
 ```
 
-It creates the production R2 buckets declared in `deploy.settings.json`. If the
-production Hyperdrive ID is still a known placeholder, it creates the
+`site:production:doctor` is read-only. It checks production operator env,
+production R2 buckets, Hyperdrive accessibility, and configured workers.
+
+`site:production:provision` creates the production R2 buckets declared in
+`deploy.settings.json`. If the production Hyperdrive ID is still a known
+placeholder, it creates the
 Hyperdrive config from `PRODUCTION_DATABASE_URL` and writes the real ID back to
 `deploy.settings.json`. It does not create the external PostgreSQL database,
 custom domain, DNS record, or Cloudflare secrets. Commit the updated

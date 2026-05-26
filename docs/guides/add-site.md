@@ -375,11 +375,15 @@ SITE=my-site pnpm test:cf-admin-settings-smoke
 首次初始化或部分初始化的 Cloudflare 环境，先部署 state，再部署 app：
 
 ```bash
+SITE=my-site pnpm site:production:doctor
 SITE=my-site pnpm site:production:provision
 SITE=my-site pnpm cf:deploy:state
 SITE=my-site pnpm cf:deploy
 SITE=my-site pnpm test:cf-app-smoke
 ```
+
+`site:production:doctor` 是只读检查：验证 production operator env、R2 bucket、
+Hyperdrive 和已配置 worker 是否可访问。
 
 `site:production:provision` 会按 `deploy.settings.json` 创建生产 R2 bucket。
 如果 `resources.hyperdriveId` 仍是占位值，它会用

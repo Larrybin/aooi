@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
   buildProductionDeploySettingsJson,
   buildProductionHyperdriveName,
+  getMissingProductionReleaseEnvNames,
+  hasUnsafeProductionReleaseTestDatabase,
   isProductionHyperdrivePlaceholder,
   updateProductionDeploySettingsHyperdriveId,
 } from '../../scripts/site-production.mjs';
@@ -120,5 +122,54 @@ test('site production provision writes deploy settings JSON with a real Hyperdri
         'replace_with_hyperdrive_id'
       ),
     /production Hyperdrive id/
+  );
+});
+
+test('site production doctor reports missing release env without exposing values', () => {
+  assert.deepEqual(
+    getMissingProductionReleaseEnvNames({
+      AUTH_SECRET: 'auth-secret',
+      CLOUDFLARE_ACCOUNT_ID: 'account-id',
+      CLOUDFLARE_API_TOKEN: 'api-token',
+      DATABASE_PROVIDER: 'postgresql',
+      PRODUCTION_DATABASE_URL: 'postgresql://production-db',
+      RELEASE_TEST_DATABASE_URL: 'postgresql://release-test-db',
+      RESEND_API_KEY: 'resend-key',
+      STORAGE_PUBLIC_BASE_URL: 'https://assets.example.com/',
+    }),
+    []
+  );
+
+  assert.deepEqual(
+    getMissingProductionReleaseEnvNames({
+      DATABASE_PROVIDER: 'sqlite',
+      PRODUCTION_DATABASE_URL: 'postgresql://production-db',
+    }),
+    [
+      'DATABASE_PROVIDER',
+      'RELEASE_TEST_DATABASE_URL',
+      'STORAGE_PUBLIC_BASE_URL',
+      'CLOUDFLARE_ACCOUNT_ID',
+      'CLOUDFLARE_API_TOKEN',
+      'RESEND_API_KEY',
+      'BETTER_AUTH_SECRET or AUTH_SECRET',
+    ]
+  );
+});
+
+test('site production doctor rejects release tests against production database', () => {
+  assert.equal(
+    hasUnsafeProductionReleaseTestDatabase({
+      PRODUCTION_DATABASE_URL: 'postgresql://same-db',
+      RELEASE_TEST_DATABASE_URL: 'postgresql://same-db',
+    }),
+    true
+  );
+  assert.equal(
+    hasUnsafeProductionReleaseTestDatabase({
+      PRODUCTION_DATABASE_URL: 'postgresql://production-db',
+      RELEASE_TEST_DATABASE_URL: 'postgresql://release-test-db',
+    }),
+    false
   );
 });

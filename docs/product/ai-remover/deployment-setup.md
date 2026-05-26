@@ -130,8 +130,10 @@ Do not put secrets, database URLs, or provider API keys in either site JSON
 file.
 
 After `PRODUCTION_DATABASE_URL` is present in `sites/ai-remover/.env.local`,
-`SITE=ai-remover pnpm site:production:provision` can create the production R2
-buckets and replace a placeholder Hyperdrive ID with the real Cloudflare ID.
+run `SITE=ai-remover pnpm site:production:doctor` to inspect production
+readiness. `SITE=ai-remover pnpm site:production:provision` can create the
+production R2 buckets and replace a placeholder Hyperdrive ID with the real
+Cloudflare ID.
 
 `workers.chat` is intentionally absent for AI Remover. The product does not use
 the shared OpenRouter chat runtime; image removal runs on `public-web` through
@@ -285,6 +287,8 @@ SITE=ai-remover pnpm site:preview:doctor
 For production bootstrap:
 
 ```bash
+SITE=ai-remover pnpm site:production:doctor
+SITE=ai-remover pnpm site:production:provision
 SITE=ai-remover pnpm cf:deploy:state
 SITE=ai-remover pnpm cf:deploy
 ```
