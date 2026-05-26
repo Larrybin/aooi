@@ -1,10 +1,10 @@
 import { getTrimmedEnvValue, isProductionEnv } from '@/config/env-contract';
 
-import { localeRegistry } from './registry';
+import { localeRegistry, type LocaleCode } from './registry';
 
 export const locales = Object.freeze(localeRegistry.map((entry) => entry.code));
 
-export type Locale = (typeof locales)[number];
+export type Locale = LocaleCode;
 
 export const localeNames = Object.fromEntries(
   localeRegistry.map((entry) => [entry.code, entry.name])

@@ -1,44 +1,74 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { localeRegistry, parseLocaleRegistry } from './registry';
+import { localeCodes, localeRegistry, parseLocaleRegistry } from './registry';
 
 test('locale registry: canonical entries are valid and ordered from default locale', () => {
   assert.equal(localeRegistry[0]?.code, 'en');
   assert.ok(localeRegistry.some((entry) => entry.code === 'zh'));
   assert.ok(localeRegistry.some((entry) => entry.code === 'ja'));
   assert.ok(localeRegistry.some((entry) => entry.code === 'pt-BR'));
+  assert.deepEqual(
+    localeRegistry.map((entry) => entry.code),
+    [...localeCodes]
+  );
 });
 
 test('locale registry: rejects duplicate locale codes', () => {
-  assert.throws(() =>
-    parseLocaleRegistry([
-      localeRegistry[0],
-      { ...localeRegistry[0], hreflang: 'en-duplicate' },
-    ])
+  assert.throws(
+    () =>
+      parseLocaleRegistry([
+        ...localeRegistry,
+        { ...localeRegistry[0], hreflang: 'en-duplicate' },
+      ]),
+    /duplicate locale code \\"en\\"/
   );
 });
 
 test('locale registry: rejects duplicate hreflang values', () => {
-  assert.throws(() =>
-    parseLocaleRegistry([
-      localeRegistry[0],
-      { ...localeRegistry[1], hreflang: localeRegistry[0].hreflang },
-    ])
+  const duplicatedHreflangRegistry = localeRegistry.map((entry) => ({
+    ...entry,
+  }));
+  duplicatedHreflangRegistry[1] = {
+    ...duplicatedHreflangRegistry[1],
+    hreflang: localeRegistry[0].hreflang,
+  };
+
+  assert.throws(
+    () => parseLocaleRegistry(duplicatedHreflangRegistry),
+    /duplicate hreflang \\"en\\"/
   );
 });
 
 test('locale registry: rejects invalid text direction', () => {
-  assert.throws(() =>
-    parseLocaleRegistry([
-      {
-        code: 'xx',
-        name: 'Example',
-        englishName: 'Example',
-        direction: 'sideways',
-        hreflang: 'xx',
-      },
-    ])
+  const invalidDirectionRegistry = localeRegistry.map((entry) => ({
+    ...entry,
+  }));
+  invalidDirectionRegistry[0] = {
+    ...invalidDirectionRegistry[0],
+    direction: 'sideways',
+  };
+
+  assert.throws(
+    () => parseLocaleRegistry(invalidDirectionRegistry),
+    /Invalid option/
+  );
+});
+
+test('locale registry: rejects codes outside the literal locale contract', () => {
+  assert.throws(
+    () =>
+      parseLocaleRegistry([
+        ...localeRegistry,
+        {
+          code: 'xx',
+          name: 'Example',
+          englishName: 'Example',
+          direction: 'ltr',
+          hreflang: 'xx',
+        },
+      ]),
+    /Invalid option/
   );
 });
 
