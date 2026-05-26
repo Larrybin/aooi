@@ -84,11 +84,8 @@ function getTrimmedEnvValue(env, name) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function hasShellEnvValue(originalEnv, name) {
-  return (
-    hasOwnEnvValue(originalEnv, name) &&
-    Boolean(getTrimmedEnvValue(originalEnv, name))
-  );
+function hasShellEnvKey(originalEnv, name) {
+  return hasOwnEnvValue(originalEnv, name);
 }
 
 function buildPreviewStoragePublicBaseUrl(siteKey, env) {
@@ -102,7 +99,7 @@ function buildPreviewStoragePublicBaseUrl(siteKey, env) {
 
 function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
   if (getTrimmedEnvValue(env, 'CF_DEPLOY_PROFILE') === PREVIEW_DEPLOY_PROFILE) {
-    if (!hasShellEnvValue(originalEnv, 'DATABASE_URL')) {
+    if (!hasShellEnvKey(originalEnv, 'DATABASE_URL')) {
       const previewDatabaseUrl = getTrimmedEnvValue(
         env,
         'PREVIEW_DATABASE_URL'
@@ -112,7 +109,7 @@ function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
       }
     }
 
-    if (!hasShellEnvValue(originalEnv, 'STORAGE_PUBLIC_BASE_URL')) {
+    if (!hasShellEnvKey(originalEnv, 'STORAGE_PUBLIC_BASE_URL')) {
       const previewStoragePublicBaseUrl = buildPreviewStoragePublicBaseUrl(
         siteKey,
         env
@@ -125,7 +122,7 @@ function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
 
   if (
     getTrimmedEnvValue(env, 'NODE_ENV') === 'production' &&
-    !hasShellEnvValue(originalEnv, 'DATABASE_URL')
+    !hasShellEnvKey(originalEnv, 'DATABASE_URL')
   ) {
     const productionDatabaseUrl = getTrimmedEnvValue(
       env,
@@ -138,7 +135,7 @@ function applySiteProfileEnvMappings({ env, originalEnv, siteKey }) {
 
   if (
     getTrimmedEnvValue(env, 'NODE_ENV') === 'production' &&
-    !hasShellEnvValue(originalEnv, 'STORAGE_PUBLIC_BASE_URL')
+    !hasShellEnvKey(originalEnv, 'STORAGE_PUBLIC_BASE_URL')
   ) {
     const productionStoragePublicBaseUrl = getTrimmedEnvValue(
       env,
