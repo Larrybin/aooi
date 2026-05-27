@@ -8,6 +8,7 @@ import {
   buildCanonicalUrl,
   buildLanguageAlternates,
   getPublishedLocalesForPath,
+  isPublishedLocaleForPath,
 } from './canonical';
 
 test('buildCanonicalUrl: 使用 @/site 作为唯一 canonical base', () => {
@@ -45,4 +46,19 @@ test('buildLanguageAlternates: 只包含 approved published 语言', () => {
       (locale) => localeHreflangs[locale]
     )
   );
+});
+
+test('isPublishedLocaleForPath: 未 approved 的目标语言不可发布', () => {
+  assert.equal(isPublishedLocaleForPath('/pricing', defaultLocale), true);
+
+  for (const locale of Object.keys(localeHreflangs)) {
+    if (locale === defaultLocale) {
+      continue;
+    }
+
+    assert.equal(
+      isPublishedLocaleForPath('/pricing', locale),
+      getPublishedLocalesForPath('/pricing').includes(locale)
+    );
+  }
 });

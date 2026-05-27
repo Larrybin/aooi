@@ -2,7 +2,12 @@ import 'server-only';
 
 import { site, siteI18nManifest } from '@/site';
 
-import { defaultLocale, localeHreflangs, locales } from '@/config/locale';
+import {
+  defaultLocale,
+  localeHreflangs,
+  locales,
+  type Locale,
+} from '@/config/locale';
 
 type SiteI18nManifestLocales = Record<
   string,
@@ -62,7 +67,7 @@ export function buildLanguageAlternates(relativePath: string) {
   ]);
 }
 
-export function getPublishedLocalesForPath(relativePath: string) {
+export function getPublishedLocalesForPath(relativePath: string): Locale[] {
   const normalizedPath = normalizeRelativePath(relativePath);
   const publishedLocales = [defaultLocale];
   const manifestLocales = siteI18nManifest.locales as SiteI18nManifestLocales;
@@ -83,4 +88,10 @@ export function getPublishedLocalesForPath(relativePath: string) {
   }
 
   return publishedLocales;
+}
+
+export function isPublishedLocaleForPath(relativePath: string, locale: string) {
+  return getPublishedLocalesForPath(relativePath).some(
+    (publishedLocale) => publishedLocale === locale
+  );
 }
