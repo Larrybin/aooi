@@ -29,6 +29,27 @@ function getLineNumberAtIndex(content, index) {
   return content.slice(0, index).split(/\r?\n/).length;
 }
 
+function isLikelyTypeScriptGenericTag(match, content) {
+  const tag = match[0];
+  if (tag === '<>' || tag === '</>' || tag.startsWith('</')) {
+    return false;
+  }
+
+  const startIndex = match.index ?? 0;
+  const previousChar = content[startIndex - 1] ?? '';
+  if (/[A-Za-z0-9_$.)\]]/.test(previousChar)) {
+    return true;
+  }
+
+  const tagName = /^<([A-Za-z][A-Za-z0-9.:-]*)/.exec(tag)?.[1] ?? '';
+  const afterTag = content.slice(startIndex + tag.length).trimStart();
+  return /^[A-Z]/.test(tagName) && /^\([^)]*\)\s*(?:=>|\{)/.test(afterTag);
+}
+
+function isLikelyCodeBetweenJsxTags(text) {
+  return /[{};]/.test(text) || /=>/.test(text);
+}
+
 function collectForbiddenTerms(glossary, locale) {
   return [
     ...(glossary.forbidden.allLocales ?? []),
@@ -149,14 +170,21 @@ export function findEnglishResiduals({
 export function findHardcodedVisibleEnglish({ filePath, content }) {
   const issues = [];
   const lines = content.split(/\r?\n/);
-  const jsxTags = [...content.matchAll(visibleJsxTagPattern)];
+  const jsxTags = [...content.matchAll(visibleJsxTagPattern)].filter(
+    (match) => !isLikelyTypeScriptGenericTag(match, content)
+  );
 
   for (let index = 0; index < jsxTags.length - 1; index += 1) {
     const currentTag = jsxTags[index];
     const nextTag = jsxTags[index + 1];
     const textStart = (currentTag.index ?? 0) + currentTag[0].length;
     const textEnd = nextTag.index ?? textStart;
-    const text = content.slice(textStart, textEnd).replace(/\s+/g, ' ').trim();
+    const rawText = content.slice(textStart, textEnd);
+    if (isLikelyCodeBetweenJsxTags(rawText)) {
+      continue;
+    }
+
+    const text = rawText.replace(/\s+/g, ' ').trim();
     if (!/[A-Za-z]/.test(text)) {
       continue;
     }

@@ -214,6 +214,21 @@ test('hardcoded visible English scanner ignores comparison before JSX branches',
   assert.deepEqual(issues, []);
 });
 
+test('hardcoded visible English scanner ignores TSX generic declarations', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'type Item = { id: string };',
+      'export function List<T extends Item>() {',
+      '  return <div />;',
+      '}',
+      'const Grid = <TItem extends Item>(props: Props<TItem>) => <div />;',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(issues, []);
+});
+
 test('hardcoded visible English scanner requires an explicit exempt reason', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',
