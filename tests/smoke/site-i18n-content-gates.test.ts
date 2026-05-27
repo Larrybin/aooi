@@ -160,6 +160,18 @@ test('localized text check still scans rich text inner copy', () => {
   );
 });
 
+test('localized text check ignores HTML entity syntax', () => {
+  const issues = checkLocalizedText({
+    text: '版权所有 &copy; 2026',
+    glossary,
+    locale: 'zh',
+    pageId: 'footer.copyright',
+    pageType: 'seo',
+  });
+
+  assert.deepEqual(issues, []);
+});
+
 test('forbidden terms are errors for SEO content and warnings for auth/admin', () => {
   const seoIssues = findForbiddenTerms({
     text: '永久免费',
@@ -394,8 +406,21 @@ test('hardcoded visible English scanner catches JSX text with semicolons', () =>
 
   assert.deepEqual(
     issues.map((issue) => issue.text),
-    ['Terms &amp; Conditions']
+    ['Terms & Conditions']
   );
+});
+
+test('hardcoded visible English scanner ignores entity-only JSX text', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example() {',
+      '  return <p>&nbsp;&copy;&mdash;</p>;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(issues, []);
 });
 
 test('hardcoded visible English scanner ignores comparison before JSX branches', () => {

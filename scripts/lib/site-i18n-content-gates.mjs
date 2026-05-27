@@ -15,6 +15,19 @@ const visibleAttributeNames = new Set([
   'placeholder',
   'title',
 ]);
+const htmlEntityReplacements = new Map([
+  ['amp', '&'],
+  ['apos', "'"],
+  ['copy', ' '],
+  ['gt', '>'],
+  ['lt', '<'],
+  ['mdash', ' '],
+  ['nbsp', ' '],
+  ['ndash', ' '],
+  ['quot', '"'],
+  ['reg', ' '],
+  ['trade', ' '],
+]);
 
 function normalizeTerm(value) {
   return value.trim().toLocaleLowerCase();
@@ -112,6 +125,26 @@ function removePreservedTerms(text, preservedTerms) {
   return orderedTerms.reduce((remainingText, term) => {
     return remainingText.replace(createStandaloneTermPattern(term), ' ');
   }, text);
+}
+
+function decodeHtmlEntity(entity) {
+  const normalizedEntity = entity.toLocaleLowerCase();
+  if (normalizedEntity.startsWith('#x')) {
+    return String.fromCodePoint(Number.parseInt(normalizedEntity.slice(2), 16));
+  }
+
+  if (normalizedEntity.startsWith('#')) {
+    return String.fromCodePoint(Number.parseInt(normalizedEntity.slice(1), 10));
+  }
+
+  return htmlEntityReplacements.get(normalizedEntity) ?? ' ';
+}
+
+function decodeHtmlEntities(text) {
+  return text.replace(
+    /&(#x[0-9a-f]+|#\d+|[A-Za-z][A-Za-z0-9]+);/gi,
+    (_, entity) => decodeHtmlEntity(entity)
+  );
 }
 
 function findClosingBrace(text, openIndex) {
@@ -226,7 +259,7 @@ function stripMarkupSyntax(text) {
 }
 
 function normalizeVisibleText(text) {
-  return text.replace(/\s+/g, ' ').trim();
+  return decodeHtmlEntities(text).replace(/\s+/g, ' ').trim();
 }
 
 function hasExemptReasonInRange({ lines, content, start, end }) {
@@ -333,7 +366,7 @@ export function findEnglishResiduals({
   pageType,
 }) {
   const textWithoutPreservedTerms = removePreservedTerms(
-    stripMarkupSyntax(removeIcuPlaceholders(text)),
+    stripMarkupSyntax(removeIcuPlaceholders(decodeHtmlEntities(text))),
     glossary.preserve
   );
   const issues = [];
