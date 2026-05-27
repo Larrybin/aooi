@@ -74,6 +74,33 @@
     "pricing_item_required": "Please select a pricing item",
     "invalid_payment_method": "Invalid payment method"
   },
+  "my_images": {
+    "metadata_title": "My Images - AI Remover",
+    "metadata_description": "View and manage your recent AI Remover image results.",
+    "title": "My Images",
+    "description": "View, download, and delete your recent AI Remover results.",
+    "empty_title": "No images yet",
+    "empty_description": "Process an image from the homepage and your recent results will appear here.",
+    "start_button": "Start removing objects",
+    "result_alt": "AI Remover result",
+    "succeeded_title": "Cleaned image",
+    "job_title": "Removal job",
+    "status_label": "Status",
+    "created_label": "Created",
+    "expires_label": "Expires",
+    "download_label": "Download",
+    "delete_label": "Delete",
+    "sign_in_title": "Image history requires sign-in",
+    "sign_in_description": "Guest results are temporary. Create an account or sign in to keep a 7-day free history, or upgrade for 30-day retention.",
+    "sign_in_button": "Sign in",
+    "create_account_button": "Create account",
+    "statuses": {
+      "queued": "Queued",
+      "processing": "Processing",
+      "succeeded": "Succeeded",
+      "failed": "Failed"
+    }
+  },
   "uploader": {
     "image": {
       "invalid_upload_response": "Invalid upload response",

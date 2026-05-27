@@ -36,6 +36,12 @@
         "status": "pending",
         "sourceHash": "1fa8a8ab628992bc82f33f6ac74dd6106a1d622469ebc121e7a84b185ac07e78",
         "targetHash": "38f28a9a6bd3fbde9608549ef014ba4a85fe2dacab3c422c2690796fd71c3b34"
+      },
+      "product.my-images": {
+        "path": "/my-images",
+        "status": "pending",
+        "sourceHash": "7c1a4048aace73187995d5f1b90c56ea718d384699620fbba58f3172f449859e",
+        "targetHash": "f7f0615df426edb34fa6f1b7ffb2c4457b98c0b66f66db644c177661209edbfc"
       }
     },
     "ja": {
@@ -74,6 +80,12 @@
         "status": "pending",
         "sourceHash": "1fa8a8ab628992bc82f33f6ac74dd6106a1d622469ebc121e7a84b185ac07e78",
         "targetHash": "345917434dac180c53ad6edd9e630d333be7816d8231fb8c9d59f2a922b35289"
+      },
+      "product.my-images": {
+        "path": "/my-images",
+        "status": "pending",
+        "sourceHash": "7c1a4048aace73187995d5f1b90c56ea718d384699620fbba58f3172f449859e",
+        "targetHash": "297e02e9645f22b9b12a1668d8aab8531a91aad1e22a4cfa4f20cb49aa56bd86"
       }
     }
   }
