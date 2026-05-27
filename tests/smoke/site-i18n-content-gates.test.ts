@@ -193,6 +193,22 @@ test('hardcoded visible English scanner catches fragment text before inline chil
   );
 });
 
+test('hardcoded visible English scanner catches text before JSX expressions', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ name }: Props) {',
+      '  return <p>Hello {name}</p>;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Hello']
+  );
+});
+
 test('hardcoded visible English scanner catches multiline JSX text', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',

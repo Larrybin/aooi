@@ -8,6 +8,7 @@ const strictForbiddenPageTypes = new Set([
 const warningForbiddenPageTypes = new Set(['admin', 'auth']);
 const englishWordPattern = /\b[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*\b/g;
 const icuPlaceholderPattern = /\{\s*[A-Za-z][A-Za-z0-9_]*\s*\}/g;
+const jsxExpressionPattern = /\{[^{}]*\}/g;
 const visibleJsxTagPattern =
   /<>|<\/>|<\/?[A-Za-z][A-Za-z0-9.:-]*(?:\s[^<>]*)?\/?>/g;
 const visibleAttributePattern =
@@ -54,7 +55,11 @@ function isLikelyTypeScriptGenericTag(match, content) {
 }
 
 function isLikelyCodeBetweenJsxTags(text) {
-  return /[{};]/.test(text) || /=>/.test(text);
+  return /;/.test(text) || /=>/.test(text);
+}
+
+function removeJsxExpressions(text) {
+  return text.replace(jsxExpressionPattern, ' ');
 }
 
 function collectForbiddenTerms(glossary, locale) {
@@ -191,7 +196,7 @@ export function findHardcodedVisibleEnglish({ filePath, content }) {
       continue;
     }
 
-    const text = rawText.replace(/\s+/g, ' ').trim();
+    const text = removeJsxExpressions(rawText).replace(/\s+/g, ' ').trim();
     if (!/[A-Za-z]/.test(text)) {
       continue;
     }
