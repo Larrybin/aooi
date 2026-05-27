@@ -13,6 +13,9 @@ const visibleJsxTagPattern =
   /<>|<\/>|<\/?[A-Za-z][A-Za-z0-9.:-]*(?:\s[^<>]*)?\/?>/g;
 const visibleAttributePattern =
   /\b(?:aria-label|alt|placeholder|title)=["']([^"']*[A-Za-z][^"']*)["']/g;
+const visibleAttributeExpressionPattern =
+  /\b(?:aria-label|alt|placeholder|title)=\{([^{}]*(?:"[^"]*[A-Za-z][^"]*"|'[^']*[A-Za-z][^']*')[^{}]*)\}/g;
+const quotedStringPattern = /"([^"]*[A-Za-z][^"]*)"|'([^']*[A-Za-z][^']*)'/g;
 
 function normalizeTerm(value) {
   return value.trim().toLocaleLowerCase();
@@ -230,6 +233,18 @@ export function findHardcodedVisibleEnglish({ filePath, content }) {
         line: index + 1,
         text: match[1].trim(),
       });
+    }
+
+    for (const match of line.matchAll(visibleAttributeExpressionPattern)) {
+      for (const stringMatch of match[1].matchAll(quotedStringPattern)) {
+        issues.push({
+          code: 'i18n_hardcoded_visible_english',
+          severity: 'error',
+          filePath,
+          line: index + 1,
+          text: (stringMatch[1] ?? stringMatch[2]).trim(),
+        });
+      }
     }
   });
 

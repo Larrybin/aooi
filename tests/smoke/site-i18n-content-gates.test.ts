@@ -209,6 +209,22 @@ test('hardcoded visible English scanner catches text before JSX expressions', ()
   );
 });
 
+test('hardcoded visible English scanner catches JSX attribute expression strings', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ isPlaying }: Props) {',
+      "  return <div><button aria-label={'Pause'} /><button title={isPlaying ? 'Pause' : 'Play'} /></div>;",
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Pause', 'Pause', 'Play']
+  );
+});
+
 test('hardcoded visible English scanner catches multiline JSX text', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',
