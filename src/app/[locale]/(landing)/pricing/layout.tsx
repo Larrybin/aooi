@@ -2,7 +2,10 @@
 // cache: default (no explicit fetch)
 // reason: shared landing shell; keep data loading in leaf pages
 import type { ReactNode } from 'react';
-import { resolveRemoverHomeCopy } from '@/domains/remover/ui/remover-home-copy';
+import {
+  resolveRemoverHomeCopy,
+  type RemoverHomeContent,
+} from '@/domains/remover/ui/remover-home-copy';
 import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
   readBuildAuthUiSettings,
@@ -44,7 +47,10 @@ export default async function PricingLayout({
   if (siteKey === 'ai-remover') {
     const { header, footer } = buildRemoverHeaderFooter(
       brand,
-      resolveRemoverHomeCopy(siteHomeContent, locale).shell
+      resolveRemoverHomeCopy(
+        siteHomeContent as unknown as RemoverHomeContent | null,
+        locale
+      ).shell
     );
 
     return (

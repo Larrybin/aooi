@@ -253,6 +253,25 @@ test('@/site: SITE=ai-remover exports localized home content by locale', async (
   );
 });
 
+test('@/site: SITE=background-remover exports localized home content by locale', async () => {
+  const homeContent =
+    await importGeneratedSiteHomeContent('background-remover');
+
+  assert.deepEqual(Object.keys(homeContent ?? {}).sort(), ['en', 'ja', 'zh']);
+  assert.equal(
+    homeContent?.en.metadata.title,
+    'Background Remover - Transparent PNG Maker'
+  );
+  assert.equal(
+    homeContent?.zh.metadata.title,
+    'Background Remover - 透明 PNG 背景移除工具'
+  );
+  assert.equal(
+    homeContent?.ja.metadata.title,
+    'Background Remover - 透明 PNG 背景削除ツール'
+  );
+});
+
 test('existing sites keep the full legacy pricing catalog after migration', async () => {
   const legacyEnglishPricingMessages = await readLegacyEnglishPricingMessages();
   const legacyEnglishLandingMessages = await readLegacyEnglishLandingMessages();

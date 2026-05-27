@@ -18,7 +18,10 @@ import {
 } from '@/domains/remover/infra/job';
 import { claimRemoverQuotaReservationById } from '@/domains/remover/infra/quota-reservation';
 import { RemoverDownloadButton } from '@/domains/remover/ui/remover-download-button';
-import { resolveRemoverHomeCopy } from '@/domains/remover/ui/remover-home-copy';
+import {
+  resolveRemoverHomeCopy,
+  type RemoverHomeContent,
+} from '@/domains/remover/ui/remover-home-copy';
 import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
   readAuthUiRuntimeSettingsCached,
@@ -201,7 +204,10 @@ export default async function MyImagesPage({
   const copy = await getMyImagesCopy();
   const { header, footer } = buildRemoverHeaderFooter(
     brand,
-    resolveRemoverHomeCopy(siteHomeContent, locale).shell
+    resolveRemoverHomeCopy(
+      siteHomeContent as unknown as RemoverHomeContent | null,
+      locale
+    ).shell
   );
 
   const jobs = user

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { BackgroundRemoverHome } from '@/domains/background-remover/ui/background-remover-home';
+import type { BackgroundRemoverHomeContent } from '@/domains/background-remover/ui/background-remover-home-copy';
+import { resolveBackgroundRemoverHomeCopy } from '@/domains/background-remover/ui/background-remover-home-copy';
 import { buildBackgroundRemoverHeaderFooter } from '@/domains/background-remover/ui/background-remover-shell';
 import { RemoverHome } from '@/domains/remover/ui/remover-home';
 import type {
@@ -37,7 +39,7 @@ type ProductLanding = {
 
 type ProductLandingContext = {
   locale: string;
-  homeContent: RemoverHomeContent | null;
+  homeContent: RemoverHomeContent | BackgroundRemoverHomeContent | null;
 };
 
 const PRODUCT_LANDINGS = {
@@ -45,32 +47,49 @@ const PRODUCT_LANDINGS = {
     buildHeaderFooter: (brand, context) =>
       buildRemoverHeaderFooter(
         brand,
-        resolveRemoverHomeCopy(context.homeContent, context.locale).shell
+        resolveRemoverHomeCopy(
+          context.homeContent as unknown as RemoverHomeContent | null,
+          context.locale
+        ).shell
       ),
     render: (context) => (
       <RemoverHome
-        copy={resolveRemoverHomeCopy(context.homeContent, context.locale)}
+        copy={resolveRemoverHomeCopy(
+          context.homeContent as unknown as RemoverHomeContent | null,
+          context.locale
+        )}
         locale={context.locale}
       />
     ),
     metadata: (context) =>
-      resolveRemoverHomeCopy(context.homeContent, context.locale).metadata,
+      resolveRemoverHomeCopy(
+        context.homeContent as unknown as RemoverHomeContent | null,
+        context.locale
+      ).metadata,
   },
   'background-remover': {
-    buildHeaderFooter: (brand) => buildBackgroundRemoverHeaderFooter(brand),
-    render: () => <BackgroundRemoverHome />,
-    metadata: () => ({
-      title: 'Background Remover - Transparent PNG Maker',
-      description:
-        'Remove image backgrounds and create transparent PNG cutouts for product photos, profile images, and design assets.',
-      keywords: [
-        'remove background',
-        'background remover',
-        'transparent PNG maker',
-        'product image cutout',
-        'remove background from image',
-      ],
-    }),
+    buildHeaderFooter: (brand, context) =>
+      buildBackgroundRemoverHeaderFooter(
+        brand,
+        resolveBackgroundRemoverHomeCopy(
+          context.homeContent as unknown as BackgroundRemoverHomeContent | null,
+          context.locale
+        ).shell
+      ),
+    render: (context) => (
+      <BackgroundRemoverHome
+        copy={resolveBackgroundRemoverHomeCopy(
+          context.homeContent as unknown as BackgroundRemoverHomeContent | null,
+          context.locale
+        )}
+        locale={context.locale}
+      />
+    ),
+    metadata: (context) =>
+      resolveBackgroundRemoverHomeCopy(
+        context.homeContent as unknown as BackgroundRemoverHomeContent | null,
+        context.locale
+      ).metadata,
   },
 } as const satisfies Record<string, ProductLanding>;
 
@@ -91,7 +110,7 @@ export function buildProductLandingMetadata({
     appUrl: string;
     appOgImage: string;
   };
-  homeContent: RemoverHomeContent | null;
+  homeContent: RemoverHomeContent | BackgroundRemoverHomeContent | null;
 }): Metadata {
   const metadata = landing.metadata({ locale, homeContent });
   const canonicalUrl = buildCanonicalUrl('/', locale);

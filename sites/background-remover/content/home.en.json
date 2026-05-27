@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "title": "Background Remover - Transparent PNG Maker",
+    "description": "Remove image backgrounds and create transparent PNG cutouts for product photos, profile images, and design assets.",
+    "keywords": [
+      "remove background",
+      "background remover",
+      "transparent PNG maker",
+      "product image cutout",
+      "remove background from image"
+    ]
+  },
+  "shell": {
+    "pricing": "Pricing",
+    "billing": "Billing",
+    "footerDescription": "Remove image backgrounds and export transparent PNG cutouts.",
+    "productGroup": "Product",
+    "tool": "Background Remover",
+    "trustGroup": "Trust",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "copyrightSuffix": "All rights reserved."
+  },
+  "hero": {
+    "badge": "Remove background, export transparent PNG",
+    "title": "Background Remover",
+    "description": "Upload a product photo, portrait, or design asset. Get a clean foreground cutout with transparent pixels in one PNG.",
+    "trustNotes": [
+      "PNG, JPG, and WebP",
+      "Transparent PNG output",
+      "Images expire automatically"
+    ]
+  },
+  "preview": {
+    "before": "Before",
+    "transparentPng": "Transparent PNG",
+    "backgroundRemoved": "Background removed"
+  },
+  "beforeTransparent": {
+    "eyebrow": "Before / Transparent",
+    "title": "Make the result obvious before anyone uploads.",
+    "description": "The workbench uses a checkerboard preview because that is the product: a subject cut out from its old background and ready for a catalog, marketplace, deck, or design canvas."
+  },
+  "useCases": {
+    "eyebrow": "Use cases",
+    "title": "Built for image cutouts, not a heavy editor.",
+    "description": "V1 stays narrow: upload one image, remove the background, download a transparent PNG. Batch tools and background replacement can wait.",
+    "items": [
+      "Product image cutouts",
+      "Transparent PNG maker",
+      "Profile and catalog images",
+      "Design-ready foregrounds"
+    ]
+  },
+  "privacy": {
+    "title": "Privacy-aware retention",
+    "description": "Uploaded images are used to create your transparent PNG result, not to train AI models. Results expire according to your plan."
+  },
+  "cta": {
+    "title": "More images to process each month?",
+    "description": "Free users can try the workflow. Paid plans raise monthly volume, upload size, and retention for repeat product image work.",
+    "button": "View pricing"
+  },
+  "workbench": {
+    "selectedFileEmpty": "No image selected",
+    "invalidTypeError": "Use a PNG, JPG, JPEG, or WebP image.",
+    "fileTooLargeError": "Use an image under 20MB. Free plans may have lower limits.",
+    "openError": "This image could not be opened.",
+    "defaultProcessError": "The image could not be processed.",
+    "sizeBadge": "10MB free · 20MB paid",
+    "uploadTitle": "Upload an image",
+    "uploadDescription": "Drag in a photo or choose one from your device. The output is a transparent PNG, ready to download.",
+    "chooseImage": "Choose image",
+    "fileHint": "PNG, JPG, JPEG, or WebP.",
+    "resultTitle": "Result preview",
+    "resultDescription": "Checkerboard means transparent pixels.",
+    "statuses": {
+      "processing": "Processing",
+      "succeeded": "Ready",
+      "ready": "Image loaded",
+      "waiting": "Waiting"
+    },
+    "before": "Before",
+    "originalAlt": "Selected original",
+    "transparentPng": "Transparent PNG",
+    "resultAlt": "Background removed result",
+    "removing": "Removing background...",
+    "runRemovalHint": "Run removal to generate a transparent PNG.",
+    "emptyPreviewTitle": "Your cutout preview appears here.",
+    "emptyPreviewDescription": "The result area keeps the transparent checkerboard visible so the PNG behavior is obvious.",
+    "tryAnotherImage": "Try another image",
+    "tryAnother": "Try another",
+    "removeBackground": "Remove background",
+    "downloadPng": "Download PNG"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "title": "Background Remover - 透明 PNG 背景削除ツール",
+    "description": "画像の背景を削除し、商品写真、プロフィール画像、デザイン素材向けの透明 PNG 切り抜きを作成します。",
+    "keywords": [
+      "背景削除",
+      "背景リムーバー",
+      "透明 PNG 作成",
+      "商品画像 切り抜き",
+      "画像 背景を消す"
+    ]
+  },
+  "shell": {
+    "pricing": "料金",
+    "billing": "請求",
+    "footerDescription": "画像の背景を削除し、透明 PNG 切り抜きを書き出します。",
+    "productGroup": "製品",
+    "tool": "Background Remover",
+    "trustGroup": "信頼",
+    "privacyPolicy": "プライバシーポリシー",
+    "termsOfService": "利用規約",
+    "copyrightSuffix": "All rights reserved."
+  },
+  "hero": {
+    "badge": "背景を削除し、透明 PNG を書き出し",
+    "title": "Background Remover",
+    "description": "商品写真、ポートレート、デザイン素材をアップロードすると、透明ピクセル付きのきれいな前景 PNG を作成できます。",
+    "trustNotes": [
+      "PNG、JPG、WebP に対応",
+      "透明 PNG 出力",
+      "画像は自動で期限切れ"
+    ]
+  },
+  "preview": {
+    "before": "処理前",
+    "transparentPng": "透明 PNG",
+    "backgroundRemoved": "背景削除済み"
+  },
+  "beforeTransparent": {
+    "eyebrow": "処理前 / 透明",
+    "title": "アップロード前から結果をわかりやすく。",
+    "description": "ワークベンチではチェッカーボードのプレビューを使います。古い背景から被写体を切り抜き、カタログ、マーケットプレイス、資料、デザインキャンバスにすぐ使える形にすることがこの製品です。"
+  },
+  "useCases": {
+    "eyebrow": "用途",
+    "title": "重い編集ソフトではなく、画像切り抜きに集中。",
+    "description": "V1 は範囲を絞ります。画像を 1 枚アップロードし、背景を削除して、透明 PNG をダウンロードするだけです。バッチ処理や背景差し替えは後で構いません。",
+    "items": [
+      "商品画像の切り抜き",
+      "透明 PNG 作成",
+      "プロフィール画像とカタログ画像",
+      "デザインにすぐ使える前景"
+    ]
+  },
+  "privacy": {
+    "title": "プライバシーを意識した保持期間",
+    "description": "アップロード画像は透明 PNG 結果の作成にのみ使用され、AI モデルの学習には使われません。結果はプランに応じて自動的に期限切れになります。"
+  },
+  "cta": {
+    "title": "毎月もっと多くの画像を処理しますか？",
+    "description": "無料ユーザーはまずワークフローを試せます。有料プランでは、継続的な商品画像作業向けに月間処理量、アップロードサイズ、保持期間が増えます。",
+    "button": "料金を見る"
+  },
+  "workbench": {
+    "selectedFileEmpty": "画像が選択されていません",
+    "invalidTypeError": "PNG、JPG、JPEG、または WebP 画像を使用してください。",
+    "fileTooLargeError": "20MB 未満の画像を使用してください。無料プランではさらに低い制限がある場合があります。",
+    "openError": "この画像を開けませんでした。",
+    "defaultProcessError": "この画像を処理できませんでした。",
+    "sizeBadge": "無料 10MB · 有料 20MB",
+    "uploadTitle": "画像をアップロード",
+    "uploadDescription": "写真をドラッグするか、デバイスから選択してください。出力はダウンロード可能な透明 PNG です。",
+    "chooseImage": "画像を選択",
+    "fileHint": "PNG、JPG、JPEG、または WebP。",
+    "resultTitle": "結果プレビュー",
+    "resultDescription": "チェッカーボードは透明ピクセルを意味します。",
+    "statuses": {
+      "processing": "処理中",
+      "succeeded": "準備完了",
+      "ready": "画像を読み込み済み",
+      "waiting": "待機中"
+    },
+    "before": "処理前",
+    "originalAlt": "選択した元画像",
+    "transparentPng": "透明 PNG",
+    "resultAlt": "背景削除結果",
+    "removing": "背景を削除中...",
+    "runRemovalHint": "削除を実行すると透明 PNG が生成されます。",
+    "emptyPreviewTitle": "切り抜きプレビューがここに表示されます。",
+    "emptyPreviewDescription": "結果エリアでは透明チェッカーボードを表示し、PNG の透明動作をわかりやすくします。",
+    "tryAnotherImage": "別の画像を試す",
+    "tryAnother": "別の画像",
+    "removeBackground": "背景を削除",
+    "downloadPng": "PNG をダウンロード"
+  }
+}

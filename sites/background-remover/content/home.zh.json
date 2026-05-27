@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "title": "Background Remover - 透明 PNG 背景移除工具",
+    "description": "移除图片背景，为商品照片、头像和设计素材生成透明 PNG 抠图。",
+    "keywords": [
+      "移除背景",
+      "背景移除工具",
+      "透明 PNG 制作",
+      "商品图抠图",
+      "图片去背景"
+    ]
+  },
+  "shell": {
+    "pricing": "价格",
+    "billing": "账单",
+    "footerDescription": "移除图片背景并导出透明 PNG 抠图。",
+    "productGroup": "产品",
+    "tool": "Background Remover",
+    "trustGroup": "信任",
+    "privacyPolicy": "隐私政策",
+    "termsOfService": "服务条款",
+    "copyrightSuffix": "保留所有权利。"
+  },
+  "hero": {
+    "badge": "移除背景，导出透明 PNG",
+    "title": "Background Remover",
+    "description": "上传商品照片、人像或设计素材，一次生成带透明像素的干净前景 PNG。",
+    "trustNotes": ["支持 PNG、JPG 和 WebP", "透明 PNG 输出", "图片会自动过期"]
+  },
+  "preview": {
+    "before": "处理前",
+    "transparentPng": "透明 PNG",
+    "backgroundRemoved": "背景已移除"
+  },
+  "beforeTransparent": {
+    "eyebrow": "处理前 / 透明背景",
+    "title": "上传前就让结果形态一目了然。",
+    "description": "工作台使用棋盘格预览，因为这就是产品本身：把主体从旧背景中抠出，可直接用于目录、市场页面、演示文稿或设计画布。"
+  },
+  "useCases": {
+    "eyebrow": "使用场景",
+    "title": "专注图片抠图，而不是笨重编辑器。",
+    "description": "V1 保持聚焦：上传一张图片，移除背景，下载透明 PNG。批量工具和背景替换可以以后再做。",
+    "items": [
+      "商品图抠图",
+      "透明 PNG 制作",
+      "头像和目录图片",
+      "可直接设计使用的前景图"
+    ]
+  },
+  "privacy": {
+    "title": "重视隐私的保留策略",
+    "description": "上传图片只用于生成透明 PNG 结果，不会用于训练 AI 模型。结果会按您的套餐自动过期。"
+  },
+  "cta": {
+    "title": "每月需要处理更多图片？",
+    "description": "免费用户可以先试用工作流。付费套餐会提高月处理量、上传大小和图片保留时间，适合重复的商品图工作。",
+    "button": "查看价格"
+  },
+  "workbench": {
+    "selectedFileEmpty": "尚未选择图片",
+    "invalidTypeError": "请使用 PNG、JPG、JPEG 或 WebP 图片。",
+    "fileTooLargeError": "请使用小于 20MB 的图片。免费套餐可能有更低限制。",
+    "openError": "无法打开这张图片。",
+    "defaultProcessError": "无法处理这张图片。",
+    "sizeBadge": "免费 10MB · 付费 20MB",
+    "uploadTitle": "上传图片",
+    "uploadDescription": "拖入照片，或从设备中选择一张图片。输出结果是可直接下载的透明 PNG。",
+    "chooseImage": "选择图片",
+    "fileHint": "PNG、JPG、JPEG 或 WebP。",
+    "resultTitle": "结果预览",
+    "resultDescription": "棋盘格表示透明像素。",
+    "statuses": {
+      "processing": "处理中",
+      "succeeded": "已就绪",
+      "ready": "图片已加载",
+      "waiting": "等待中"
+    },
+    "before": "处理前",
+    "originalAlt": "已选择的原图",
+    "transparentPng": "透明 PNG",
+    "resultAlt": "背景移除结果",
+    "removing": "正在移除背景...",
+    "runRemovalHint": "运行移除后会生成透明 PNG。",
+    "emptyPreviewTitle": "抠图预览会显示在这里。",
+    "emptyPreviewDescription": "结果区域会保留透明棋盘格，让 PNG 的透明效果更直观。",
+    "tryAnotherImage": "换一张图片",
+    "tryAnother": "换一张",
+    "removeBackground": "移除背景",
+    "downloadPng": "下载 PNG"
+  }
+}

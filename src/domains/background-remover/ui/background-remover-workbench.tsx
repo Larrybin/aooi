@@ -9,6 +9,8 @@ import {
   Upload,
 } from 'lucide-react';
 
+import type { BackgroundRemoverWorkbenchCopy } from './background-remover-home-copy';
+
 type RemoveResponse = {
   id: string;
   previewUrl: string;
@@ -61,7 +63,11 @@ async function readImageDimensions(
   });
 }
 
-export function BackgroundRemoverWorkbench() {
+export function BackgroundRemoverWorkbench({
+  copy,
+}: {
+  copy: BackgroundRemoverWorkbenchCopy;
+}) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<WorkbenchStatus>('idle');
   const [isDragging, setIsDragging] = useState(false);
@@ -76,10 +82,10 @@ export function BackgroundRemoverWorkbench() {
 
   const busy = status === 'validating' || status === 'processing';
   const selectedFileLabel = useMemo(() => {
-    if (!file) return 'No image selected';
+    if (!file) return copy.selectedFileEmpty;
     const mb = file.size / (1024 * 1024);
     return `${file.name} · ${mb.toFixed(mb >= 10 ? 0 : 1)}MB`;
-  }, [file]);
+  }, [copy.selectedFileEmpty, file]);
 
   useEffect(() => {
     return () => {
@@ -96,12 +102,12 @@ export function BackgroundRemoverWorkbench() {
 
     if (!ACCEPTED_TYPES.includes(nextFile.type)) {
       setStatus('failed');
-      setError('Use a PNG, JPG, JPEG, or WebP image.');
+      setError(copy.invalidTypeError);
       return;
     }
     if (nextFile.size > CLIENT_MAX_BYTES) {
       setStatus('failed');
-      setError('Use an image under 20MB. Free plans may have lower limits.');
+      setError(copy.fileTooLargeError);
       return;
     }
 
@@ -113,7 +119,7 @@ export function BackgroundRemoverWorkbench() {
     if (!nextDimensions) {
       URL.revokeObjectURL(objectUrl);
       setStatus('failed');
-      setError('This image could not be opened.');
+      setError(copy.openError);
       return;
     }
 
@@ -158,9 +164,7 @@ export function BackgroundRemoverWorkbench() {
       setStatus('succeeded');
     } catch (err: unknown) {
       setStatus('failed');
-      setError(
-        err instanceof Error ? err.message : 'The image could not be processed.'
-      );
+      setError(err instanceof Error ? err.message : copy.defaultProcessError);
     }
   }
 
@@ -203,15 +207,14 @@ export function BackgroundRemoverWorkbench() {
                 <Upload className="size-6" />
               </div>
               <span className="rounded-md bg-white px-3 py-1 text-xs font-medium text-[#334155]">
-                10MB free · 20MB paid
+                {copy.sizeBadge}
               </span>
             </div>
             <h2 className="mt-6 text-2xl font-semibold text-[#0F172A]">
-              Upload an image
+              {copy.uploadTitle}
             </h2>
             <p className="mt-2 text-sm leading-6 text-[#334155]">
-              Drag in a photo or choose one from your device. The output is a
-              transparent PNG, ready to download.
+              {copy.uploadDescription}
             </p>
             <button
               type="button"
@@ -220,7 +223,7 @@ export function BackgroundRemoverWorkbench() {
               className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-md bg-[#0F172A] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#334155] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ImagePlus className="size-4" />
-              Choose image
+              {copy.chooseImage}
             </button>
             <input
               ref={inputRef}
@@ -241,7 +244,7 @@ export function BackgroundRemoverWorkbench() {
                 {dimensions.width} x {dimensions.height}px
               </p>
             ) : (
-              <p className="mt-1 text-xs">PNG, JPG, JPEG, or WebP.</p>
+              <p className="mt-1 text-xs">{copy.fileHint}</p>
             )}
           </div>
         </div>
@@ -249,22 +252,22 @@ export function BackgroundRemoverWorkbench() {
         <div className="flex min-h-[420px] flex-col rounded-lg border border-[#E6EBF2] bg-white">
           <div className="flex items-center justify-between gap-3 border-b border-[#E6EBF2] px-4 py-3">
             <div>
-              <h2 className="font-semibold text-[#0F172A]">Result preview</h2>
-              <p className="text-xs text-[#64748B]">
-                Checkerboard means transparent pixels.
-              </p>
+              <h2 className="font-semibold text-[#0F172A]">
+                {copy.resultTitle}
+              </h2>
+              <p className="text-xs text-[#64748B]">{copy.resultDescription}</p>
             </div>
             <span
               aria-live="polite"
               className="rounded-md bg-[#F4F7FB] px-3 py-1 text-xs font-medium text-[#334155]"
             >
               {status === 'processing'
-                ? 'Processing'
+                ? copy.statuses.processing
                 : status === 'succeeded'
-                  ? 'Ready'
+                  ? copy.statuses.succeeded
                   : status === 'ready'
-                    ? 'Image loaded'
-                    : 'Waiting'}
+                    ? copy.statuses.ready
+                    : copy.statuses.waiting}
             </span>
           </div>
 
@@ -278,24 +281,24 @@ export function BackgroundRemoverWorkbench() {
               <div className="grid w-full gap-3 md:grid-cols-2">
                 <div className="rounded-lg border border-white/80 bg-white/85 p-2 shadow-sm backdrop-blur">
                   <p className="mb-2 text-xs font-medium text-[#334155]">
-                    Before
+                    {copy.before}
                   </p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewUrl}
-                    alt="Selected original"
+                    alt={copy.originalAlt}
                     className="max-h-[360px] w-full rounded-md object-contain"
                   />
                 </div>
                 <div className="rounded-lg border border-white/80 bg-white/75 p-2 shadow-sm backdrop-blur">
                   <p className="mb-2 text-xs font-medium text-[#334155]">
-                    Transparent PNG
+                    {copy.transparentPng}
                   </p>
                   {result ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={result.previewUrl}
-                      alt="Background removed result"
+                      alt={copy.resultAlt}
                       className="max-h-[360px] w-full rounded-md object-contain"
                     />
                   ) : (
@@ -303,10 +306,10 @@ export function BackgroundRemoverWorkbench() {
                       {status === 'processing' ? (
                         <span className="inline-flex items-center gap-2">
                           <Loader2 className="size-4 animate-spin" />
-                          Removing background...
+                          {copy.removing}
                         </span>
                       ) : (
-                        'Run removal to generate a transparent PNG.'
+                        copy.runRemovalHint
                       )}
                     </div>
                   )}
@@ -318,11 +321,10 @@ export function BackgroundRemoverWorkbench() {
                   <ImagePlus className="size-7" />
                 </div>
                 <p className="mt-4 font-medium text-[#0F172A]">
-                  Your cutout preview appears here.
+                  {copy.emptyPreviewTitle}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[#334155]">
-                  The result area keeps the transparent checkerboard visible so
-                  the PNG behavior is obvious.
+                  {copy.emptyPreviewDescription}
                 </p>
               </div>
             )}
@@ -344,7 +346,7 @@ export function BackgroundRemoverWorkbench() {
           disabled={busy || (!file && !result)}
           className="inline-flex min-h-11 items-center rounded-md border border-[#D8E1F2] bg-white px-4 py-2.5 text-sm font-medium text-[#334155] transition hover:bg-[#F4F7FB] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Try another image
+          {copy.tryAnotherImage}
         </button>
         <div className="flex flex-wrap gap-3">
           <button
@@ -354,7 +356,7 @@ export function BackgroundRemoverWorkbench() {
             className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#4F6EF7] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#3F5BE0] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-            Remove background
+            {copy.removeBackground}
           </button>
           <a
             href={result?.downloadUrl || '#'}
@@ -368,7 +370,7 @@ export function BackgroundRemoverWorkbench() {
             ].join(' ')}
           >
             <Download className="size-4" />
-            Download PNG
+            {copy.downloadPng}
           </a>
         </div>
       </div>
@@ -381,7 +383,7 @@ export function BackgroundRemoverWorkbench() {
               onClick={reset}
               className="min-h-11 flex-1 rounded-md border border-[#D8E1F2] px-3 text-sm font-medium text-[#334155]"
             >
-              Try another
+              {copy.tryAnother}
             </button>
             <a
               href={result.downloadUrl}
@@ -389,7 +391,7 @@ export function BackgroundRemoverWorkbench() {
               className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md bg-[#0F172A] px-3 text-sm font-medium text-white"
             >
               <Download className="size-4" />
-              Download PNG
+              {copy.downloadPng}
             </a>
           </div>
         </div>
