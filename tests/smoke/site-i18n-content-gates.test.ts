@@ -297,6 +297,23 @@ test('hardcoded visible English scanner ignores comparison before JSX branches',
   assert.deepEqual(issues, []);
 });
 
+test('hardcoded visible English scanner ignores unrelated JSX returns', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function First() {',
+      '  return <Icon />;',
+      '}',
+      '',
+      'export function Second() {',
+      '  return <Icon />;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(issues, []);
+});
+
 test('hardcoded visible English scanner ignores TSX generic declarations', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',
