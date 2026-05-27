@@ -1,0 +1,110 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  checkLocalizedText,
+  findForbiddenTerms,
+  findHardcodedVisibleEnglish,
+} from '../../scripts/lib/site-i18n-content-gates.mjs';
+import {
+  parseSiteI18nGlossary,
+  readMergedI18nGlossary,
+} from '../../scripts/lib/site-i18n-glossary.mjs';
+
+const glossary = {
+  preserve: ['AI', 'API', 'Mamamiya'],
+  terms: {
+    credits: {
+      zh: '积分',
+      ja: 'クレジット',
+    },
+  },
+  forbidden: {
+    allLocales: ['100% perfect'],
+    zh: ['永久免费'],
+  },
+};
+
+test('site i18n glossary merges global and site preserve terms', () => {
+  const mergedGlossary = readMergedI18nGlossary({ siteKey: 'mamamiya' });
+
+  assert.ok(mergedGlossary.preserve.includes('AI'));
+  assert.ok(mergedGlossary.preserve.includes('Mamamiya'));
+  assert.equal(mergedGlossary.terms.credits.zh, '积分');
+});
+
+test('site i18n glossary rejects unknown top-level fields', () => {
+  assert.throws(
+    () =>
+      parseSiteI18nGlossary({
+        preserve: ['Mamamiya'],
+        terms: {},
+        forbidden: {},
+        extra: true,
+      }),
+    /Unrecognized key/
+  );
+});
+
+test('localized text check flags unapproved English residuals', () => {
+  const issues = checkLocalizedText({
+    text: 'Mamamiya 支持 AI API，也包含 unexpected English words。',
+    glossary,
+    locale: 'zh',
+    pageId: 'home',
+    pageType: 'seo',
+  });
+
+  assert.deepEqual(
+    issues
+      .filter((issue) => issue.code === 'i18n_english_residual')
+      .map((issue) => issue.term),
+    ['unexpected', 'English', 'words']
+  );
+});
+
+test('forbidden terms are errors for SEO content and warnings for auth/admin', () => {
+  const seoIssues = findForbiddenTerms({
+    text: '永久免费',
+    glossary,
+    locale: 'zh',
+    pageId: 'home',
+    pageType: 'seo',
+  });
+  assert.equal(seoIssues[0]?.severity, 'error');
+
+  const authIssues = findForbiddenTerms({
+    text: '永久免费',
+    glossary,
+    locale: 'zh',
+    pageId: 'auth.sign-in',
+    pageType: 'auth',
+  });
+  assert.equal(authIssues[0]?.severity, 'warning');
+});
+
+test('hardcoded visible English scanner catches JSX text and common attributes', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example() {',
+      '  return <button aria-label="Start upload">Upload image</button>;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Upload image', 'Start upload']
+  );
+});
+
+test('hardcoded visible English scanner requires an explicit exempt reason', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content:
+      '<span aria-label="Debug token">Debug token</span> /* i18n-exempt: test fixture */',
+  });
+
+  assert.deepEqual(issues, []);
+});

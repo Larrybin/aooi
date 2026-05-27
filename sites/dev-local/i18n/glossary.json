@@ -1,0 +1,14 @@
+{
+  "preserve": ["Roller Rabbit Local"],
+  "terms": {
+    "credits": {
+      "zh": "积分",
+      "zh-TW": "點數"
+    }
+  },
+  "forbidden": {
+    "allLocales": ["100% perfect", "free forever"],
+    "zh": ["永久免费"],
+    "zh-TW": ["永久免費"]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "preserve": ["Background Remover"],
+  "terms": {},
+  "forbidden": {
+    "allLocales": ["100% perfect", "free forever"]
+  }
+}
