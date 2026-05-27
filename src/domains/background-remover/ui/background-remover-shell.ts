@@ -3,10 +3,15 @@ import type {
   Header as HeaderType,
 } from '@/shared/types/blocks/landing';
 
-export function buildBackgroundRemoverHeaderFooter(brand: {
-  appName: string;
-  appLogo: string;
-}) {
+import type { BackgroundRemoverHomeCopy } from './background-remover-home-copy';
+
+export function buildBackgroundRemoverHeaderFooter(
+  brand: {
+    appName: string;
+    appLogo: string;
+  },
+  copy: BackgroundRemoverHomeCopy['shell']
+) {
   const header: HeaderType = {
     id: 'header',
     brand: {
@@ -22,7 +27,7 @@ export function buildBackgroundRemoverHeaderFooter(brand: {
     nav: {
       items: [
         {
-          title: 'Pricing',
+          title: copy.pricing,
           url: '/pricing',
           icon: 'DollarSign',
         },
@@ -35,7 +40,7 @@ export function buildBackgroundRemoverHeaderFooter(brand: {
       show_sign_out: true,
       items: [
         {
-          title: 'Billing',
+          title: copy.billing,
           url: '/settings/billing',
           icon: 'CreditCard',
         },
@@ -49,8 +54,7 @@ export function buildBackgroundRemoverHeaderFooter(brand: {
     id: 'footer',
     brand: {
       title: brand.appName,
-      description:
-        'Remove image backgrounds and export transparent PNG cutouts.',
+      description: copy.footerDescription,
       logo: {
         src: brand.appLogo,
         alt: brand.appName,
@@ -62,26 +66,26 @@ export function buildBackgroundRemoverHeaderFooter(brand: {
     nav: {
       items: [
         {
-          title: 'Product',
+          title: copy.productGroup,
           children: [
-            { title: 'Background Remover', url: '/' },
-            { title: 'Pricing', url: '/pricing' },
+            { title: copy.tool, url: '/' },
+            { title: copy.pricing, url: '/pricing' },
           ],
         },
         {
-          title: 'Trust',
+          title: copy.trustGroup,
           children: [
-            { title: 'Privacy Policy', url: '/privacy-policy' },
-            { title: 'Terms of Service', url: '/terms-of-service' },
+            { title: copy.privacyPolicy, url: '/privacy-policy' },
+            { title: copy.termsOfService, url: '/terms-of-service' },
           ],
         },
       ],
     },
-    copyright: `© ${new Date().getFullYear()} ${brand.appName}. All rights reserved.`,
+    copyright: `© ${new Date().getFullYear()} ${brand.appName}. ${copy.copyrightSuffix}`,
     agreement: {
       items: [
-        { title: 'Privacy Policy', url: '/privacy-policy' },
-        { title: 'Terms of Service', url: '/terms-of-service' },
+        { title: copy.privacyPolicy, url: '/privacy-policy' },
+        { title: copy.termsOfService, url: '/terms-of-service' },
       ],
     },
   };
