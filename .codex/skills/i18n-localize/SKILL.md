@@ -40,7 +40,8 @@ Use this skill only in the `aooi` repository when the user asks to generate or u
 5. Verify:
    - Run `pnpm i18n:schema:check`.
    - Run `pnpm i18n:glossary:check`.
-   - Run `pnpm i18n:check --site <site-key> --strict`.
+   - Run `pnpm i18n:check --site <site-key>`.
+   - Do not require strict mode to pass after creating pending entries; rollout-required sites intentionally fail strict checks for pending manifest entries.
    - Run the narrowest relevant tests for touched scripts or content contracts.
 
 ## PR Behavior

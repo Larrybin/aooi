@@ -12,7 +12,8 @@ test('i18n-localize skill keeps generated content pending', () => {
   assert.match(localizeSkill, /name: i18n-localize/);
   assert.match(localizeSkill, /Never write `approved`/);
   assert.match(localizeSkill, /Set `status` to `pending`/);
-  assert.match(localizeSkill, /pnpm i18n:check --site <site-key> --strict/);
+  assert.match(localizeSkill, /Run `pnpm i18n:check --site <site-key>`/);
+  assert.match(localizeSkill, /Do not require strict mode to pass/);
 });
 
 test('i18n-review skill requires explicit approval before approved status', () => {
@@ -22,6 +23,11 @@ test('i18n-review skill requires explicit approval before approved status', () =
     reviewSkill,
     /show the actual entries that will become `approved`/
   );
+  assert.match(
+    reviewSkill,
+    /Run `pnpm i18n:check --site <site-key>` before reviewing/
+  );
+  assert.match(reviewSkill, /post-approval verification/);
   assert.match(reviewSkill, /pnpm i18n:check --site <site-key> --strict/);
 });
 

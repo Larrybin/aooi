@@ -25,7 +25,8 @@ Use this skill only in the `aooi` repository when the user asks to review locali
 2. Refresh checks:
    - Run `pnpm i18n:schema:check`.
    - Run `pnpm i18n:glossary:check`.
-   - Run `pnpm i18n:check --site <site-key> --strict`.
+   - Run `pnpm i18n:check --site <site-key>` before reviewing pending entries.
+   - Keep strict mode for post-approval verification because rollout-required sites fail strict checks while manifest entries are still pending or rejected.
 3. Review content:
    - Compare the English source asset with the target-language asset.
    - Check page completeness, metadata, H1, CTA, FAQ, body copy, glossary terms, forbidden claims, and English residuals according to page type.
