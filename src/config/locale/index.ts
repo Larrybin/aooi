@@ -1,82 +1,24 @@
 import { getTrimmedEnvValue, isProductionEnv } from '@/config/env-contract';
 
-export const locales = [
-  'en',
-  'zh',
-  'ar',
-  'bn',
-  'cs',
-  'da',
-  'de',
-  'el',
-  'es',
-  'fa',
-  'fi',
-  'fr',
-  'he',
-  'hi',
-  'id',
-  'it',
-  'ja',
-  'ko',
-  'ms',
-  'nl',
-  'no',
-  'pl',
-  'pt',
-  'pt-BR',
-  'ro',
-  'ru',
-  'sv',
-  'th',
-  'tl-PH',
-  'tr',
-  'uk',
-  'ur',
-  'vi',
-  'zh-TW',
-] as const;
+import { localeRegistry, type LocaleCode } from './registry';
 
-export type Locale = (typeof locales)[number];
+export const locales = Object.freeze(localeRegistry.map((entry) => entry.code));
 
-export const localeNames = {
-  en: 'English',
-  zh: '中文',
-  ar: 'العربية',
-  bn: 'বাংলা',
-  cs: 'Čeština',
-  da: 'Dansk',
-  de: 'Deutsch',
-  el: 'Ελληνικά',
-  es: 'Español',
-  fa: 'فارسی',
-  fi: 'Suomi',
-  fr: 'Français',
-  he: 'עברית',
-  hi: 'हिन्दी',
-  id: 'Bahasa Indonesia',
-  it: 'Italiano',
-  ja: '日本語',
-  ko: '한국어',
-  ms: 'Bahasa Melayu',
-  nl: 'Nederlands',
-  no: 'Norsk',
-  pl: 'Polski',
-  pt: 'Português',
-  'pt-BR': 'Português (Brasil)',
-  ro: 'Română',
-  ru: 'Русский',
-  sv: 'Svenska',
-  th: 'ไทย',
-  'tl-PH': 'Filipino (Philippines)',
-  tr: 'Türkçe',
-  uk: 'Українська',
-  ur: 'اردو',
-  vi: 'Tiếng Việt',
-  'zh-TW': '繁體中文',
-} satisfies Record<Locale, string>;
+export type Locale = LocaleCode;
 
-export const rtlLocales = ['ar', 'fa', 'he', 'ur'] as const;
+export const localeNames = Object.fromEntries(
+  localeRegistry.map((entry) => [entry.code, entry.name])
+) as Record<Locale, string>;
+
+export const localeHreflangs = Object.fromEntries(
+  localeRegistry.map((entry) => [entry.code, entry.hreflang])
+) as Record<Locale, string>;
+
+export const rtlLocales = Object.freeze(
+  localeRegistry
+    .filter((entry) => entry.direction === 'rtl')
+    .map((entry) => entry.code)
+);
 
 const rtlLocaleSet: ReadonlySet<string> = new Set(rtlLocales);
 
