@@ -650,7 +650,7 @@ sourceHash / targetHash 匹配
 12. AI 不允许直接 approved。
 13. 用户明确确认后，i18n-review 才能写 approved。
 14. 英文源用户可见文案必须资产化，不能继续新增硬编码英文。
-15. production site 严格；dev-local 使用测试专用规则。
+15. rollout-required production site 严格；legacy / optional site 不因未完成 rollout 阻断。
 
 ---
 

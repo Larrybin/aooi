@@ -37,7 +37,7 @@
 35. 新增/修改文件禁止硬编码用户可见英文，允许 i18n-exempt。
 36. i18n-exempt 必须写 reason，品牌/术语类需进 glossary。
 37. 所有现有站点最终迁移到新规则。
-38. production site 严格；dev-local 使用测试规则。
+38. rollout-required production site 严格；legacy / optional site 不因未完成 rollout 阻断。
 39. 全库推荐语言组合，但每个 production site 必须显式确认 supportedLocales。
 40. 推荐语言池：en / es / pt-BR / ja / de / fr / ko / zh。
 41. V1 每站从候选池选 3–5 个语言，后续扩到 6–8。
