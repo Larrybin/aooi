@@ -82,10 +82,11 @@ export type BackgroundRemoverHomeContent = Readonly<
 >;
 
 export function resolveBackgroundRemoverHomeCopy(
-  homeContent: BackgroundRemoverHomeContent | null,
+  homeContent: unknown,
   locale: string
 ): BackgroundRemoverHomeCopy {
-  const copy = homeContent?.[locale] ?? homeContent?.en;
+  const content = homeContent as BackgroundRemoverHomeContent | null;
+  const copy = content?.[locale] ?? content?.en;
   if (!copy) {
     throw new Error('background-remover requires localized home content');
   }

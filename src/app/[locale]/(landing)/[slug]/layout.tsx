@@ -2,10 +2,7 @@
 // cache: default (no explicit fetch)
 // reason: shared landing shell; keep AI navigation filtering aligned with source-controlled site capabilities
 import type { ReactNode } from 'react';
-import {
-  resolveRemoverHomeCopy,
-  type RemoverHomeContent,
-} from '@/domains/remover/ui/remover-home-copy';
+import { resolveRemoverHomeCopy } from '@/domains/remover/ui/remover-home-copy';
 import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
   readBuildAuthUiSettings,
@@ -47,10 +44,7 @@ export default async function PageDetailLayout({
   if (siteKey === 'ai-remover') {
     const { header, footer } = buildRemoverHeaderFooter(
       brand,
-      resolveRemoverHomeCopy(
-        siteHomeContent as unknown as RemoverHomeContent | null,
-        locale
-      ).shell
+      resolveRemoverHomeCopy(siteHomeContent, locale).shell
     );
 
     return (

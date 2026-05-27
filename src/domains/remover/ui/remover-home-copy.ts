@@ -115,10 +115,11 @@ export type RemoverHomeCopy = {
 export type RemoverHomeContent = Readonly<Record<string, RemoverHomeCopy>>;
 
 export function resolveRemoverHomeCopy(
-  homeContent: RemoverHomeContent | null,
+  homeContent: unknown,
   locale: string
 ): RemoverHomeCopy {
-  const copy = homeContent?.[locale] ?? homeContent?.en;
+  const content = homeContent as RemoverHomeContent | null;
+  const copy = content?.[locale] ?? content?.en;
   if (!copy) {
     throw new Error('ai-remover requires localized home content');
   }

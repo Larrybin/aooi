@@ -1,13 +1,9 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { BackgroundRemoverHome } from '@/domains/background-remover/ui/background-remover-home';
-import type { BackgroundRemoverHomeContent } from '@/domains/background-remover/ui/background-remover-home-copy';
 import { resolveBackgroundRemoverHomeCopy } from '@/domains/background-remover/ui/background-remover-home-copy';
 import { buildBackgroundRemoverHeaderFooter } from '@/domains/background-remover/ui/background-remover-shell';
 import { RemoverHome } from '@/domains/remover/ui/remover-home';
-import type {
-  RemoverHomeContent,
-} from '@/domains/remover/ui/remover-home-copy';
 import { resolveRemoverHomeCopy } from '@/domains/remover/ui/remover-home-copy';
 import { buildRemoverHeaderFooter } from '@/domains/remover/ui/remover-shell';
 import {
@@ -39,7 +35,7 @@ type ProductLanding = {
 
 type ProductLandingContext = {
   locale: string;
-  homeContent: RemoverHomeContent | BackgroundRemoverHomeContent | null;
+  homeContent: unknown;
 };
 
 const PRODUCT_LANDINGS = {
@@ -47,49 +43,36 @@ const PRODUCT_LANDINGS = {
     buildHeaderFooter: (brand, context) =>
       buildRemoverHeaderFooter(
         brand,
-        resolveRemoverHomeCopy(
-          context.homeContent as unknown as RemoverHomeContent | null,
-          context.locale
-        ).shell
+        resolveRemoverHomeCopy(context.homeContent, context.locale).shell
       ),
     render: (context) => (
       <RemoverHome
-        copy={resolveRemoverHomeCopy(
-          context.homeContent as unknown as RemoverHomeContent | null,
-          context.locale
-        )}
+        copy={resolveRemoverHomeCopy(context.homeContent, context.locale)}
         locale={context.locale}
       />
     ),
     metadata: (context) =>
-      resolveRemoverHomeCopy(
-        context.homeContent as unknown as RemoverHomeContent | null,
-        context.locale
-      ).metadata,
+      resolveRemoverHomeCopy(context.homeContent, context.locale).metadata,
   },
   'background-remover': {
     buildHeaderFooter: (brand, context) =>
       buildBackgroundRemoverHeaderFooter(
         brand,
-        resolveBackgroundRemoverHomeCopy(
-          context.homeContent as unknown as BackgroundRemoverHomeContent | null,
-          context.locale
-        ).shell
+        resolveBackgroundRemoverHomeCopy(context.homeContent, context.locale)
+          .shell
       ),
     render: (context) => (
       <BackgroundRemoverHome
         copy={resolveBackgroundRemoverHomeCopy(
-          context.homeContent as unknown as BackgroundRemoverHomeContent | null,
+          context.homeContent,
           context.locale
         )}
         locale={context.locale}
       />
     ),
     metadata: (context) =>
-      resolveBackgroundRemoverHomeCopy(
-        context.homeContent as unknown as BackgroundRemoverHomeContent | null,
-        context.locale
-      ).metadata,
+      resolveBackgroundRemoverHomeCopy(context.homeContent, context.locale)
+        .metadata,
   },
 } as const satisfies Record<string, ProductLanding>;
 
@@ -110,7 +93,7 @@ export function buildProductLandingMetadata({
     appUrl: string;
     appOgImage: string;
   };
-  homeContent: RemoverHomeContent | BackgroundRemoverHomeContent | null;
+  homeContent: unknown;
 }): Metadata {
   const metadata = landing.metadata({ locale, homeContent });
   const canonicalUrl = buildCanonicalUrl('/', locale);
