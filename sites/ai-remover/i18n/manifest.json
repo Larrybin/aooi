@@ -24,6 +24,18 @@
         "status": "pending",
         "sourceHash": "03c3d400731f3b3fb4fd28009308715ec6691c5e7fb9d25db770a6edbfcd6ed8",
         "targetHash": "af16e3017d4ed92b4cbc0a5a9d4416a506150b918215902de14f9aa32add278e"
+      },
+      "auth.sign-in": {
+        "path": "/sign-in",
+        "status": "pending",
+        "sourceHash": "1fa8a8ab628992bc82f33f6ac74dd6106a1d622469ebc121e7a84b185ac07e78",
+        "targetHash": "38f28a9a6bd3fbde9608549ef014ba4a85fe2dacab3c422c2690796fd71c3b34"
+      },
+      "auth.sign-up": {
+        "path": "/sign-up",
+        "status": "pending",
+        "sourceHash": "1fa8a8ab628992bc82f33f6ac74dd6106a1d622469ebc121e7a84b185ac07e78",
+        "targetHash": "38f28a9a6bd3fbde9608549ef014ba4a85fe2dacab3c422c2690796fd71c3b34"
       }
     },
     "ja": {
@@ -50,6 +62,18 @@
         "status": "pending",
         "sourceHash": "03c3d400731f3b3fb4fd28009308715ec6691c5e7fb9d25db770a6edbfcd6ed8",
         "targetHash": "9dfbe5a3142bbae6a548d7325369f9436183cf3197bb25a39c7ff89fea2aa6a7"
+      },
+      "auth.sign-in": {
+        "path": "/sign-in",
+        "status": "pending",
+        "sourceHash": "1fa8a8ab628992bc82f33f6ac74dd6106a1d622469ebc121e7a84b185ac07e78",
+        "targetHash": "345917434dac180c53ad6edd9e630d333be7816d8231fb8c9d59f2a922b35289"
+      },
+      "auth.sign-up": {
+        "path": "/sign-up",
+        "status": "pending",
+        "sourceHash": "1fa8a8ab628992bc82f33f6ac74dd6106a1d622469ebc121e7a84b185ac07e78",
+        "targetHash": "345917434dac180c53ad6edd9e630d333be7816d8231fb8c9d59f2a922b35289"
       }
     }
   }

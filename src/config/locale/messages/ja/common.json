@@ -7,8 +7,17 @@
   "sign": {
     "sign_in_title": "サインイン",
     "sign_in_description": "アカウントにサインイン",
+    "auth_shell_eyebrow": "おかえりなさい",
+    "auth_shell_title": "空のテンプレートではなく、実際の製品画面にサインインします。",
+    "auth_shell_description": "認証、請求、クレジット、ドキュメントを 1 つの製品内で扱えます。目的はシンプルで、すぐに出荷作業へ戻ることです。",
+    "auth_shell_points": [
+      "認証と支払いフローは接続済み",
+      "マーケティングとドキュメントを備えた整理されたアプリシェル",
+      "最初の実用版をすばやく公開するための構成"
+    ],
     "sign_up_title": "サインアップ",
     "sign_up_description": "アカウントを作成",
+    "return_to": "リダイレクト先：{path}",
     "email_title": "メール",
     "email_placeholder": "ここにメールアドレスを入力",
     "password_title": "パスワード",

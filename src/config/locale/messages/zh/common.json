@@ -7,6 +7,14 @@
   "sign": {
     "sign_in_title": "登录",
     "sign_in_description": "登录到您的账户",
+    "auth_shell_eyebrow": "欢迎回来",
+    "auth_shell_title": "登录真实产品界面，而不是另一个空模板。",
+    "auth_shell_description": "认证、账单、积分和文档都在同一个产品里。目标很简单：回到真正的发布工作。",
+    "auth_shell_points": [
+      "认证和付款流程已经接好",
+      "干净的应用外壳，包含营销页和文档",
+      "为快速发布第一个真实版本而构建"
+    ],
     "sign_up_title": "注册",
     "sign_up_description": "创建一个新账户",
     "return_to": "将跳转至：{path}",

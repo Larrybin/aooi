@@ -7,6 +7,14 @@
   "sign": {
     "sign_in_title": "Sign In",
     "sign_in_description": "Sign in to your account",
+    "auth_shell_eyebrow": "Welcome back",
+    "auth_shell_title": "Sign in to the product surface, not another empty starter repo.",
+    "auth_shell_description": "Keep auth, billing, credits, and docs in one place. The goal is simple, get back to shipping.",
+    "auth_shell_points": [
+      "Auth and payment flows already wired",
+      "Clean app shell with marketing and docs",
+      "Built to launch the first real version fast"
+    ],
     "sign_up_title": "Sign Up",
     "sign_up_description": "Create an account",
     "return_to": "You'll be redirected to: {path}",
