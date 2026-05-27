@@ -5,6 +5,7 @@ import {
   buildSiteI18nReport,
   writeSiteI18nReport,
 } from './lib/site-i18n-check.mjs';
+import { buildLocalizedContentIssues } from './lib/site-i18n-content-assets.mjs';
 import { readMergedI18nGlossary } from './lib/site-i18n-glossary.mjs';
 import { readSiteI18nPackage } from './lib/site-i18n-pages.mjs';
 
@@ -85,12 +86,21 @@ function checkSite({ siteKey, strict }) {
       siteKey,
     });
     const glossary = readMergedI18nGlossary({ rootDir, siteKey });
+    const contentIssues = buildLocalizedContentIssues({
+      rootDir,
+      siteKey,
+      site,
+      pages,
+      manifest,
+      glossary,
+    });
     return buildSiteI18nReport({
       siteKey,
       site,
       pages,
       manifest,
       glossary,
+      contentIssues,
       strict,
     });
   } catch (error) {
