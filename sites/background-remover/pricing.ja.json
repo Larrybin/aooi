@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "title": "Background Remover 料金 - Free、Pro、Studio プラン",
+    "description": "透明 PNG 書き出し、より高い月間処理量、長めの画像保持期間に合わせて Background Remover のプランを選べます。"
+  },
+  "pricing": {
+    "id": "pricing",
+    "sr_only_title": "Background Remover 料金",
+    "title": "Background Remover 料金",
+    "description": "画像の背景を削除し、シンプルな月間上限で透明 PNG を書き出せます。",
+    "items": [
+      {
+        "title": "Free",
+        "description": "アップグレード前に背景削除を試せます。",
+        "features_title": "含まれる内容",
+        "features": [
+          "ゲストの 1 日上限：2 枚",
+          "サインイン済み無料ユーザーの 1 日上限：5 枚",
+          "透明 PNG ダウンロード",
+          "10MB アップロード上限",
+          "サインイン後の画像履歴 7 日間"
+        ],
+        "interval": "month",
+        "amount": 0,
+        "currency": "USD",
+        "price": "$0",
+        "unit": "",
+        "button": {
+          "title": "背景を削除する",
+          "url": "/ja",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "free",
+        "product_name": "Background Remover Free",
+        "plan_name": "Free",
+        "checkout_enabled": false,
+        "entitlements": {
+          "guest_daily_removals": 2,
+          "daily_removals": 5,
+          "max_upload_mb": 10,
+          "retention_days": 7
+        }
+      },
+      {
+        "title": "Pro",
+        "description": "毎週商品画像を整えるクリエイターやショップ向け。",
+        "label": "人気",
+        "features_title": "Free のすべてに加えて",
+        "features": [
+          "月 500 回の背景削除",
+          "透明 PNG 書き出し",
+          "20MB アップロード上限",
+          "30 日間の画像履歴",
+          "優先製品ワークフロー"
+        ],
+        "interval": "month",
+        "amount": 999,
+        "currency": "USD",
+        "price": "$9.99",
+        "unit": "/ 月",
+        "is_featured": true,
+        "button": {
+          "title": "Pro にアップグレード",
+          "url": "/ja/pricing",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "pro-monthly",
+        "product_name": "Background Remover Pro Monthly",
+        "plan_name": "Pro",
+        "checkout_enabled": true,
+        "entitlements": {
+          "monthly_removals": 500,
+          "max_upload_mb": 20,
+          "retention_days": 30
+        }
+      },
+      {
+        "title": "Studio",
+        "description": "商品画像、カタログ、デザイン向けの重めのワークフローに。",
+        "features_title": "Pro のすべてに加えて",
+        "features": [
+          "月 2,000 回の背景削除",
+          "透明 PNG 書き出し",
+          "20MB アップロード上限",
+          "30 日間の画像履歴",
+          "より高い月間処理量"
+        ],
+        "interval": "month",
+        "amount": 2999,
+        "currency": "USD",
+        "price": "$29.99",
+        "unit": "/ 月",
+        "button": {
+          "title": "Studio にアップグレード",
+          "url": "/ja/pricing",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "studio-monthly",
+        "product_name": "Background Remover Studio Monthly",
+        "plan_name": "Studio",
+        "checkout_enabled": true,
+        "entitlements": {
+          "monthly_removals": 2000,
+          "max_upload_mb": 20,
+          "retention_days": 30
+        }
+      }
+    ]
+  },
+  "faq": {
+    "id": "pricing-faq",
+    "title": "アップグレード前の料金に関する質問。",
+    "items": [
+      {
+        "question": "Background Remover は無料で使えますか？",
+        "answer": "はい。ゲストは毎日少数の背景を削除でき、サインイン済みの無料ユーザーはより高い 1 日上限を利用できます。"
+      },
+      {
+        "question": "書き出し結果は透明背景になりますか？",
+        "answer": "はい。結果は透明 PNG ファイルとして提供されます。"
+      },
+      {
+        "question": "キャンセルするとどうなりますか？",
+        "answer": "サブスクリプション特典は現在の請求期間終了後にダウングレードされます。画像保持期間と上限は無料プランに戻ります。"
+      },
+      {
+        "question": "どの形式をアップロードできますか？",
+        "answer": "V1 製品では PNG、JPG、JPEG、WebP のアップロードに対応しています。"
+      }
+    ]
+  }
+}

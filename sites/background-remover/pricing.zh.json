@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "title": "Background Remover 价格 - 免费、Pro 和 Studio 套餐",
+    "description": "选择适合透明 PNG 导出、更高月处理量和更长图片保留时间的 Background Remover 套餐。"
+  },
+  "pricing": {
+    "id": "pricing",
+    "sr_only_title": "Background Remover 价格",
+    "title": "Background Remover 价格",
+    "description": "移除图片背景并导出透明 PNG，按简单的月度额度使用。",
+    "items": [
+      {
+        "title": "Free",
+        "description": "升级前先试用背景移除工具。",
+        "features_title": "包含",
+        "features": [
+          "访客每日额度：2 张图片",
+          "登录免费用户每日额度：5 张图片",
+          "透明 PNG 下载",
+          "10MB 上传限制",
+          "登录后保留 7 天图片历史"
+        ],
+        "interval": "month",
+        "amount": 0,
+        "currency": "USD",
+        "price": "$0",
+        "unit": "",
+        "button": {
+          "title": "移除图片背景",
+          "url": "/zh",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "free",
+        "product_name": "Background Remover Free",
+        "plan_name": "Free",
+        "checkout_enabled": false,
+        "entitlements": {
+          "guest_daily_removals": 2,
+          "daily_removals": 5,
+          "max_upload_mb": 10,
+          "retention_days": 7
+        }
+      },
+      {
+        "title": "Pro",
+        "description": "适合每周处理商品图片的创作者和店铺。",
+        "label": "热门",
+        "features_title": "包含 Free 的全部能力，另有",
+        "features": [
+          "每月 500 次背景移除",
+          "透明 PNG 导出",
+          "20MB 上传限制",
+          "30 天图片历史",
+          "优先产品工作流"
+        ],
+        "interval": "month",
+        "amount": 999,
+        "currency": "USD",
+        "price": "$9.99",
+        "unit": "/ 月",
+        "is_featured": true,
+        "button": {
+          "title": "升级到 Pro",
+          "url": "/zh/pricing",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "pro-monthly",
+        "product_name": "Background Remover Pro Monthly",
+        "plan_name": "Pro",
+        "checkout_enabled": true,
+        "entitlements": {
+          "monthly_removals": 500,
+          "max_upload_mb": 20,
+          "retention_days": 30
+        }
+      },
+      {
+        "title": "Studio",
+        "description": "适合更重度的商品图、目录图和设计工作流。",
+        "features_title": "包含 Pro 的全部能力，另有",
+        "features": [
+          "每月 2,000 次背景移除",
+          "透明 PNG 导出",
+          "20MB 上传限制",
+          "30 天图片历史",
+          "更高的月度处理量"
+        ],
+        "interval": "month",
+        "amount": 2999,
+        "currency": "USD",
+        "price": "$29.99",
+        "unit": "/ 月",
+        "button": {
+          "title": "升级到 Studio",
+          "url": "/zh/pricing",
+          "icon": "RiFlashlightFill"
+        },
+        "product_id": "studio-monthly",
+        "product_name": "Background Remover Studio Monthly",
+        "plan_name": "Studio",
+        "checkout_enabled": true,
+        "entitlements": {
+          "monthly_removals": 2000,
+          "max_upload_mb": 20,
+          "retention_days": 30
+        }
+      }
+    ]
+  },
+  "faq": {
+    "id": "pricing-faq",
+    "title": "升级前常见的价格问题。",
+    "items": [
+      {
+        "question": "我可以免费使用 Background Remover 吗？",
+        "answer": "可以。访客每天可以移除少量背景，登录后的免费用户有更高的每日额度。"
+      },
+      {
+        "question": "导出的结果有透明背景吗？",
+        "answer": "有。结果会以透明 PNG 文件提供。"
+      },
+      {
+        "question": "取消订阅后会怎样？",
+        "answer": "订阅权益会在当前计费周期结束后降级。图片保留时间和额度限制会回到免费套餐。"
+      },
+      {
+        "question": "可以上传哪些格式？",
+        "answer": "V1 产品支持 PNG、JPG、JPEG 和 WebP 上传。"
+      }
+    ]
+  }
+}
