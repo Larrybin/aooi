@@ -33,6 +33,7 @@ import {
   buildCanonicalUrl,
   buildLanguageAlternates,
   buildMetadataBaseUrl,
+  isPublishedLocaleForPath,
 } from '@/infra/url/canonical';
 import { site, siteHomeContent } from '@/site';
 import { ImageIcon, Lock, Trash2 } from 'lucide-react';
@@ -110,6 +111,10 @@ export async function generateMetadata({
     return {};
   }
 
+  if (!isPublishedLocaleForPath('/my-images', locale)) {
+    notFound();
+  }
+
   setRequestLocale(locale);
   const copy = await getMyImagesCopy();
 
@@ -178,6 +183,10 @@ export default async function MyImagesPage({
   const siteKey: string = site.key;
 
   if (siteKey !== 'ai-remover') {
+    notFound();
+  }
+
+  if (!isPublishedLocaleForPath('/my-images', locale)) {
     notFound();
   }
 

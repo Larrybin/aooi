@@ -46,7 +46,7 @@
       "product.my-images": {
         "path": "/my-images",
         "status": "pending",
-        "sourceHash": "7c1a4048aace73187995d5f1b90c56ea718d384699620fbba58f3172f449859e",
+        "sourceHash": "a37df20d0b50939d3d037a0bebab5b1dcd834e25f6914a86c2f0ddfaff64f697",
         "targetHash": "f7f0615df426edb34fa6f1b7ffb2c4457b98c0b66f66db644c177661209edbfc"
       }
     },
@@ -96,7 +96,7 @@
       "product.my-images": {
         "path": "/my-images",
         "status": "pending",
-        "sourceHash": "7c1a4048aace73187995d5f1b90c56ea718d384699620fbba58f3172f449859e",
+        "sourceHash": "a37df20d0b50939d3d037a0bebab5b1dcd834e25f6914a86c2f0ddfaff64f697",
         "targetHash": "297e02e9645f22b9b12a1668d8aab8531a91aad1e22a4cfa4f20cb49aa56bd86"
       }
     }
