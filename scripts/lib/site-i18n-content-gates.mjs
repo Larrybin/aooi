@@ -234,19 +234,28 @@ export function findHardcodedVisibleEnglish({ filePath, content }) {
         text: match[1].trim(),
       });
     }
-
-    for (const match of line.matchAll(visibleAttributeExpressionPattern)) {
-      for (const stringMatch of match[1].matchAll(quotedStringPattern)) {
-        issues.push({
-          code: 'i18n_hardcoded_visible_english',
-          severity: 'error',
-          filePath,
-          line: index + 1,
-          text: (stringMatch[1] ?? stringMatch[2]).trim(),
-        });
-      }
-    }
   });
+
+  for (const match of content.matchAll(visibleAttributeExpressionPattern)) {
+    const matchStart = match.index ?? 0;
+    const matchEnd = matchStart + match[0].length;
+    const startLine = getLineNumberAtIndex(content, matchStart);
+    const endLine = getLineNumberAtIndex(content, matchEnd);
+    const matchedLines = lines.slice(startLine - 1, endLine);
+    if (matchedLines.some(includesI18nExemptReason)) {
+      continue;
+    }
+
+    for (const stringMatch of match[1].matchAll(quotedStringPattern)) {
+      issues.push({
+        code: 'i18n_hardcoded_visible_english',
+        severity: 'error',
+        filePath,
+        line: startLine,
+        text: (stringMatch[1] ?? stringMatch[2]).trim(),
+      });
+    }
+  }
 
   return issues;
 }
