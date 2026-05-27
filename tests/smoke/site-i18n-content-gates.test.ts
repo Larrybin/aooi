@@ -245,6 +245,22 @@ test('hardcoded visible English scanner catches multiline JSX attribute expressi
   );
 });
 
+test('hardcoded visible English scanner catches template literal attribute text', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ file }: Props) {',
+      '  return <button aria-label={`Remove ${file.name}`} />;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Remove']
+  );
+});
+
 test('hardcoded visible English scanner catches multiline JSX text', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',
@@ -306,6 +322,21 @@ test('hardcoded visible English scanner ignores unrelated JSX returns', () => {
       '}',
       '',
       'export function Second() {',
+      '  return <Icon />;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(issues, []);
+});
+
+test('hardcoded visible English scanner ignores JSX-like strings and comments', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example() {',
+      '  const sample = "<button>Upload</button>";',
+      '  // <div>Hello</div>',
       '  return <Icon />;',
       '}',
     ].join('\n'),

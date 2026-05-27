@@ -1,3 +1,5 @@
+import * as ts from 'typescript';
+
 const strictForbiddenPageTypes = new Set([
   'seo',
   'blog',
@@ -8,14 +10,12 @@ const strictForbiddenPageTypes = new Set([
 const warningForbiddenPageTypes = new Set(['admin', 'auth']);
 const englishWordPattern = /\b[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*\b/g;
 const icuPlaceholderPattern = /\{\s*[A-Za-z][A-Za-z0-9_]*\s*\}/g;
-const jsxExpressionPattern = /\{[^{}]*\}/g;
-const visibleJsxTagPattern =
-  /<>|<\/>|<\/?[A-Za-z][A-Za-z0-9.:-]*(?:\s[^<>]*)?\/?>/g;
-const visibleAttributePattern =
-  /\b(?:aria-label|alt|placeholder|title)=["']([^"']*[A-Za-z][^"']*)["']/g;
-const visibleAttributeExpressionPattern =
-  /\b(?:aria-label|alt|placeholder|title)=\{([^{}]*(?:"[^"]*[A-Za-z][^"]*"|'[^']*[A-Za-z][^']*')[^{}]*)\}/g;
-const quotedStringPattern = /"([^"]*[A-Za-z][^"]*)"|'([^']*[A-Za-z][^']*)'/g;
+const visibleAttributeNames = new Set([
+  'aria-label',
+  'alt',
+  'placeholder',
+  'title',
+]);
 
 function normalizeTerm(value) {
   return value.trim().toLocaleLowerCase();
@@ -38,34 +38,6 @@ function includesI18nExemptReason(line) {
 
 function getLineNumberAtIndex(content, index) {
   return content.slice(0, index).split(/\r?\n/).length;
-}
-
-function isLikelyTypeScriptGenericTag(match, content) {
-  const tag = match[0];
-  if (tag === '<>' || tag === '</>' || tag.startsWith('</')) {
-    return false;
-  }
-
-  const startIndex = match.index ?? 0;
-  const previousChar = content[startIndex - 1] ?? '';
-  if (/[A-Za-z0-9_$.)\]]/.test(previousChar)) {
-    return true;
-  }
-
-  const tagName = /^<([A-Za-z][A-Za-z0-9.:-]*)/.exec(tag)?.[1] ?? '';
-  const afterTag = content.slice(startIndex + tag.length).trimStart();
-  return /^[A-Z]/.test(tagName) && /^\([^)]*\)\s*(?:=>|\{)/.test(afterTag);
-}
-
-function isLikelyCodeBetweenJsxTags(text) {
-  const textWithoutExpressions = removeJsxExpressions(text);
-  return (
-    /[{}]/.test(textWithoutExpressions) || /=>/.test(textWithoutExpressions)
-  );
-}
-
-function removeJsxExpressions(text) {
-  return text.replace(jsxExpressionPattern, ' ');
 }
 
 function collectForbiddenTerms(glossary, locale) {
@@ -147,6 +119,86 @@ function removeIcuPlaceholders(text) {
   return text.replace(icuPlaceholderPattern, ' ');
 }
 
+function normalizeVisibleText(text) {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function hasExemptReasonInRange({ lines, content, start, end }) {
+  const startLine = getLineNumberAtIndex(content, start);
+  const endLine = getLineNumberAtIndex(content, end);
+  return lines.slice(startLine - 1, endLine).some(includesI18nExemptReason);
+}
+
+function pushHardcodedVisibleEnglishIssue({
+  issues,
+  filePath,
+  content,
+  lines,
+  start,
+  end,
+  text,
+}) {
+  const normalizedText = normalizeVisibleText(text);
+  if (!/[A-Za-z]/.test(normalizedText)) {
+    return;
+  }
+
+  if (hasExemptReasonInRange({ lines, content, start, end })) {
+    return;
+  }
+
+  issues.push({
+    code: 'i18n_hardcoded_visible_english',
+    severity: 'error',
+    filePath,
+    line: getLineNumberAtIndex(content, start),
+    text: normalizedText,
+  });
+}
+
+function collectVisibleAttributeTextSegments(expression, sourceFile) {
+  const segments = [];
+
+  function visit(node) {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      segments.push({
+        text: node.text,
+        start: node.getStart(sourceFile),
+        end: node.getEnd(),
+      });
+      return;
+    }
+
+    if (ts.isTemplateExpression(node)) {
+      if (node.head.text) {
+        segments.push({
+          text: node.head.text,
+          start: node.head.getStart(sourceFile),
+          end: node.head.getEnd(),
+        });
+      }
+
+      for (const span of node.templateSpans) {
+        if (!span.literal.text) {
+          continue;
+        }
+
+        segments.push({
+          text: span.literal.text,
+          start: span.literal.getStart(sourceFile),
+          end: span.literal.getEnd(),
+        });
+      }
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(expression);
+  return segments;
+}
+
 export function findEnglishResiduals({
   text,
   glossary,
@@ -186,81 +238,70 @@ export function findEnglishResiduals({
 }
 
 export function findHardcodedVisibleEnglish({ filePath, content }) {
-  const issues = [];
+  const textIssues = [];
+  const attributeIssues = [];
   const lines = content.split(/\r?\n/);
-  const jsxTags = [...content.matchAll(visibleJsxTagPattern)].filter(
-    (match) => !isLikelyTypeScriptGenericTag(match, content)
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
   );
 
-  for (let index = 0; index < jsxTags.length - 1; index += 1) {
-    const currentTag = jsxTags[index];
-    const nextTag = jsxTags[index + 1];
-    const textStart = (currentTag.index ?? 0) + currentTag[0].length;
-    const textEnd = nextTag.index ?? textStart;
-    const rawText = content.slice(textStart, textEnd);
-    if (isLikelyCodeBetweenJsxTags(rawText)) {
-      continue;
-    }
-
-    const text = removeJsxExpressions(rawText).replace(/\s+/g, ' ').trim();
-    if (!/[A-Za-z]/.test(text)) {
-      continue;
-    }
-
-    const startLine = getLineNumberAtIndex(content, textStart);
-    const endLine = getLineNumberAtIndex(content, textEnd);
-    const matchedLines = lines.slice(startLine - 1, endLine);
-    if (matchedLines.some(includesI18nExemptReason)) {
-      continue;
-    }
-
-    issues.push({
-      code: 'i18n_hardcoded_visible_english',
-      severity: 'error',
-      filePath,
-      line: startLine,
-      text,
-    });
-  }
-
-  lines.forEach((line, index) => {
-    if (includesI18nExemptReason(line)) {
-      return;
-    }
-
-    for (const match of line.matchAll(visibleAttributePattern)) {
-      issues.push({
-        code: 'i18n_hardcoded_visible_english',
-        severity: 'error',
+  function visit(node) {
+    if (ts.isJsxText(node)) {
+      pushHardcodedVisibleEnglishIssue({
+        issues: textIssues,
         filePath,
-        line: index + 1,
-        text: match[1].trim(),
+        content,
+        lines,
+        start: node.pos,
+        end: node.end,
+        text: node.getText(sourceFile),
       });
     }
-  });
 
-  for (const match of content.matchAll(visibleAttributeExpressionPattern)) {
-    const matchStart = match.index ?? 0;
-    const matchEnd = matchStart + match[0].length;
-    const startLine = getLineNumberAtIndex(content, matchStart);
-    const endLine = getLineNumberAtIndex(content, matchEnd);
-    const matchedLines = lines.slice(startLine - 1, endLine);
-    if (matchedLines.some(includesI18nExemptReason)) {
-      continue;
+    if (
+      ts.isJsxAttribute(node) &&
+      visibleAttributeNames.has(node.name.getText(sourceFile)) &&
+      node.initializer
+    ) {
+      if (ts.isStringLiteral(node.initializer)) {
+        pushHardcodedVisibleEnglishIssue({
+          issues: attributeIssues,
+          filePath,
+          content,
+          lines,
+          start: node.initializer.getStart(sourceFile),
+          end: node.initializer.getEnd(),
+          text: node.initializer.text,
+        });
+      }
+
+      if (ts.isJsxExpression(node.initializer) && node.initializer.expression) {
+        for (const segment of collectVisibleAttributeTextSegments(
+          node.initializer.expression,
+          sourceFile
+        )) {
+          pushHardcodedVisibleEnglishIssue({
+            issues: attributeIssues,
+            filePath,
+            content,
+            lines,
+            start: segment.start,
+            end: segment.end,
+            text: segment.text,
+          });
+        }
+      }
     }
 
-    for (const stringMatch of match[1].matchAll(quotedStringPattern)) {
-      issues.push({
-        code: 'i18n_hardcoded_visible_english',
-        severity: 'error',
-        filePath,
-        line: startLine,
-        text: (stringMatch[1] ?? stringMatch[2]).trim(),
-      });
-    }
+    ts.forEachChild(node, visit);
   }
 
-  return issues;
+  visit(sourceFile);
+  return [...textIssues, ...attributeIssues];
 }
 
 export function checkLocalizedText({
