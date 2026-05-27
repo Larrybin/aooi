@@ -8,8 +8,8 @@ const strictForbiddenPageTypes = new Set([
 const warningForbiddenPageTypes = new Set(['admin', 'auth']);
 const englishWordPattern = /\b[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*\b/g;
 const icuPlaceholderPattern = /\{\s*[A-Za-z][A-Za-z0-9_]*\s*\}/g;
-const visibleJsxTextPattern =
-  /<[A-Za-z][A-Za-z0-9.:-]*(?:\s[^<>]*)?>\s*([^<>{}]*[A-Za-z][^<>{}]*)\s*</g;
+const visibleJsxTagPattern =
+  /<>|<\/>|<\/?[A-Za-z][A-Za-z0-9.:-]*(?:\s[^<>]*)?\/?>/g;
 const visibleAttributePattern =
   /\b(?:aria-label|alt|placeholder|title)=["']([^"']*[A-Za-z][^"']*)["']/g;
 
@@ -149,13 +149,20 @@ export function findEnglishResiduals({
 export function findHardcodedVisibleEnglish({ filePath, content }) {
   const issues = [];
   const lines = content.split(/\r?\n/);
+  const jsxTags = [...content.matchAll(visibleJsxTagPattern)];
 
-  for (const match of content.matchAll(visibleJsxTextPattern)) {
-    const startLine = getLineNumberAtIndex(content, match.index ?? 0);
-    const endLine = getLineNumberAtIndex(
-      content,
-      (match.index ?? 0) + match[0].length
-    );
+  for (let index = 0; index < jsxTags.length - 1; index += 1) {
+    const currentTag = jsxTags[index];
+    const nextTag = jsxTags[index + 1];
+    const textStart = (currentTag.index ?? 0) + currentTag[0].length;
+    const textEnd = nextTag.index ?? textStart;
+    const text = content.slice(textStart, textEnd).replace(/\s+/g, ' ').trim();
+    if (!/[A-Za-z]/.test(text)) {
+      continue;
+    }
+
+    const startLine = getLineNumberAtIndex(content, textStart);
+    const endLine = getLineNumberAtIndex(content, textEnd);
     const matchedLines = lines.slice(startLine - 1, endLine);
     if (matchedLines.some(includesI18nExemptReason)) {
       continue;
@@ -166,7 +173,7 @@ export function findHardcodedVisibleEnglish({ filePath, content }) {
       severity: 'error',
       filePath,
       line: startLine,
-      text: match[1].trim(),
+      text,
     });
   }
 

@@ -146,6 +146,38 @@ test('hardcoded visible English scanner catches JSX text and common attributes',
   );
 });
 
+test('hardcoded visible English scanner catches text around inline JSX children', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example() {',
+      '  return <p>Read <a href="/docs">docs</a> now</p>;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Read', 'docs', 'now']
+  );
+});
+
+test('hardcoded visible English scanner catches fragment text before inline children', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example() {',
+      '  return <>Upload <Icon /></>;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Upload']
+  );
+});
+
 test('hardcoded visible English scanner catches multiline JSX text', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',
