@@ -133,6 +133,33 @@ test('localized text check still scans formatted ICU branch copy', () => {
   );
 });
 
+test('localized text check ignores rich text markup syntax', () => {
+  const issues = checkLocalizedText({
+    text: "没有找到想要的答案？请联系 <a href='https://discord.gg/HQNnrzjZQS' target='_blank' rel='nofollow noopener noreferrer' class='text-primary font-medium hover:underline'>我们的客服团队</a>",
+    glossary,
+    locale: 'zh',
+    pageId: 'faq.tip',
+    pageType: 'seo',
+  });
+
+  assert.deepEqual(issues, []);
+});
+
+test('localized text check still scans rich text inner copy', () => {
+  const issues = checkLocalizedText({
+    text: "没有找到想要的答案？请联系 <a href='https://discord.gg/HQNnrzjZQS'>customer support</a>",
+    glossary,
+    locale: 'zh',
+    pageId: 'faq.tip',
+    pageType: 'seo',
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.term),
+    ['customer', 'support']
+  );
+});
+
 test('forbidden terms are errors for SEO content and warnings for auth/admin', () => {
   const seoIssues = findForbiddenTerms({
     text: '永久免费',

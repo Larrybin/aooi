@@ -199,6 +199,32 @@ function removeIcuPlaceholders(text) {
   return stripIcuMessageSyntax(text);
 }
 
+function isMarkupTag(tagText) {
+  return /^\/?[A-Za-z][A-Za-z0-9:-]*(?:\s|\/|$)/.test(tagText.trim());
+}
+
+function stripMarkupSyntax(text) {
+  let strippedText = '';
+
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] !== '<') {
+      strippedText += text[index];
+      continue;
+    }
+
+    const tagEnd = text.indexOf('>', index + 1);
+    if (tagEnd < 0 || !isMarkupTag(text.slice(index + 1, tagEnd))) {
+      strippedText += text[index];
+      continue;
+    }
+
+    strippedText += ' ';
+    index = tagEnd;
+  }
+
+  return strippedText;
+}
+
 function normalizeVisibleText(text) {
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -307,7 +333,7 @@ export function findEnglishResiduals({
   pageType,
 }) {
   const textWithoutPreservedTerms = removePreservedTerms(
-    removeIcuPlaceholders(text),
+    stripMarkupSyntax(removeIcuPlaceholders(text)),
     glossary.preserve
   );
   const issues = [];
