@@ -268,6 +268,22 @@ test('hardcoded visible English scanner catches multiline JSX text', () => {
   ]);
 });
 
+test('hardcoded visible English scanner catches JSX text with semicolons', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example() {',
+      '  return <p>Terms &amp; Conditions</p>;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Terms &amp; Conditions']
+  );
+});
+
 test('hardcoded visible English scanner ignores comparison before JSX branches', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',

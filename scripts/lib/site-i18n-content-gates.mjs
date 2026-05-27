@@ -58,7 +58,7 @@ function isLikelyTypeScriptGenericTag(match, content) {
 }
 
 function isLikelyCodeBetweenJsxTags(text) {
-  return /;/.test(text) || /=>/.test(text);
+  return /=>/.test(text);
 }
 
 function removeJsxExpressions(text) {
