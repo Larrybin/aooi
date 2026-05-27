@@ -1,5 +1,9 @@
 {
-  "preserve": ["Background Remover"],
+  "preserve": [
+    "Background Remover",
+    "Free",
+    "support@backgroundremover.example.com"
+  ],
   "terms": {},
   "forbidden": {
     "allLocales": ["100% perfect", "free forever"]

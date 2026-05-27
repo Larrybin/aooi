@@ -58,6 +58,7 @@ export function buildSiteI18nReport({
   pages,
   manifest,
   glossary,
+  contentIssues = [],
   strict = false,
   generatedAt = new Date().toISOString(),
 }) {
@@ -117,6 +118,8 @@ export function buildSiteI18nReport({
       );
     }
   }
+
+  issues.push(...contentIssues);
 
   return {
     siteKey,
