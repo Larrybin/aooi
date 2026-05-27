@@ -308,12 +308,29 @@ function isTranslationCallee(expression) {
   );
 }
 
+function isTranslationKeyText(text) {
+  return /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(text);
+}
+
+function isTranslationKeyArgument(argument) {
+  return (
+    (ts.isStringLiteral(argument) ||
+      ts.isNoSubstitutionTemplateLiteral(argument)) &&
+    isTranslationKeyText(argument.text)
+  );
+}
+
 function collectVisibleAttributeTextSegments(expression, sourceFile) {
   const segments = [];
 
   function visit(node) {
     if (ts.isCallExpression(node) && isTranslationCallee(node.expression)) {
-      for (const argument of node.arguments.slice(1)) {
+      const [translationKey, ...interpolationArguments] = node.arguments;
+      if (translationKey && !isTranslationKeyArgument(translationKey)) {
+        visit(translationKey);
+      }
+
+      for (const argument of interpolationArguments) {
         visit(argument);
       }
       return;

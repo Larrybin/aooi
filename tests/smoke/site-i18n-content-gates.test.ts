@@ -345,6 +345,22 @@ test('hardcoded visible English scanner ignores localized visible attribute keys
   assert.deepEqual(issues, []);
 });
 
+test('hardcoded visible English scanner checks descriptive translator strings', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ t }: Props) {',
+      "  return <button aria-label={t('common.close')} title={t('Close dialog')} />;",
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Close dialog']
+  );
+});
+
 test('hardcoded visible English scanner checks translation interpolation strings', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',
