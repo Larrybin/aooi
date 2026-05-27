@@ -19,11 +19,12 @@ const contract = resolveSiteDeployContract({
 
 test('stripLocalePrefix 去掉 locale 前缀并保留根路径', () => {
   assert.equal(stripLocalePrefix('/zh/docs/foo'), '/docs/foo');
-  assert.equal(
-    stripLocalePrefix('/zh-TW/settings/profile'),
-    '/settings/profile'
-  );
+  assert.equal(stripLocalePrefix('/en/settings/profile'), '/settings/profile');
   assert.equal(stripLocalePrefix('/zh'), '/');
+  assert.equal(
+    stripLocalePrefix('/fr/settings/profile'),
+    '/fr/settings/profile'
+  );
   assert.equal(stripLocalePrefix('/pricing'), '/pricing');
 });
 

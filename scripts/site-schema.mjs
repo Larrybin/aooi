@@ -58,7 +58,7 @@ function assertRegisteredLocale(value, label) {
 
 function validateSiteI18nConfig(i18n) {
   if (i18n === undefined) {
-    return;
+    throw new Error('site.i18n is required');
   }
 
   if (!i18n || typeof i18n !== 'object' || Array.isArray(i18n)) {
