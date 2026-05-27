@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -103,6 +104,33 @@ test('localized text check ignores ICU placeholders', () => {
   });
 
   assert.deepEqual(issues, []);
+});
+
+test('localized text check ignores formatted ICU syntax', () => {
+  const issues = checkLocalizedText({
+    text: '{count, plural, one {# 件} other {# 件}}を処理しました',
+    glossary,
+    locale: 'ja',
+    pageId: 'uploader.items_processed',
+    pageType: 'product-ui',
+  });
+
+  assert.deepEqual(issues, []);
+});
+
+test('localized text check still scans formatted ICU branch copy', () => {
+  const issues = checkLocalizedText({
+    text: '{count, plural, one {item} other {items}}を処理しました',
+    glossary,
+    locale: 'ja',
+    pageId: 'uploader.items_processed',
+    pageType: 'product-ui',
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.term),
+    ['item', 'items']
+  );
 });
 
 test('forbidden terms are errors for SEO content and warnings for auth/admin', () => {
@@ -259,6 +287,49 @@ test('hardcoded visible English scanner catches template literal attribute text'
     issues.map((issue) => issue.text),
     ['Remove']
   );
+});
+
+test('hardcoded visible English scanner ignores localized visible attribute keys', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ t }: Props) {',
+      '  return <button',
+      "    aria-label={t('aria_label')}",
+      "    title={t.rich('title_key')}",
+      "    placeholder={t.raw('placeholder_key')}",
+      '  />;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(issues, []);
+});
+
+test('hardcoded visible English scanner checks translation interpolation strings', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ t }: Props) {',
+      "  return <button aria-label={t('action_label', { action: 'Remove' })} />;",
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(
+    issues.map((issue) => issue.text),
+    ['Remove']
+  );
+});
+
+test('hardcoded visible English scanner accepts existing localized attributes', () => {
+  const filePath = 'src/shared/blocks/common/locale-selector.tsx';
+  const issues = findHardcodedVisibleEnglish({
+    filePath,
+    content: readFileSync(filePath, 'utf8'),
+  });
+
+  assert.deepEqual(issues, []);
 });
 
 test('hardcoded visible English scanner catches multiline JSX text', () => {

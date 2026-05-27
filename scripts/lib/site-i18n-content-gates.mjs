@@ -9,7 +9,6 @@ const strictForbiddenPageTypes = new Set([
 ]);
 const warningForbiddenPageTypes = new Set(['admin', 'auth']);
 const englishWordPattern = /\b[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*\b/g;
-const icuPlaceholderPattern = /\{\s*[A-Za-z][A-Za-z0-9_]*\s*\}/g;
 const visibleAttributeNames = new Set([
   'aria-label',
   'alt',
@@ -115,8 +114,89 @@ function removePreservedTerms(text, preservedTerms) {
   }, text);
 }
 
+function findClosingBrace(text, openIndex) {
+  let depth = 0;
+
+  for (let index = openIndex; index < text.length; index += 1) {
+    if (text[index] === '{') {
+      depth += 1;
+    }
+
+    if (text[index] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+function collectIcuBranchText(block) {
+  let branchText = '';
+
+  for (let index = 0; index < block.length; index += 1) {
+    if (block[index] !== '{') {
+      continue;
+    }
+
+    const closingBrace = findClosingBrace(block, index);
+    if (closingBrace < 0) {
+      break;
+    }
+
+    branchText += ` ${stripIcuMessageSyntax(
+      block.slice(index + 1, closingBrace)
+    )} `;
+    index = closingBrace;
+  }
+
+  return branchText || ' ';
+}
+
+function stripIcuBlock(block) {
+  const trimmedBlock = block.trim();
+
+  if (/^[A-Za-z][A-Za-z0-9_]*$/.test(trimmedBlock)) {
+    return ' ';
+  }
+
+  if (
+    /^[A-Za-z][A-Za-z0-9_]*\s*,\s*(?:plural|select|selectordinal|number|date|time)\b/.test(
+      trimmedBlock
+    )
+  ) {
+    return collectIcuBranchText(block);
+  }
+
+  return stripIcuMessageSyntax(block);
+}
+
+function stripIcuMessageSyntax(text) {
+  let strippedText = '';
+
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] !== '{') {
+      strippedText += text[index];
+      continue;
+    }
+
+    const closingBrace = findClosingBrace(text, index);
+    if (closingBrace < 0) {
+      strippedText += text[index];
+      continue;
+    }
+
+    strippedText += stripIcuBlock(text.slice(index + 1, closingBrace));
+    index = closingBrace;
+  }
+
+  return strippedText;
+}
+
 function removeIcuPlaceholders(text) {
-  return text.replace(icuPlaceholderPattern, ' ');
+  return stripIcuMessageSyntax(text);
 }
 
 function normalizeVisibleText(text) {
@@ -156,10 +236,30 @@ function pushHardcodedVisibleEnglishIssue({
   });
 }
 
+function isTranslationCallee(expression) {
+  if (ts.isIdentifier(expression)) {
+    return expression.text === 't';
+  }
+
+  return (
+    ts.isPropertyAccessExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === 't' &&
+    ['rich', 'markup', 'raw'].includes(expression.name.text)
+  );
+}
+
 function collectVisibleAttributeTextSegments(expression, sourceFile) {
   const segments = [];
 
   function visit(node) {
+    if (ts.isCallExpression(node) && isTranslationCallee(node.expression)) {
+      for (const argument of node.arguments.slice(1)) {
+        visit(argument);
+      }
+      return;
+    }
+
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       segments.push({
         text: node.text,
