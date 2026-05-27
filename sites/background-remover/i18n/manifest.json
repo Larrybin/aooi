@@ -17,13 +17,13 @@
         "path": "/privacy-policy",
         "status": "pending",
         "sourceHash": "00723d195eaefb9471e5e7959d36c77f35b9d1120f153c0e07d7d5cbd59c27e6",
-        "targetHash": "48dd13cd07db37ff48c08d8dde0b60660874f035686a3bd326ae1c19d1676017"
+        "targetHash": "70e884965516c8e8f1a49d43c27ba8dd5c7970efb11d29a94530f0eb6e58397e"
       },
       "legal.terms-of-service": {
         "path": "/terms-of-service",
         "status": "pending",
         "sourceHash": "a2a9ad42a78fa713ebcf10dff04fffa4c8ec1c71c22a1c3d133d4af310a61795",
-        "targetHash": "32a43128b1fe0aa1d7604d89cfe53dc72462e109cb80ad5dd851dad794e726b1"
+        "targetHash": "3339eaddd795f542c717aa92165ee5e54c94acb6191b0f5aef530298ffaaecb1"
       },
       "auth.sign-in": {
         "path": "/sign-in",
@@ -61,13 +61,13 @@
         "path": "/privacy-policy",
         "status": "pending",
         "sourceHash": "00723d195eaefb9471e5e7959d36c77f35b9d1120f153c0e07d7d5cbd59c27e6",
-        "targetHash": "4dcce2ab75d82c9944160a29f47f8494accf49d171b9e459f141f5bb10f58ddb"
+        "targetHash": "790f099c778f82a3e53741fb2b3da9e4fe32963d37d31fee524d1ff5224dfae8"
       },
       "legal.terms-of-service": {
         "path": "/terms-of-service",
         "status": "pending",
         "sourceHash": "a2a9ad42a78fa713ebcf10dff04fffa4c8ec1c71c22a1c3d133d4af310a61795",
-        "targetHash": "96321abd44bcfa8e9c74f2b2226dc50578cc6e8363ad3361f9b0b7047a2f3e5d"
+        "targetHash": "7eff8aa75ff4ffd97256313df5e63244a0c06e85be4f676ddb403ebc4b73073c"
       },
       "auth.sign-in": {
         "path": "/sign-in",
