@@ -157,6 +157,19 @@ test('hardcoded visible English scanner catches multiline JSX text', () => {
   ]);
 });
 
+test('hardcoded visible English scanner ignores comparison before JSX branches', () => {
+  const issues = findHardcodedVisibleEnglish({
+    filePath: 'src/app/example.tsx',
+    content: [
+      'export function Example({ width, minWidth }: Props) {',
+      '  return width > minWidth ? <Icon /> : null;',
+      '}',
+    ].join('\n'),
+  });
+
+  assert.deepEqual(issues, []);
+});
+
 test('hardcoded visible English scanner requires an explicit exempt reason', () => {
   const issues = findHardcodedVisibleEnglish({
     filePath: 'src/app/example.tsx',

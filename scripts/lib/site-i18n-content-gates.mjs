@@ -7,7 +7,8 @@ const strictForbiddenPageTypes = new Set([
 ]);
 const warningForbiddenPageTypes = new Set(['admin', 'auth']);
 const englishWordPattern = /\b[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*\b/g;
-const visibleJsxTextPattern = />\s*([^<>{}]*[A-Za-z][^<>{}]*)\s*</g;
+const visibleJsxTextPattern =
+  /<[A-Za-z][A-Za-z0-9.:-]*(?:\s[^<>]*)?>\s*([^<>{}]*[A-Za-z][^<>{}]*)\s*</g;
 const visibleAttributePattern =
   /\b(?:aria-label|alt|placeholder|title)=["']([^"']*[A-Za-z][^"']*)["']/g;
 
