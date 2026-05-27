@@ -28,7 +28,11 @@ test('i18n-review skill requires explicit approval before approved status', () =
     /Run `pnpm i18n:check --site <site-key>` before reviewing/
   );
   assert.match(reviewSkill, /post-approval verification/);
-  assert.match(reviewSkill, /pnpm i18n:check --site <site-key> --strict/);
+  assert.match(reviewSkill, /after partial approvals/);
+  assert.match(
+    reviewSkill,
+    /strict` only when no manifest entries remain pending or rejected/
+  );
 });
 
 test('i18n skills document current rollout scope', () => {

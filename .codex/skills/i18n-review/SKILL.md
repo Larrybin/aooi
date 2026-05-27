@@ -39,7 +39,8 @@ Use this skill only in the `aooi` repository when the user asks to review locali
    - Reprint the exact `locale/pageId/path` entries to approve.
    - Update only those manifest entries from `pending` to `approved`.
    - Keep `sourceHash` and `targetHash` unchanged unless the reviewed content changed in the same fix.
-   - Re-run `pnpm i18n:check --site <site-key> --strict`.
+   - Re-run `pnpm i18n:check --site <site-key>` after partial approvals.
+   - Run `pnpm i18n:check --site <site-key> --strict` only when no manifest entries remain pending or rejected for rollout-required locales.
 
 ## Completion Standard
 
