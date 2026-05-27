@@ -86,7 +86,7 @@ export function buildSiteI18nReport({
       if (!entry) {
         issues.push(
           createIssue({
-            severity: 'warning',
+            severity: strict ? 'error' : 'warning',
             code: 'i18n_required_page_not_approved',
             message: 'required page is not approved for this locale yet',
             locale,

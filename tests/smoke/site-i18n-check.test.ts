@@ -40,7 +40,27 @@ const glossary = {
   forbidden: {},
 };
 
-test('site i18n report treats missing rollout pages as warnings', () => {
+test('site i18n report treats missing rollout pages as warnings outside strict mode', () => {
+  const report = buildSiteI18nReport({
+    siteKey: 'ai-remover',
+    site,
+    pages,
+    manifest: {
+      locales: {
+        zh: {},
+      },
+    },
+    glossary,
+    strict: false,
+    generatedAt: '2026-01-01T00:00:00.000Z',
+  });
+
+  assert.equal(report.summary.errors, 0);
+  assert.equal(report.summary.warnings, 1);
+  assert.equal(report.issues[0]?.code, 'i18n_required_page_not_approved');
+});
+
+test('site i18n report fails strict checks for missing rollout pages', () => {
   const report = buildSiteI18nReport({
     siteKey: 'ai-remover',
     site,
@@ -55,8 +75,8 @@ test('site i18n report treats missing rollout pages as warnings', () => {
     generatedAt: '2026-01-01T00:00:00.000Z',
   });
 
-  assert.equal(report.summary.errors, 0);
-  assert.equal(report.summary.warnings, 1);
+  assert.equal(report.summary.errors, 1);
+  assert.equal(report.summary.warnings, 0);
   assert.equal(report.issues[0]?.code, 'i18n_required_page_not_approved');
 });
 
