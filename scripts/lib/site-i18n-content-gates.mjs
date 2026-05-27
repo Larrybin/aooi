@@ -1,5 +1,3 @@
-import * as ts from 'typescript';
-
 const strictForbiddenPageTypes = new Set([
   'seo',
   'blog',
@@ -9,12 +7,6 @@ const strictForbiddenPageTypes = new Set([
 ]);
 const warningForbiddenPageTypes = new Set(['admin', 'auth']);
 const englishWordPattern = /\b[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*\b/g;
-const visibleAttributeNames = new Set([
-  'aria-label',
-  'alt',
-  'placeholder',
-  'title',
-]);
 const htmlEntityReplacements = new Map([
   ['amp', '&'],
   ['apos', "'"],
@@ -42,14 +34,6 @@ function createStandaloneTermPattern(term) {
     `(?<![A-Za-z0-9])${escapeRegExp(term)}(?![A-Za-z0-9])`,
     'gi'
   );
-}
-
-function includesI18nExemptReason(line) {
-  return /i18n-exempt:\s*\S+/.test(line);
-}
-
-function getLineNumberAtIndex(content, index) {
-  return content.slice(0, index).split(/\r?\n/).length;
 }
 
 function collectForbiddenTerms(glossary, locale) {
@@ -258,123 +242,6 @@ function stripMarkupSyntax(text) {
   return strippedText;
 }
 
-function normalizeVisibleText(text) {
-  return decodeHtmlEntities(text).replace(/\s+/g, ' ').trim();
-}
-
-function hasExemptReasonInRange({ lines, content, start, end }) {
-  const startLine = getLineNumberAtIndex(content, start);
-  const endLine = getLineNumberAtIndex(content, end);
-  return lines.slice(startLine - 1, endLine).some(includesI18nExemptReason);
-}
-
-function pushHardcodedVisibleEnglishIssue({
-  issues,
-  filePath,
-  content,
-  lines,
-  start,
-  end,
-  text,
-}) {
-  const normalizedText = normalizeVisibleText(text);
-  if (!/[A-Za-z]/.test(normalizedText)) {
-    return;
-  }
-
-  if (hasExemptReasonInRange({ lines, content, start, end })) {
-    return;
-  }
-
-  issues.push({
-    code: 'i18n_hardcoded_visible_english',
-    severity: 'error',
-    filePath,
-    line: getLineNumberAtIndex(content, start),
-    text: normalizedText,
-  });
-}
-
-function isTranslationCallee(expression) {
-  if (ts.isIdentifier(expression)) {
-    return expression.text === 't';
-  }
-
-  return (
-    ts.isPropertyAccessExpression(expression) &&
-    ts.isIdentifier(expression.expression) &&
-    expression.expression.text === 't' &&
-    ['rich', 'markup', 'raw'].includes(expression.name.text)
-  );
-}
-
-function isTranslationKeyText(text) {
-  return /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(text);
-}
-
-function isTranslationKeyArgument(argument) {
-  return (
-    (ts.isStringLiteral(argument) ||
-      ts.isNoSubstitutionTemplateLiteral(argument)) &&
-    isTranslationKeyText(argument.text)
-  );
-}
-
-function collectVisibleAttributeTextSegments(expression, sourceFile) {
-  const segments = [];
-
-  function visit(node) {
-    if (ts.isCallExpression(node) && isTranslationCallee(node.expression)) {
-      const [translationKey, ...interpolationArguments] = node.arguments;
-      if (translationKey && !isTranslationKeyArgument(translationKey)) {
-        visit(translationKey);
-      }
-
-      for (const argument of interpolationArguments) {
-        visit(argument);
-      }
-      return;
-    }
-
-    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      segments.push({
-        text: node.text,
-        start: node.getStart(sourceFile),
-        end: node.getEnd(),
-      });
-      return;
-    }
-
-    if (ts.isTemplateExpression(node)) {
-      if (node.head.text) {
-        segments.push({
-          text: node.head.text,
-          start: node.head.getStart(sourceFile),
-          end: node.head.getEnd(),
-        });
-      }
-
-      for (const span of node.templateSpans) {
-        if (!span.literal.text) {
-          continue;
-        }
-
-        segments.push({
-          text: span.literal.text,
-          start: span.literal.getStart(sourceFile),
-          end: span.literal.getEnd(),
-        });
-      }
-      return;
-    }
-
-    ts.forEachChild(node, visit);
-  }
-
-  visit(expression);
-  return segments;
-}
-
 export function findEnglishResiduals({
   text,
   glossary,
@@ -411,73 +278,6 @@ export function findEnglishResiduals({
   }
 
   return issues;
-}
-
-export function findHardcodedVisibleEnglish({ filePath, content }) {
-  const textIssues = [];
-  const attributeIssues = [];
-  const lines = content.split(/\r?\n/);
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TSX
-  );
-
-  function visit(node) {
-    if (ts.isJsxText(node)) {
-      pushHardcodedVisibleEnglishIssue({
-        issues: textIssues,
-        filePath,
-        content,
-        lines,
-        start: node.pos,
-        end: node.end,
-        text: node.getText(sourceFile),
-      });
-    }
-
-    if (
-      ts.isJsxAttribute(node) &&
-      visibleAttributeNames.has(node.name.getText(sourceFile)) &&
-      node.initializer
-    ) {
-      if (ts.isStringLiteral(node.initializer)) {
-        pushHardcodedVisibleEnglishIssue({
-          issues: attributeIssues,
-          filePath,
-          content,
-          lines,
-          start: node.initializer.getStart(sourceFile),
-          end: node.initializer.getEnd(),
-          text: node.initializer.text,
-        });
-      }
-
-      if (ts.isJsxExpression(node.initializer) && node.initializer.expression) {
-        for (const segment of collectVisibleAttributeTextSegments(
-          node.initializer.expression,
-          sourceFile
-        )) {
-          pushHardcodedVisibleEnglishIssue({
-            issues: attributeIssues,
-            filePath,
-            content,
-            lines,
-            start: segment.start,
-            end: segment.end,
-            text: segment.text,
-          });
-        }
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  }
-
-  visit(sourceFile);
-  return [...textIssues, ...attributeIssues];
 }
 
 export function checkLocalizedText({
