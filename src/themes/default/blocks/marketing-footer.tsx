@@ -4,6 +4,7 @@ import { filterLandingNavItems } from '@/surfaces/public/navigation/landing-visi
 
 import { defaultLocale } from '@/config/locale';
 import { AppImage } from '@/shared/blocks/common/app-image';
+import { LocaleSelector } from '@/shared/blocks/common/locale-selector';
 import { cn } from '@/shared/lib/utils';
 import type { NavItem } from '@/shared/types/blocks/common';
 import type { Footer as FooterType } from '@/shared/types/blocks/landing';
@@ -26,6 +27,7 @@ export function MarketingFooter({
   publicConfig?: PublicUiConfig;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfig);
+  const showLocaleSwitcher = publicConfig?.localeSwitcherEnabled === true;
   let navGridCols = 'sm:grid-cols-1';
   if (navItems.length >= 3) {
     navGridCols = 'sm:grid-cols-3';
@@ -123,6 +125,12 @@ export function MarketingFooter({
                   {item.title || ''}
                 </Link>
               ))}
+            </div>
+          ) : null}
+
+          {showLocaleSwitcher ? (
+            <div className="min-w-0">
+              <LocaleSelector type="button" />
             </div>
           ) : null}
         </div>

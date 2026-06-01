@@ -20,7 +20,8 @@
     "defaultLocale": "en",
     "supportedLocales": ["en", "zh", "ja"],
     "localePrefix": "as-needed",
-    "localeDetection": false
+    "localeDetection": false,
+    "strictPublishing": true
   },
   "configVersion": 1
 }
