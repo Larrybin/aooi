@@ -3,43 +3,43 @@
     "zh": {
       "home": {
         "path": "/",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "9c950f7ae457df22cd54146a542c0156743c27bb71b0e3479c24dbb06e9766c6",
         "targetHash": "2101e48a0ad4cfa37751f3aad9f950e3b6cd787cbdb3098a4f269db1a713611c"
       },
       "pricing": {
         "path": "/pricing",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "af3a564ba5c2055f59370126b97de8275e36eef36d822220115c5827d7970340",
         "targetHash": "73ab16bc098de9706099ba6731f496436e4cb70e75f236afe06fc8c935e77880"
       },
       "legal.privacy-policy": {
         "path": "/privacy-policy",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "00723d195eaefb9471e5e7959d36c77f35b9d1120f153c0e07d7d5cbd59c27e6",
         "targetHash": "70e884965516c8e8f1a49d43c27ba8dd5c7970efb11d29a94530f0eb6e58397e"
       },
       "legal.terms-of-service": {
         "path": "/terms-of-service",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "a2a9ad42a78fa713ebcf10dff04fffa4c8ec1c71c22a1c3d133d4af310a61795",
         "targetHash": "3339eaddd795f542c717aa92165ee5e54c94acb6191b0f5aef530298ffaaecb1"
       },
       "auth.sign-in": {
         "path": "/sign-in",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "910a27dc2a30e2219cb2e9e68beabe3a48a5158159c6b1a80dc9ab806bbd3dc2",
         "targetHash": "f7f0615df426edb34fa6f1b7ffb2c4457b98c0b66f66db644c177661209edbfc"
       },
       "auth.sign-up": {
         "path": "/sign-up",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "910a27dc2a30e2219cb2e9e68beabe3a48a5158159c6b1a80dc9ab806bbd3dc2",
         "targetHash": "f7f0615df426edb34fa6f1b7ffb2c4457b98c0b66f66db644c177661209edbfc"
       },
       "admin.index": {
         "path": "/admin",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "435fb82ab8d1476d198f39eb6b9cdf6e27d629c7f37fc297f807a226bae9cb5a",
         "targetHash": "efcd4a6fb1284d5c4cc28f2ea00650c9b9d85751190acdcc7fa0d156d20e0821"
       }
@@ -47,43 +47,43 @@
     "ja": {
       "home": {
         "path": "/",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "9c950f7ae457df22cd54146a542c0156743c27bb71b0e3479c24dbb06e9766c6",
         "targetHash": "70bd248ed2aac621084f9755bb77ab8304c9b743aa16ed7199b889f832aa59c8"
       },
       "pricing": {
         "path": "/pricing",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "af3a564ba5c2055f59370126b97de8275e36eef36d822220115c5827d7970340",
         "targetHash": "bdbe68e0b9fcb1ca9ce6cdc71da853a01e4a2df2172d8a2ccc442edd1fa52ca8"
       },
       "legal.privacy-policy": {
         "path": "/privacy-policy",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "00723d195eaefb9471e5e7959d36c77f35b9d1120f153c0e07d7d5cbd59c27e6",
         "targetHash": "790f099c778f82a3e53741fb2b3da9e4fe32963d37d31fee524d1ff5224dfae8"
       },
       "legal.terms-of-service": {
         "path": "/terms-of-service",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "a2a9ad42a78fa713ebcf10dff04fffa4c8ec1c71c22a1c3d133d4af310a61795",
         "targetHash": "7eff8aa75ff4ffd97256313df5e63244a0c06e85be4f676ddb403ebc4b73073c"
       },
       "auth.sign-in": {
         "path": "/sign-in",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "910a27dc2a30e2219cb2e9e68beabe3a48a5158159c6b1a80dc9ab806bbd3dc2",
         "targetHash": "297e02e9645f22b9b12a1668d8aab8531a91aad1e22a4cfa4f20cb49aa56bd86"
       },
       "auth.sign-up": {
         "path": "/sign-up",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "910a27dc2a30e2219cb2e9e68beabe3a48a5158159c6b1a80dc9ab806bbd3dc2",
         "targetHash": "297e02e9645f22b9b12a1668d8aab8531a91aad1e22a4cfa4f20cb49aa56bd86"
       },
       "admin.index": {
         "path": "/admin",
-        "status": "pending",
+        "status": "approved",
         "sourceHash": "435fb82ab8d1476d198f39eb6b9cdf6e27d629c7f37fc297f807a226bae9cb5a",
         "targetHash": "cf2c9bddf2a50aeec99dbb24b6a6a05cecac5ad0d8ff89c8584163333bc449fc"
       }
