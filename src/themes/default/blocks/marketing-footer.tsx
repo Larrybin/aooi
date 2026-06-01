@@ -27,6 +27,7 @@ export function MarketingFooter({
   publicConfig?: PublicUiConfig;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfig);
+  const showLocaleSwitcher = publicConfig?.localeSwitcherEnabled === true;
   let navGridCols = 'sm:grid-cols-1';
   if (navItems.length >= 3) {
     navGridCols = 'sm:grid-cols-3';
@@ -127,9 +128,11 @@ export function MarketingFooter({
             </div>
           ) : null}
 
-          <div className="min-w-0">
-            <LocaleSelector type="button" />
-          </div>
+          {showLocaleSwitcher ? (
+            <div className="min-w-0">
+              <LocaleSelector type="button" />
+            </div>
+          ) : null}
         </div>
       </div>
     </footer>

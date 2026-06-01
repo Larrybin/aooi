@@ -18,6 +18,7 @@ export function Footer({
   publicConfig?: PublicUiConfig;
 }) {
   const navItems = filterLandingNavItems(footer.nav?.items, publicConfig);
+  const showLocaleSwitcher = publicConfig?.localeSwitcherEnabled === true;
   const navGridCols =
     navItems.length >= 3
       ? 'sm:grid-cols-3'
@@ -68,10 +69,12 @@ export function Footer({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
-          <div className="min-w-0 flex-1" />
-          <LocaleSelector type="button" />
-        </div>
+        {showLocaleSwitcher ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-4 sm:gap-8">
+            <div className="min-w-0 flex-1" />
+            <LocaleSelector type="button" />
+          </div>
+        ) : null}
 
         <div
           aria-hidden
