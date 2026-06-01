@@ -58,8 +58,16 @@ export function normalizeLocaleSwitcherPath(
 }
 
 export function getApprovedLocalesForSwitcher(pathname: string): Locale[] {
-  const approvedLocales: Locale[] = [defaultLocale];
   const manifestLocales = siteI18nManifest.locales as SiteI18nManifestLocales;
+  const isManifestPath = Object.values(manifestLocales).some((entries) =>
+    Object.values(entries).some((entry) => entry.path === pathname)
+  );
+
+  if (!isManifestPath) {
+    return [...locales];
+  }
+
+  const approvedLocales: Locale[] = [defaultLocale];
 
   for (const locale of locales) {
     if (locale === defaultLocale) {
