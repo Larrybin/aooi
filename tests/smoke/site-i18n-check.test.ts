@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -200,6 +207,90 @@ test('site i18n report writes latest JSON artifact', () => {
     const savedReport = JSON.parse(readFileSync(reportPath, 'utf8'));
     assert.equal(savedReport.siteKey, 'ai-remover');
     assert.equal(savedReport.summary.warnings, 1);
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('site i18n CLI exits non-zero for strict report errors', () => {
+  const rootDir = mkdtempSync(path.join(tmpdir(), 'aooi-i18n-cli-'));
+  const repoRoot = path.resolve(import.meta.dirname, '..', '..');
+
+  try {
+    mkdirSync(path.join(rootDir, 'sites', 'ai-remover', 'i18n'), {
+      recursive: true,
+    });
+    mkdirSync(path.join(rootDir, 'src', 'config', 'locale'), {
+      recursive: true,
+    });
+
+    writeFileSync(
+      path.join(rootDir, 'src', 'config', 'locale', 'glossary.global.json'),
+      `${JSON.stringify({ preserve: [] }, null, 2)}\n`
+    );
+    writeFileSync(
+      path.join(rootDir, 'sites', 'ai-remover', 'site.config.json'),
+      `${JSON.stringify(
+        {
+          key: 'ai-remover',
+          domain: 'example.com',
+          brand: {
+            appName: 'AI Remover',
+            appUrl: 'https://example.com',
+            supportEmail: 'support@example.com',
+            logo: '/logo.png',
+            favicon: '/favicon.ico',
+            previewImage: '/preview.png',
+          },
+          capabilities: {
+            auth: true,
+            payment: 'none',
+            ai: true,
+            docs: false,
+            blog: false,
+          },
+          i18n: {
+            defaultLocale: 'en',
+            supportedLocales: ['en', 'zh'],
+            localePrefix: 'as-needed',
+            localeDetection: false,
+            strictPublishing: true,
+          },
+          configVersion: 1,
+        },
+        null,
+        2
+      )}\n`
+    );
+    writeFileSync(
+      path.join(rootDir, 'sites', 'ai-remover', 'i18n', 'pages.json'),
+      `${JSON.stringify(pages, null, 2)}\n`
+    );
+    writeFileSync(
+      path.join(rootDir, 'sites', 'ai-remover', 'i18n', 'manifest.json'),
+      `${JSON.stringify({ locales: { zh: {} } }, null, 2)}\n`
+    );
+    writeFileSync(
+      path.join(rootDir, 'sites', 'ai-remover', 'i18n', 'glossary.json'),
+      `${JSON.stringify({ preserve: [], terms: {}, forbidden: {} }, null, 2)}\n`
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(repoRoot, 'scripts', 'check-site-i18n.mjs'),
+        '--site',
+        'ai-remover',
+        '--strict',
+      ],
+      {
+        cwd: rootDir,
+        encoding: 'utf8',
+      }
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /i18n_required_page_not_approved/);
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }

@@ -119,6 +119,9 @@ for (const report of reports) {
   printReport(report, reportPath);
 }
 
-if (strict && reports.some((report) => report.summary.errors > 0)) {
+const hasStrictReportErrors =
+  strict && reports.some((report) => report.summary.errors > 0);
+
+if (hasStrictReportErrors) {
   process.exit(1);
 }
