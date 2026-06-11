@@ -27,6 +27,7 @@ export function BrandLogo({ brand }: { brand: BrandType }) {
           width={displayWidth}
           height={displayHeight}
           className="h-10 w-auto"
+          unoptimized
         />
       )}
       {brand.title && (

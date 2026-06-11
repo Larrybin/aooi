@@ -19,6 +19,7 @@ type AppImageCommonProps = {
   blurDataURL?: ImageProps['blurDataURL'];
   title?: string;
   sizes?: string;
+  unoptimized?: ImageProps['unoptimized'];
 };
 
 type AppImageFixedProps = {

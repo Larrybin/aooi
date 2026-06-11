@@ -35,6 +35,7 @@ export function SidebarHeader({ header }: { header: SidebarHeaderType }) {
                       width={32}
                       height={32}
                       className="h-auto w-8 shrink-0"
+                      unoptimized
                     />
                   )}
                   <span className="text-base font-semibold">

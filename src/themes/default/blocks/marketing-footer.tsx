@@ -53,10 +53,11 @@ export function MarketingFooter({
                 {footer.brand.logo ? (
                   <AppImage
                     src={footer.brand.logo.src}
-                    alt={footer.brand.logo.alt || ''}
+                    alt={footer.brand.title ? '' : footer.brand.logo.alt || ''}
                     width={40}
                     height={40}
                     className="h-10 w-10"
+                    unoptimized
                   />
                 ) : null}
                 {footer.brand.title ? (
