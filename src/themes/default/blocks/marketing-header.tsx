@@ -115,11 +115,14 @@ export function MarketingHeader({
               <AppImage
                 src={header.brand.logo.src}
                 alt={
-                  header.brand.logo.alt || header.brand.title || 'Brand logo'
+                  header.brand.title
+                    ? ''
+                    : header.brand.logo.alt || 'Brand logo'
                 }
                 width={40}
                 height={40}
                 className="h-10 w-10"
+                unoptimized
               />
             ) : null}
             {header.brand.title ? (

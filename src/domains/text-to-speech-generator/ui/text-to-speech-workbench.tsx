@@ -25,6 +25,8 @@ import {
 } from './history-state';
 import type { TextToSpeechGeneratorHomeCopy } from './text-to-speech-home-copy';
 
+const TEXT_INPUT_ID = 'tts-generator-text';
+
 declare global {
   interface Window {
     turnstile?: {
@@ -336,10 +338,13 @@ export function TextToSpeechGeneratorWorkbench({
     <div className="mt-6 grid overflow-hidden rounded-lg border border-[#D7DEE8] bg-white shadow-sm lg:grid-cols-[1.08fr_0.92fr]">
       <div className="flex min-w-0 flex-col border-[#D7DEE8] lg:border-r">
         <div className="flex items-center justify-between gap-4 border-b border-[#E5EAF2] px-4 py-4 md:px-5">
-          <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F172A]">
+          <label
+            htmlFor={TEXT_INPUT_ID}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F172A]"
+          >
             <Volume2 className="size-4 text-[#2563EB]" />
             {copy.textLabel}
-          </div>
+          </label>
           <div className="text-sm text-[#667085]">
             {text.length.toLocaleString()} {copy.characters}
           </div>
@@ -347,6 +352,7 @@ export function TextToSpeechGeneratorWorkbench({
 
         <div className="p-4 md:p-5">
           <textarea
+            id={TEXT_INPUT_ID}
             value={text}
             onChange={(event) => setText(event.target.value)}
             className="min-h-72 w-full resize-y rounded-md border border-[#D7DEE8] bg-[#FBFCFE] p-4 text-base leading-8 text-[#0F172A] transition outline-none focus:border-[#2563EB] focus:bg-white"
