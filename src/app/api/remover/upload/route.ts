@@ -6,13 +6,13 @@ import {
   reserveRemoverQuota,
 } from '@/domains/remover/infra/quota-reservation';
 import { getStorageService } from '@/infra/adapters/storage/service';
+import { detectAllowedImageMime } from '@/server/api/storage/image-mime';
 
 import { createLimiterFactory } from '@/shared/lib/api/limiters-factory';
 import { withApi } from '@/shared/lib/api/route';
 import { readUploadRequestInput } from '@/shared/lib/runtime/upload';
 
 import { requireRemoverSite } from '../_lib/guard';
-import { detectAllowedImageMime } from '../../storage/upload-image/upload-image-files';
 import { resolveRemoverActor } from '../actor.server';
 import { acquireRemoverGuestIpLimit } from '../guest-ip-limit';
 import { createRemoverUploadPostAction } from './action';

@@ -22,7 +22,7 @@
     "build:fast": "node scripts/run-with-site.mjs node scripts/next-build.mjs --max-old-space-size=4096",
     "analyze": "ANALYZE=true node scripts/run-with-site.mjs node scripts/next-build.mjs",
     "start": "node scripts/run-with-site.mjs pnpm exec next start",
-    "typecheck": "node scripts/run-with-site.mjs pnpm exec tsc --noEmit --pretty false --incremental false",
+    "typecheck": "node scripts/sync-open-next-generated-types.mjs && node scripts/run-with-site.mjs pnpm exec tsc --noEmit --pretty false --incremental false",
     "check": "pnpm lint && pnpm typecheck && pnpm tanstack:validate && pnpm tanstack:typecheck && pnpm test",
     "ci": "pnpm check && pnpm tanstack:build && pnpm arch:check && pnpm i18n:check --strict",
     "release:check": "pnpm run ci && pnpm cf:check && pnpm cf:build:no-db --site=$SITE && pnpm cf:typegen:check",
@@ -85,7 +85,7 @@
     "paraglide:compile": "pnpm exec paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy globalVariable baseLocale --is-server 'import.meta.env.SSR' --emit-ts-declarations --no-emit-git-ignore --no-emit-prettier-ignore --no-emit-readme",
     "tanstack:dev": "node scripts/run-with-site.mjs pnpm exec vite dev --config vite.config.mts",
     "tanstack:build": "node scripts/run-with-site.mjs pnpm exec vite build --config vite.config.mts",
-    "tanstack:typecheck": "node scripts/run-with-site.mjs pnpm exec tsc --noEmit --pretty false --incremental false --project tsconfig.tanstack.json",
+    "tanstack:typecheck": "node scripts/sync-open-next-generated-types.mjs && node scripts/run-with-site.mjs pnpm exec tsc --noEmit --pretty false --incremental false --project tsconfig.tanstack.json",
     "tanstack:inventory": "node scripts/tanstack-native-inventory.mjs",
     "tanstack:validate": "node scripts/run-with-site.mjs node scripts/validate-tanstack-native-migration.mjs",
     "tanstack:cf:build": "node -e \"if (!process.env.SITE) { console.error('SITE is required'); process.exit(1); }\" && node scripts/run-with-site.mjs pnpm exec vite build --config vite.config.mts"
