@@ -85,6 +85,13 @@
       "when": 1780638000000,
       "tag": "0011_text_to_speech_generation_charge",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780724400000,
+      "tag": "0012_rls_and_invoice_index",
+      "breakpoints": true
     }
   ]
 }

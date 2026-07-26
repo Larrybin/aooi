@@ -235,6 +235,8 @@ export const order = pgTable(
     ),
     // Order orders by creation time for listing
     index('idx_order_created_at').on(table.createdAt),
+    // Subscription renewal webhooks look an order up by invoice id twice each
+    index('idx_order_invoice_id').on(table.invoiceId),
   ]
 );
 
