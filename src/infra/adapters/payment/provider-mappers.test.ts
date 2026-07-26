@@ -157,7 +157,8 @@ test('PayPal mapper: order session 保留 capture/invoice/order_no 字段', () =
   assert.equal(session.paymentStatus, PaymentStatus.SUCCESS);
   assert.equal(session.paymentInfo?.transactionId, 'txn_123');
   assert.equal(session.paymentInfo?.invoiceId, 'inv_123');
-  assert.equal(session.paymentInfo?.paymentAmount, 12.34);
+  // PayPal reports major units ("12.34"); orders are stored in minor units.
+  assert.equal(session.paymentInfo?.paymentAmount, 1234);
   assert.equal(session.paymentInfo?.paymentCurrency, 'USD');
   assert.equal(session.paymentInfo?.paymentEmail, 'buyer@example.com');
   assert.deepEqual(session.metadata, {
@@ -195,7 +196,7 @@ test('PayPal mapper: webhook payment session 保留 capture/invoice/order_no 字
   assert.equal(session.paymentStatus, PaymentStatus.SUCCESS);
   assert.equal(session.paymentInfo?.transactionId, 'capture_123');
   assert.equal(session.paymentInfo?.invoiceId, 'inv_123');
-  assert.equal(session.paymentInfo?.paymentAmount, 12.34);
+  assert.equal(session.paymentInfo?.paymentAmount, 1234);
   assert.equal(session.paymentInfo?.paymentCurrency, 'USD');
   assert.equal(session.paymentInfo?.paymentEmail, 'buyer@example.com');
   assert.deepEqual(session.metadata, {
@@ -232,7 +233,7 @@ test('PayPal mapper: webhook payment session 保留 sale/invoice/order_no 字段
   assert.equal(session.paymentStatus, PaymentStatus.SUCCESS);
   assert.equal(session.paymentInfo?.transactionId, 'sale_123');
   assert.equal(session.paymentInfo?.invoiceId, 'inv_sale_123');
-  assert.equal(session.paymentInfo?.paymentAmount, 21);
+  assert.equal(session.paymentInfo?.paymentAmount, 2100);
   assert.equal(session.paymentInfo?.paymentCurrency, 'USD');
   assert.equal(session.paymentInfo?.paymentEmail, 'sale-buyer@example.com');
   assert.deepEqual(session.metadata, {

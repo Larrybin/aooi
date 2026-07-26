@@ -53,6 +53,8 @@ export const payPalApiResponseSchema = z
   })
   .passthrough();
 
+export type PayPalApiResponse = z.infer<typeof payPalApiResponseSchema>;
+
 export const payPalWebhookEventSchema = z
   .object({
     event_type: z.string().min(1),
@@ -103,6 +105,16 @@ export class PayPalTransport {
 
   async createOrder(payload: Record<string, unknown>) {
     return await this.makeRequest('/v2/checkout/orders', 'POST', payload);
+  }
+
+  // Orders are created with intent=CAPTURE, so buyer approval alone only authorizes
+  // the payment; the funds are settled by this call.
+  async captureOrder(sessionId: string) {
+    return await this.makeRequest(
+      `/v2/checkout/orders/${sessionId}/capture`,
+      'POST',
+      {}
+    );
   }
 
   async createProduct(payload: Record<string, unknown>) {

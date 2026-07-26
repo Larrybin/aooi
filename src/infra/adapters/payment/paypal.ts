@@ -20,6 +20,7 @@ import {
 } from '@/infra/adapters/payment/paypal-mapper';
 import {
   PayPalTransport,
+  type PayPalApiResponse,
   type PayPalConfigs,
 } from '@/infra/adapters/payment/paypal-transport';
 import {
@@ -303,13 +304,19 @@ export class PayPalProvider implements PaymentProvider {
     }
 
     let result = await this.transport.getOrder(sessionId);
+    let isOrder = true;
     if (readStringPath(result, ['name']) === 'RESOURCE_NOT_FOUND') {
       result = await this.transport.getSubscription(sessionId);
+      isOrder = false;
     }
 
     const errorMessage = readStringPath(result, ['error', 'message']);
     if (errorMessage) {
       throw new UpstreamError(502, errorMessage);
+    }
+
+    if (isOrder && readStringPath(result, ['status']) === 'APPROVED') {
+      result = await this.captureApprovedOrder(sessionId);
     }
 
     const paymentSession = buildPayPalPaymentSession({
@@ -391,6 +398,43 @@ export class PayPalProvider implements PaymentProvider {
       eventResult: webhookEvent,
       paymentSession,
     };
+  }
+
+  // An APPROVED order is only an authorization: without this capture PayPal never
+  // moves the money and the authorization expires after a few days. The order is read
+  // back afterwards because the capture response omits the purchase unit amount and
+  // custom_id that the session mapper needs, and because re-reading is also how a
+  // caller that lost the capture race (return url vs webhook) recovers.
+  private async captureApprovedOrder(
+    sessionId: string
+  ): Promise<PayPalApiResponse> {
+    let captureError: unknown;
+    try {
+      const captureResult = await this.transport.captureOrder(sessionId);
+      const captureErrorMessage = readStringPath(captureResult, [
+        'error',
+        'message',
+      ]);
+      if (captureErrorMessage) {
+        throw new UpstreamError(502, captureErrorMessage);
+      }
+    } catch (error: unknown) {
+      captureError = error;
+    }
+
+    const result = await this.transport.getOrder(sessionId);
+    const errorMessage = readStringPath(result, ['error', 'message']);
+    if (!errorMessage && readStringPath(result, ['status']) === 'COMPLETED') {
+      return result;
+    }
+
+    throw (
+      captureError ??
+      new UpstreamError(
+        502,
+        errorMessage ?? 'PayPal order capture failed: order not completed'
+      )
+    );
   }
 
   private async getSubscriptionSession({

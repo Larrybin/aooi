@@ -16,15 +16,29 @@ function readString(value: unknown): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function readNumber(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return undefined;
-    const asNumber = Number(trimmed);
-    return Number.isFinite(asNumber) ? asNumber : undefined;
-  }
-  return undefined;
+// PayPal reports money as major-unit decimal strings ("99.00"), while orders and the
+// rest of the billing domain keep minor units (9900). Every amount read back from
+// PayPal therefore has to be scaled by 100, and the scaling is done on the digits
+// rather than `value * 100` so that values such as 19.99 stay exact.
+function readMinorUnits(value: unknown): number | undefined {
+  const raw =
+    typeof value === 'number' && Number.isFinite(value)
+      ? value.toString()
+      : readString(value);
+  if (!raw) return undefined;
+
+  const match = /^(-?)(\d*)(?:\.(\d*))?$/.exec(raw);
+  if (!match) return undefined;
+
+  const [, sign, whole = '', fraction = ''] = match;
+  if (!whole && !fraction) return undefined;
+
+  // Currencies with more precision than the stored minor unit round half up.
+  const padded = `${fraction}000`;
+  const minor =
+    Number(`${whole || '0'}${padded.slice(0, 2)}`) +
+    (Number(padded[2]) >= 5 ? 1 : 0);
+  return sign === '-' ? -minor : minor;
 }
 
 function readPath(root: unknown, path: string[]): unknown {
@@ -50,8 +64,8 @@ export function readStringPath(
   return readString(readPath(root, path));
 }
 
-function readNumberPath(root: unknown, path: string[]): number | undefined {
-  return readNumber(readPath(root, path));
+function readMinorUnitsPath(root: unknown, path: string[]): number | undefined {
+  return readMinorUnits(readPath(root, path));
 }
 
 function readDateTime(value: unknown): Date | undefined {
@@ -88,10 +102,15 @@ function extractPayPalStatus(payload: unknown): string | undefined {
 
 function extractPayPalAmount(payload: unknown): number | undefined {
   return (
-    readNumberPath(payload, ['amount']) ??
-    readNumberPath(payload, ['amount', 'value']) ??
-    readNumberPath(payload, ['purchase_units', '0', 'amount', 'value']) ??
-    readNumberPath(payload, ['billing_info', 'last_payment', 'amount', 'value'])
+    readMinorUnitsPath(payload, ['amount']) ??
+    readMinorUnitsPath(payload, ['amount', 'value']) ??
+    readMinorUnitsPath(payload, ['purchase_units', '0', 'amount', 'value']) ??
+    readMinorUnitsPath(payload, [
+      'billing_info',
+      'last_payment',
+      'amount',
+      'value',
+    ])
   );
 }
 
