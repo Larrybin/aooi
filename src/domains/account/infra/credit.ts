@@ -28,6 +28,10 @@ export type UpdateCredit = Partial<
   Omit<NewCredit, 'id' | 'transactionNo' | 'createdAt'>
 >;
 
+type DbTransactionClient = Parameters<
+  Parameters<ReturnType<typeof db>['transaction']>[0]
+>[0];
+
 export enum CreditStatus {
   ACTIVE = 'active',
   EXPIRED = 'expired',
@@ -154,29 +158,82 @@ export async function getCreditsCount({
   return result?.count || 0;
 }
 
-// consume credits
-export async function consumeCredits({
-  userId,
-  credits,
-  scene,
-  description,
-  metadata,
-}: {
+type ConsumeCreditsInput = {
   userId: string;
   credits: number; // credits to consume
   scene?: string;
   description?: string;
   metadata?: string;
-}) {
+};
+
+async function consumeCreditsInClient(
+  tx: DbTransactionClient,
+  { userId, credits, scene, description, metadata }: ConsumeCreditsInput
+) {
   const currentTime = new Date();
 
-  // consume credits
-  const result = await db().transaction(async (tx) => {
-    // 1. check credits balance
-    const [creditsBalance] = await tx
-      .select({
-        total: sum(credit.remainingCredits),
-      })
+  // 1. check credits balance
+  const [creditsBalance] = await tx
+    .select({
+      total: sum(credit.remainingCredits),
+    })
+    .from(credit)
+    .where(
+      and(
+        eq(credit.userId, userId),
+        eq(credit.transactionType, CreditTransactionType.GRANT),
+        eq(credit.status, CreditStatus.ACTIVE),
+        gt(credit.remainingCredits, 0),
+        or(
+          isNull(credit.expiresAt), // Never expires
+          gt(credit.expiresAt, currentTime) // Not yet expired
+        )
+      )
+    );
+
+  // balance is not enough
+  if (
+    !creditsBalance ||
+    !creditsBalance.total ||
+    parseInt(creditsBalance.total) < credits
+  ) {
+    throw new Error(
+      `Insufficient credits, ${creditsBalance?.total || 0} < ${credits}`
+    );
+  }
+
+  // 2. get available credits, FIFO queue with expiresAt, batch query
+  let remainingToConsume = credits; // remaining credits to consume
+
+  // only deal with 10000 credit grant records
+  let batchNo = 0; // batch no
+  const maxBatchNo = 10; // max batch no
+  const batchSize = 1000; // batch size
+  type ConsumedItem = {
+    creditId: string;
+    transactionNo: string;
+    expiresAt: Date | null;
+    creditsToConsume: number;
+    creditsConsumed: number;
+    creditsBefore: number;
+    creditsAfter: number;
+    batchSize: number;
+    batchNo: number;
+  };
+
+  const consumedItems: ConsumedItem[] = [];
+
+  while (remainingToConsume > 0) {
+    batchNo += 1;
+
+    // if too many batches, throw error
+    if (batchNo > maxBatchNo) {
+      throw new Error(`Too many batches: ${batchNo} > ${maxBatchNo}`);
+    }
+
+    // get batch credits
+    const batchCredits = await tx
+      .select()
       .from(credit)
       .where(
         and(
@@ -189,134 +246,90 @@ export async function consumeCredits({
             gt(credit.expiresAt, currentTime) // Not yet expired
           )
         )
-      );
+      )
+      .orderBy(
+        // FIFO queue: expired credits first, then by expiration date
+        // NULL values (never expires) will be ordered last
+        sql`${credit.expiresAt} asc nulls last`,
+        asc(credit.createdAt)
+      )
+      .limit(batchSize) // batch size
+      .for('update'); // lock for update
 
-    // balance is not enough
-    if (
-      !creditsBalance ||
-      !creditsBalance.total ||
-      parseInt(creditsBalance.total) < credits
-    ) {
-      throw new Error(
-        `Insufficient credits, ${creditsBalance?.total || 0} < ${credits}`
-      );
+    // no more credits
+    if (batchCredits?.length === 0) {
+      break;
     }
 
-    // 2. get available credits, FIFO queue with expiresAt, batch query
-    let remainingToConsume = credits; // remaining credits to consume
-
-    // only deal with 10000 credit grant records
-    let batchNo = 0; // batch no
-    const maxBatchNo = 10; // max batch no
-    const batchSize = 1000; // batch size
-    type ConsumedItem = {
-      creditId: string;
-      transactionNo: string;
-      expiresAt: Date | null;
-      creditsToConsume: number;
-      creditsConsumed: number;
-      creditsBefore: number;
-      creditsAfter: number;
-      batchSize: number;
-      batchNo: number;
-    };
-
-    const consumedItems: ConsumedItem[] = [];
-
-    while (remainingToConsume > 0) {
-      batchNo += 1;
-
-      // if too many batches, throw error
-      if (batchNo > maxBatchNo) {
-        throw new Error(`Too many batches: ${batchNo} > ${maxBatchNo}`);
-      }
-
-      // get batch credits
-      const batchCredits = await tx
-        .select()
-        .from(credit)
-        .where(
-          and(
-            eq(credit.userId, userId),
-            eq(credit.transactionType, CreditTransactionType.GRANT),
-            eq(credit.status, CreditStatus.ACTIVE),
-            gt(credit.remainingCredits, 0),
-            or(
-              isNull(credit.expiresAt), // Never expires
-              gt(credit.expiresAt, currentTime) // Not yet expired
-            )
-          )
-        )
-        .orderBy(
-          // FIFO queue: expired credits first, then by expiration date
-          // NULL values (never expires) will be ordered last
-          sql`${credit.expiresAt} asc nulls last`,
-          asc(credit.createdAt)
-        )
-        .limit(batchSize) // batch size
-        .for('update'); // lock for update
-
-      // no more credits
-      if (batchCredits?.length === 0) {
+    // consume credits for each item
+    for (const item of batchCredits) {
+      // no need to consume more
+      if (remainingToConsume <= 0) {
         break;
       }
+      const toConsume = Math.min(remainingToConsume, item.remainingCredits);
 
-      // consume credits for each item
-      for (const item of batchCredits) {
-        // no need to consume more
-        if (remainingToConsume <= 0) {
-          break;
-        }
-        const toConsume = Math.min(remainingToConsume, item.remainingCredits);
+      // update remaining credits
+      await tx
+        .update(credit)
+        .set({ remainingCredits: item.remainingCredits - toConsume })
+        .where(eq(credit.id, item.id));
 
-        // update remaining credits
-        await tx
-          .update(credit)
-          .set({ remainingCredits: item.remainingCredits - toConsume })
-          .where(eq(credit.id, item.id));
+      // update consumed items
+      consumedItems.push({
+        creditId: item.id,
+        transactionNo: item.transactionNo,
+        expiresAt: item.expiresAt,
+        creditsToConsume: remainingToConsume,
+        creditsConsumed: toConsume,
+        creditsBefore: item.remainingCredits,
+        creditsAfter: item.remainingCredits - toConsume,
+        batchSize: batchSize,
+        batchNo: batchNo,
+      });
 
-        // update consumed items
-        consumedItems.push({
-          creditId: item.id,
-          transactionNo: item.transactionNo,
-          expiresAt: item.expiresAt,
-          creditsToConsume: remainingToConsume,
-          creditsConsumed: toConsume,
-          creditsBefore: item.remainingCredits,
-          creditsAfter: item.remainingCredits - toConsume,
-          batchSize: batchSize,
-          batchNo: batchNo,
-        });
-
-        remainingToConsume -= toConsume;
-      }
+      remainingToConsume -= toConsume;
     }
+  }
 
-    if (remainingToConsume > 0) {
-      throw new Error(
-        `Insufficient credits during consume, ${credits - remainingToConsume} < ${credits}`
-      );
-    }
+  if (remainingToConsume > 0) {
+    throw new Error(
+      `Insufficient credits during consume, ${credits - remainingToConsume} < ${credits}`
+    );
+  }
 
-    // 3. create consumed credit
-    const consumedCredit: NewCredit = {
-      id: getUuid(),
-      transactionNo: getSnowId(),
-      transactionType: CreditTransactionType.CONSUME,
-      transactionScene: scene,
-      userId: userId,
-      status: CreditStatus.ACTIVE,
-      description: description,
-      credits: -credits,
-      consumedDetail: JSON.stringify(consumedItems),
-      metadata: metadata,
-    };
-    await tx.insert(credit).values(consumedCredit);
+  // 3. create consumed credit
+  const consumedCredit: NewCredit = {
+    id: getUuid(),
+    transactionNo: getSnowId(),
+    transactionType: CreditTransactionType.CONSUME,
+    transactionScene: scene,
+    userId: userId,
+    status: CreditStatus.ACTIVE,
+    description: description,
+    credits: -credits,
+    consumedDetail: JSON.stringify(consumedItems),
+    metadata: metadata,
+  };
+  await tx.insert(credit).values(consumedCredit);
 
-    return consumedCredit;
-  });
+  return consumedCredit;
+}
 
-  return result;
+// consume credits
+// `tx` lets callers that already opened a transaction reuse it: opening a nested
+// independent transaction would deadlock on a single-connection pool and would
+// commit the deduction even when the outer transaction rolls back.
+export async function consumeCredits(
+  input: ConsumeCreditsInput & { tx?: DbTransactionClient }
+) {
+  const { tx, ...params } = input;
+
+  if (tx) {
+    return consumeCreditsInClient(tx, params);
+  }
+
+  return db().transaction(async (dbTx) => consumeCreditsInClient(dbTx, params));
 }
 
 // get remaining credits
@@ -401,10 +414,6 @@ export type RefundConsumedCreditResult =
         | 'not_active'
         | 'invalid_consumed_detail';
     };
-
-type DbTransactionClient = Parameters<
-  Parameters<ReturnType<typeof db>['transaction']>[0]
->[0];
 
 async function refundConsumedCreditByIdInClient(
   tx: DbTransactionClient,

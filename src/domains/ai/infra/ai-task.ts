@@ -35,8 +35,9 @@ export async function createAITask(newAITask: NewAITask) {
     const [taskResult] = await tx.insert(aiTask).values(newAITask).returning();
 
     if (newAITask.costCredits && newAITask.costCredits > 0) {
-      // 2. consume credits
+      // 2. consume credits, on the outer tx so the deduction rolls back with the task
       const consumedCredit = await consumeCredits({
+        tx,
         userId: newAITask.userId,
         credits: newAITask.costCredits,
         scene: newAITask.scene,
