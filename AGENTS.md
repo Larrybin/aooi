@@ -16,11 +16,20 @@
 - Local development: `pnpm dev` (http://localhost:3000).
 - Production build: `pnpm build` (or `pnpm build:fast` for larger deployments).
 - Run built app: `pnpm start`.
+- Default local change gate: `pnpm check`; broader local CI mirror: `pnpm run ci`.
+- Release gates: `SITE=<site-key> pnpm release:check`; production release: `SITE=<site-key> pnpm release:cf`.
 - Lint code: `pnpm lint`.
-- Lint architecture graph: `pnpm lint:deps`.
+- Architecture checks: `pnpm arch:check` (or graph only: `pnpm lint:deps`).
 - Format code: `pnpm format` / check only: `pnpm format:check`.
 - Database workflows: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:studio`.
-- Cloudflare deployment helpers: `pnpm cf:check`, `pnpm cf:build`, `pnpm cf:typegen`, `pnpm cf:typegen:check`, `pnpm cf:deploy:state`, `pnpm cf:deploy:app`, `pnpm cf:deploy` (app alias), `pnpm test:cf-local-smoke`.
+- Duplicate billing grant audit (read-only): `pnpm db:audit-duplicates` — run before adding uniqueness constraints to `credit` / `subscription` / `entitlement_grant`.
+- Site contract gates: `SITE=<site-key> pnpm site:contract`, `SITE=<site-key> pnpm site:gate`.
+- Product contract gate: `SITE=<site-key> pnpm contract:check`.
+- i18n gate: `pnpm i18n:check --site <site-key> --strict`.
+- Cloudflare deployment helpers: `pnpm cf:check`, `pnpm cf:build`, `pnpm cf:build:no-db --site=<site-key>`, `pnpm cf:typegen`, `pnpm cf:typegen:check`, `pnpm cf:deploy:state`, `pnpm cf:deploy:app`, `pnpm cf:deploy` (app alias).
+- Cloudflare site workflows: `SITE=<site-key> pnpm site:production:init-settings`, `SITE=<site-key> pnpm site:production:doctor`, `SITE=<site-key> pnpm site:production:provision`, `SITE=<site-key> pnpm site:preview:doctor`, `SITE=<site-key> pnpm site:preview:provision`, `SITE=<site-key> pnpm site:preview:deploy`.
+- Cloudflare preview deploy helpers: `SITE=<site-key> pnpm cf:preview:check`, `SITE=<site-key> pnpm cf:preview:deploy:state`, `SITE=<site-key> pnpm cf:preview:bootstrap`, `SITE=<site-key> pnpm cf:preview:deploy`.
+- Cloudflare smoke checks: `SITE=<site-key> pnpm test:cf-local-smoke`, `SITE=<site-key> pnpm test:cf-admin-settings-smoke`, `SITE=<site-key> pnpm test:cf-app-smoke`.
 
 ## Coding Style & Naming Conventions
 
