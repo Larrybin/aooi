@@ -13,7 +13,18 @@ import {
   type PaymentWebhookOperationKind,
 } from '@/domains/billing/infra/payment-webhook-inbox.shared';
 import { db } from '@/infra/adapters/db';
-import { and, asc, desc, eq, gte, inArray, lt, lte, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 import { paymentWebhookInbox } from '@/config/db/schema';
 import { getUuid } from '@/shared/lib/hash';
