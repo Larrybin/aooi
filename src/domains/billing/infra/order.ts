@@ -345,6 +345,21 @@ export async function updateOrderInTransaction({
       }
 
       txResult.subscription = existingSubscription;
+
+      // The caller stamped the order and the credit with the subscription number
+      // it generated before this transaction ran. If an existing subscription won
+      // instead, that number was never persisted, so repoint both at the row that
+      // actually exists rather than leaving a dangling reference.
+      const settledSubscriptionNo = existingSubscription?.subscriptionNo;
+      if (
+        settledSubscriptionNo &&
+        settledSubscriptionNo !== newSubscription.subscriptionNo
+      ) {
+        updateOrder = { ...updateOrder, subscriptionNo: settledSubscriptionNo };
+        if (newCredit?.subscriptionNo) {
+          newCredit = { ...newCredit, subscriptionNo: settledSubscriptionNo };
+        }
+      }
     }
 
     // deal with credit
