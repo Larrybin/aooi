@@ -79,16 +79,9 @@ test('processPaymentNotifyEvent handler-map 覆盖所有已支持 canonical even
       PaymentEventType.PAYMENT_SUCCESS,
       PaymentEventType.SUBSCRIBE_UPDATED,
       PaymentEventType.SUBSCRIBE_CANCELED,
+      PaymentEventType.PAYMENT_FAILED,
+      PaymentEventType.PAYMENT_REFUNDED,
     ])
-  );
-
-  assert.equal(
-    PaymentEventType.PAYMENT_FAILED in PAYMENT_NOTIFY_EVENT_HANDLERS,
-    false
-  );
-  assert.equal(
-    PaymentEventType.PAYMENT_REFUNDED in PAYMENT_NOTIFY_EVENT_HANDLERS,
-    false
   );
 });
 
@@ -363,7 +356,7 @@ test('processPaymentNotifyEvent 在 unknown 审计写入失败时返回错误并
   assert.equal(updatedHandled, false);
 });
 
-test('processPaymentNotifyEvent 对 PAYMENT_FAILED 保持 warning + processed 且不触发账务迁移', async () => {
+test('processPaymentNotifyEvent 对 PAYMENT_FAILED 记 warning 并回报 payment_failed，且不触发账务迁移', async () => {
   const warnings: Array<Record<string, unknown>> = [];
   let checkoutHandled = false;
   let renewalHandled = false;
@@ -404,7 +397,9 @@ test('processPaymentNotifyEvent 对 PAYMENT_FAILED 保持 warning + processed �
     }) as never,
   });
 
-  assert.equal(result.outcome, 'processed');
+  // A dunning retry is acknowledged with 200 so the provider stops resending,
+  // but the outcome must stay distinguishable from a settlement we acted on.
+  assert.equal(result.outcome, 'payment_failed');
   assert.equal(result.eventType, PaymentEventType.PAYMENT_FAILED);
   assert.deepEqual(await result.response.json(), {
     code: 0,

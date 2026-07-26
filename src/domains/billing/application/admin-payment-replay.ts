@@ -2,6 +2,7 @@ import {
   findOrderByInvoiceId,
   findOrderByOrderNo,
   findOrderByTransactionId,
+  markOrderRefundedByOrderNo,
 } from '@/domains/billing/infra/order';
 import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
 import { deserializePaymentWebhookCanonicalEvent } from '@/domains/billing/infra/payment-webhook-canonical-event';
@@ -45,6 +46,8 @@ export type AdminPaymentReplayPreviewRow = Awaited<
 
 export const PaymentReplayActionSchema = z.object({
   inboxIds: z.array(z.string().min(1)),
+  // Audit label only: replay and compensation apply events identically and
+  // differ solely in what the logs and the row's operator note record.
   operationKind: z.enum([
     PAYMENT_WEBHOOK_OPERATION_KIND.REPLAY,
     PAYMENT_WEBHOOK_OPERATION_KIND.COMPENSATION,
@@ -58,6 +61,9 @@ const replayDeps: PaymentNotifyDeps = {
   findOrderByOrderNo,
   findOrderByTransactionId,
   findSubscriptionByProviderSubscriptionId,
+  // Kept in sync with the live webhook wiring so a replayed refund reaches the
+  // same order transition an operator would have seen at delivery time.
+  markOrderRefunded: markOrderRefundedByOrderNo,
   recordUnknownWebhookEvent: recordPaymentWebhookAudit,
   handleCheckoutSuccess,
   handleSubscriptionCanceled,
@@ -173,6 +179,8 @@ export async function executeAdminPaymentReplay(input: {
   returnPath?: string;
   actorUserId: string;
 }) {
+  // Ordered oldest-first by the query, which is the order the replay executor
+  // has to apply them in for the aggregate to land on the newest event.
   const rows = await findPaymentWebhookInboxByIds(input.inboxIds);
   if (rows.length === 0) {
     return { status: 'not_found' as const };

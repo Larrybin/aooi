@@ -4,7 +4,7 @@ import type { BillingGrantCredit } from '@/domains/billing/domain/credit';
 import type { PaymentType } from '@/domains/billing/domain/payment';
 import type { NewEntitlementGrant } from '@/domains/entitlements/infra/grant';
 import { db } from '@/infra/adapters/db';
-import { and, count, desc, eq, notInArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
 
 import {
   credit,
@@ -42,6 +42,7 @@ export enum OrderStatus {
   COMPLETED = 'completed', // checkout completed
   PAID = 'paid', // order paid success
   FAILED = 'failed', // order paid, but failed
+  REFUNDED = 'refunded', // order paid, then refunded / charged back
 }
 
 /**
@@ -53,6 +54,7 @@ export const FINAL_ORDER_STATUSES: readonly string[] = [
   OrderStatus.COMPLETED,
   OrderStatus.PAID,
   OrderStatus.FAILED,
+  OrderStatus.REFUNDED,
 ];
 
 export function isFinalOrderStatus(status: string): boolean {
@@ -220,6 +222,38 @@ export async function updateOrderByOrderNo(
     .returning();
 
   return result;
+}
+
+/**
+ * Mark a settled order as refunded.
+ *
+ * Only orders that actually took money transition, so a replayed refund webhook
+ * cannot drag an order back out of another terminal state. Returns null when no
+ * row matched, which the caller reports as "already refunded or never settled"
+ * rather than treating it as a failure.
+ *
+ * Credits and entitlement grants are deliberately untouched: reversing them is a
+ * support decision, not something a webhook should do on its own.
+ */
+export async function markOrderRefundedByOrderNo({
+  orderNo,
+  refundedAt,
+}: {
+  orderNo: string;
+  refundedAt: Date;
+}): Promise<Order | null> {
+  const [result] = await db()
+    .update(order)
+    .set({ status: OrderStatus.REFUNDED, updatedAt: refundedAt })
+    .where(
+      and(
+        eq(order.orderNo, orderNo),
+        inArray(order.status, [OrderStatus.PAID, OrderStatus.COMPLETED])
+      )
+    )
+    .returning();
+
+  return result ?? null;
 }
 
 /**

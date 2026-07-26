@@ -42,6 +42,10 @@ export function mapStripeEventTypeToCanonical(
     case 'customer.subscription.deleted':
       return PaymentEventType.SUBSCRIBE_CANCELED;
     default:
+      // Refund events (`charge.refunded`) intentionally stay UNKNOWN: Stripe's
+      // getPaymentEvent throws WebhookPayloadError for any canonical type it has
+      // no session builder for, which would answer 400 before the inbox receipt
+      // is written and lose the audit trail handleUnknownEvent gives us today.
       return PaymentEventType.UNKNOWN;
   }
 }
@@ -63,6 +67,9 @@ export function mapCreemEventTypeToCanonical(
     case 'subscription.canceled':
       return PaymentEventType.SUBSCRIBE_CANCELED;
     default:
+      // Refund events (`refund.created`) intentionally stay UNKNOWN for the same
+      // reason as Stripe above: Creem's getPaymentEvent only builds sessions for
+      // the canonical types it branches on and throws otherwise.
       return PaymentEventType.UNKNOWN;
   }
 }
@@ -81,6 +88,9 @@ export function mapPayPalEventTypeToCanonical(
     case 'PAYMENT.CAPTURE.DECLINED':
     case 'PAYMENT.SALE.DENIED':
       return PaymentEventType.PAYMENT_FAILED;
+    case 'PAYMENT.CAPTURE.REFUNDED':
+    case 'PAYMENT.SALE.REFUNDED':
+      return PaymentEventType.PAYMENT_REFUNDED;
     case 'BILLING.SUBSCRIPTION.UPDATED':
       return PaymentEventType.SUBSCRIBE_UPDATED;
     case 'BILLING.SUBSCRIPTION.CANCELLED':

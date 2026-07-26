@@ -60,6 +60,17 @@ type HandleSubscriptionUpdated = (args: {
   log: PaymentNotifyLog;
 }) => Promise<void>;
 
+/**
+ * Conditional transition of a settled order into `refunded`. Implementations
+ * must scope the update to orders that are still `paid` / `completed` and
+ * resolve to `null` when no row matched, so a replayed refund webhook can never
+ * drag an order back out of another terminal state.
+ */
+type MarkOrderRefunded = (args: {
+  orderNo: string;
+  refundedAt: Date;
+}) => Promise<Order | null>;
+
 type RecordUnknownWebhookEvent = (args: {
   provider: string;
   eventType: string;
@@ -74,6 +85,11 @@ export type PaymentNotifyDeps = {
   findOrderByTransactionId: FindOrderByTransactionId;
   findSubscriptionByProviderSubscriptionId: FindSubscriptionByProviderSubscriptionId;
   recordUnknownWebhookEvent: RecordUnknownWebhookEvent;
+  /**
+   * Optional so composition roots can adopt it incrementally: without it a
+   * refund is still audited and alerted on, it only skips the order transition.
+   */
+  markOrderRefunded?: MarkOrderRefunded;
   handleCheckoutSuccess: HandleCheckoutSuccess;
   handleSubscriptionCanceled: HandleSubscriptionCanceled;
   handleSubscriptionRenewal: HandleSubscriptionRenewal;
@@ -84,7 +100,9 @@ export type PaymentNotifyProcessOutcome =
   | 'processed'
   | 'ignored_unknown'
   | 'already_processed'
-  | 'ignored';
+  | 'ignored'
+  | 'refund_flagged'
+  | 'payment_failed';
 
 export type PaymentNotifyProcessResult = {
   response: Response;
@@ -231,6 +249,10 @@ async function requireExistingSubscription({
   }
   return existingSubscription;
 }
+
+// `order.status` is a plain text column, so these mirror OrderStatus rather than
+// importing it: the infra module is server-only and this layer stays portable.
+const REFUNDABLE_ORDER_STATUSES: readonly string[] = ['paid', 'completed'];
 
 function createPaymentNotifyResult(
   eventType: PaymentEventType,
@@ -538,6 +560,103 @@ export const handleSubscriptionCanceledEvent: PaymentNotifyHandler = async ({
   return createPaymentNotifyResult(eventType, 'processed', 'success');
 };
 
+export const handlePaymentRefundedEvent: PaymentNotifyHandler = async ({
+  provider,
+  event,
+  eventType,
+  session,
+  log,
+  deps,
+}) => {
+  const eventId = readUnknownEventId({ event, session });
+  const providerEventType = resolveUnknownEventType({ event, session });
+  const rawDigest = buildEventResultRawDigest(event.eventResult);
+  const receivedAt = new Date();
+
+  // `recordUnknownWebhookEvent` is the shared payment webhook audit sink. The
+  // refund has to land there before anything else runs: money already moved, so
+  // a failed order lookup below must not leave the event without a trail.
+  await deps.recordUnknownWebhookEvent({
+    provider,
+    eventType: providerEventType,
+    eventId,
+    rawDigest,
+    receivedAt,
+  });
+
+  const sessionOrderNo = readNormalizedString(session.metadata?.order_no);
+  const transactionId = readNormalizedString(
+    session.paymentInfo?.transactionId
+  );
+
+  // Refund payloads carry far less context than checkout ones, so neither
+  // lookup key is guaranteed; an unresolved order still gets alerted on below.
+  let order: Order | null = null;
+  if (sessionOrderNo) {
+    order = await deps.findOrderByOrderNo(sessionOrderNo);
+  }
+  if (!order && transactionId) {
+    order = await deps.findOrderByTransactionId({ provider, transactionId });
+  }
+
+  let orderMarkedRefunded = false;
+  if (order && REFUNDABLE_ORDER_STATUSES.includes(order.status)) {
+    const refundedOrder = await deps.markOrderRefunded?.({
+      orderNo: order.orderNo,
+      refundedAt: receivedAt,
+    });
+    orderMarkedRefunded = Boolean(refundedOrder);
+  }
+
+  // Credits and entitlement grants are deliberately left active: revoking them
+  // from a webhook can strip access a support agent already promised, and a
+  // partial refund does not imply a full reversal. This line is the operator
+  // alert that has to be routed somewhere a human reads.
+  log.error(
+    'payment: refund received, credits and entitlements were NOT revoked automatically, manual handling required',
+    {
+      provider,
+      eventType,
+      providerEventType,
+      eventId,
+      rawDigest,
+      orderNo: order?.orderNo ?? sessionOrderNo ?? null,
+      orderStatus: order?.status ?? null,
+      orderMarkedRefunded,
+      transactionId: transactionId ?? null,
+      userId: order?.userId ?? null,
+    }
+  );
+
+  return createPaymentNotifyResult(eventType, 'refund_flagged', 'success');
+};
+
+export const handlePaymentFailedEvent: PaymentNotifyHandler = async ({
+  provider,
+  eventType,
+  session,
+  log,
+}) => {
+  // The subscription is left untouched on purpose: providers keep retrying
+  // through their dunning window, so downgrading here would revoke access from
+  // a customer whose next retry succeeds.
+  log.warn(
+    'payment: charge failed, subscription left unchanged for provider dunning retries',
+    {
+      provider,
+      eventType,
+      subscriptionId: session.subscriptionId ?? null,
+      orderNo: readNormalizedString(session.metadata?.order_no) ?? null,
+      transactionId:
+        readNormalizedString(session.paymentInfo?.transactionId) ?? null,
+      invoiceId: readNormalizedString(session.paymentInfo?.invoiceId) ?? null,
+      paymentStatus: session.paymentStatus ?? null,
+    }
+  );
+
+  return createPaymentNotifyResult(eventType, 'payment_failed', 'success');
+};
+
 export const handleUnsupportedEvent: PaymentNotifyHandler = async ({
   provider,
   event,
@@ -557,6 +676,8 @@ type SupportedPaymentNotifyEventType =
   | PaymentEventType.UNKNOWN
   | PaymentEventType.CHECKOUT_SUCCESS
   | PaymentEventType.PAYMENT_SUCCESS
+  | PaymentEventType.PAYMENT_FAILED
+  | PaymentEventType.PAYMENT_REFUNDED
   | PaymentEventType.SUBSCRIBE_UPDATED
   | PaymentEventType.SUBSCRIBE_CANCELED;
 
@@ -567,6 +688,8 @@ export const PAYMENT_NOTIFY_EVENT_HANDLERS: Record<
   [PaymentEventType.UNKNOWN]: handleUnknownEvent,
   [PaymentEventType.CHECKOUT_SUCCESS]: handleCheckoutSuccessEvent,
   [PaymentEventType.PAYMENT_SUCCESS]: handlePaymentSuccessEvent,
+  [PaymentEventType.PAYMENT_FAILED]: handlePaymentFailedEvent,
+  [PaymentEventType.PAYMENT_REFUNDED]: handlePaymentRefundedEvent,
   [PaymentEventType.SUBSCRIBE_UPDATED]: handleSubscriptionUpdatedEvent,
   [PaymentEventType.SUBSCRIBE_CANCELED]: handleSubscriptionCanceledEvent,
 };
