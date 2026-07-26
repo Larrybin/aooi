@@ -348,12 +348,15 @@ export const subscription = pgTable(
       table.status,
       table.interval
     ),
-    // Composite: Prevent duplicate subscriptions
-    // Can also be used for: WHERE paymentProvider = ? (left-prefix)
-    index('idx_subscription_provider_id').on(
-      table.subscriptionId,
-      table.paymentProvider
-    ),
+    // Prevent duplicate subscriptions. This said so in a comment while being a
+    // plain index, so duplicates were possible and a cancel or renewal event
+    // would only ever update one of the rows.
+    // Can also be used for: WHERE subscriptionId = ? (left-prefix)
+    uniqueIndex('uq_subscription_provider_id')
+      .on(table.subscriptionId, table.paymentProvider)
+      .where(
+        sql`${table.subscriptionId} is not null and ${table.paymentProvider} is not null`
+      ),
     // Order subscriptions by creation time for listing
     index('idx_subscription_created_at').on(table.createdAt),
   ]
@@ -397,8 +400,13 @@ export const credit = pgTable(
       table.remainingCredits,
       table.expiresAt
     ),
-    // Query credits by order number
-    index('idx_credit_order_no').on(table.orderNo),
+    // One grant per paid order. Settlement de-duplicates in application code
+    // under an advisory lock; this is the backstop that keeps a future unlocked
+    // path from granting the same order twice. Partial because consumption rows
+    // carry no order number.
+    uniqueIndex('uq_credit_order_no')
+      .on(table.orderNo)
+      .where(sql`${table.orderNo} is not null`),
     // Query credits by subscription number
     index('idx_credit_subscription_no').on(table.subscriptionNo),
   ]
@@ -564,6 +572,17 @@ export const entitlementGrant = pgTable(
       table.expiresAt
     ),
     index('idx_entitlement_grant_granted_by').on(table.grantedByUserId),
+    // The tuple settlement de-duplicates on. Same reasoning as uq_credit_order_no:
+    // the application check-then-insert is correct under its lock, this stops a
+    // future path without one from double-granting.
+    uniqueIndex('uq_entitlement_grant_scope_reason').on(
+      table.userId,
+      table.siteKey,
+      table.productKey,
+      table.environment,
+      table.source,
+      table.reason
+    ),
   ]
 );
 

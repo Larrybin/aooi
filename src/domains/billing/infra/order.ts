@@ -427,13 +427,38 @@ export async function updateOrderInTransaction({
       }
 
       if (!existingSubscription) {
-        // create subscription
+        // onConflictDoNothing rather than a bare insert: uq_subscription_provider_id
+        // now enforces this at the database level, and a raw conflict would abort
+        // the whole settlement with a 500 that the provider would then retry. On
+        // conflict the row exists, so read it back.
         const [subscriptionResult] = await tx
           .insert(subscription)
           .values(newSubscription)
+          .onConflictDoNothing()
           .returning();
 
-        existingSubscription = subscriptionResult;
+        existingSubscription = subscriptionResult ?? null;
+
+        if (
+          !existingSubscription &&
+          newSubscription.subscriptionId &&
+          newSubscription.paymentProvider
+        ) {
+          const [conflictingSubscription] = await tx
+            .select()
+            .from(subscription)
+            .where(
+              and(
+                eq(subscription.subscriptionId, newSubscription.subscriptionId),
+                eq(
+                  subscription.paymentProvider,
+                  newSubscription.paymentProvider
+                )
+              )
+            );
+
+          existingSubscription = conflictingSubscription ?? null;
+        }
       }
 
       txResult.subscription = existingSubscription;
@@ -463,13 +488,25 @@ export async function updateOrderInTransaction({
         .where(eq(credit.orderNo, orderNo));
 
       if (!existingCredit) {
-        // create credit
+        // See the subscription insert above: uq_credit_order_no makes a conflict
+        // possible, and it must resolve to the existing grant rather than abort
+        // settlement.
         const [creditResult] = await tx
           .insert(credit)
           .values(newCredit)
+          .onConflictDoNothing()
           .returning();
 
-        existingCredit = creditResult;
+        if (creditResult) {
+          existingCredit = creditResult;
+        } else {
+          const [conflictingCredit] = await tx
+            .select()
+            .from(credit)
+            .where(eq(credit.orderNo, orderNo));
+
+          existingCredit = conflictingCredit;
+        }
       }
 
       txResult.credit = existingCredit as BillingCreditRecord;
@@ -491,11 +528,36 @@ export async function updateOrderInTransaction({
         );
 
       if (!existingGrant) {
+        // uq_entitlement_grant_scope_reason covers exactly the tuple selected
+        // above, so a conflict means the grant already exists.
         const [createdGrant] = await tx
           .insert(entitlementGrant)
           .values(newEntitlementGrant)
+          .onConflictDoNothing()
           .returning();
-        existingGrant = createdGrant;
+
+        if (createdGrant) {
+          existingGrant = createdGrant;
+        } else {
+          const [conflictingGrant] = await tx
+            .select()
+            .from(entitlementGrant)
+            .where(
+              and(
+                eq(entitlementGrant.userId, newEntitlementGrant.userId),
+                eq(entitlementGrant.siteKey, newEntitlementGrant.siteKey),
+                eq(entitlementGrant.productKey, newEntitlementGrant.productKey),
+                eq(
+                  entitlementGrant.environment,
+                  newEntitlementGrant.environment
+                ),
+                eq(entitlementGrant.source, newEntitlementGrant.source),
+                eq(entitlementGrant.reason, newEntitlementGrant.reason)
+              )
+            );
+
+          existingGrant = conflictingGrant;
+        }
       }
 
       txResult.entitlementGrant = existingGrant;
