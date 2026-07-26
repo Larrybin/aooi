@@ -169,8 +169,14 @@ export function buildBillingRuntimeSettings(
 }
 
 export function buildAiRuntimeSettings(configs: Configs): AiRuntimeSettings {
+  // The site capability is the ceiling and the database flag is the switch below
+  // it. A site that does not declare the AI capability has no chat worker
+  // provisioned for it either (see the deploy contract), so letting a database
+  // row turn AI on for it would expose routes the topology never built for.
   return {
-    aiEnabled: isEnabled(configs[AI_RUNTIME_SETTING_KEYS.aiEnabled]),
+    aiEnabled:
+      Boolean(site.capabilities.ai) &&
+      isEnabled(configs[AI_RUNTIME_SETTING_KEYS.aiEnabled]),
   };
 }
 
