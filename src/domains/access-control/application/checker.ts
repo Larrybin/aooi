@@ -1,5 +1,7 @@
 import { cache } from 'react';
 
+import { BusinessError } from '@/shared/lib/errors';
+
 import {
   getPermissionMatchCandidates,
   hasAllPermissions,
@@ -291,6 +293,11 @@ export async function replaceRolePermissionsUseCase(
   return role;
 }
 
+// Built-in roles seeded by scripts/init-rbac.ts. Soft-deleting super_admin strips every
+// super-admin grant (active-role lookups filter on deletedAt), which locks the whole admin
+// area out with no way back in: restoring a role itself requires admin.roles.write.
+const PROTECTED_ROLE_NAMES: readonly string[] = ['super_admin'];
+
 export async function deleteRoleUseCase(
   input: {
     roleId: string;
@@ -303,6 +310,10 @@ export async function deleteRoleUseCase(
   const role = await deps.findRoleById(input.roleId);
   if (!role || role.deletedAt) {
     return null;
+  }
+
+  if (PROTECTED_ROLE_NAMES.includes(role.name)) {
+    throw new BusinessError(`built-in role "${role.name}" cannot be deleted`);
   }
 
   await deps.softDeleteRole(input.roleId, {

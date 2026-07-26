@@ -1,6 +1,5 @@
 import type {
   Chat,
-  findChatById,
   findChatByIdForViewer,
   getChats,
   getChatsCount,
@@ -24,7 +23,6 @@ type ChatLog = {
 type MemberChatsDeps = {
   getChats: typeof getChats;
   getChatsCount: typeof getChatsCount;
-  findChatById: typeof findChatById;
   findChatByIdForViewer: typeof findChatByIdForViewer;
   getChatMessages: typeof getChatMessages;
 };
@@ -68,30 +66,22 @@ export async function readMemberChatThreadQuery(
   input: {
     chatId: string;
     viewerUserId: string;
-    viewerHasAdminAccess: boolean;
     log: ChatLog;
   },
-  deps?: Pick<
-    MemberChatsDeps,
-    'findChatById' | 'findChatByIdForViewer' | 'getChatMessages'
-  >
+  deps?: Pick<MemberChatsDeps, 'findChatByIdForViewer' | 'getChatMessages'>
 ): Promise<
   { status: 'hidden' } | { status: 'ok'; thread: MemberChatThreadView }
 > {
   const resolvedDeps = deps ?? (await getMemberChatsDeps());
 
-  const chat = input.viewerHasAdminAccess
-    ? await resolvedDeps.findChatById(input.chatId)
-    : await resolvedDeps.findChatByIdForViewer({
-        chatId: input.chatId,
-        viewerUserId: input.viewerUserId,
-      });
+  const chat = await resolvedDeps.findChatByIdForViewer({
+    chatId: input.chatId,
+    viewerUserId: input.viewerUserId,
+  });
 
-  if (!chat) {
-    return { status: 'hidden' };
-  }
-
-  if (chat.userId !== input.viewerUserId && !input.viewerHasAdminAccess) {
+  // findChatByIdForViewer also accepts an optional allowAccessCondition, so keep the
+  // ownership assertion here: a private thread is readable by its owner only.
+  if (!chat || chat.userId !== input.viewerUserId) {
     return { status: 'hidden' };
   }
 
@@ -158,7 +148,6 @@ async function getMemberChatsDeps(): Promise<MemberChatsDeps> {
   return {
     getChats: chatModule.getChats,
     getChatsCount: chatModule.getChatsCount,
-    findChatById: chatModule.findChatById,
     findChatByIdForViewer: chatModule.findChatByIdForViewer,
     getChatMessages: chatMessageModule.getChatMessages,
   };

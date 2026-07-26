@@ -2,14 +2,12 @@
 // cache: no-store (request-bound auth/RBAC)
 // reason: user-specific chat content; must not cache across users/roles
 import { redirect } from 'next/navigation';
-import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { readMemberChatThreadQuery } from '@/domains/chat/application/member-chats.query';
 import { ChatThreadShell } from '@/domains/chat/ui/thread-shell';
 import { getSignedInUserIdentity } from '@/infra/platform/auth/session.server';
 import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import type { UIMessage } from 'ai';
 
-import { PERMISSIONS } from '@/shared/constants/rbac-permissions';
 import type { Chat } from '@/shared/types/chat';
 
 export default async function ChatPage({
@@ -27,16 +25,11 @@ export default async function ChatPage({
     );
   }
 
-  const viewerHasAdminAccess =
-    await accessControlRuntimeDeps.checkUserPermission(
-      user.id,
-      PERMISSIONS.ADMIN_ACCESS
-    );
-
+  // owner-only, mirroring /api/chat/messages: no admin permission grants access to
+  // another member's private thread, so the page and the API cannot disagree.
   const chatResult = await readMemberChatThreadQuery({
     chatId,
     viewerUserId: user.id,
-    viewerHasAdminAccess,
     log: createUseCaseLogger({
       domain: 'chat',
       useCase: 'member-chat-thread',

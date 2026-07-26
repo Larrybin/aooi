@@ -58,16 +58,18 @@ export async function createCategoryAction(formData: FormData) {
  */
 export async function updateCategoryAction(id: string, formData: FormData) {
   return withAction(async () => {
-    const { user, data } = await validateAndParseForm({
+    const { data } = await validateAndParseForm({
       formData,
       permission: PERMISSIONS.CATEGORIES_WRITE,
       schema: AdminCategoryFormSchema,
       errorMessage: 'slug and title are required',
     });
 
+    // Categories are shared taxonomy, not per-author content: CATEGORIES_WRITE is the
+    // authority here. An extra creator-equals-actor check would even lock out super_admin.
     const category = await findTaxonomy({ id });
-    if (!category || category.userId !== user.id) {
-      throw new ActionError('access denied');
+    if (!category) {
+      throw new ActionError('category not found');
     }
 
     const result = await updateTaxonomy(id, {

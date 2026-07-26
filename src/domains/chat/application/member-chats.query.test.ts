@@ -40,13 +40,9 @@ test('readMemberChatThreadQuery 对越权访问返回 hidden', async () => {
     {
       chatId: 'chat_1',
       viewerUserId: 'user_1',
-      viewerHasAdminAccess: false,
       log: createLog(),
     },
     {
-      findChatById: async () => {
-        throw new Error('should not read chat by id for non-admin');
-      },
       findChatByIdForViewer: async () =>
         ({
           id: 'chat_1',
@@ -59,7 +55,7 @@ test('readMemberChatThreadQuery 对越权访问返回 hidden', async () => {
   assert.deepEqual(result, { status: 'hidden' });
 });
 
-test('readMemberChatThreadQuery 允许管理员旁路，且非法 parts fallback []', async () => {
+test('readMemberChatThreadQuery 对非法 parts fallback []', async () => {
   const log = createLog();
   const calls: string[] = [];
 
@@ -67,28 +63,23 @@ test('readMemberChatThreadQuery 允许管理员旁路，且非法 parts fallback
     {
       chatId: 'chat_1',
       viewerUserId: 'user_1',
-      viewerHasAdminAccess: true,
       log,
     },
     {
-      findChatById: async () => {
-        calls.push('findChatById');
-        return {
-          id: 'chat_1',
-          userId: 'other_user',
-          title: 'Admin visible chat',
-        } as never;
-      },
       findChatByIdForViewer: async () => {
         calls.push('findChatByIdForViewer');
-        throw new Error('admin path should not use owner-only lookup');
+        return {
+          id: 'chat_1',
+          userId: 'user_1',
+          title: 'Own chat',
+        } as never;
       },
       getChatMessages: async () =>
         [
           {
             id: 'msg_1',
             chatId: 'chat_1',
-            userId: 'other_user',
+            userId: 'user_1',
             role: 'assistant',
             parts: '{"bad":true}',
             metadata: '{"foo":"bar"}',
@@ -99,10 +90,37 @@ test('readMemberChatThreadQuery 允许管理员旁路，且非法 parts fallback
 
   assert.equal(result.status, 'ok');
   if (result.status !== 'ok') return;
-  assert.deepEqual(calls, ['findChatById']);
+  assert.deepEqual(calls, ['findChatByIdForViewer']);
   assert.deepEqual(result.thread.messages[0]?.parts, []);
   assert.deepEqual(result.thread.messages[0]?.metadata, { foo: 'bar' });
   assert.equal(log.errorCalls.length, 1);
+});
+
+// Regression: admin permissions used to swap the owner-scoped lookup for a bare
+// findChatById, which let any role holding admin.access read another member's
+// private thread even though /api/chat/messages refused the same request. The
+// ownership assertion must hold no matter what the lookup hands back.
+test('readMemberChatThreadQuery 不因任何权限旁路归属校验', async () => {
+  const result = await readMemberChatThreadQuery(
+    {
+      chatId: 'chat_1',
+      viewerUserId: 'user_1',
+      log: createLog(),
+    },
+    {
+      findChatByIdForViewer: async () =>
+        ({
+          id: 'chat_1',
+          userId: 'other_user',
+          title: 'Someone else chat',
+        }) as never,
+      getChatMessages: async () => {
+        throw new Error('messages must not be read for a non-owned thread');
+      },
+    }
+  );
+
+  assert.deepEqual(result, { status: 'hidden' });
 });
 
 function createLog() {
