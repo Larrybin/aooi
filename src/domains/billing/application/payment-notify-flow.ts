@@ -34,6 +34,11 @@ export type PaymentWebhookInboxReceiptRecord = {
 };
 
 export type PaymentNotifyFlowDeps = PaymentNotifyDeps & {
+  /**
+   * Writes the receipt and claims the payload in one step. `alreadyClaimed`
+   * means another in-flight attempt owns this payload, so this request must not
+   * process it a second time.
+   */
   createPaymentWebhookInboxReceipt: (input: {
     provider: string;
     rawBody: string;
@@ -43,6 +48,7 @@ export type PaymentNotifyFlowDeps = PaymentNotifyDeps & {
   }) => Promise<{
     record: PaymentWebhookInboxReceiptRecord;
     isNew: boolean;
+    alreadyClaimed: boolean;
   }>;
   recordPaymentWebhookInboxCanonicalEvent: (input: {
     inboxId: string;
@@ -73,6 +79,9 @@ export type PaymentNotifyFlowDeps = PaymentNotifyDeps & {
 
 const MAX_PAYMENT_WEBHOOK_BODY_BYTES = 256 * 1024;
 
+// Only terminal statuses dedupe on their own. A row that is still being worked
+// on is deduped by the processing claim instead, so no in-flight status belongs
+// here — treating one as finalized would strand it after a crash.
 function isFinalizedInboxStatus(status: string): boolean {
   return (
     status === PAYMENT_WEBHOOK_INBOX_STATUS.PROCESSED ||
@@ -196,6 +205,16 @@ export async function handlePaymentNotifyRequest(input: {
       });
       return jsonOk({ message: 'already processed' });
     }
+    if (inboxReceipt.alreadyClaimed) {
+      // Another attempt owns the row; recording this transport failure on it
+      // would overwrite its state. Still rethrow so the provider retries.
+      input.log.debug('payment: webhook inbox claimed by another attempt', {
+        provider: input.provider,
+        inboxId: inboxReceipt.record.id,
+        status: inboxReceipt.record.status,
+      });
+      throw error;
+    }
     await input.deps.markPaymentWebhookInboxAttempt({
       inboxId: inboxReceipt.record.id,
     });
@@ -221,6 +240,18 @@ export async function handlePaymentNotifyRequest(input: {
       status: inboxReceipt.record.status,
     });
     return jsonOk({ message: 'already processed' });
+  }
+
+  if (inboxReceipt.alreadyClaimed) {
+    // A redelivery that arrived while the first attempt is still running: the
+    // status alone is not final yet, so only the claim can keep the two runs
+    // from applying the same event twice.
+    input.log.debug('payment: webhook inbox claimed by another attempt', {
+      provider: input.provider,
+      inboxId: inboxReceipt.record.id,
+      status: inboxReceipt.record.status,
+    });
+    return jsonOk({ message: 'processing' });
   }
 
   await input.deps.markPaymentWebhookInboxAttempt({

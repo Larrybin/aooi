@@ -54,6 +54,12 @@ export type PaymentWebhookReplayDeps = {
   }) => Promise<PaymentNotifyProcessResult>;
 };
 
+/**
+ * Applies each row in the order it is given, so callers must supply them oldest
+ * first (`receivedAt` ascending): the last event applied is the one the
+ * aggregate ends up in. `operationKind` does not change what is applied — it is
+ * an operator audit label carried into the logs and the row's operator note.
+ */
 export async function runPaymentWebhookReplay(input: {
   rows: PaymentWebhookReplayRow[];
   userId: string;
