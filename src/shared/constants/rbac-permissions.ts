@@ -54,3 +54,31 @@ export const PERMISSIONS = {
   AITASKS_WRITE: 'admin.ai-tasks.write',
   AITASKS_DELETE: 'admin.ai-tasks.delete',
 } as const;
+
+/**
+ * Permissions that exist as grantable codes but have no enforcement point,
+ * because the operation they describe has not been built yet.
+ *
+ * Nothing is under-protected by this - there is no delete action for users,
+ * posts or categories, and the apikeys / credits / ai-tasks / permissions admin
+ * sections are read-only list pages. The hazard is the other way round: an
+ * administrator can grant `admin.users.delete` and reasonably believe they have
+ * conferred a capability, and a reviewer auditing a role sees permissions that
+ * do not correspond to anything real.
+ *
+ * Every entry here is a promise to enforce the code when the matching operation
+ * lands. `rbac-permissions.test.ts` fails if a code outside this list loses its
+ * last enforcement point, so the set cannot grow silently.
+ */
+export const RESERVED_UNENFORCED_PERMISSIONS: readonly string[] = [
+  PERMISSIONS.USERS_DELETE,
+  PERMISSIONS.POSTS_DELETE,
+  PERMISSIONS.CATEGORIES_DELETE,
+  PERMISSIONS.CREDITS_WRITE,
+  PERMISSIONS.APIKEYS_WRITE,
+  PERMISSIONS.APIKEYS_DELETE,
+  PERMISSIONS.PERMISSIONS_WRITE,
+  PERMISSIONS.PERMISSIONS_DELETE,
+  PERMISSIONS.AITASKS_WRITE,
+  PERMISSIONS.AITASKS_DELETE,
+];
