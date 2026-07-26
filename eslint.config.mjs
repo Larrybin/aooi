@@ -169,6 +169,7 @@ const eslintConfig = [
       '**/.source/**',
       '**/.codex/**',
       '**/.gstack/**',
+      '**/dist/**',
       '**/output/**',
       'src/shared/types/cloudflare.d.ts',
       'temp/**',
