@@ -54,6 +54,7 @@
     "db:generate": "npx drizzle-kit generate --config=src/infra/adapters/db/config.ts",
     "db:migrate": "npx drizzle-kit migrate --config=src/infra/adapters/db/config.ts",
     "db:check": "npx tsx scripts/check-db-schema.ts",
+    "db:audit-duplicates": "npx tsx scripts/audit-duplicate-billing-grants.ts",
     "db:push": "npx drizzle-kit push --config=src/infra/adapters/db/config.ts",
     "db:studio": "npx drizzle-kit studio --config=src/infra/adapters/db/config.ts",
     "auth:generate": "node scripts/run-with-site.mjs pnpm exec @better-auth/cli generate --config=src/infra/platform/auth/index.ts",

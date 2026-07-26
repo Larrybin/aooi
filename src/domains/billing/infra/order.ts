@@ -4,7 +4,7 @@ import type { BillingGrantCredit } from '@/domains/billing/domain/credit';
 import type { PaymentType } from '@/domains/billing/domain/payment';
 import type { NewEntitlementGrant } from '@/domains/entitlements/infra/grant';
 import { db } from '@/infra/adapters/db';
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq, notInArray, sql } from 'drizzle-orm';
 
 import {
   credit,
@@ -42,6 +42,21 @@ export enum OrderStatus {
   COMPLETED = 'completed', // checkout completed
   PAID = 'paid', // order paid success
   FAILED = 'failed', // order paid, but failed
+}
+
+/**
+ * Terminal order statuses. Once an order reaches one of these it must never be
+ * re-finalized: doing so would re-run credit / subscription / entitlement
+ * granting for an order that was already settled.
+ */
+export const FINAL_ORDER_STATUSES: readonly string[] = [
+  OrderStatus.COMPLETED,
+  OrderStatus.PAID,
+  OrderStatus.FAILED,
+];
+
+export function isFinalOrderStatus(status: string): boolean {
+  return FINAL_ORDER_STATUSES.includes(status);
 }
 
 /**
@@ -259,6 +274,14 @@ export async function updateOrderInTransaction({
       entitlementGrant: null,
     };
 
+    // Serialize every settlement path for this order. The browser `successUrl`
+    // callback and the provider webhook both reach this transaction and share no
+    // other lock, so without this the check-then-insert blocks below race and
+    // grant credits / subscriptions / entitlements more than once.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('billing_order'), hashtext(${orderNo}))`
+    );
+
     // deal with subscription
     if (newSubscription) {
       let existingSubscription: NewSubscription | null = null;
@@ -337,14 +360,34 @@ export async function updateOrderInTransaction({
       txResult.entitlementGrant = existingGrant;
     }
 
-    // update order
+    // Finalize the order only if it is not already in a terminal state. The
+    // caller's `shouldIgnoreFinalOrder` guard runs against a snapshot read
+    // before an outbound provider round-trip, so it can be stale by the time we
+    // get here; this compare-and-set is the authoritative check.
     const [orderResult] = await tx
       .update(order)
       .set(updateOrder)
-      .where(eq(order.orderNo, orderNo))
+      .where(
+        and(
+          eq(order.orderNo, orderNo),
+          notInArray(order.status, [...FINAL_ORDER_STATUSES])
+        )
+      )
       .returning();
 
-    txResult.order = orderResult;
+    if (orderResult) {
+      txResult.order = orderResult;
+    } else {
+      // A concurrent settlement already finalized this order. Under the advisory
+      // lock above the blocks before this point resolved to the rows that
+      // settlement created, so this is the idempotent no-op path, not an error.
+      const [currentOrder] = await tx
+        .select()
+        .from(order)
+        .where(eq(order.orderNo, orderNo));
+
+      txResult.order = currentOrder ?? null;
+    }
 
     return txResult;
   });

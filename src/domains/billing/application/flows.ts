@@ -12,6 +12,7 @@ import {
 } from '@/domains/billing/domain/payment';
 import {
   OrderStatus,
+  isFinalOrderStatus,
   updateOrderByOrderNo,
   updateOrderInTransaction,
   updateSubscriptionInTransaction,
@@ -108,13 +109,8 @@ function resolveBillingEntitlementEnvironment() {
   });
 }
 
-function isFinalOrderStatus(status: string) {
-  return (
-    status === OrderStatus.PAID ||
-    status === OrderStatus.FAILED ||
-    status === OrderStatus.COMPLETED
-  );
-}
+// Terminal-status semantics live in the infra layer next to the compare-and-set
+// that enforces them, so the guard here and the transaction cannot drift apart.
 
 function assertOrderNo(order: Order): string {
   const orderNo = order.orderNo;
