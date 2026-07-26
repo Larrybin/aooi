@@ -1,3 +1,21 @@
+/**
+ * NOT VERIFIED AGAINST A LIVE ACCOUNT.
+ *
+ * No site enables this provider - every site runs creem or no payment at all -
+ * so nothing here has ever handled a real webhook. Recent review found two
+ * defects in this state (PayPal read amounts in the wrong unit and never
+ * captured approved orders); both are fixed, neither could be verified end to
+ * end.
+ *
+ * Before enabling this provider for a site:
+ * - exercise checkout, renewal, cancellation and refund against the sandbox
+ * - add the refund branch: getPaymentEvent below only builds sessions for the
+ *   canonical types it branches on and throws otherwise, so mapping
+ *   PAYMENT_REFUNDED without a matching builder turns refunds into retried 400s
+ *   with no audit row (see creem.ts for the shape this takes)
+ * - confirm amounts are compared in minor units on both the outbound and
+ *   inbound side
+ */
 import {
   PaymentEventType,
   PaymentStatus,
