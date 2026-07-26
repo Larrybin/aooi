@@ -30,6 +30,7 @@ import {
 import { isSettingTabName } from '@/domains/settings/tab-names';
 import { getSettingTabs } from '@/domains/settings/tabs';
 import { getAuthServerBindings } from '@/infra/platform/auth/server-bindings';
+import { createUseCaseLogger } from '@/infra/platform/logging/logger.server';
 import {
   getCloudflareBindings,
   getRuntimeEnvString,
@@ -69,6 +70,11 @@ import { withAction } from '@/shared/lib/action/with-action';
 import type { Crumb } from '@/shared/types/blocks/common';
 
 const SETTINGS_FORM_VALUES_SCHEMA = z.record(z.string(), z.string());
+
+const log = createUseCaseLogger({
+  domain: 'settings',
+  useCase: 'auth-runtime-diagnostics',
+});
 
 function getAuthDiagnosticsSecret() {
   return (
@@ -111,9 +117,14 @@ async function fetchWorkerSnapshot<T>({
     }
   );
   if (!response.ok) {
-    throw new Error(
-      `failed to read auth runtime diagnostics from ${target}: ${response.status}`
-    );
+    // Diagnostics are advisory: a failing auth worker must not blank out the very page
+    // admins use to repair auth configuration, so degrade to the local-binding fallback.
+    log.warn('failed to read auth runtime diagnostics from worker', {
+      operation: 'fetchWorkerSnapshot',
+      target,
+      status: response.status,
+    });
+    return null;
   }
 
   return (await response.json()) as T;
