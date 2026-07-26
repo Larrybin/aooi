@@ -1,0 +1,20 @@
+-- Snapshot baseline. Intentionally applies no DDL.
+--
+-- Migrations 0009 through 0012 were hand-written, so drizzle-kit never recorded
+-- a snapshot for them. Its newest snapshot stayed at 0008, which still described
+-- remover_quota_reservation and knew nothing about product_quota_reservation,
+-- background_remover_image or text_to_speech_generation.
+--
+-- That left `drizzle-kit generate` diffing the live schema against a state three
+-- migrations stale. It could not even run non-interactively: seeing
+-- remover_quota_reservation disappear and product_quota_reservation appear, it
+-- stopped to ask whether that was a rename. Either answer produced DDL that
+-- would fail against a real database - a rename of a table 0009 already
+-- dropped, or a CREATE of tables that already exist.
+--
+-- meta/0013_snapshot.json is generated from schema.ts and chained onto 0008, so
+-- the recorded state matches both the schema and what 0000-0012 actually build.
+-- Every structural change it covers was already applied by those migrations,
+-- which is why this file is empty of statements: an existing database needs
+-- nothing, and a fresh one is fully built by the time it gets here.
+SELECT 1;
