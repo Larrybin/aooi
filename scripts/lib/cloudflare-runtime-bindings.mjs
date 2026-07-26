@@ -54,6 +54,13 @@ export const CLOUDFLARE_SECRET_WORKER_ALLOWLIST = Object.freeze({
   PAYPAL_CLIENT_SECRET: ['payment', 'member'],
   PAYPAL_WEBHOOK_ID: ['payment', 'member'],
   OPENROUTER_API_KEY: ['chat'],
+  // Read alongside OPENROUTER_API_KEY in domains/ai/application/provider-bindings.ts.
+  // They were declared as Cloudflare secrets in env-contract but never listed here,
+  // so provisioning rejected them and the providers behind them could never be
+  // configured on any worker.
+  REPLICATE_API_TOKEN: ['chat'],
+  FAL_API_KEY: ['chat'],
+  KIE_API_KEY: ['chat'],
   AI_NOTIFY_WEBHOOK_SECRET: ['chat'],
   REMOVER_CLEANUP_SECRET: ['public-web'],
   TURNSTILE_SECRET_KEY: ['public-web'],
