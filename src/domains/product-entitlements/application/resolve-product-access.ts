@@ -137,11 +137,23 @@ export async function resolveProductAccess({
     actor.userId
   );
   const resolvedProductId = subscriptionProductId || productId || 'free';
-  const { item, entitlements: baseEntitlements } = readPricingEntitlements({
+  let { item, entitlements: baseEntitlements } = readPricingEntitlements({
     pricing,
     productKey,
     productId: resolvedProductId,
   });
+
+  // A subscription can name a product this site's pricing no longer lists -
+  // renaming or retiring a plan is enough. Without this the signed-in path
+  // silently resolves to an empty entitlement map, leaving a paying customer
+  // worse off than an anonymous visitor, who always lands on the free item.
+  if (!item && resolvedProductId !== 'free') {
+    ({ item, entitlements: baseEntitlements } = readPricingEntitlements({
+      pricing,
+      productKey,
+      productId: 'free',
+    }));
+  }
 
   const grants =
     (await deps.listGrants?.({

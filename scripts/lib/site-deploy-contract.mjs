@@ -253,6 +253,35 @@ function assertUniqueSiteRoutePatterns(contracts) {
   }
 }
 
+/**
+ * Two sites pointing at one Hyperdrive share a database, and only two of the 26
+ * tables carry a site column - config, user, role and the billing tables do not.
+ * Nothing else in the pipeline notices, and provisioning happily reuses another
+ * site's database.
+ *
+ * This warns rather than throws because dev-local and mamamiya already share an
+ * id in-tree; give one of them its own Hyperdrive and this can become a hard
+ * failure.
+ */
+function warnOnSharedSiteHyperdrives(contracts) {
+  const seen = new Map();
+  for (const contract of contracts) {
+    const hyperdriveId = contract.resources?.hyperdriveId;
+    if (!hyperdriveId) continue;
+
+    const otherSiteKey = seen.get(hyperdriveId);
+    if (otherSiteKey && otherSiteKey !== contract.siteKey) {
+      process.stderr.write(
+        `warning: sites ${otherSiteKey} and ${contract.siteKey} declare the same ` +
+          `Hyperdrive id "${hyperdriveId}"; they will share one database, and ` +
+          `config / user / role / order rows are not partitioned by site\n`
+      );
+      continue;
+    }
+    seen.set(hyperdriveId, contract.siteKey);
+  }
+}
+
 export function normalizeDeployContractShape(contract) {
   return sortObject(JSON.parse(buildTopologySignature(contract)));
 }
@@ -460,6 +489,7 @@ export function resolveAllSiteDeployContracts({
     })
   );
   assertUniqueSiteRoutePatterns(contracts);
+  warnOnSharedSiteHyperdrives(contracts);
   return contracts;
 }
 

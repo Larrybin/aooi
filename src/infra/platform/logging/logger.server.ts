@@ -36,6 +36,13 @@ const sensitiveKeyMatchers: Array<(key: string) => boolean> = [
   (key) => key.includes('client_secret'),
   (key) => key.includes('private_key'),
   (key) => key.includes('session') && key.endsWith('id'),
+  // Payment webhooks log whole provider event payloads when they hit the
+  // unknown / unsupported branches, and those objects carry buyer contact and
+  // card details. Credentials alone were never the whole risk surface.
+  (key) => key.includes('email'),
+  (key) => key.includes('address'),
+  (key) => key.includes('phone'),
+  (key) => key === 'last4' || key.includes('card_number'),
 ];
 
 function isSensitiveKey(key: string): boolean {
