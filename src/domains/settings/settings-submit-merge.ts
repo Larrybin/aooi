@@ -1,6 +1,7 @@
 import type { Configs } from '@/domains/settings/application/settings-store';
 
 import { isKnownSettingKey } from './registry';
+import { isSiteEnabledSettingKey } from './site-aware';
 
 export function mergeRegisteredSettingValues({
   initialConfigs,
@@ -15,6 +16,12 @@ export function mergeRegisteredSettingValues({
 
   for (const [name, value] of Object.entries(values)) {
     if (!isKnownSettingKey(name)) {
+      continue;
+    }
+
+    // A rendered form is not an access boundary: keys the site's capabilities
+    // disable have to be dropped here too, not merely hidden from the form.
+    if (!isSiteEnabledSettingKey(name)) {
       continue;
     }
 
