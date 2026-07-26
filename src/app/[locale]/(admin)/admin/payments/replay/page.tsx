@@ -171,7 +171,16 @@ export default async function PaymentReplayPage({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Operation</label>
+                {/* Annotation only - both values replay the selected events
+                    identically and differ solely in the audit trail. Labelled as
+                    a reason rather than an "Operation" so it does not read as a
+                    choice between two behaviours. */}
+                <label className="text-sm font-medium">
+                  Audit reason
+                  <span className="text-muted-foreground ml-1 font-normal">
+                    (recorded only)
+                  </span>
+                </label>
                 <select
                   name="operationKind"
                   defaultValue={operationKind}

@@ -108,26 +108,36 @@ async function fetchWorkerSnapshot<T>({
     return null;
   }
 
-  const response = await fetcher.fetch(
-    `https://${target}${AUTH_RUNTIME_DIAGNOSTICS_PATH}`,
-    {
-      headers: {
-        [AUTH_RUNTIME_DIAGNOSTICS_SECRET_HEADER]: secret,
-      },
+  // Diagnostics are advisory: a failing auth worker must not blank out the very page
+  // admins use to repair auth configuration. Every failure mode - service binding
+  // throwing, non-2xx, unparseable body - degrades to the local-binding fallback.
+  try {
+    const response = await fetcher.fetch(
+      `https://${target}${AUTH_RUNTIME_DIAGNOSTICS_PATH}`,
+      {
+        headers: {
+          [AUTH_RUNTIME_DIAGNOSTICS_SECRET_HEADER]: secret,
+        },
+      }
+    );
+    if (!response.ok) {
+      log.warn('failed to read auth runtime diagnostics from worker', {
+        operation: 'fetchWorkerSnapshot',
+        target,
+        status: response.status,
+      });
+      return null;
     }
-  );
-  if (!response.ok) {
-    // Diagnostics are advisory: a failing auth worker must not blank out the very page
-    // admins use to repair auth configuration, so degrade to the local-binding fallback.
-    log.warn('failed to read auth runtime diagnostics from worker', {
+
+    return (await response.json()) as T;
+  } catch (error: unknown) {
+    log.warn('auth runtime diagnostics request failed', {
       operation: 'fetchWorkerSnapshot',
       target,
-      status: response.status,
+      error,
     });
     return null;
   }
-
-  return (await response.json()) as T;
 }
 
 function buildFallbackAuthUiWorkerBindingsSnapshot(
