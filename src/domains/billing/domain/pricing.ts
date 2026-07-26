@@ -75,9 +75,12 @@ export function resolveCheckoutPricingContext({
     ? selectedCurrency.amount
     : pricingItem.amount;
 
-  const paymentProductId =
-    normalizeOptionalString(selectedCurrency?.payment_product_id) ??
-    normalizeOptionalString(pricingItem.payment_product_id);
+  // The item-level id belongs to the default currency, so a currency-specific
+  // checkout must not inherit it: leaving it unset lets the provider config
+  // match its `<productId>_<currency>` entry before any default fallback.
+  const paymentProductId = selectedCurrency
+    ? normalizeOptionalString(selectedCurrency.payment_product_id)
+    : normalizeOptionalString(pricingItem.payment_product_id);
 
   return {
     defaultCurrency,

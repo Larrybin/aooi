@@ -101,12 +101,17 @@ async function getPaymentProductIdFromProviderConfig({
       checkoutCurrency,
     });
     if (!resolved.ok) {
-      log.warn('payment: invalid creem_product_ids config', {
+      // Which setting is broken and how to shape it is operator knowledge:
+      // keep it in the logs and hand the caller a message it can act on.
+      log.error('payment: invalid creem_product_ids config', {
+        provider,
+        productId,
+        checkoutCurrency,
         error: resolved.error,
         length: resolved.configLength,
       });
       throw new UnprocessableEntityError(
-        'invalid payment configuration: creem_product_ids must be a JSON object'
+        'payment is temporarily unavailable, please try again later'
       );
     }
 

@@ -7,7 +7,11 @@
 
 ## 0. 使用方式
 
-- 快速清单（PR 模板）：`sites/<site-key>/content/docs/code-review-checklist.zh.mdx`（docs 路由：`/zh/docs/code-review-checklist`）。
+- 快速清单（PR 模板）：只在开启了 docs 能力的站点上发布，两站路径不同：
+  - `dev-local`：`sites/dev-local/content/docs/code-review-checklist.zh.mdx`（路由 `/zh/docs/code-review-checklist`）。
+  - `mamamiya`：`sites/mamamiya/content/docs/extensions/code-review-checklist.zh.mdx`（路由 `/zh/docs/extensions/code-review-checklist`）。
+  - 其余站点 `capabilities.docs = false`，`/docs/*` 由 `src/app/[locale]/(docs)/layout.tsx` 主动 `notFound()`，
+    并且 free-tool 构建会裁掉 docs 路由，因此**不要**为它们新增 `content/docs/**`——那只会增加永不可达的 MDX 编译负担。
 - PR 尺度：
   - 日常：建议小步提交，一个 PR 聚焦一个问题或功能。
   - 特殊：首次全量审查可以跨模块，但仍按本文件顺序逐项过一遍。
