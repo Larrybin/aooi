@@ -4,7 +4,16 @@ import type { BillingGrantCredit } from '@/domains/billing/domain/credit';
 import type { PaymentType } from '@/domains/billing/domain/payment';
 import type { NewEntitlementGrant } from '@/domains/entitlements/infra/grant';
 import { db } from '@/infra/adapters/db';
-import { and, count, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  notInArray,
+  sql,
+} from 'drizzle-orm';
 
 import {
   credit,
@@ -254,6 +263,89 @@ export async function markOrderRefundedByOrderNo({
     .returning();
 
   return result ?? null;
+}
+
+/**
+ * Reverse what a refunded order granted, without touching what the user already
+ * spent.
+ *
+ * Credits are removed by zeroing the remaining balance rather than deleting the
+ * row: consumption bookkeeping in `consumed_detail` references these rows by id,
+ * and the balance query already ignores grants with nothing left. The consumed
+ * portion stays consumed - a refund does not claw back value that was used, and
+ * the description records why the remainder disappeared so the audit trail can
+ * tell revocation apart from ordinary consumption.
+ *
+ * Entitlement grants are matched on the `order:<orderNo>` reason stamped by
+ * buildBillingEntitlementGrantForOrder.
+ *
+ * Both statements only match rows that are still live, so replaying the same
+ * refund reverses nothing a second time.
+ */
+export async function revokeUnconsumedOrderGrantsByOrderNo({
+  orderNo,
+  revokedAt,
+}: {
+  orderNo: string;
+  revokedAt: Date;
+}): Promise<{ revokedCreditRows: number; revokedCredits: number; revokedEntitlementGrants: number }> {
+  return db().transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('billing_order'), hashtext(${orderNo}))`
+    );
+
+    // Read the balances before zeroing them: an UPDATE ... RETURNING hands back
+    // the new row, which would report every revoked grant as zero.
+    const liveGrants = await tx
+      .select({ remainingCredits: credit.remainingCredits })
+      .from(credit)
+      .where(
+        and(
+          eq(credit.orderNo, orderNo),
+          eq(credit.transactionType, 'grant'),
+          gt(credit.remainingCredits, 0)
+        )
+      );
+
+    if (liveGrants.length > 0) {
+      await tx
+        .update(credit)
+        .set({
+          remainingCredits: 0,
+          description: `revoked: order ${orderNo} refunded`,
+          updatedAt: revokedAt,
+        })
+        .where(
+          and(
+            eq(credit.orderNo, orderNo),
+            eq(credit.transactionType, 'grant'),
+            gt(credit.remainingCredits, 0)
+          )
+        );
+    }
+
+    const revokedCredits = liveGrants.reduce(
+      (total, row) => total + row.remainingCredits,
+      0
+    );
+
+    const revokedEntitlementGrants = await tx
+      .update(entitlementGrant)
+      .set({ status: 'revoked', revokedAt })
+      .where(
+        and(
+          eq(entitlementGrant.reason, `order:${orderNo}`),
+          eq(entitlementGrant.status, 'active')
+        )
+      )
+      .returning({ id: entitlementGrant.id });
+
+    return {
+      revokedCreditRows: liveGrants.length,
+      revokedCredits,
+      revokedEntitlementGrants: revokedEntitlementGrants.length,
+    };
+  });
 }
 
 /**

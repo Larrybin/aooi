@@ -3,6 +3,7 @@ import {
   findOrderByOrderNo,
   findOrderByTransactionId,
   markOrderRefundedByOrderNo,
+  revokeUnconsumedOrderGrantsByOrderNo,
 } from '@/domains/billing/infra/order';
 import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
 import { deserializePaymentWebhookCanonicalEvent } from '@/domains/billing/infra/payment-webhook-canonical-event';
@@ -64,6 +65,7 @@ const replayDeps: PaymentNotifyDeps = {
   // Kept in sync with the live webhook wiring so a replayed refund reaches the
   // same order transition an operator would have seen at delivery time.
   markOrderRefunded: markOrderRefundedByOrderNo,
+  revokeUnconsumedOrderGrants: revokeUnconsumedOrderGrantsByOrderNo,
   recordUnknownWebhookEvent: recordPaymentWebhookAudit,
   handleCheckoutSuccess,
   handleSubscriptionCanceled,

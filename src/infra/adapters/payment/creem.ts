@@ -12,6 +12,7 @@ import {
 import {
   buildCreemPaymentSessionFromCheckoutSession,
   buildCreemPaymentSessionFromInvoice,
+  buildCreemPaymentSessionFromRefund,
   buildCreemPaymentSessionFromSubscription,
   buildCreemUnknownPaymentSession,
 } from '@/infra/adapters/payment/creem-mapper';
@@ -177,6 +178,11 @@ export class CreemProvider implements PaymentProvider {
       paymentSession = await buildCreemPaymentSessionFromSubscription({
         provider: this.name,
         subscription: webhookEvent.object,
+      });
+    } else if (eventType === PaymentEventType.PAYMENT_REFUNDED) {
+      paymentSession = buildCreemPaymentSessionFromRefund({
+        provider: this.name,
+        refund: webhookEvent.object,
       });
     } else if (eventType === PaymentEventType.UNKNOWN) {
       paymentSession = buildCreemUnknownPaymentSession({

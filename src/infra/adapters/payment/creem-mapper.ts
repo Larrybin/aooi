@@ -282,6 +282,78 @@ export function buildCreemUnknownPaymentSession({
   };
 }
 
+const creemRefundSchema = z
+  .object({
+    id: z.string().optional(),
+    transaction: z.string().optional(),
+    amount: z.number().optional(),
+    refund_amount: z.number().optional(),
+    currency: z.string().optional(),
+    order: z.unknown().optional(),
+    checkout: z.unknown().optional(),
+    subscription: z.unknown().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+function readNestedMetadata(value: unknown): Record<string, unknown> | undefined {
+  const parsed = creemRefundSchema.safeParse(value);
+  return parsed.success ? parsed.data.metadata : undefined;
+}
+
+/**
+ * Build a session for `refund.created`.
+ *
+ * Creem does not publish this payload's shape anywhere in this repository, so
+ * every field is optional and nothing here throws. The refund handler only needs
+ * enough to identify the original order - `metadata.order_no`, otherwise the
+ * transaction id - and is written to fall back to audit-and-alert when it finds
+ * neither. Guessing wrong would revoke a different customer's entitlements, so
+ * an absent field is left absent rather than inferred.
+ */
+export function buildCreemPaymentSessionFromRefund({
+  provider,
+  refund,
+}: {
+  provider: string;
+  refund: unknown;
+}): PaymentSession {
+  const parsed = creemRefundSchema.safeParse(refund);
+  const checkedRefund = parsed.success ? parsed.data : undefined;
+
+  const metadata =
+    checkedRefund?.metadata ??
+    readNestedMetadata(checkedRefund?.order) ??
+    readNestedMetadata(checkedRefund?.checkout) ??
+    readNestedMetadata(checkedRefund?.subscription);
+
+  const order = creemOrderLikeSchema.safeParse(checkedRefund?.order);
+  const transactionId =
+    (order.success ? order.data.transaction || order.data.id : undefined) ||
+    checkedRefund?.transaction;
+
+  return {
+    provider,
+    paymentStatus: PaymentStatus.PROCESSING,
+    paymentResult: refund,
+    ...(transactionId
+      ? {
+          paymentInfo: {
+            transactionId,
+            // On a refund event these describe the amount going back to the
+            // buyer, not the original payment. Nothing downstream reconciles a
+            // refund against the order total, and leaving them unset is not an
+            // option because PaymentInfo requires both.
+            paymentAmount:
+              checkedRefund?.refund_amount ?? checkedRefund?.amount ?? 0,
+            paymentCurrency: checkedRefund?.currency ?? '',
+          },
+        }
+      : {}),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
 export async function buildCreemPaymentSessionFromInvoice({
   provider,
   invoice,

@@ -414,3 +414,128 @@ test('processPaymentNotifyEvent 对 PAYMENT_FAILED 记 warning 并回报 payment
   assert.equal(canceledHandled, false);
   assert.equal(updatedHandled, false);
 });
+
+test('processPaymentNotifyEvent 对 PAYMENT_REFUNDED 标记订单并撤销未消费额度', async () => {
+  const audits: unknown[] = [];
+  const refundedOrders: unknown[] = [];
+  const revocations: unknown[] = [];
+
+  const result = await processPaymentNotifyEvent({
+    provider: 'creem',
+    log: createLog() as never,
+    event: {
+      eventType: PaymentEventType.PAYMENT_REFUNDED,
+      eventResult: { type: 'refund.created' },
+      paymentSession: {
+        provider: 'creem',
+        metadata: { order_no: 'order_refund_1' },
+      },
+    },
+    deps: createDeps({
+      recordUnknownWebhookEvent: async (input: unknown) => {
+        audits.push(input);
+      },
+      findOrderByOrderNo: async () => ({
+        orderNo: 'order_refund_1',
+        userId: 'user_1',
+        status: 'paid',
+      }),
+      markOrderRefunded: async (input: unknown) => {
+        refundedOrders.push(input);
+        return { orderNo: 'order_refund_1', status: 'refunded' };
+      },
+      revokeUnconsumedOrderGrants: async (input: unknown) => {
+        revocations.push(input);
+        return {
+          revokedCreditRows: 1,
+          revokedCredits: 250,
+          revokedEntitlementGrants: 1,
+        };
+      },
+    }) as never,
+  });
+
+  assert.equal(result.outcome, 'refund_flagged');
+  assert.equal(result.eventType, PaymentEventType.PAYMENT_REFUNDED);
+  // Money already moved, so the audit row has to exist regardless of what else ran.
+  assert.equal(audits.length, 1);
+  assert.equal(refundedOrders.length, 1);
+  assert.equal(revocations.length, 1);
+});
+
+test('processPaymentNotifyEvent 对已退款订单不重复标记也不重复撤销', async () => {
+  let markCalls = 0;
+  let revokeCalls = 0;
+
+  const result = await processPaymentNotifyEvent({
+    provider: 'creem',
+    log: createLog() as never,
+    event: {
+      eventType: PaymentEventType.PAYMENT_REFUNDED,
+      eventResult: { type: 'refund.created' },
+      paymentSession: {
+        provider: 'creem',
+        metadata: { order_no: 'order_refund_2' },
+      },
+    },
+    deps: createDeps({
+      // Already terminal from an earlier delivery of the same refund.
+      findOrderByOrderNo: async () => ({
+        orderNo: 'order_refund_2',
+        userId: 'user_1',
+        status: 'refunded',
+      }),
+      markOrderRefunded: async () => {
+        markCalls += 1;
+        return null;
+      },
+      revokeUnconsumedOrderGrants: async () => {
+        revokeCalls += 1;
+        return {
+          revokedCreditRows: 0,
+          revokedCredits: 0,
+          revokedEntitlementGrants: 0,
+        };
+      },
+    }) as never,
+  });
+
+  assert.equal(result.outcome, 'refund_flagged');
+  assert.equal(markCalls, 0, '已是终态订单不应再次标记');
+  // Revocation still runs but is a no-op at the database level, which is what
+  // makes a replayed refund safe rather than merely unlikely.
+  assert.equal(revokeCalls, 1);
+});
+
+test('processPaymentNotifyEvent 在退款无法定位订单时仍写审计且不撤销', async () => {
+  const audits: unknown[] = [];
+  let revokeCalls = 0;
+
+  const result = await processPaymentNotifyEvent({
+    provider: 'creem',
+    log: createLog() as never,
+    event: {
+      eventType: PaymentEventType.PAYMENT_REFUNDED,
+      eventResult: { type: 'refund.created' },
+      // No order_no and no transactionId: the refund payload told us nothing.
+      paymentSession: { provider: 'creem' },
+    },
+    deps: createDeps({
+      recordUnknownWebhookEvent: async (input: unknown) => {
+        audits.push(input);
+      },
+      revokeUnconsumedOrderGrants: async () => {
+        revokeCalls += 1;
+        return {
+          revokedCreditRows: 0,
+          revokedCredits: 0,
+          revokedEntitlementGrants: 0,
+        };
+      },
+    }) as never,
+  });
+
+  assert.equal(result.outcome, 'refund_flagged');
+  assert.equal(audits.length, 1, '定位不到订单时审计仍必须留痕');
+  assert.equal(revokeCalls, 0, '订单未知时绝不能撤销任何人的额度');
+});

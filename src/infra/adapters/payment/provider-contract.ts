@@ -66,10 +66,9 @@ export function mapCreemEventTypeToCanonical(
       return PaymentEventType.SUBSCRIBE_UPDATED;
     case 'subscription.canceled':
       return PaymentEventType.SUBSCRIBE_CANCELED;
+    case 'refund.created':
+      return PaymentEventType.PAYMENT_REFUNDED;
     default:
-      // Refund events (`refund.created`) intentionally stay UNKNOWN for the same
-      // reason as Stripe above: Creem's getPaymentEvent only builds sessions for
-      // the canonical types it branches on and throws otherwise.
       return PaymentEventType.UNKNOWN;
   }
 }

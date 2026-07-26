@@ -71,6 +71,21 @@ type MarkOrderRefunded = (args: {
   refundedAt: Date;
 }) => Promise<Order | null>;
 
+export type RevokeOrderGrantsResult = {
+  revokedCreditRows: number;
+  revokedCredits: number;
+  revokedEntitlementGrants: number;
+};
+
+/**
+ * Reverses the unconsumed part of what a refunded order granted. Idempotent:
+ * a replay matches no live rows and reports zeroes.
+ */
+type RevokeUnconsumedOrderGrants = (args: {
+  orderNo: string;
+  revokedAt: Date;
+}) => Promise<RevokeOrderGrantsResult>;
+
 type RecordUnknownWebhookEvent = (args: {
   provider: string;
   eventType: string;
@@ -90,6 +105,12 @@ export type PaymentNotifyDeps = {
    * refund is still audited and alerted on, it only skips the order transition.
    */
   markOrderRefunded?: MarkOrderRefunded;
+  /**
+   * Optional for the same reason as markOrderRefunded: without it a refund is
+   * still audited, still transitions the order, and still alerts - it only
+   * skips the reversal, which the alert then reports as null.
+   */
+  revokeUnconsumedOrderGrants?: RevokeUnconsumedOrderGrants;
   handleCheckoutSuccess: HandleCheckoutSuccess;
   handleSubscriptionCanceled: HandleSubscriptionCanceled;
   handleSubscriptionRenewal: HandleSubscriptionRenewal;
@@ -608,25 +629,40 @@ export const handlePaymentRefundedEvent: PaymentNotifyHandler = async ({
     orderMarkedRefunded = Boolean(refundedOrder);
   }
 
-  // Credits and entitlement grants are deliberately left active: revoking them
-  // from a webhook can strip access a support agent already promised, and a
-  // partial refund does not imply a full reversal. This line is the operator
-  // alert that has to be routed somewhere a human reads.
-  log.error(
-    'payment: refund received, credits and entitlements were NOT revoked automatically, manual handling required',
-    {
-      provider,
-      eventType,
-      providerEventType,
-      eventId,
-      rawDigest,
-      orderNo: order?.orderNo ?? sessionOrderNo ?? null,
-      orderStatus: order?.status ?? null,
-      orderMarkedRefunded,
-      transactionId: transactionId ?? null,
-      userId: order?.userId ?? null,
-    }
-  );
+  // Reverse what the order granted but was never spent. The consumed portion is
+  // left alone: a refund does not claw back value the user already used, and
+  // driving a balance negative would need an appeals flow this product has no
+  // room for. Both statements only match live rows, so a replayed refund
+  // reverses nothing twice.
+  let revocation: RevokeOrderGrantsResult | null = null;
+  if (order) {
+    revocation =
+      (await deps.revokeUnconsumedOrderGrants?.({
+        orderNo: order.orderNo,
+        revokedAt: receivedAt,
+      })) ?? null;
+  }
+
+  // Still an error-level alert even when revocation succeeded: an order was
+  // refunded after delivering value, and someone should look at whether the
+  // consumed portion needs a follow-up.
+  log.error('payment: refund processed, unconsumed grants revoked', {
+    provider,
+    eventType,
+    providerEventType,
+    eventId,
+    rawDigest,
+    orderNo: order?.orderNo ?? sessionOrderNo ?? null,
+    orderStatus: order?.status ?? null,
+    orderMarkedRefunded,
+    transactionId: transactionId ?? null,
+    userId: order?.userId ?? null,
+    // null means the order could not be identified from the refund payload, so
+    // nothing was reversed and this needs manual handling.
+    revokedCreditRows: revocation?.revokedCreditRows ?? null,
+    revokedCredits: revocation?.revokedCredits ?? null,
+    revokedEntitlementGrants: revocation?.revokedEntitlementGrants ?? null,
+  });
 
   return createPaymentNotifyResult(eventType, 'refund_flagged', 'success');
 };

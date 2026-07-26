@@ -11,6 +11,7 @@ import {
   findOrderByOrderNo,
   findOrderByTransactionId,
   markOrderRefundedByOrderNo,
+  revokeUnconsumedOrderGrantsByOrderNo,
 } from '@/domains/billing/infra/order';
 import { recordPaymentWebhookAudit } from '@/domains/billing/infra/payment-webhook-audit';
 import {
@@ -46,6 +47,7 @@ const routeDeps: PaymentNotifyRouteDeps = {
   findOrderByTransactionId,
   findSubscriptionByProviderSubscriptionId,
   markOrderRefunded: markOrderRefundedByOrderNo,
+  revokeUnconsumedOrderGrants: revokeUnconsumedOrderGrantsByOrderNo,
   recordUnknownWebhookEvent: recordPaymentWebhookAudit,
   handleCheckoutSuccess,
   handleSubscriptionCanceled,
