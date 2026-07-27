@@ -6,6 +6,7 @@ import {
 } from '@/app/access-control/action-guard';
 import { accessControlRuntimeDeps } from '@/app/access-control/runtime-deps';
 import { accountRuntimeDeps } from '@/app/account/runtime-deps';
+import { assertSuperAdminRoleChangeAllowed } from '@/domains/access-control/application/super-admin-role-change';
 import { readAdminUserQuery } from '@/domains/account/application/admin-user.query';
 import { AdminUserUpdateFormSchema } from '@/surfaces/admin/schemas/user';
 import { validateAndParseForm } from '@/surfaces/admin/server/action-utils';
@@ -74,7 +75,16 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
       throw new ActionError('invalid roles');
     }
 
-    await assertSuperAdminGrantAllowed(admin.id, parsed.data.roles);
+    await assertSuperAdminRoleChangeAllowed(
+      {
+        actorUserId: admin.id,
+        targetUserId: user.id as string,
+        requestedRoleIds: parsed.data.roles,
+        superAdminRoleName:
+          accessControlRuntimeDeps.ACCESS_CONTROL_ROLES.SUPER_ADMIN,
+      },
+      accessControlRuntimeDeps
+    );
 
     await accessControlRuntimeDeps.replaceUserRoles(
       user.id as string,
@@ -87,37 +97,4 @@ export async function updateUserRolesAction(id: string, formData: FormData) {
 
     return actionOk('roles updated', '/admin/users');
   });
-}
-
-/**
- * USERS_WRITE + ROLES_WRITE authorize managing role assignments, not minting new super
- * admins: any custom role holding both codes could otherwise grant itself the wildcard
- * role. The repository-side wildcard guard only covers the role-permission path.
- */
-async function assertSuperAdminGrantAllowed(
-  actorUserId: string,
-  requestedRoleIds: string[]
-) {
-  const superAdminRoleName =
-    accessControlRuntimeDeps.ACCESS_CONTROL_ROLES.SUPER_ADMIN;
-  // includeDeleted: a soft-deleted super_admin role can be restored later, so granting it
-  // is an escalation too.
-  const roles = await accessControlRuntimeDeps.listRoles({
-    includeDeleted: true,
-  });
-  const grantsSuperAdmin = roles.some(
-    (role) =>
-      role.name === superAdminRoleName && requestedRoleIds.includes(role.id)
-  );
-  if (!grantsSuperAdmin) {
-    return;
-  }
-
-  const actorIsSuperAdmin = await accessControlRuntimeDeps.checkUserRole(
-    actorUserId,
-    superAdminRoleName
-  );
-  if (!actorIsSuperAdmin) {
-    throw new ActionError('only super_admin can grant the super_admin role');
-  }
 }
