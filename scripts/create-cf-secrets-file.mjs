@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import * as envContractNamespace from '../src/config/env-contract.ts';
 import { shouldWarnOnlyForMissingPreviewSecret } from './lib/cloudflare-preview-optional-secrets.mjs';
 import {
+  CLOUDFLARE_SECRET_WORKER_ALLOWLIST,
   collectRequiredRuntimeBindings,
   normalizeCloudflareWorkerKeys,
   resolveCloudflareWorkerKeys,
@@ -19,6 +20,11 @@ const { assertAllowedEnvKeys, CLOUDFLARE_SECRET_ENV_KEYS } = envContractModule;
 const rootDir = process.cwd();
 
 export const CLOUDFLARE_SECRET_NAMES = [...CLOUDFLARE_SECRET_ENV_KEYS];
+const OPTIONAL_AI_PROVIDER_SECRET_NAMES = [
+  'REPLICATE_API_TOKEN',
+  'FAL_API_KEY',
+  'KIE_API_KEY',
+];
 
 /**
  * @typedef {Record<string, string | undefined>} EnvLike
@@ -202,6 +208,21 @@ export function buildCloudflareSecretsEnv(
       );
     }
   });
+  const optionalAiProviderEntries =
+    workerKeys.includes('chat') && bindingRequirements.secrets?.openrouter
+      ? OPTIONAL_AI_PROVIDER_SECRET_NAMES.flatMap((name) => {
+          if (
+            requiredSecretNames.includes(name) ||
+            !CLOUDFLARE_SECRET_WORKER_ALLOWLIST[name]?.includes('chat')
+          ) {
+            return [];
+          }
+
+          const value = processEnv[name]?.trim();
+          return value ? [[name, value]] : [];
+        })
+      : [];
+  resolvedSecretEntries.push(...optionalAiProviderEntries);
   const resolvedSecrets = Object.fromEntries(resolvedSecretEntries);
 
   assertAllowedEnvKeys(

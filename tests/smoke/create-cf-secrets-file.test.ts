@@ -327,6 +327,7 @@ test('buildCloudflareSecretsEnv 仅输出当前启用能力所需 secrets', () =
       GITHUB_CLIENT_ID: 'github-id',
       GITHUB_CLIENT_SECRET: 'github-secret',
       OPENROUTER_API_KEY: 'or-key',
+      REPLICATE_API_TOKEN: 'replicate-token',
       PAYPAL_CLIENT_ID: 'paypal-id',
     },
     {
@@ -342,6 +343,59 @@ test('buildCloudflareSecretsEnv 仅输出当前启用能力所需 secrets', () =
   assert.doesNotMatch(content, /PAYPAL_CLIENT_ID=paypal-id/);
   assert.doesNotMatch(content, /STRIPE_SECRET_KEY=/);
   assert.doesNotMatch(content, /REPLICATE_API_TOKEN=/);
+});
+
+test('buildCloudflareSecretsEnv 向 chat worker 输出已提供的可选 AI provider secrets', async () => {
+  const tempDir = await mkdtemp(
+    path.join(os.tmpdir(), 'cf-secrets-ai-provider-')
+  );
+  const targetDir = path.join(tempDir, 'sites/mamamiya');
+
+  try {
+    await mkdir(targetDir, { recursive: true });
+    await writeFile(
+      path.join(targetDir, 'site.config.json'),
+      JSON.stringify(
+        {
+          ...readCurrentSiteConfig({ siteKey: 'mamamiya' }),
+          capabilities: {
+            ...readCurrentSiteConfig({ siteKey: 'mamamiya' }).capabilities,
+            ai: true,
+          },
+        },
+        null,
+        2
+      ) + '\n',
+      'utf8'
+    );
+    await writeFile(
+      path.join(targetDir, 'deploy.settings.json'),
+      JSON.stringify(readSiteDeploySettings({ siteKey: 'mamamiya' }), null, 2) +
+        '\n',
+      'utf8'
+    );
+
+    const content = buildCloudflareSecretsEnv(
+      {
+        SITE: 'mamamiya',
+        BETTER_AUTH_SECRET: 'better-auth-secret',
+        OPENROUTER_API_KEY: 'openrouter-key',
+        REPLICATE_API_TOKEN: 'replicate-token',
+        FAL_API_KEY: 'fal-key',
+      },
+      {
+        rootDir: tempDir,
+        workerKeys: ['chat'],
+      }
+    );
+
+    assert.match(content, /OPENROUTER_API_KEY=openrouter-key/);
+    assert.match(content, /REPLICATE_API_TOKEN=replicate-token/);
+    assert.match(content, /FAL_API_KEY=fal-key/);
+    assert.doesNotMatch(content, /KIE_API_KEY=/);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('buildCloudflareSecretsEnv 显式请求 disabled chat worker 时失败', () => {
