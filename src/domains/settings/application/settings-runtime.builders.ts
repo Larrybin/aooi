@@ -53,7 +53,9 @@ export function buildPublicUiConfig(configs: Configs): PublicUiConfig {
   );
 
   return {
-    aiEnabled: isEnabled(configs[PUBLIC_UI_SETTING_KEYS.aiEnabled]),
+    aiEnabled:
+      Boolean(site.capabilities.ai) &&
+      isEnabled(configs[PUBLIC_UI_SETTING_KEYS.aiEnabled]),
     localeSwitcherEnabled: isEnabled(
       configs[PUBLIC_UI_SETTING_KEYS.localeSwitcherEnabled]
     ),

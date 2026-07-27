@@ -6,13 +6,13 @@ import {
   buildPublicUiConfig,
 } from './settings-runtime.builders';
 
-test('buildPublicUiConfig 在 fail-open 空洞输入下仍返回 closed object', () => {
+test('buildPublicUiConfig 以 site AI capability 作为数据库开关上限', () => {
   const config = buildPublicUiConfig({
     general_ai_enabled: 'true',
     private_secret: 'ignored',
   });
 
-  assert.equal(config.aiEnabled, true);
+  assert.equal(config.aiEnabled, false);
   assert.deepEqual(config.socialLinks, []);
 });
 
@@ -27,7 +27,7 @@ test('buildPublicUiConfig 返回 closed PublicUiConfig，不暴露 raw keys', ()
       '[{\"enabled\":true,\"icon\":\"RiGithubFill\",\"url\":\"https://github.com/example\"}]',
   });
 
-  assert.equal(config.aiEnabled, true);
+  assert.equal(config.aiEnabled, false);
   assert.equal(
     'general_ai_enabled' in (config as Record<string, unknown>),
     false
