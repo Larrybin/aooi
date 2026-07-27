@@ -29,6 +29,7 @@ build
 # Generated files
 *.d.ts
 !src/**/*.d.ts
+src/shared/types/cloudflare.d.ts
 
 # Public assets
 public
