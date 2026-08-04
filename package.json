@@ -182,7 +182,7 @@
     "eslint": "^9.37.0",
     "eslint-config-next": "16.2.7",
     "playwright": "1.60.0",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.23",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
@@ -208,7 +208,7 @@
       "path-to-regexp@8": "8.4.2",
       "picomatch@2": "2.3.2",
       "picomatch@4.0.3": "4.0.4",
-      "postcss": "8.5.15",
+      "postcss": "8.5.23",
       "uuid": "14.0.0",
       "@types/react": "19.2.17",
       "@types/react-dom": "19.2.3"
